@@ -1,0 +1,8 @@
+
+NOTES FOR THINGS TO IMPLEMENT
+
+* Must be adjointable, and adjoint manipulativeable
+* Must be a decent heart-torso solver
+* Different cell models must be possible
+* Just bidomain in some slab/heart
+* Or bidomain + torso must be possible
