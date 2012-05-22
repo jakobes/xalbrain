@@ -1,3 +1,9 @@
+# Copyright (C) 2012 Marie E. Rognes (meg@simula.no)
+# Use and modify at will
+# Last changed: 2012-05-22
+
+__all__ = ["SplittingSolver"]
+
 from dolfin import *
 
 class SplittingSolver:
@@ -66,9 +72,9 @@ class SplittingSolver:
             t0 = t1
             t1 = t0 + dt
 
-            plot(self.v, title="v")
-            plot(self.u, title="u")
-            plot(self.s, title="s")
+            #plot(self.v, title="v")
+            #plot(self.u, title="u")
+            #plot(self.s, title="s")
 
     def step(self, interval, ics):
         "Step through given interval with given initial conditions"

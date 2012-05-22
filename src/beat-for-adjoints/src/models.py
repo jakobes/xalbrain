@@ -1,4 +1,10 @@
-from dolfin import *
+# Copyright (C) 2012 Marie E. Rognes (meg@simula.no)
+# Use and modify at will
+# Last changed: 2012-05-22
+
+__all__ = ["CardiacModel", "CardiacCellModel", "FitzHughNagumo"]
+
+from dolfin import Parameters
 
 # ------------------------------------------------------------------------------
 # Cardiac models

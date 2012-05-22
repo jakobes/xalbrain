@@ -1,4 +1,5 @@
 from dolfin import *
+from dolfin_adjoint import *
 from splittingsolver import *
 from models import *
 
@@ -29,8 +30,9 @@ v_ = project(v_expr, solver.V)
 (v, u, s) = solver.solution_fields()
 v.assign(v_)
 
-solver.solve((0, 1.0), 0.01)
-plot(v)
-plot(u)
-plot(s)
-interactive()
+solver.solve((0, 0.1), 0.01)
+
+# Just quick regression test, not validation
+ref =  0.028030779172955524
+a = norm(v)
+assert abs(a - ref) < 1.e-9, "a = %g" % a
