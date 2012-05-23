@@ -1,5 +1,6 @@
 from dolfin import *
-from dolfin_adjoint import *
+
+# Cardiac solver specific imports
 from splittingsolver import *
 from models import *
 
@@ -22,6 +23,7 @@ heart = MyHeart(cell)
 
 parameters = Parameters()
 parameters.add("theta", 0.5)
+parameters.add("enable_adjoint", False)
 solver = SplittingSolver(heart, parameters)
 
 # Set initial conditions

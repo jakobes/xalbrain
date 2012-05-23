@@ -1,10 +1,15 @@
 # Copyright (C) 2012 Marie E. Rognes (meg@simula.no)
 # Use and modify at will
-# Last changed: 2012-05-22
+# Last changed: 2012-05-23
 
 __all__ = ["SplittingSolver"]
 
 from dolfin import *
+
+try:
+    import dolfin_adjoint
+except:
+    print "dolfin_adjoint not found. Disabling adjoint annotation"
 
 class SplittingSolver:
     """Operator splitting based solver for the bidomain equations."""
@@ -45,6 +50,7 @@ class SplittingSolver:
     def default_parameters(self):
 
         parameters = Parameters("SplittingSolver")
+        parameters.add("enable_adjoint", False)
         parameters.add("theta", 0.5)
         parameters.add("potential_polynomial_degree", 1)
         parameters.add("ode_polynomial_degree", 0)
@@ -136,8 +142,11 @@ class SplittingSolver:
 
         # Solve system here
         G = (Dt_v + I_theta)*w*dx + inner(Dt_s - F_theta, r)*dx
-        solve(G == 0, vs)
 
+        if self._parameters["enable_adjoint"]:
+            solve(G == 0, vs, annotate=True)
+        else:
+            solve(G == 0, vs)
         return vs.split()
 
     def pde_step(self, interval, ics):
@@ -173,8 +182,11 @@ class SplittingSolver:
         G = (Dt_v*w*dx + theta_parabolic + theta_elliptic)
         a, L = system(G)
         #bcs = DirichletBC(self.VU.sub(1), 0.0, "on_boundary")
-        solve(a == L, vu)#, bcs) # Here we can probably optimize away
-
+        if self._parameters["enable_adjoint"]:
+            # , bcs) # Here we can probably optimize away
+            solve(a == L, vu, annotate=True)
+        else:
+            solve(a == L, vu)
         return vu.split()
 
 # class ODESolver:
