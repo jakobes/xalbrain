@@ -1,24 +1,26 @@
 # Copyright (C) 2012 Marie E. Rognes (meg@simula.no)
 # Use and modify at will
-# Last changed: 2012-05-23
+# Last changed: 2012-05-29
 
 __all__ = ["SplittingSolver"]
 
 from dolfin import *
-
 try:
-    import dolfin_adjoint
+    from dolfin_adjoint import *
 except:
-    print "dolfin_adjoint not found. Disabling adjoint annotation"
+    print "dolfin_adjoint not found. Install it or mod this solver"
+    exit()
+
+import utils
+
 
 class SplittingSolver:
     """Operator splitting based solver for the bidomain equations."""
     def __init__(self, model, parameters=None):
         "Create solver."
 
+        # Set model and parameters
         self._model = model
-
-        # Set parameters
         self._parameters = self.default_parameters()
         if parameters is not None:
             self._parameters.update(parameters)
@@ -43,9 +45,13 @@ class SplittingSolver:
         self.VS = self.V*self.S
 
         # Create solution fields
-        self.v = Function(self.V)
-        self.u = Function(self.VU.sub(1).collapse())
-        self.s = Function(self.S)
+        #self.v = Function(self.V)
+        #self.u = Function(self.VU.sub(1).collapse())
+        #self.s = Function(self.S)
+
+        # Internal helper functions
+        self._u = Function(self.VU.sub(1).collapse())
+        self._vs = Function(self.VS)
 
     def default_parameters(self):
 
@@ -58,29 +64,24 @@ class SplittingSolver:
         return parameters
 
     def solution_fields(self):
-        return (self.v, self.u, self.s)
+        return (self._vs, self._u)
 
     def solve(self, interval, dt):
 
+        # Initial set-up
         (T0, T) = interval
-        (v0, s0) = (self.v, self.s)
+        t0 = T0; t1 = T0 + dt
+        vs0 = self._vs
 
-        t0 = T0
-        t1 = T0 + dt
         while (t1 <= T):
-            info_blue("Solving on t = (%g, %g)" % (t0, t1))
 
             # Solve
+            info_blue("Solving on t = (%g, %g)" % (t0, t1))
             timestep = (t0, t1)
-            self.step(timestep, (v0, s0))
+            self.step(timestep, vs0)
 
             # Update
-            t0 = t1
-            t1 = t0 + dt
-
-            #plot(self.v, title="v")
-            #plot(self.u, title="u")
-            #plot(self.s, title="s")
+            t0 = t1; t1 = t0 + dt
 
     def step(self, interval, ics):
         "Step through given interval with given initial conditions"
@@ -92,22 +93,31 @@ class SplittingSolver:
         dt = (t1 - t0)
         t = t0 + theta*dt
 
-        # Compute tentative membrane potential (v_star) and state (s_star)
-        (v_star, s_star) = self.ode_step((t0, t), ics)
+        # Compute tentative membrane potential and state (vs_star)
+        vs_star = self.ode_step((t0, t), ics)
+        (v_star, s_star) = split(vs_star)
 
         # Compute tentative potentials vu = (v, u)
-        (v, u) = self.pde_step((t0, t1), v_star)
+        vu = self.pde_step((t0, t1), v_star)
+        (v, u) = split(vu)
 
-        # Compute final membrane potential and state (if not done)
-        if theta < 1:
-            (v, s) = self.ode_step((t, t1), (v, s_star))
+        # Merge (inverse of split) v and s_star:
+        v_s_star = utils.merge((v, s_star), self.VS)
+
+        # If first order splitting, we are essentially done:
+        if theta == 1.0:
+            self._vs.assign(v_s_star,
+                            annotate=self._parameters["enable_adjoint"])
+
+        # Otherwise, we do another ode_step:
         else:
-            s = s_star
+            vs = self.ode_step((t, t1), v_s_star)
+            self._vs.assign(vs,
+                            annotate=self._parameters["enable_adjoint"])
 
-        # Update solution fields
-        self.v.assign(v)
-        self.u.assign(u)
-        self.s.assign(s)
+        # Store u (Not a part of the solution algorithm, no need to
+        # annotate, fortunately ..)
+        self._u.assign(vu.split()[1], annotate=False)
 
     def ode_step(self, interval, ics):
         """
@@ -125,8 +135,10 @@ class SplittingSolver:
         k_n = Constant(t1 - t0)
 
         # Extract initial conditions
-        (v_, s_) = ics
-        vs = project(as_vector((v_, s_)), self.VS)
+        (v_, s_) = split(ics)
+
+        # Set-up current variables
+        vs = Function(self.VS, ics)
         (v, s) = split(vs)
         (w, r) = TestFunctions(self.VS)
 
@@ -143,18 +155,17 @@ class SplittingSolver:
         # Solve system here
         G = (Dt_v + I_theta)*w*dx + inner(Dt_s - F_theta, r)*dx
 
-        if self._parameters["enable_adjoint"]:
-            solve(G == 0, vs, annotate=True)
-        else:
-            solve(G == 0, vs)
-        return vs.split()
+        solve(G == 0, vs,
+              annotate=self._parameters["enable_adjoint"])
+
+        return vs
 
     def pde_step(self, interval, ics):
         """
         Solve
 
-        v_t - div(M_i grad(v) ...) = 0
-        div (M_i grad(v) + ...) = 0
+        v_t - div(M_i grad(v) ..) = 0
+        div (M_i grad(v) + ..) = 0
 
         with v(t0) = v_,
         """
@@ -181,13 +192,12 @@ class SplittingSolver:
                           + inner((M_i + M_e)*grad(u), grad(q))*dx)
         G = (Dt_v*w*dx + theta_parabolic + theta_elliptic)
         a, L = system(G)
-        #bcs = DirichletBC(self.VU.sub(1), 0.0, "on_boundary")
-        if self._parameters["enable_adjoint"]:
-            # , bcs) # Here we can probably optimize away
-            solve(a == L, vu, annotate=True)
-        else:
-            solve(a == L, vu)
-        return vu.split()
+
+        bcs = []
+        solve(a == L, vu, bcs,
+              annotate=self._parameters["enable_adjoint"])
+
+        return vu
 
 # class ODESolver:
 #     def __init__(self, parameters=None):
