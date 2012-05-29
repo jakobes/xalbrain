@@ -80,7 +80,9 @@ class SplittingSolver:
     def step(self, interval, ics):
         "Step through given interval with given initial conditions"
 
+        # Extract some parameters for readability
         theta = self._theta
+        annotate = self._parameters["enable_adjoint"]
 
         # Extract time domain
         (t0, t1) = interval
@@ -88,7 +90,8 @@ class SplittingSolver:
         t = t0 + theta*dt
 
         # Compute tentative membrane potential and state (vs_star)
-        vs_star = self.ode_step((t0, t), ics)
+        #vs_star = self.ode_step((t0, t), ics)
+        vs_star = ics # Debugging
         (v_star, s_star) = split(vs_star)
 
         # Compute tentative potentials vu = (v, u)
@@ -96,22 +99,22 @@ class SplittingSolver:
         (v, u) = split(vu)
 
         # Merge (inverse of split) v and s_star:
-        v_s_star = utils.merge((v, s_star), self.VS)
+        #v_s_star = utils.merge((v, s_star), self.VS,
+        #                       annotate=annotate)
 
         # If first order splitting, we are essentially done:
         if theta == 1.0:
-            self._vs.assign(v_s_star,
-                            annotate=self._parameters["enable_adjoint"])
+            self._vs.assign(vs_star)
+            #self._vs.assign(v_s_star, annotate=annotate)
 
         # Otherwise, we do another ode_step:
-        else:
-            vs = self.ode_step((t, t1), v_s_star)
-            self._vs.assign(vs,
-                            annotate=self._parameters["enable_adjoint"])
+        #else:
+        #    vs = self.ode_step((t, t1), v_s_star)
+        #    self._vs.assign(vs, annotate=annotate)
 
         # Store u (Not a part of the solution algorithm, no need to
         # annotate, fortunately ..)
-        self._u.assign(vu.split()[1], annotate=False)
+        #self._u.assign(vu.split()[1], annotate=False)
 
     def ode_step(self, interval, ics):
         """
@@ -146,11 +149,15 @@ class SplittingSolver:
         I_theta = theta*I_ion(v, s) + (1 - theta)*I_ion(v_, s_)
         F_theta = theta*F(v, s) + (1 - theta)*F(v_, s_)
 
-        # Solve system here
+        # Set-up system
         G = (Dt_v + I_theta)*w*dx + inner(Dt_s - F_theta, r)*dx
 
-        solve(G == 0, vs,
-              annotate=self._parameters["enable_adjoint"])
+        # Solve system
+        pde = NonlinearVariationalProblem(G, vs, J=derivative(G, vs))
+        solver = NonlinearVariationalSolver(pde)
+        solver.parameters["newton_solver"]["relative_tolerance"] = 1.e-16
+        solver.parameters["newton_solver"]["absolute_tolerance"] = 1.e-16
+        solver.solve(annotate=self._parameters["enable_adjoint"])
 
         return vs
 
@@ -177,6 +184,7 @@ class SplittingSolver:
         Dt_v = (v - v_)/k_n
 
         theta = self._theta
+        annotate = self._parameters["enable_adjoint"]
 
         theta_parabolic = (theta*inner(M_i*grad(v), grad(w))*dx
                            + (1.0 - theta)*inner(M_i*grad(v_), grad(w))*dx
@@ -187,9 +195,10 @@ class SplittingSolver:
         G = (Dt_v*w*dx + theta_parabolic + theta_elliptic)
         a, L = system(G)
 
-        bcs = []
-        solve(a == L, vu, bcs,
-              annotate=self._parameters["enable_adjoint"])
+        # Solve system
+        pde = LinearVariationalProblem(a, L, vu, bcs=None)
+        solver = LinearVariationalSolver(pde)
+        solver.solve(annotate=annotate)
 
         return vu
 

@@ -1,6 +1,7 @@
 from dolfin import project, as_vector, MixedFunctionSpace
+from dolfin_adjoint import project
 
-def merge(subfunctions, V=None):
+def merge(subfunctions, V=None, annotate=False):
     # Create mixed space from components if none is given
     if V is None:
         Vs = []
@@ -12,6 +13,6 @@ def merge(subfunctions, V=None):
         V = MixedFunctionSpace(*Vs)
 
     # Project subfunctions onto mixed space
-    return project(as_vector(subfunctions), V)
+    return project(as_vector(subfunctions), V, annotate=annotate)
 
 
