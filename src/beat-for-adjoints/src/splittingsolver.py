@@ -43,9 +43,11 @@ class SplittingSolver:
         self.V = self.VU.sub(0).collapse()
         self.VS = self.V*self.S
 
-        # Internal helper functions
-        self._u = Function(self.VU.sub(1).collapse())
-        self._vs = Function(self.VS)
+        # Helper functions
+        self.u = Function(self.VU.sub(1).collapse())
+        self.vs_ = Function(self.VS)
+        self.vs = Function(self.VS)
+        self.vu = Function(self.VU)
 
     def default_parameters(self):
 
@@ -58,14 +60,14 @@ class SplittingSolver:
         return parameters
 
     def solution_fields(self):
-        return (self._vs, self._u)
+        return (self.vs_, self.vs, self.u)
 
     def solve(self, interval, dt):
 
         # Initial set-up
         (T0, T) = interval
         t0 = T0; t1 = T0 + dt
-        vs0 = self._vs
+        vs0 = self.vs_
 
         while (t1 <= T):
 
@@ -90,8 +92,7 @@ class SplittingSolver:
         t = t0 + theta*dt
 
         # Compute tentative membrane potential and state (vs_star)
-        #vs_star = self.ode_step((t0, t), ics)
-        vs_star = ics # Debugging
+        vs_star = self.ode_step((t0, t), ics)
         (v_star, s_star) = split(vs_star)
 
         # Compute tentative potentials vu = (v, u)
@@ -99,22 +100,23 @@ class SplittingSolver:
         (v, u) = split(vu)
 
         # Merge (inverse of split) v and s_star:
-        #v_s_star = utils.merge((v, s_star), self.VS,
-        #                       annotate=annotate)
+        v_s_star = utils.join((v, s_star), self.VS, annotate=annotate)
 
         # If first order splitting, we are essentially done:
         if theta == 1.0:
-            self._vs.assign(vs_star)
-            #self._vs.assign(v_s_star, annotate=annotate)
+            self.vs.assign(v_s_star, annotate=annotate)
 
         # Otherwise, we do another ode_step:
-        #else:
-        #    vs = self.ode_step((t, t1), v_s_star)
-        #    self._vs.assign(vs, annotate=annotate)
+        else:
+            vs = self.ode_step((t, t1), v_s_star)
+            #self.vs.assign(vs, annotate=annotate)
+
+        # Store previous _vs
+        self.vs_.assign(self.vs)
 
         # Store u (Not a part of the solution algorithm, no need to
         # annotate, fortunately ..)
-        #self._u.assign(vu.split()[1], annotate=False)
+        self.u.assign(vu.split()[1], annotate=False)
 
     def ode_step(self, interval, ics):
         """
@@ -135,7 +137,7 @@ class SplittingSolver:
         (v_, s_) = split(ics)
 
         # Set-up current variables
-        vs = Function(self.VS, ics)
+        vs = self.vs
         (v, s) = split(vs)
         (w, r) = TestFunctions(self.VS)
 
@@ -161,7 +163,7 @@ class SplittingSolver:
 
         return vs
 
-    def pde_step(self, interval, ics):
+    def pde_step(self, interval, v_):
         """
         Solve
 
@@ -170,22 +172,21 @@ class SplittingSolver:
 
         with v(t0) = v_,
         """
+
+        # Extract interval and time-step
         (t0, t1) = interval
         k_n = Constant(t1 - t0)
-
-        M_i, M_e = self._model.conductivities()
-
-        v_ = ics
-
-        (v, u) = TrialFunctions(self.VU)
-        (w, q) = TestFunctions(self.VU)
-
-        vu = Function(self.VU)
-        Dt_v = (v - v_)/k_n
-
         theta = self._theta
         annotate = self._parameters["enable_adjoint"]
 
+        # Extract conductivities from model
+        M_i, M_e = self._model.conductivities()
+
+        # Define variational formulation
+        (v, u) = TrialFunctions(self.VU)
+        (w, q) = TestFunctions(self.VU)
+
+        Dt_v = (v - v_)/k_n
         theta_parabolic = (theta*inner(M_i*grad(v), grad(w))*dx
                            + (1.0 - theta)*inner(M_i*grad(v_), grad(w))*dx
                            + inner(M_i*grad(u), grad(w))*dx)
@@ -196,11 +197,11 @@ class SplittingSolver:
         a, L = system(G)
 
         # Solve system
-        pde = LinearVariationalProblem(a, L, vu, bcs=None)
+        #bcs = DirichletBC(self.VU.sub(0), "0.0", "near(x[0], 0.0)")
+        pde = LinearVariationalProblem(a, L, self.vu, bcs=None)
         solver = LinearVariationalSolver(pde)
         solver.solve(annotate=annotate)
-
-        return vu
+        return self.vu
 
 # class ODESolver:
 #     def __init__(self, parameters=None):

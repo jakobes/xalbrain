@@ -23,32 +23,33 @@ cell = FitzHughNagumo(cell_parameters)
 heart = MyHeart(cell)
 
 parameters = Parameters()
-parameters.add("theta", 1.0)
+parameters.add("theta", 0.5)
 parameters.add("enable_adjoint", True)
 solver = SplittingSolver(heart, parameters)
 
 # Set initial conditions
 vs_expr = Expression(("- x[0]*(1-x[0])*x[1]*(1-x[1])", "0.0"))
-vs_ = project(vs_expr, solver.VS,
+vs0 = project(vs_expr, solver.VS,
               annotate=parameters["enable_adjoint"])
-(vs, u) = solver.solution_fields()
-vs.assign(vs_, annotate=parameters["enable_adjoint"])
+(vs_, vs, u) = solver.solution_fields()
+vs_.assign(vs0, annotate=parameters["enable_adjoint"])
 
-solver.solve((0, 0.1), 0.01)
+solver.solve((0, 0.1), 0.05)
 
 # Just quick regression test, not validation
 #solver.solve((0, 0.1), 0.01)
-#print "-"*80
+print "-"*80
 #ref = 0.028030781489032
 #a = norm(vs.split()[0])
 #diff = abs(a - ref)
 #assert diff < 1.e-9, "a = %g, diff = %g" % (a, diff)
-#print "-"*80
+print "-"*80
 
+#exit()
 # Try replaying
 adj_html("forward.html", "forward")
 adj_html("adjoint.html", "adjoint")
-success = replay_dolfin(tol=1.e-15, stop=True)
+success = replay_dolfin(tol=1.e-15, stop=True)#, forget=False)
 
 J = FinalFunctional(inner(vs, vs)*dx)
 

@@ -1,7 +1,7 @@
 from dolfin import project, as_vector, MixedFunctionSpace
 from dolfin_adjoint import project
 
-def merge(subfunctions, V=None, annotate=False):
+def join(subfunctions, V=None, annotate=False):
     # Create mixed space from components if none is given
     if V is None:
         Vs = []
