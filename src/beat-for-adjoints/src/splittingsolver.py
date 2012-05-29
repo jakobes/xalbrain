@@ -13,7 +13,6 @@ except:
 
 import utils
 
-
 class SplittingSolver:
     """Operator splitting based solver for the bidomain equations."""
     def __init__(self, model, parameters=None):

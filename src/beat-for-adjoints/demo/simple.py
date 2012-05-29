@@ -1,4 +1,5 @@
 from dolfin import *
+from dolfin_adjoint import *
 
 # Cardiac solver specific imports
 from splittingsolver import *
@@ -28,9 +29,10 @@ solver = SplittingSolver(heart, parameters)
 
 # Set initial conditions
 vs_expr = Expression(("- x[0]*(1-x[0])*x[1]*(1-x[1])", "0.0"))
-vs_ = project(vs_expr, solver.VS)
+vs_ = project(vs_expr, solver.VS,
+              annotate=parameters["enable_adjoint"])
 (vs, u) = solver.solution_fields()
-vs.assign(vs_)
+vs.assign(vs_, annotate=parameters["enable_adjoint"])
 
 solver.solve((0, 0.1), 0.01)
 
@@ -42,4 +44,10 @@ diff = abs(a - ref)
 assert diff < 1.e-9, "a = %g, diff = %g" % (a, diff)
 print "-"*80
 
+# Try replaying
+adj_html("forward.html", "forward")
+adj_html("adjoint.html", "adjoint")
+success = replay_dolfin(tol=0.0, stop=True)
+
+J = FinalFunctional(inner(vs, vs)*dx)
 
