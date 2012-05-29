@@ -24,9 +24,6 @@ class SplittingSolver:
         if parameters is not None:
             self._parameters.update(parameters)
 
-        # Extract theta parameter
-        self._theta = self._parameters["theta"]
-
         # Extract solution domain
         domain = self._model.domain()
 
@@ -47,7 +44,6 @@ class SplittingSolver:
         self.u = Function(self.VU.sub(1).collapse())
         self.vs_ = Function(self.VS)
         self.vs = Function(self.VS)
-        self.vu = Function(self.VU)
 
     def default_parameters(self):
 
@@ -70,7 +66,6 @@ class SplittingSolver:
         vs0 = self.vs_
 
         while (t1 <= T):
-
             # Solve
             info_blue("Solving on t = (%g, %g)" % (t0, t1))
             timestep = (t0, t1)
@@ -83,7 +78,7 @@ class SplittingSolver:
         "Step through given interval with given initial conditions"
 
         # Extract some parameters for readability
-        theta = self._theta
+        theta = self._parameters["theta"]
         annotate = self._parameters["enable_adjoint"]
 
         # Extract time domain
@@ -105,18 +100,18 @@ class SplittingSolver:
         # If first order splitting, we are essentially done:
         if theta == 1.0:
             self.vs.assign(v_s_star, annotate=annotate)
-
         # Otherwise, we do another ode_step:
         else:
             vs = self.ode_step((t, t1), v_s_star)
-            #self.vs.assign(vs, annotate=annotate)
+            self.vs.assign(vs, annotate=annotate)
 
-        # Store previous _vs
+        # Update previous
         self.vs_.assign(self.vs)
 
         # Store u (Not a part of the solution algorithm, no need to
         # annotate, fortunately ..)
         self.u.assign(vu.split()[1], annotate=False)
+
 
     def ode_step(self, interval, ics):
         """
@@ -127,7 +122,7 @@ class SplittingSolver:
 
         with v(t0) = v_, s(t0) = s_
         """
-        # For now, just use theta scheme. To be improved.
+        # For now, ust use theta scheme. To be improved.
 
         # Extract time domain
         (t0, t1) = interval
@@ -137,7 +132,8 @@ class SplittingSolver:
         (v_, s_) = split(ics)
 
         # Set-up current variables
-        vs = self.vs
+        vs = Function(self.VS)
+        vs.assign(ics) # Start with good guess
         (v, s) = split(vs)
         (w, r) = TestFunctions(self.VS)
 
@@ -145,7 +141,7 @@ class SplittingSolver:
         Dt_v = (v - v_)/k_n
         Dt_s = (s - s_)/k_n
 
-        theta = self._theta
+        theta = self._parameters["theta"]
         F = self._model.cell_model().F
         I_ion = self._model.cell_model().I
         I_theta = theta*I_ion(v, s) + (1 - theta)*I_ion(v_, s_)
@@ -157,8 +153,8 @@ class SplittingSolver:
         # Solve system
         pde = NonlinearVariationalProblem(G, vs, J=derivative(G, vs))
         solver = NonlinearVariationalSolver(pde)
-        solver.parameters["newton_solver"]["relative_tolerance"] = 1.e-16
-        solver.parameters["newton_solver"]["absolute_tolerance"] = 1.e-16
+        #solver.parameters["newton_solver"]["relative_tolerance"] = 1.e-16
+        #solver.parameters["newton_solver"]["absolute_tolerance"] = 1.e-16
         solver.solve(annotate=self._parameters["enable_adjoint"])
 
         return vs
@@ -176,7 +172,7 @@ class SplittingSolver:
         # Extract interval and time-step
         (t0, t1) = interval
         k_n = Constant(t1 - t0)
-        theta = self._theta
+        theta = self._parameters["theta"]
         annotate = self._parameters["enable_adjoint"]
 
         # Extract conductivities from model
@@ -197,11 +193,12 @@ class SplittingSolver:
         a, L = system(G)
 
         # Solve system
-        #bcs = DirichletBC(self.VU.sub(0), "0.0", "near(x[0], 0.0)")
-        pde = LinearVariationalProblem(a, L, self.vu, bcs=None)
+        bcs = DirichletBC(self.VU, (0.0, 0.0), "near(x[0], 0.0)")
+        vu = Function(self.VU)
+        pde = LinearVariationalProblem(a, L, vu, bcs=bcs)
         solver = LinearVariationalSolver(pde)
         solver.solve(annotate=annotate)
-        return self.vu
+        return vu
 
 # class ODESolver:
 #     def __init__(self, parameters=None):

@@ -34,22 +34,21 @@ vs0 = project(vs_expr, solver.VS,
 (vs_, vs, u) = solver.solution_fields()
 vs_.assign(vs0, annotate=parameters["enable_adjoint"])
 
-solver.solve((0, 0.1), 0.05)
-
 # Just quick regression test, not validation
-#solver.solve((0, 0.1), 0.01)
+info_green("Solving primal")
+solver.solve((0, 0.1), 0.01)
 print "-"*80
-#ref = 0.028030781489032
-#a = norm(vs.split()[0])
-#diff = abs(a - ref)
-#assert diff < 1.e-9, "a = %g, diff = %g" % (a, diff)
+ref = a = 0.023771346883295
+a = norm(vs.split()[0])
+print "a = %.15f" % a
+diff = abs(a - ref)
+assert diff < 1.e-9, "a = %g, diff = %g" % (a, diff)
 print "-"*80
 
-#exit()
-# Try replaying
 adj_html("forward.html", "forward")
 adj_html("adjoint.html", "adjoint")
-success = replay_dolfin(tol=1.e-15, stop=True)#, forget=False)
+info_green("Replaying")
+success = replay_dolfin(tol=1.e-10, stop=True)#, forget=False)
 
 J = FinalFunctional(inner(vs, vs)*dx)
 

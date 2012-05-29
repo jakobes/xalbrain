@@ -1,0 +1,12 @@
+* Scope of dolfin_adjoint objects?
+
+* Replay before Taylor remainder in tutorial?
+
+* Missing doc-string for dolfin_replay
+
+* Why don't dolfin_adjoint annotate anything (in the case with dt =
+  0.2, so just an project + assign) (Nothing shows up in the
+  forward.html)
+
+* Comment replay can report discrepancies due to tolerance in
+  solvers!! (Why?)
