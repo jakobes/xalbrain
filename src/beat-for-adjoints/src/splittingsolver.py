@@ -44,11 +44,6 @@ class SplittingSolver:
         self.V = self.VU.sub(0).collapse()
         self.VS = self.V*self.S
 
-        # Create solution fields
-        #self.v = Function(self.V)
-        #self.u = Function(self.VU.sub(1).collapse())
-        #self.s = Function(self.S)
-
         # Internal helper functions
         self._u = Function(self.VU.sub(1).collapse())
         self._vs = Function(self.VS)

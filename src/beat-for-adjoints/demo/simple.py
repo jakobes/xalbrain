@@ -36,9 +36,10 @@ solver.solve((0, 0.1), 0.01)
 
 # Just quick regression test, not validation
 print "-"*80
-ref =  0.028030779172955524
+ref = 0.028030781489032
 a = norm(vs.split()[0])
 diff = abs(a - ref)
 assert diff < 1.e-9, "a = %g, diff = %g" % (a, diff)
 print "-"*80
+
 
