@@ -13,3 +13,13 @@
 
 * Should add comment on what type of objects dJdic etc are in the
   tutorial
+
+* Debugging tips for
+
+  libadjoint.exceptions.LibadjointErrorNeedValue: Need a value for
+  w_1:0:0:Forward, but don't have one recorded. ?
+
+  libadjoint.exceptions.LibadjointErrorHashFailed: Hash failed:
+  w_4:0:0:Forward has no entry. ?
+
+* No output from parameters["adjoint"]["test_derivative"] = True ?
