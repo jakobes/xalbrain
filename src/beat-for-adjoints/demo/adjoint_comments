@@ -10,3 +10,6 @@
 
 * Comment replay can report discrepancies due to tolerance in
   solvers!! (Why?)
+
+* Should add comment on what type of objects dJdic etc are in the
+  tutorial
