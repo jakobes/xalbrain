@@ -33,7 +33,7 @@ solver = SplittingSolver(heart, application_parameters)
 def main(vs0):
     (vs_, vs, u) = solver.solution_fields()
     vs_.assign(vs0, annotate=application_parameters["enable_adjoint"])
-    solver.solve((0, 0.1), 0.05)
+    solver.solve((0, 0.1), 0.01)
     return (vs, vs_)
 
 # Define initial conditions
@@ -69,7 +69,7 @@ parameters["adjoint"]["stop_annotating"] = True # stop registering equations
 
 ic_param = InitialConditionParameter(vs_) # This "works"
 #ic_param = InitialConditionParameter(vs0) # This gives None
-dJdic = compute_gradient(J, ic_param)
+dJdic = compute_gradient(J, ic_param, forget=False)
 plot(dJdic, interactive=True)
 
 def Jhat(vs0):
