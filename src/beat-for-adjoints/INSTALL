@@ -1,1 +1,2 @@
+cd src
 export PYTHONPATH=`pwd`:$PYTHONPATH

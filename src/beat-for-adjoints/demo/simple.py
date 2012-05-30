@@ -45,10 +45,15 @@ diff = abs(a - ref)
 assert diff < 1.e-9, "a = %g, diff = %g" % (a, diff)
 print "-"*80
 
+# Try replaying forward
 adj_html("forward.html", "forward")
 adj_html("adjoint.html", "adjoint")
 info_green("Replaying")
-success = replay_dolfin(tol=1.e-10, stop=True)#, forget=False)
+success = replay_dolfin(tol=1.e-10, stop=True)
 
+# Try computing some kind of adjoint
 J = FinalFunctional(inner(vs, vs)*dx)
+ic_param = InitialConditionParameter(vs_)
+dJdic = compute_gradient(J, ic_param)
 
+plot(dJdic, interactive=True)
