@@ -11,7 +11,7 @@ solver = CellSolver(cell)
 
 (vs_, vs) = solver.solution_fields()
 
-solver.solve((0, 0.1), 1)
+solver.solve((0, 0.1), 0.01)
 
 (v, s) = vs.split()
 

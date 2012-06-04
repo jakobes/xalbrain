@@ -42,6 +42,7 @@ class CellSolver:
 
     def default_parameters(self):
         parameters = Parameters("CellSolver")
+        parameters.add("theta", 0.5)
         return parameters
 
     def solution_fields(self):
@@ -86,8 +87,8 @@ class CellSolver:
         Dt_s = (s - s_)/k_n
 
         theta = self._parameters["theta"]
-        F = self._model.cell_model().F
-        I_ion = self._model.cell_model().I
+        F = self._model.F
+        I_ion = self._model.I
         I_theta = theta*I_ion(v, s) + (1 - theta)*I_ion(v_, s_)
         F_theta = theta*F(v, s) + (1 - theta)*F(v_, s_)
 
