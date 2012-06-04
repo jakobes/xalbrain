@@ -60,7 +60,7 @@ class CellSolver:
             info_blue("Solving on t = (%g, %g)" % (t0, t1))
             timestep = (t0, t1)
             vs = self.step(timestep, self.vs_)
-            self.vs = vs
+            self.vs.assign(vs)
 
             # Update
             self.vs_.assign(self.vs)
@@ -93,11 +93,12 @@ class CellSolver:
         F_theta = theta*F(v, s) + (1 - theta)*F(v_, s_)
 
         # Set-up system
-        G = (Dt_v + I_theta)*w*dx + inner(Dt_s - F_theta, r)*dx
+        G = (Dt_v - I_theta)*w*dx + inner(Dt_s - F_theta, r)*dx
 
         # Solve system
         pde = NonlinearVariationalProblem(G, vs, J=derivative(G, vs))
         solver = NonlinearVariationalSolver(pde)
         solver.solve()
 
+        print "vs.vector() = ", vs.vector().array()
         return vs

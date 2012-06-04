@@ -83,8 +83,8 @@ class FitzHughNagumo(CardiacCellModel):
         parameters.add("c_1", 0.26)
         parameters.add("c_2", 0.1)
         parameters.add("c_3", 1.0)
-        parameters.add("v_rest", -85)
-        parameters.add("v_peak", 40)
+        parameters.add("v_rest", -85.)
+        parameters.add("v_peak", 40.)
         return parameters
 
     def I(self, v, s):
