@@ -10,17 +10,14 @@ class MyHeart(CardiacModel):
         CardiacModel.__init__(self, cell_model)
 
     def domain(self):
-        N = 16
-        return UnitSquare(N, N)
+        return Mesh("mesh_1.xml.gz")
 
     def conductivities(self):
         M_i = 1.0
         M_e = 1.0
         return (M_i, M_e)
 
-
-cell_parameters = {"epsilon": 0.01, "gamma": 0.5, "alpha": 0.1}
-cell = FitzHughNagumo(cell_parameters)
+cell = FitzHughNagumo()
 heart = MyHeart(cell)
 
 application_parameters = Parameters()
@@ -36,7 +33,7 @@ def main(vs0):
     return (vs, vs_)
 
 # Define initial conditions
-vs_expr = Expression(("- x[0]*(1-x[0])*x[1]*(1-x[1])", "0.0"))
+vs_expr = Expression(("0.0", "0.0"))
 vs0 = project(vs_expr, solver.VS)
 
 # Run main stuff

@@ -1,6 +1,6 @@
 # Copyright (C) 2012 Marie E. Rognes (meg@simula.no)
 # Use and modify at will
-# Last changed: 2012-05-22
+# Last changed: 2012-06-04
 
 __all__ = ["CardiacModel", "CardiacCellModel", "FitzHughNagumo"]
 
@@ -32,6 +32,18 @@ class CardiacModel:
 # ------------------------------------------------------------------------------
 
 class CardiacCellModel:
+    """
+    The cell model is described by two functions F and I: modelling a
+    system of ODEs of the form:
+
+    d/dt s = F(v, s)
+
+    where v is the transmembrane potential and s is the state
+    variable(s)
+
+    Further, I(v, s) gives the ionic current (in the bi/monodomain
+    equations)
+    """
 
     def __init__(self, parameters=None):
         self._parameters = self.default_parameters()
@@ -57,25 +69,46 @@ class CardiacCellModel:
         return "Some cardiac cell model"
 
 class FitzHughNagumo(CardiacCellModel):
-
-    def __init__(self, parameters):
+    """
+    Reparametrized FitzHughNagumo model
+    (cf. 2.4.1 in Sundnes et al 2006)
+    """
+    def __init__(self, parameters=None):
         CardiacCellModel.__init__(self, parameters)
-        self._epsilon = self._parameters["epsilon"]
-        self._gamma = self._parameters["gamma"]
-        self._alpha = self._parameters["alpha"]
 
     def default_parameters(self):
         parameters = Parameters("FitzHughNagumo")
-        parameters.add("epsilon", 0.01)
-        parameters.add("gamma", 0.5)
-        parameters.add("alpha", 0.1)
+        parameters.add("a", 0.13)
+        parameters.add("b", 0.0013)
+        parameters.add("c_1", 0.26)
+        parameters.add("c_2", 0.1)
+        parameters.add("c_3", 1.0)
+        parameters.add("v_rest", -85)
+        parameters.add("v_peak", 40)
         return parameters
 
-    def F(self, v, s):
-        return self._epsilon*(v - self._gamma*s)
-
     def I(self, v, s):
-        return v*(v - self._alpha)*(1 - v) - s
+        # Extract parameters
+        c_1 = self._parameters["c_1"]
+        c_2 = self._parameters["c_2"]
+        v_rest = self._parameters["v_rest"]
+        v_peak = self._parameters["v_peak"]
+        v_amp = v_peak - v_rest
+        v_th = v_rest + self._parameters["a"]*v_amp
+
+        # Define current
+        f = (c_1/(v_amp**2)*(v - v_rest)*(v - v_th)*(v_peak - v)
+             - c_2/(v_amp)*(v - v_rest)*s)
+        return f
+
+    def F(self, v, s):
+        # Extract parameters
+        b = self._parameters["b"]
+        v_rest = self._parameters["v_rest"]
+        c_3 = self._parameters["c_3"]
+
+        # Define model
+        return b*(v - v_rest - c_3*s)
 
     def num_states(self):
         return 1
