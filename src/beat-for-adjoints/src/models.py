@@ -16,6 +16,7 @@ class CardiacModel:
         if parameters is not None:
             self._parameters.update(parameters)
         self._cell_model = cell_model
+        self.applied_current = None
 
     def domain(self):
         error("Please overload in subclass")
@@ -59,6 +60,9 @@ class CardiacCellModel:
 
     def I(self, v, s):
         error("Must define I = I(v, s)")
+
+    def applied_current(self):
+        return self.applied_current
 
     def num_states(self):
         "Return number of state variables (in addition to membrane potential)."

@@ -89,8 +89,15 @@ class CellSolver:
         theta = self._parameters["theta"]
         F = self._model.F
         I_ion = self._model.I
-        I_theta = theta*I_ion(v, s) + (1 - theta)*I_ion(v_, s_)
+
         F_theta = theta*F(v, s) + (1 - theta)*F(v_, s_)
+        I_theta = theta*I_ion(v, s) + (1 - theta)*I_ion(v_, s_)
+
+        # Add current if applicable
+        if self._model.applied_current:
+            t = t0 + theta*(t1 - t0)
+            self._model.applied_current.t = t
+            I_theta -= self._model.applied_current*v
 
         # Set-up system
         G = (Dt_v - I_theta)*w*dx + inner(Dt_s - F_theta, r)*dx
@@ -100,5 +107,4 @@ class CellSolver:
         solver = NonlinearVariationalSolver(pde)
         solver.solve()
 
-        print "vs.vector() = ", vs.vector().array()
         return vs
