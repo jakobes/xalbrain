@@ -97,7 +97,7 @@ class CellSolver:
         if self._model.applied_current:
             t = t0 + theta*(t1 - t0)
             self._model.applied_current.t = t
-            I_theta -= self._model.applied_current*v
+            I_theta += self._model.applied_current
 
         # Set-up system
         G = (Dt_v - I_theta)*w*dx + inner(Dt_s - F_theta, r)*dx

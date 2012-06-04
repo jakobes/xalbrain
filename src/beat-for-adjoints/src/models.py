@@ -83,7 +83,7 @@ class FitzHughNagumo(CardiacCellModel):
     def default_parameters(self):
         parameters = Parameters("FitzHughNagumo")
         parameters.add("a", 0.13)
-        parameters.add("b", 0.0013)
+        parameters.add("b", 0.013)
         parameters.add("c_1", 0.26)
         parameters.add("c_2", 0.1)
         parameters.add("c_3", 1.0)
@@ -101,9 +101,9 @@ class FitzHughNagumo(CardiacCellModel):
         v_th = v_rest + self._parameters["a"]*v_amp
 
         # Define current
-        f = (c_1/(v_amp**2)*(v - v_rest)*(v - v_th)*(v_peak - v)
+        i = (c_1/(v_amp**2)*(v - v_rest)*(v - v_th)*(v_peak - v)
              - c_2/(v_amp)*(v - v_rest)*s)
-        return f
+        return i
 
     def F(self, v, s):
         # Extract parameters
