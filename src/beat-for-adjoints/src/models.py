@@ -1,6 +1,6 @@
 # Copyright (C) 2012 Marie E. Rognes (meg@simula.no)
 # Use and modify at will
-# Last changed: 2012-06-04
+# Last changed: 2012-06-05
 
 __all__ = ["CardiacModel", "CardiacCellModel", "FitzHughNagumo"]
 
@@ -103,7 +103,7 @@ class FitzHughNagumo(CardiacCellModel):
         # Define current
         i = (c_1/(v_amp**2)*(v - v_rest)*(v - v_th)*(v_peak - v)
              - c_2/(v_amp)*(v - v_rest)*s)
-        return i
+        return - i
 
     def F(self, v, s):
         # Extract parameters

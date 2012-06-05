@@ -1,6 +1,6 @@
 # Copyright (C) 2012 Marie E. Rognes (meg@simula.no)
 # Use and modify at will
-# Last changed: 2012-06-04
+# Last changed: 2012-06-05
 
 __all__ = ["CellSolver"]
 
@@ -90,8 +90,9 @@ class CellSolver:
         F = self._model.F
         I_ion = self._model.I
 
+        # Note sign for I_theta
         F_theta = theta*F(v, s) + (1 - theta)*F(v_, s_)
-        I_theta = theta*I_ion(v, s) + (1 - theta)*I_ion(v_, s_)
+        I_theta = - (theta*(I_ion(v, s) + (1 - theta)*I_ion(v_, s_)))
 
         # Add current if applicable
         if self._model.applied_current:

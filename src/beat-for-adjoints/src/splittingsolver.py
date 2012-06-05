@@ -1,6 +1,6 @@
 # Copyright (C) 2012 Marie E. Rognes (meg@simula.no)
 # Use and modify at will
-# Last changed: 2012-05-29
+# Last changed: 2012-06-05
 
 __all__ = ["SplittingSolver"]
 
@@ -32,16 +32,17 @@ class SplittingSolver:
         l = self._parameters["ode_polynomial_degree"]
         num_states = self._model.cell_model().num_states()
 
-        self.VU = VectorFunctionSpace(domain, "CG", k, 2)
+        self.V = FunctionSpace(domain, "CG", k)
+        R = FunctionSpace(domain, "R", 0)
+        self.VUR = MixedFunctionSpace([self.V, self.V, R])
         if num_states > 1:
             self.S = VectorFunctionSpace(domain, "DG", l, num_states)
         else:
             self.S = FunctionSpace(domain, "DG", l)
-        self.V = self.VU.sub(0).collapse()
         self.VS = self.V*self.S
 
         # Helper functions
-        self.u = Function(self.VU.sub(1).collapse())
+        self.u = Function(self.VUR.sub(1).collapse())
         self.vs_ = Function(self.VS)
         self.vs = Function(self.VS)
 
@@ -91,8 +92,8 @@ class SplittingSolver:
         (v_star, s_star) = split(vs_star)
 
         # Compute tentative potentials vu = (v, u)
-        vu = self.pde_step((t0, t1), v_star)
-        (v, u) = split(vu)
+        vur = self.pde_step((t0, t1), v_star)
+        (v, u, r) = split(vur)
 
         # Merge (inverse of split) v and s_star:
         v_s_star = utils.join((v, s_star), self.VS, annotate=annotate)
@@ -110,8 +111,7 @@ class SplittingSolver:
 
         # Store u (Not a part of the solution algorithm, no need to
         # annotate, fortunately ..)
-        self.u.assign(vu.split()[1], annotate=False)
-
+        self.u.assign(vur.split()[1], annotate=False)
 
     def ode_step(self, interval, ics):
         """
@@ -144,11 +144,11 @@ class SplittingSolver:
         theta = self._parameters["theta"]
         F = self._model.cell_model().F
         I_ion = self._model.cell_model().I
-        I_theta = theta*I_ion(v, s) + (1 - theta)*I_ion(v_, s_)
+        I_theta = - (theta*I_ion(v, s) + (1 - theta)*I_ion(v_, s_))
         F_theta = theta*F(v, s) + (1 - theta)*F(v_, s_)
 
         # Set-up system
-        G = (Dt_v + I_theta)*w*dx + inner(Dt_s - F_theta, r)*dx
+        G = (Dt_v - I_theta)*w*dx + inner(Dt_s - F_theta, r)*dx
 
         # Solve system
         pde = NonlinearVariationalProblem(G, vs, J=derivative(G, vs))
@@ -179,8 +179,8 @@ class SplittingSolver:
         M_i, M_e = self._model.conductivities()
 
         # Define variational formulation
-        (v, u) = TrialFunctions(self.VU)
-        (w, q) = TestFunctions(self.VU)
+        (v, u, r) = TrialFunctions(self.VUR)
+        (w, q, s) = TestFunctions(self.VUR)
 
         Dt_v = (v - v_)/k_n
         theta_parabolic = (theta*inner(M_i*grad(v), grad(w))*dx
@@ -189,16 +189,16 @@ class SplittingSolver:
         theta_elliptic = (theta*inner(M_i*grad(v), grad(q))*dx
                           + (1.0 - theta)*inner(M_i*grad(v_), grad(q))*dx
                           + inner((M_i + M_e)*grad(u), grad(q))*dx)
-        G = (Dt_v*w*dx + theta_parabolic + theta_elliptic)
+        G = (Dt_v*w*dx + theta_parabolic + theta_elliptic
+             + (s*u + r*q)*dx)
         a, L = system(G)
 
         # Solve system
-        bcs = DirichletBC(self.VU, (0.0, 0.0), "near(x[0], 0.0)")
-        vu = Function(self.VU)
-        pde = LinearVariationalProblem(a, L, vu, bcs=bcs)
+        vur = Function(self.VUR)
+        pde = LinearVariationalProblem(a, L, vur, bcs=None)
         solver = LinearVariationalSolver(pde)
         solver.solve(annotate=annotate)
-        return vu
+        return vur
 
 # class ODESolver:
 #     def __init__(self, parameters=None):
