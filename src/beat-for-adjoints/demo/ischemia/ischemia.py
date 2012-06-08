@@ -9,8 +9,11 @@ class MyHeart(CardiacModel):
     def __init__(self, cell_model):
         CardiacModel.__init__(self, cell_model)
         self._domain = Mesh("mesh_1.xml.gz")
-        self._M_i = Constant(1.0)
-        self._M_e = Constant(1.0)
+        R = FunctionSpace(self._domain, "R", 0)
+        self._M_i = Function(R)
+        self._M_i.vector()[:] = 1.0
+        self._M_e = Function(R)
+        self._M_e.vector()[:] = 1.0
 
     def domain(self):
         return self._domain
@@ -30,7 +33,7 @@ solver = SplittingSolver(heart, application_parameters)
 def main(vs0):
     (vs_, vs, u) = solver.solution_fields()
     vs_.assign(vs0, annotate=application_parameters["enable_adjoint"])
-    solver.solve((0, 0.01), 0.01)
+    solver.solve((0, 0.1), 0.01)
     return (vs, vs_, u)
 
 # Define initial conditions
@@ -60,15 +63,14 @@ if plot_solutions:
     interactive()
 
 # Define functional
-j = inner(vs, vs)*dx
+j = inner(vs, vs)*ds
 J = FinalFunctional(j)
 print assemble(j)
 
 (M_i, M_e) = heart.conductivities()
-scalar_param = ScalarParameter(M_i)
-dJdM_i = compute_gradient(J, scalar_param, forget=False)
-#plot(dJdM_I, interactive=True)
-
+ic_param = InitialConditionParameter(M_i)
+dJdM_i = compute_gradient(J, ic_param, forget=False)
+plot(dJdM_i, interactive=True)
 # ic_param = InitialConditionParameter(vs_) # This "works"
 # #ic_param = InitialConditionParameter(vs0) # This gives None
 # dJdic = compute_gradient(J, ic_param, forget=False)
@@ -84,4 +86,4 @@ dJdM_i = compute_gradient(J, scalar_param, forget=False)
 # #
 # conv_rate = taylor_test(Jhat, ic_param, Jvalue, dJdic)
 
-interactive()
+#interactive()
