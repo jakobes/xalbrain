@@ -1,6 +1,6 @@
 # Copyright (C) 2012 Marie E. Rognes (meg@simula.no)
 # Use and modify at will
-# Last changed: 2012-06-05
+# Last changed: 2012-06-08
 
 __all__ = ["SplittingSolver"]
 
@@ -113,6 +113,7 @@ class SplittingSolver:
         # annotate, fortunately ..)
         self.u.assign(vur.split()[1], annotate=False)
 
+
     def ode_step(self, interval, ics):
         """
         Solve
@@ -195,7 +196,7 @@ class SplittingSolver:
 
         # Solve system
         vur = Function(self.VUR)
-        pde = LinearVariationalProblem(a, L, vur, bcs=None)
+        pde = LinearVariationalProblem(a, L, vur)
         solver = LinearVariationalSolver(pde)
         solver.solve(annotate=annotate)
         return vur
