@@ -113,7 +113,6 @@ class SplittingSolver:
         # annotate, fortunately ..)
         self.u.assign(vur.split()[1], annotate=False)
 
-
     def ode_step(self, interval, ics):
         """
         Solve
@@ -139,6 +138,7 @@ class SplittingSolver:
         (w, r) = TestFunctions(self.VS)
 
         # Define equation based on cell model
+        # Note sign for I_theta
         Dt_v = (v - v_)/k_n
         Dt_s = (s - s_)/k_n
 
