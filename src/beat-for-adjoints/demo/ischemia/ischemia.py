@@ -22,7 +22,7 @@ cell = FitzHughNagumo()
 heart = MyHeart(cell)
 
 application_parameters = Parameters()
-application_parameters.add("theta", 0.5)
+application_parameters.add("theta", 1.0)
 application_parameters.add("enable_adjoint", True)
 
 solver = SplittingSolver(heart, application_parameters)
@@ -30,16 +30,18 @@ solver = SplittingSolver(heart, application_parameters)
 def main(vs0):
     (vs_, vs, u) = solver.solution_fields()
     vs_.assign(vs0, annotate=application_parameters["enable_adjoint"])
-    solver.solve((0, 0.1), 0.01)
+    solver.solve((0, 0.01), 0.01)
     return (vs, vs_, u)
 
 # Define initial conditions
 vs_expr = Expression(("0.0", "0.0"))
-vs0 = project(vs_expr, solver.VS)
+vs0 = project(vs_expr, solver.VS, annotate=False)
 
 # Run main stuff
 info_green("Solving primal")
 (vs, vs_, u) = main(vs0)
+
+parameters["adjoint"]["stop_annotating"] = True # stop registering equations
 
 # Try replaying forward
 replay = False
@@ -47,20 +49,24 @@ if replay:
     info_green("Replaying")
     success = replay_dolfin(tol=1.e-10, stop=True, forget=False)
 
-# # Try computing some kind of adjoint
-plot(vs[0], title="v")
-plot(vs[1], title="s")
-plot(u, title="u")
+adj_html("forward.html", "forward")
+adj_html("adjoint.html", "adjoint")
 
-j = inner(vs, vs)*ds
-print assemble(j)
+plot_solutions = False
+if plot_solutions:
+    plot(vs[0], title="v")
+    plot(vs[1], title="s")
+    plot(u, title="u")
+    interactive()
 
+# Define functional
+j = inner(vs, vs)*dx
 J = FinalFunctional(j)
-# parameters["adjoint"]["stop_annotating"] = True # stop registering equations
+print assemble(j)
 
 (M_i, M_e) = heart.conductivities()
 scalar_param = ScalarParameter(M_i)
-dJdM_i = compute_gradient(J, scalar_param)#, forget=False)
+dJdM_i = compute_gradient(J, scalar_param, forget=False)
 #plot(dJdM_I, interactive=True)
 
 # ic_param = InitialConditionParameter(vs_) # This "works"

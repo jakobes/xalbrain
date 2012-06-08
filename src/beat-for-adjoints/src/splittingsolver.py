@@ -156,6 +156,7 @@ class SplittingSolver:
         solver = NonlinearVariationalSolver(pde)
         #solver.parameters["newton_solver"]["relative_tolerance"] = 1.e-16
         #solver.parameters["newton_solver"]["absolute_tolerance"] = 1.e-16
+        #solver.parameters["newton_solver"]["maximum_iterations"] = 10
         solver.solve(annotate=self._parameters["enable_adjoint"])
 
         return vs
