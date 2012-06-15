@@ -11,12 +11,14 @@ from dolfin_adjoint import *
 from splittingsolver import *
 from models import *
 
+level = 2
+
 class MyHeart(CardiacModel):
     def __init__(self, cell_model):
         CardiacModel.__init__(self, cell_model)
 
     def domain(self):
-        N = 16
+        N = 10*(2**level)
         return UnitSquare(N, N)
 
     def conductivities(self):
@@ -35,17 +37,30 @@ application_parameters.add("enable_adjoint", False)
 
 solver = SplittingSolver(heart, application_parameters)
 
+T = 0.1
+dt = 0.01/(2**level)
+
+v_exact = Expression("cos(2*pi*x[0])*cos(2*pi*x[1])*sin(t)", t=T, degree=3)
+u_exact = Expression("-cos(2*pi*x[0])*cos(2*pi*x[1])*sin(t)/2.0", t=T, degree=3)
+
 def main(vs0):
     (vs_, vs, u) = solver.solution_fields()
     vs_.assign(vs0, annotate=application_parameters["enable_adjoint"])
-    solver.solve((0, 1.0), 0.01)
-    return (vs, vs_)
+    solver.solve((0, T), 0.01)
+    return (vs, vs_, u)
 
 # Define initial conditions
 vs0 = Function(solver.VS)
 
 # Run main stuff
 info_green("Solving primal")
-(vs, vs_) = main(vs0)
+(vs, vs_, u) = main(vs0)
 
-interactive()
+(v, s) = vs.split()
+
+v_error = errornorm(v_exact, v, "L2")
+u_error = errornorm(u_exact, u, "L2")
+print "v_error = ", v_error
+print "u_error = ", u_error
+
+#interactive()

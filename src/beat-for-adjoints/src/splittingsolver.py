@@ -72,8 +72,6 @@ class SplittingSolver:
             timestep = (t0, t1)
             self.step(timestep, vs0)
 
-            plot(self.u)
-
             # Update
             t0 = t1; t1 = t0 + dt
 
