@@ -1,6 +1,6 @@
 # Copyright (C) 2012 Marie E. Rognes (meg@simula.no)
 # Use and modify at will
-# Last changed: 2012-06-08
+# Last changed: 2012-06-15
 
 __all__ = ["SplittingSolver"]
 
@@ -71,6 +71,8 @@ class SplittingSolver:
             info_blue("Solving on t = (%g, %g)" % (t0, t1))
             timestep = (t0, t1)
             self.step(timestep, vs0)
+
+            plot(self.u)
 
             # Update
             t0 = t1; t1 = t0 + dt
@@ -193,6 +195,12 @@ class SplittingSolver:
                           + inner((M_i + M_e)*grad(u), grad(q))*dx)
         G = (Dt_v*w*dx + theta_parabolic + theta_elliptic
              + (s*u + r*q)*dx)
+
+        if self._model.applied_current:
+            t = t0 + theta*(t1 - t0)
+            self._model.applied_current.t = t
+            G += self._model.applied_current*w*dx
+
         a, L = system(G)
 
         # Solve system

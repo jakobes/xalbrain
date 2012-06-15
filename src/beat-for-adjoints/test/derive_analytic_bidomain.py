@@ -11,7 +11,7 @@ C = symbols("C")
 M_i = Integer(1)
 M_e = Integer(1)
 
-v = t*cos(2*pi*x)*cos(2*pi*y)
+v = sin(t)*cos(2*pi*x)*cos(2*pi*y)
 u = - Rational(1, 2)*v
 
 underline("Analytic solutions")

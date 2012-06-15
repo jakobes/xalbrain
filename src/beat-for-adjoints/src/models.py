@@ -1,8 +1,9 @@
 # Copyright (C) 2012 Marie E. Rognes (meg@simula.no)
 # Use and modify at will
-# Last changed: 2012-06-05
+# Last changed: 2012-06-15
 
-__all__ = ["CardiacModel", "CardiacCellModel", "FitzHughNagumo"]
+__all__ = ["CardiacModel", "CardiacCellModel", "FitzHughNagumo",
+           "NoCellModel"]
 
 from dolfin import Parameters
 
@@ -119,3 +120,24 @@ class FitzHughNagumo(CardiacCellModel):
 
     def __str__(self):
         return "FitzHugh-Nagumo cardiac cell model"
+
+class NoCellModel(CardiacCellModel):
+    """
+    Class representing no cell model (only bidomain equations)
+    """
+    def __init__(self, parameters=None):
+        CardiacCellModel.__init__(self, parameters)
+
+    def I(self, v, s):
+        return 0
+
+    def F(self, v, s):
+        # Define model
+        return -s
+
+    def num_states(self):
+        return 1
+
+    def __str__(self):
+        return "No cardiac cell model"
+
