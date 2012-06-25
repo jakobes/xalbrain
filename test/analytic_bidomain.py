@@ -8,8 +8,8 @@ from dolfin import *
 from dolfin_adjoint import *
 
 # Cardiac solver specific imports
-from splittingsolver import *
-from models import *
+from beatadjoint import *
+from beatadjoint.models import *
 
 level = 2
 

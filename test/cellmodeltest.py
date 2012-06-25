@@ -1,10 +1,11 @@
 from dolfin import *
 import pylab
+import os
 #from dolfin_adjoint import *
 
 # Cardiac solver specific imports
-from models import *
-from cellsolver import *
+from beatadjoint import *
+from beatadjoint.models import *
 
 class AppliedCurrent(Expression):
     def __init__(self, t=0.0):
@@ -51,7 +52,7 @@ while (t1 <= T):
     vs_.assign(vs)
     t0 = t1; t1 = t0 + dt
 
-
-pylab.plot(times, v_values, 'b*')
-pylab.plot(times, s_values, 'r-')
-pylab.show()
+if int(os.environ.get("DOLFIN_NOPLOT", 0)) != 1:
+    pylab.plot(times, v_values, 'b*')
+    pylab.plot(times, s_values, 'r-')
+    pylab.show()
