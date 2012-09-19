@@ -129,7 +129,7 @@ class SplittingSolver:
 
         with v(t0) = v_, s(t0) = s_
         """
-        # For now, ust use theta scheme. To be improved.
+        # For now, just use theta scheme. To be improved.
 
         # Extract time domain
         (t0, t1) = interval
