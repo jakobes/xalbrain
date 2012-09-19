@@ -1,6 +1,6 @@
 # Copyright (C) 2012 Marie E. Rognes (meg@simula.no)
 # Use and modify at will
-# Last changed: 2012-06-15
+# Last changed: 2012-09-19
 
 __all__ = ["SplittingSolver"]
 
@@ -14,7 +14,14 @@ except:
 import utils
 
 class SplittingSolver:
-    """Operator splitting based solver for the bidomain equations."""
+    """Operator splitting based solver for the bidomain equations.
+
+    The splitting algorithm can be controlled by the parameter
+    'theta'.  theta = 1.0 corresponds to a (1st order) Godunov
+    splitting, theta = 0.5 to a (2nd order) Strang splitting.
+
+    See p. 78 ff in Sundnes et al 2006 for details.
+    """
     def __init__(self, model, parameters=None):
         "Create solver."
 
@@ -197,7 +204,7 @@ class SplittingSolver:
         if self._model.applied_current:
             t = t0 + theta*(t1 - t0)
             self._model.applied_current.t = t
-            G += self._model.applied_current*w*dx
+            G -= self._model.applied_current*w*dx
 
         a, L = system(G)
 
@@ -207,16 +214,3 @@ class SplittingSolver:
         solver = LinearVariationalSolver(pde)
         solver.solve(annotate=annotate)
         return vur
-
-# class ODESolver:
-#     def __init__(self, parameters=None):
-#         self._parameters = self.default_parameters()
-#         if parameters is not None:
-#             self._parameters.update(parameters)
-
-#     def step(self, interval, rhs, ics):
-#         pass
-
-#     def default_parameters(self):
-#         parameters = Parameters("ODESolver")
-#         return parameters
