@@ -124,8 +124,7 @@ class FitzHughNagumo(CardiacCellModel):
 class NoCellModel(CardiacCellModel):
     """
     Class representing no cell model (only bidomain equations). It
-    actually works but just representing a single completely decoupled
-    ODE.
+    actually just represents a single completely decoupled ODE.
     """
     def __init__(self, parameters=None):
         CardiacCellModel.__init__(self, parameters)

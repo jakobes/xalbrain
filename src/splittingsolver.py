@@ -33,6 +33,7 @@ class SplittingSolver:
 
         # Extract solution domain
         domain = self._model.domain()
+        self._domain = domain
 
         # Create function spaces
         k = self._parameters["potential_polynomial_degree"]
@@ -53,6 +54,9 @@ class SplittingSolver:
         self.vs_ = Function(self.VS)
         self.vs = Function(self.VS)
 
+        self._v = Function(self.V)
+        self._s = Function(self.S)
+
     def default_parameters(self):
 
         parameters = Parameters("SplittingSolver")
@@ -60,6 +64,8 @@ class SplittingSolver:
         parameters.add("theta", 0.5)
         parameters.add("potential_polynomial_degree", 1)
         parameters.add("ode_polynomial_degree", 0)
+        parameters.add("plot_solutions", False)
+        parameters.add("store_solutions", False)
 
         return parameters
 
@@ -73,11 +79,25 @@ class SplittingSolver:
         t0 = T0; t1 = T0 + dt
         vs0 = self.vs_
 
+        vs_series = None
+        u_series = None
+        if self._parameters["store_solutions"]:
+            vs_series = TimeSeries("results/vs_solutions")
+            u_series = TimeSeries("results/u_solutions")
+
         while (t1 <= T + DOLFIN_EPS):
             # Solve
             info_blue("Solving on t = (%g, %g)" % (t0, t1))
             timestep = (t0, t1)
             self.step(timestep, vs0)
+
+            if self._parameters["store_solutions"]:
+                vs_series.store(self._domain, t1)
+                theta = self._parameters["theta"]
+                midt = t0 + theta*(t1 - t0)
+                u_series.store(self._domain, midt)
+                vs_series.store(self.vs.vector(), t1)
+                u_series.store(self.u.vector(), midt)
 
             # Update
             t0 = t1; t1 = t0 + dt
@@ -120,6 +140,14 @@ class SplittingSolver:
         # annotate, fortunately ..)
         self.u.assign(vur.split()[1], annotate=False)
 
+        if self._parameters["plot_solutions"]:
+            (v, s) = self.vs.split(deepcopy=True)
+            self._v.assign(v, annotate=False)
+            self._s.assign(s, annotate=False)
+            plot(self._v, title="v")
+            plot(self._s, title="s")
+            plot(self.u, title="u")
+
     def ode_step(self, interval, ics):
         """
         Solve
@@ -154,6 +182,13 @@ class SplittingSolver:
         I_ion = self._model.cell_model().I
         I_theta = - (theta*I_ion(v, s) + (1 - theta)*I_ion(v_, s_))
         F_theta = theta*F(v, s) + (1 - theta)*F(v_, s_)
+
+        # Add current if applicable
+        cell_current = self._model.cell_model().applied_current
+        if cell_current:
+            t = t0 + theta*(t1 - t0)
+            cell_current.t = t
+            I_theta += cell_current
 
         # Set-up system
         G = (Dt_v - I_theta)*w*dx + inner(Dt_s - F_theta, r)*dx
