@@ -1,5 +1,7 @@
 \documentclass[a4paper, reqno]{amsart}
 
+\usepackage{a4wide}
+
 % Amsmath
 \usepackage{amsmath}
 \usepackage{amssymb}
@@ -249,8 +251,38 @@ function over $\heart$. Adding the last two equations give
   &= 0 \quad \foralls \xi \in V(\Omega).
 \end{align}
 
+\section{Analytical test case for the bidomain equations}
 
-\bibliographystyle{siam}
-\bibliography{bibliography}
+To verify the correctness of the implementation of the bidomain
+equations and any solvers of these, we consider a simple analytical
+test case. We begin by considering the case where there are no ion
+concentrations, in order words, the bidomain equations over a single
+domain $\Omega$ without any additional system of ordinary differential
+equations.
+
+Let $\Omega = [0, 1]^2$, and take
+\begin{align}
+  v(x, t) &=  \cos(2 \pi x_0) \cos(2 \pi x_1) \sin(t) \\
+  u(x, t) &= - 0.5 v(x, t)
+\end{align}
+Let $M_i = M_e = 1.0$. Then, with these choices:
+\begin{equation}
+  \Div J_m = \Div (M_i \Grad v + (M_i + M_e) \Grad u) = 0
+\end{equation}
+Further, $\int_{\Omega} u = 0$, and also with regard to the boundary
+conditions, we have for all $t$:
+\begin{equation}
+  J_m(x, t) \cdot n = 0 = J_i(x, t) \quad x \in \partial \Omega
+\end{equation}
+As initial condition, we take $v(x, 0) = 0$, which is compatible with
+the exact solutions. The suitable right-hand side in the parabolic
+equation follows by direct derivation:
+\begin{equation}
+  -I_{\textrm{ion}} = f = \frac{\partial v}{\partial t} - \Div J_i(v, u) =
+  4 \pi^2 \sin(t) \cos(2 \pi x_0) \cos(2 \pi x_1)
+  + \cos(t) \cos(2 \pi x_0) \cos(2 \pi x_1)
+\end{equation}
+
+\bibliographystyle{siam} \bibliography{bibliography}
 
 \end{document}
