@@ -73,7 +73,7 @@ class SplittingSolver:
         t0 = T0; t1 = T0 + dt
         vs0 = self.vs_
 
-        while (t1 <= T):
+        while (t1 <= T + DOLFIN_EPS):
             # Solve
             info_blue("Solving on t = (%g, %g)" % (t0, t1))
             timestep = (t0, t1)

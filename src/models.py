@@ -1,6 +1,6 @@
 # Copyright (C) 2012 Marie E. Rognes (meg@simula.no)
 # Use and modify at will
-# Last changed: 2012-06-15
+# Last changed: 2012-09-19
 
 __all__ = ["CardiacModel", "CardiacCellModel", "FitzHughNagumo",
            "NoCellModel"]
@@ -123,7 +123,9 @@ class FitzHughNagumo(CardiacCellModel):
 
 class NoCellModel(CardiacCellModel):
     """
-    Class representing no cell model (only bidomain equations)
+    Class representing no cell model (only bidomain equations). It
+    actually works but just representing a single completely decoupled
+    ODE.
     """
     def __init__(self, parameters=None):
         CardiacCellModel.__init__(self, parameters)

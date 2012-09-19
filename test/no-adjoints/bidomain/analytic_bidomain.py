@@ -12,7 +12,7 @@ from dolfin import *
 from beatadjoint import *
 from beatadjoint.models import *
 
-level = 1
+level = 0
 set_log_level(ERROR)
 
 class MyHeart(CardiacModel):
@@ -26,42 +26,50 @@ class MyHeart(CardiacModel):
         M_e = 1.0
         return (M_i, M_e)
 
+# Set-up model
 cell = NoCellModel()
 heart = MyHeart(cell)
 ac_str = "cos(t)*cos(2*pi*x[0])*cos(2*pi*x[1]) + 4*pow(pi, 2)*cos(2*pi*x[0])*cos(2*pi*x[1])*sin(t)"
 heart.applied_current = Expression(ac_str, t=0, degree=5)
 
+# Set-up solver
 application_parameters = Parameters()
-application_parameters.add("theta", 0.5)
+theta = 0.5
+application_parameters.add("theta", theta)
 application_parameters.add("enable_adjoint", False)
-
 solver = SplittingSolver(heart, application_parameters)
 
+# Define end-time and (constant) timestep
 T = 0.1
 dt = 0.01/(2**level)
 
+# Define exact solution (Note: v is returned at end of time
+# interval(s), u is computed at somewhere in the time interval
+# depending on theta)
 v_exact = Expression("cos(2*pi*x[0])*cos(2*pi*x[1])*sin(t)", t=T, degree=5)
-u_exact = Expression("-cos(2*pi*x[0])*cos(2*pi*x[1])*sin(t)/2.0", t=T, degree=5)
-
-plot(v_exact, title="v_exact", mesh=heart.domain())
-plot(u_exact, title="u_exact", mesh=heart.domain())
+u_exact = Expression("-cos(2*pi*x[0])*cos(2*pi*x[1])*sin(t)/2.0",
+                     t=T - (1 - theta)*dt, degree=5)
 
 # Define initial condition(s)
 vs0 = Function(solver.VS)
-
 (vs_, vs, u) = solver.solution_fields()
 vs_.assign(vs0)
 
-# Run main stuff
+# Solve
 info_green("Solving primal")
-solver.solve((0, T), 0.01)
+solver.solve((0, T), dt)
 (v, s) = vs.split()
 
-plot(v, title="v")
-plot(u, title="u")
+# Procomputed reference errors (for regression checking):
+v_reference = 4.3105092332652306e-03
+u_reference = 2.0258311577533851e-03
 
+# Compute errors
 v_error = errornorm(v_exact, v, "L2", degree_rise=5)
 u_error = errornorm(u_exact, u, "L2", degree_rise=5)
-print "v_error = ", v_error
-print "u_error = ", u_error
-interactive()
+v_diff = abs(v_error - v_reference)
+u_diff = abs(u_error - u_reference)
+tolerance = 1.e-10
+msg = "Maximal %s value does not match reference: diff is %.16e"
+assert (v_diff < tolerance), msg % ("v", v_diff)
+assert (u_diff < tolerance), msg % ("u", u_diff)
