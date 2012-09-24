@@ -1,6 +1,6 @@
 # Copyright (C) 2012 Marie E. Rognes (meg@simula.no)
 # Use and modify at will
-# Last changed: 2012-09-19
+# Last changed: 2012-09-24
 
 __all__ = ["SplittingSolver"]
 
@@ -185,6 +185,7 @@ class SplittingSolver:
 
         # Add current if applicable
         cell_current = self._model.cell_model().applied_current
+        print "cell_current = ", cell_current
         if cell_current:
             t = t0 + theta*(t1 - t0)
             cell_current.t = t

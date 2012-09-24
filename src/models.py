@@ -58,6 +58,7 @@ class CardiacCellModel:
         self._parameters = self.default_parameters()
         if parameters is not None:
             self._parameters.update(parameters)
+        self.applied_current = None
 
     def default_parameters(self):
         "Return default parameters"
@@ -73,9 +74,6 @@ class CardiacCellModel:
 
     def I(self, v, s):
         error("Must define I = I(v, s)")
-
-    def applied_current(self):
-        return self.applied_current
 
     def num_states(self):
         "Return number of state variables (in addition to membrane potential)."
