@@ -2,54 +2,78 @@
 This test is intended to be a verification of the splitting solver for
 the bidomain equations plus FitzHugh-Nagumo model to be compared with
 some known code, for instance PyCC
+
+Data and parameters suggested by Glenn T. Lines, 22. sept 2012,
+also match Table 2.1 p 29 in Sundnes et al.
 """
+
 # Marie E. Rognes <meg@simula.no>
-# Last changed: 2012-09-19
+# Last changed: 2012-09-24
+
+import math
 
 from dolfin import *
 from beatadjoint import *
 from beatadjoint.models import *
 
-class AppliedCurrent(Expression):
-    def __init__(self, t=0.0):
-        self.t = t
-    def eval(self, value, x):
-        if self.t >= 10 and self.t < 20:
-            v_amp = 125
-            value[0] = 0.05*v_amp*10*exp(-(pow(x[0], 2) + pow(x[1] - 0.5, 2)) / 0.02)
+class InitialCondition(Expression):
+    def eval(self, values, x):
+        r = math.sqrt(x[0]**2 + x[1]**2)
+        values[1] = 0.0
+        if r < 0.25:
+            values[0] = 30.0
         else:
-            value[0] = 0.0
+            values[0] = -85.0
+    def value_shape(self):
+        return (2,)
 
 class MyHeart(CardiacModel):
     def __init__(self, cell_model):
         CardiacModel.__init__(self, cell_model)
     def domain(self):
-        N = 30
-        return UnitSquare(N, N)
+        return UnitSquare(100, 100)
     def conductivities(self):
-        M_i = 1.0
-        M_e = 2.0
+        chi = 2000.0   # cm^{-1}
+        s_il = 3.0/chi # mS
+        s_it = 0.3/chi # mS
+        s_el = 2.0/chi # mS
+        s_et = 1.3/chi # mS
+        M_i = as_tensor(((s_il, 0), (0, s_it)))
+        M_e = as_tensor(((s_el, 0), (0, s_et)))
         return (M_i, M_e)
 
-# Set-up model
-cell = FitzHughNagumo()
-cell.applied_current = AppliedCurrent()
+# Set-up cell model
+k = 0.00004;
+Vrest = -85.;
+Vthreshold = -70.;
+Vpeak = 40.;
+k = 0.00004;
+l = 0.63;
+b = 0.013;
+v_amp = Vpeak - Vrest
+cell_parameters = {"c_1": -k*v_amp**2, "c_2": k*v_amp, "c_3": b/l,
+                   "a": (Vthreshold -Vrest)/v_amp, "b": l,
+                   "v_rest":Vrest, "v_peak": Vpeak}
+cell = FitzHughNagumo(cell_parameters)
+
+# Set-up cardiac model
 heart = MyHeart(cell)
 
 # Set-up solver
 application_parameters = Parameters()
-application_parameters.add("theta", 1.0)
+application_parameters.add("theta", 0.5)
 application_parameters.add("enable_adjoint", False)
 application_parameters.add("store_solutions", True)
+application_parameters.add("plot_solutions", True)
 solver = SplittingSolver(heart, application_parameters)
 
 # Define end-time and (constant) timestep
-dt = 1.
-T = 100
+dt = 0.25 # mS
+T = 100   # mS
 
 # Define initial condition(s)
-vs0 = Expression(("-85.0", "0.0"))
-vs0 = project(vs0, solver.VS)
+ic = InitialCondition()
+vs0 = project(ic, solver.VS)
 (vs_, vs, u) = solver.solution_fields()
 vs_.assign(vs0)
 
