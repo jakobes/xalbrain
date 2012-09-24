@@ -1,6 +1,6 @@
 # Copyright (C) 2012 Marie E. Rognes (meg@simula.no)
 # Use and modify at will
-# Last changed: 2012-09-19
+# Last changed: 2012-09-24
 
 __all__ = ["CardiacModel", "CardiacCellModel", "FitzHughNagumo",
            "NoCellModel"]
@@ -20,12 +20,19 @@ class CardiacModel:
         self.applied_current = None
 
     def domain(self):
+        "Return the spatial domain"
         error("Please overload in subclass")
 
     def cell_model(self):
+        "Return the cell model"
         return self._cell_model
 
+    def parameters(self):
+        "Return parameters"
+        return self._parameters
+
     def default_parameters(self):
+        "Return default parameters"
         parameters = Parameters("CardiacModel")
         return parameters
 
@@ -53,8 +60,13 @@ class CardiacCellModel:
             self._parameters.update(parameters)
 
     def default_parameters(self):
+        "Return default parameters"
         parameters = Parameters("CardiacCellModel")
         return parameters
+
+    def parameters(self):
+        "Return parameters"
+        return self._parameters
 
     def F(self, v, s):
         error("Must define F = F(v, s)")
