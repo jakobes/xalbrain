@@ -16,6 +16,9 @@ from dolfin import *
 from beatadjoint import *
 from beatadjoint.models import *
 
+parameters["form_compiler"]["cpp_optimize"] = True
+parameters["form_compiler"]["optimize"] = True
+
 class InitialCondition(Expression):
     def eval(self, values, x):
         r = math.sqrt(x[0]**2 + x[1]**2)
@@ -63,13 +66,14 @@ heart = MyHeart(cell)
 application_parameters = Parameters()
 application_parameters.add("theta", 0.5)
 application_parameters.add("enable_adjoint", False)
+application_parameters.add("linear_pde_solver", "direct")
 application_parameters.add("store_solutions", True)
-application_parameters.add("plot_solutions", True)
+application_parameters.add("plot_solutions", False)
 solver = SplittingSolver(heart, application_parameters)
 
 # Define end-time and (constant) timestep
 dt = 0.25 # mS
-T = 100   # mS
+T = 10.0   # mS
 
 # Define initial condition(s)
 ic = InitialCondition()
@@ -79,10 +83,15 @@ vs_.assign(vs0)
 
 # Solve
 info_green("Solving primal")
+total = Timer("XXX: Total solver time")
 solver.solve((0, T), dt)
+total.stop()
 (v, s) = vs.split()
 
 plot(v, title="v")
 plot(s, title="s")
 plot(u, title="u")
+
+list_timings()
+
 interactive()
