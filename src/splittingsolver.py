@@ -1,6 +1,6 @@
 # Copyright (C) 2012 Marie E. Rognes (meg@simula.no)
 # Use and modify at will
-# Last changed: 2012-09-24
+# Last changed: 2012-09-25
 
 __all__ = ["SplittingSolver", "BasicSplittingSolver"]
 
@@ -213,6 +213,8 @@ class BasicSplittingSolver:
         # Solve system
         pde = NonlinearVariationalProblem(G, vs, J=derivative(G, vs))
         solver = NonlinearVariationalSolver(pde)
+        solver.parameters["linear_solver"] = "gmres"
+        solver.parameters["preconditioner"] = "amg"
         #solver.parameters["newton_solver"]["relative_tolerance"] = 1.e-16
         #solver.parameters["newton_solver"]["absolute_tolerance"] = 1.e-16
         #solver.parameters["newton_solver"]["maximum_iterations"] = 10
@@ -267,8 +269,8 @@ class BasicSplittingSolver:
         vur = Function(self.VUR)
         pde = LinearVariationalProblem(a, L, vur)
         solver = LinearVariationalSolver(pde)
-        solver.parameters["linear_solver"] = "cg"
-        solver.parameters["preconditioner"] = "amg"
+        #solver.parameters["linear_solver"] = "gmres"
+        #solver.parameters["preconditioner"] = "amg"
         solver.solve(annotate=annotate)
         return vur
 
@@ -295,11 +297,18 @@ class SplittingSolver(BasicSplittingSolver):
             self._linear_solver = KrylovSolver("cg", "amg")
             self._linear_solver.set_operator(self._A)
             self._linear_solver.parameters["preconditioner"]["same_nonzero_pattern"] = True
+            #self._linear_solver.parameters["relative_tolerance"] = 1.e-16
+            #self._linear_solver.parameters["absolute_tolerance"] = 1.e-16
 
         else:
             error("Unknown linear_pde_solver specified: %s" % solver_type)
 
+    def linear_solver(self):
+        "Return linear solver object (reused)."
+        return self._linear_solver
+
     def pde_variational_problem(self, k_n, vs_):
+        "Return left- and right-hand sides for variational problem"
 
         # Extract conductivities from model
         M_i, M_e = self._model.conductivities()
@@ -354,25 +363,26 @@ class SplittingSolver(BasicSplittingSolver):
 
         # Reuse as much as possible if possible
         solver_type = self._parameters["linear_pde_solver"]
+        solver = self.linear_solver()
         if dt == float(self._k_n):
             A = self._A
             if solver_type == "direct":
                 info("Reusing LU factorization")
-                self._linear_solver.parameters["reuse_factorization"] = True
+                solver.parameters["reuse_factorization"] = True
             elif solver_type == "iterative":
                 info("Reusing KrylovSolver preconditioner")
-                self._linear_solver.parameters["preconditioner"]["reuse"] = True
+                solver.parameters["preconditioner"]["reuse"] = True
             else:
                 pass
         else:
             self._k_n.assign(Constant(dt))
             A = assemble(self._a)
             self._A = A
-            self._linear_solver.set_operator(self._A)
+            solver.set_operator(self._A)
             if solver_type == "direct":
-                self._linear_solver.parameters["reuse_factorization"] = False
+                solver.parameters["reuse_factorization"] = False
             elif solver_type == "iterative":
-                self._linear_solver.parameters["preconditioner"]["reuse"] =False
+                solver.parameters["preconditioner"]["reuse"] = False
             else:
                 pass
 
@@ -384,5 +394,5 @@ class SplittingSolver(BasicSplittingSolver):
         # Solve system
         vur = Function(self.VUR)
 
-        self._linear_solver.solve(vur.vector(), b)
+        solver.solve(vur.vector(), b)
         return vur

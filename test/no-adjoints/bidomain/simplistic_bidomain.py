@@ -8,7 +8,7 @@ also match Table 2.1 p 29 in Sundnes et al.
 """
 
 # Marie E. Rognes <meg@simula.no>
-# Last changed: 2012-09-24
+# Last changed: 2012-09-25
 
 import math
 
@@ -54,8 +54,8 @@ k = 0.00004;
 l = 0.63;
 b = 0.013;
 v_amp = Vpeak - Vrest
-cell_parameters = {"c_1": -k*v_amp**2, "c_2": k*v_amp, "c_3": b/l,
-                   "a": (Vthreshold -Vrest)/v_amp, "b": l,
+cell_parameters = {"c_1": k*v_amp**2, "c_2": k*v_amp, "c_3": b/l,
+                   "a": (Vthreshold - Vrest)/v_amp, "b": l,
                    "v_rest":Vrest, "v_peak": Vpeak}
 cell = FitzHughNagumo(cell_parameters)
 
@@ -66,14 +66,14 @@ heart = MyHeart(cell)
 application_parameters = Parameters()
 application_parameters.add("theta", 0.5)
 application_parameters.add("enable_adjoint", False)
-application_parameters.add("linear_pde_solver", "direct")
+application_parameters.add("linear_pde_solver", "iterative")
 application_parameters.add("store_solutions", True)
 application_parameters.add("plot_solutions", False)
 solver = SplittingSolver(heart, application_parameters)
 
 # Define end-time and (constant) timestep
 dt = 0.25 # mS
-T = 10.0   # mS
+T = 100.0   # mS
 
 # Define initial condition(s)
 ic = InitialCondition()
