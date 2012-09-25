@@ -4,13 +4,10 @@ This test just solves the bidomain equations with an analytic solution
 splitting solver.
 """
 # Marie E. Rognes <meg@simula.no>
-# Last changed: 2012-09-19
+# Last changed: 2012-09-25
 
 from dolfin import *
-
-# Cardiac solver specific imports
 from beatadjoint import *
-from beatadjoint.models import *
 
 level = 0
 set_log_level(ERROR)

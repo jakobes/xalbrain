@@ -1,3 +1,5 @@
+"This module contains splitting solvers for (subclasses of) CardiacModel."
+
 # Copyright (C) 2012 Marie E. Rognes (meg@simula.no)
 # Use and modify at will
 # Last changed: 2012-09-25
@@ -5,16 +7,19 @@
 __all__ = ["SplittingSolver", "BasicSplittingSolver"]
 
 from dolfin import *
+
+from beatadjoint import CardiacModel
+from beatadjoint.utils import join
+
 try:
     from dolfin_adjoint import *
 except:
     print "dolfin_adjoint not found. Install it or mod this solver"
     exit()
 
-import utils
 
 class BasicSplittingSolver:
-    """Operator splitting based solver for the bidomain equations.
+    """Operator splitting based solver for a cardiac model.
 
     The splitting algorithm can be controlled by the parameter
     'theta'.  theta = 1.0 corresponds to a (1st order) Godunov
@@ -25,7 +30,10 @@ class BasicSplittingSolver:
     Assumes that conductivities does not change over time.
     """
     def __init__(self, model, parameters=None):
-        "Create solver."
+        "Create solver from given Cardiac Model and parameters (optional)"
+
+        assert isinstance(model, CardiacModel), \
+            "Expecting CardiacModel as first argument"
 
         # Set model and parameters
         self._model = model
@@ -60,7 +68,7 @@ class BasicSplittingSolver:
         self._s = Function(self.S)
 
     def default_parameters(self):
-
+        "Set-up and return default parameters."
         parameters = Parameters("BasicSplittingSolver")
         parameters.add("enable_adjoint", False)
         parameters.add("theta", 0.5)
@@ -74,7 +82,12 @@ class BasicSplittingSolver:
 
         return parameters
 
+    def parameters(self):
+        "Return the current parameters."
+        return self._parameters
+
     def solution_fields(self):
+        "Return tuple of: (previous vs, current vs, and u)"
         return (self.vs_, self.vs, self.u)
 
     def solve(self, interval, dt):
@@ -136,7 +149,7 @@ class BasicSplittingSolver:
         (v, u, r) = split(vur)
 
         # Merge (inverse of split) v and s_star:
-        v_s_star = utils.join((v, s_star), self.VS, annotate=annotate)
+        v_s_star = join((v, s_star), self.VS, annotate=annotate)
 
         # If first order splitting, we are essentially done:
         if theta == 1.0:

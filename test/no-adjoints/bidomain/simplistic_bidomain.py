@@ -14,7 +14,6 @@ import math
 
 from dolfin import *
 from beatadjoint import *
-from beatadjoint.models import *
 
 parameters["form_compiler"]["cpp_optimize"] = True
 parameters["form_compiler"]["optimize"] = True
@@ -73,7 +72,7 @@ solver = SplittingSolver(heart, application_parameters)
 
 # Define end-time and (constant) timestep
 dt = 0.25 # mS
-T = 100.0   # mS
+T = 4.0   # mS
 
 # Define initial condition(s)
 ic = InitialCondition()

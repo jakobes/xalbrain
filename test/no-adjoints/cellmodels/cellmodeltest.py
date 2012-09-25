@@ -12,7 +12,6 @@ import unittest
 
 from dolfin import *
 from beatadjoint import *
-from beatadjoint.models import *
 
 class CellSolverTestCase(unittest.TestCase):
 
@@ -161,11 +160,11 @@ class CellSolverTestCase(unittest.TestCase):
             vs_.vector()[1] = 0.
 
             T = 2
-            solutions = solver.solve_and_yield((0, T), 0.25)
+            solutions = solver.solve((0, T), 0.25)
             times = []
             v_values = []
             s_values = []
-            for (vs, (t0, t1)) in solutions:
+            for ((t0, t1), vs) in solutions:
                 times += [0.5*(t0 + t1)]
                 v_values.append(vs.vector()[0])
                 s_values.append(vs.vector()[1])
