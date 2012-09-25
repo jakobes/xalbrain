@@ -10,7 +10,7 @@ from dolfin import *
 from beatadjoint import *
 
 level = 0
-set_log_level(ERROR)
+#set_log_level(ERROR)
 
 class MyHeart(CardiacModel):
     def __init__(self, cell_model):
@@ -30,11 +30,10 @@ ac_str = "cos(t)*cos(2*pi*x[0])*cos(2*pi*x[1]) + 4*pow(pi, 2)*cos(2*pi*x[0])*cos
 heart.applied_current = Expression(ac_str, t=0, degree=5)
 
 # Set-up solver
-application_parameters = Parameters()
-theta = 0.5
-application_parameters.add("theta", theta)
-application_parameters.add("enable_adjoint", False)
-solver = SplittingSolver(heart, application_parameters)
+parameters = SplittingSolver.default_parameters()
+parameters["linear_variational_solver"]["linear_solver"] = "direct"
+solver = SplittingSolver(heart, parameters)
+theta = solver.parameters["theta"]
 
 # Define end-time and (constant) timestep
 T = 0.1
@@ -54,7 +53,10 @@ vs_.assign(vs0)
 
 # Solve
 info_green("Solving primal")
-solver.solve((0, T), dt)
+solutions = solver.solve((0, T), dt)
+for (timestep, vs, u) in solutions:
+    continue
+
 (v, s) = vs.split()
 
 # Procomputed reference errors (for regression checking):

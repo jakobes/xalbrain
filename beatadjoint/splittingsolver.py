@@ -30,24 +30,24 @@ class BasicSplittingSolver:
     Assumes that conductivities does not change over time.
     """
     def __init__(self, model, parameters=None):
-        "Create solver from given Cardiac Model and parameters (optional)"
+        "Create solver from given Cardiac Model and (optional) parameters."
 
         assert isinstance(model, CardiacModel), \
             "Expecting CardiacModel as first argument"
 
         # Set model and parameters
         self._model = model
-        self._parameters = self.default_parameters()
+        self.parameters = self.default_parameters()
         if parameters is not None:
-            self._parameters.update(parameters)
+            self.parameters.update(parameters)
 
         # Extract solution domain
         domain = self._model.domain()
         self._domain = domain
 
         # Create function spaces
-        k = self._parameters["potential_polynomial_degree"]
-        l = self._parameters["ode_polynomial_degree"]
+        k = self.parameters["potential_polynomial_degree"]
+        l = self.parameters["ode_polynomial_degree"]
         num_states = self._model.cell_model().num_states()
 
         self.V = FunctionSpace(domain, "CG", k)
@@ -64,68 +64,61 @@ class BasicSplittingSolver:
         self.vs_ = Function(self.VS)
         self.vs = Function(self.VS)
 
-        self._v = Function(self.V)
-        self._s = Function(self.S)
-
-    def default_parameters(self):
+    @staticmethod
+    def default_parameters():
         "Set-up and return default parameters."
-        parameters = Parameters("BasicSplittingSolver")
+        parameters = Parameters("SplittingSolver")
         parameters.add("enable_adjoint", False)
         parameters.add("theta", 0.5)
-        parameters.add("linear_pde_solver", "direct")
 
         parameters.add("potential_polynomial_degree", 1)
         parameters.add("ode_polynomial_degree", 0)
 
-        parameters.add("plot_solutions", False)
-        parameters.add("store_solutions", False)
+        ode_solver_params = NonlinearVariationalSolver.default_parameters()
+        parameters.add(ode_solver_params)
 
+        pde_solver_params = LinearVariationalSolver.default_parameters()
+        parameters.add(pde_solver_params)
         return parameters
-
-    def parameters(self):
-        "Return the current parameters."
-        return self._parameters
 
     def solution_fields(self):
         "Return tuple of: (previous vs, current vs, and u)"
         return (self.vs_, self.vs, self.u)
 
     def solve(self, interval, dt):
-
+        """
+        Return generator for solutions on given time interval (t0, t1)
+        with given timestep 'dt'.
+        """
         # Initial set-up
         (T0, T) = interval
-        t0 = T0; t1 = T0 + dt
-        vs0 = self.vs_
+        t0 = T0
+        t1 = T0 + dt
+        annotate = self.parameters["enable_adjoint"]
 
-        vs_series = None
-        u_series = None
-        if self._parameters["store_solutions"]:
-            vs_series = TimeSeries("results/vs_solutions")
-            u_series = TimeSeries("results/u_solutions")
-
+        # Step through time steps until at end time.
         while (t1 <= T + DOLFIN_EPS):
-            # Solve
+
             info_blue("Solving on t = (%g, %g)" % (t0, t1))
             timestep = (t0, t1)
-            self.step(timestep, vs0)
+            (vs, u) = self.step(timestep, self.vs_)
+            self.vs.assign(vs, annotate=annotate)
+            self.u.assign(u, annotate=False) # Not part of solution alg
 
-            if self._parameters["store_solutions"]:
-                vs_series.store(self._domain, t1)
-                theta = self._parameters["theta"]
-                midt = t0 + theta*(t1 - t0)
-                u_series.store(self._domain, midt)
-                vs_series.store(self.vs.vector(), t1)
-                u_series.store(self.u.vector(), midt)
+            # Yield current solutions
+            yield (timestep, self.vs, self.u)
 
-            # Update
-            t0 = t1; t1 = t0 + dt
+            # Update previous and timetime
+            self.vs_.assign(self.vs)
+            t0 = t1
+            t1 = t0 + dt
 
     def step(self, interval, ics):
-        "Step through given interval with given initial conditions"
+        "Step through given 'interval' with given initial conditions."
 
         # Extract some parameters for readability
-        theta = self._parameters["theta"]
-        annotate = self._parameters["enable_adjoint"]
+        theta = self.parameters["theta"]
+        annotate = self.parameters["enable_adjoint"]
 
         # Extract time domain
         (t0, t1) = interval
@@ -133,60 +126,33 @@ class BasicSplittingSolver:
         t = t0 + theta*dt
 
         # Compute tentative membrane potential and state (vs_star)
-        ode_timer1 = Timer("Tentative ODE step")
         begin("Tentative ODE step")
         vs_star = self.ode_step((t0, t), ics)
         end()
-        ode_timer1.stop()
-        (v_star, s_star) = split(vs_star)
 
         # Compute tentative potentials vu = (v, u)
-        pde_timer = Timer("Tentative PDE step")
-        begin("Tentative PDE step")
+        begin("PDE step")
         vur = self.pde_step((t0, t1), vs_star)
         end()
-        pde_timer.stop()
-        (v, u, r) = split(vur)
 
-        # Merge (inverse of split) v and s_star:
+        # Merge (inverse of split) v and s_star: (needed for adjointability)
+        (v, u, r) = split(vur)
+        (v_star, s_star) = split(vs_star)
         v_s_star = join((v, s_star), self.VS, annotate=annotate)
 
-        # If first order splitting, we are essentially done:
+        # If first order splitting, we are done:
         if theta == 1.0:
-            self.vs.assign(v_s_star, annotate=annotate)
+            return (v_s_star, vur.split()[1])
+
         # Otherwise, we do another ode_step:
-        else:
-            ode_timer2 = Timer("Corrective ODE step")
-            begin("Corrective ODE step")
-            vs = self.ode_step((t, t1), v_s_star)
-            end()
-            ode_timer2.stop()
-            self.vs.assign(vs, annotate=annotate)
+        begin("Corrective ODE step")
+        vs = self.ode_step((t, t1), v_s_star)
+        end()
 
-        # Update previous
-        self.vs_.assign(self.vs)
-
-        # Store u (Not a part of the solution algorithm, no need to
-        # annotate, fortunately ..)
-        self.u.assign(vur.split()[1], annotate=False)
-
-        if self._parameters["plot_solutions"]:
-            (v, s) = self.vs.split(deepcopy=True)
-            self._v.assign(v, annotate=False)
-            self._s.assign(s, annotate=False)
-            plot(self._v, title="v")
-            plot(self._s, title="s")
-            plot(self.u, title="u")
+        return (vs, vur.split()[1])
 
     def ode_step(self, interval, ics):
-        """
-        Solve
-
-        v_t = - I_ion(v, s)
-        s_t = F(v, s)
-
-        with v(t0) = v_, s(t0) = s_
-        """
+        "..."
         # For now, just use theta scheme. To be improved.
 
         # Extract time domain
@@ -207,7 +173,7 @@ class BasicSplittingSolver:
         Dt_v = (v - v_)/k_n
         Dt_s = (s - s_)/k_n
 
-        theta = self._parameters["theta"]
+        theta = self.parameters["theta"]
         F = self._model.cell_model().F
         I_ion = self._model.cell_model().I
         I_theta = - (theta*I_ion(v, s) + (1 - theta)*I_ion(v_, s_))
@@ -222,37 +188,29 @@ class BasicSplittingSolver:
 
         # Set-up system
         G = (Dt_v - I_theta)*w*dx + inner(Dt_s - F_theta, r)*dx
+        pde = NonlinearVariationalProblem(G, vs, J=derivative(G, vs))
+
+        # Set-up solver
+        solver = NonlinearVariationalSolver(pde)
+        solver_params = self.parameters["nonlinear_variational_solver"]
+        solver.parameters.update(solver_params)
 
         # Solve system
-        pde = NonlinearVariationalProblem(G, vs, J=derivative(G, vs))
-        solver = NonlinearVariationalSolver(pde)
-        solver.parameters["linear_solver"] = "gmres"
-        solver.parameters["preconditioner"] = "amg"
-        #solver.parameters["newton_solver"]["relative_tolerance"] = 1.e-16
-        #solver.parameters["newton_solver"]["absolute_tolerance"] = 1.e-16
-        #solver.parameters["newton_solver"]["maximum_iterations"] = 10
-        solver.solve(annotate=self._parameters["enable_adjoint"])
-
+        solver.solve(annotate=self.parameters["enable_adjoint"])
         return vs
 
     def pde_step(self, interval, vs_):
-        """
-        Solve
+        "..."
 
-        v_t - div(M_i grad(v) ..) = 0
-        div (M_i grad(v) + ..) = 0
-
-        with v(t0) = v_,
-        """
-
-        # Hack, not sure if this is a good design
+        # Hack, not sure if this is a good design (previous value for
+        # s should not be required as data)
         (v_, s_) = split(vs_)
 
         # Extract interval and time-step
         (t0, t1) = interval
         k_n = Constant(t1 - t0)
-        theta = self._parameters["theta"]
-        annotate = self._parameters["enable_adjoint"]
+        theta = self.parameters["theta"]
+        annotate = self.parameters["enable_adjoint"]
 
         # Extract conductivities from model
         M_i, M_e = self._model.conductivities()
@@ -268,23 +226,26 @@ class BasicSplittingSolver:
         theta_elliptic = (theta*inner(M_i*grad(v), grad(q))*dx
                           + (1.0 - theta)*inner(M_i*grad(v_), grad(q))*dx
                           + inner((M_i + M_e)*grad(u), grad(q))*dx)
-        G = (Dt_v*w*dx + theta_parabolic + theta_elliptic
-             + (s*u + r*q)*dx)
+        G = (Dt_v*w*dx + theta_parabolic + theta_elliptic + (s*u + r*q)*dx)
 
         if self._model.applied_current:
             t = t0 + theta*(t1 - t0)
             self._model.applied_current.t = t
             G -= self._model.applied_current*w*dx
 
+        # Define variational problem
         a, L = system(G)
-
-        # Solve system
         vur = Function(self.VUR)
         pde = LinearVariationalProblem(a, L, vur)
+
+        # Set-up solver
         solver = LinearVariationalSolver(pde)
-        #solver.parameters["linear_solver"] = "gmres"
-        #solver.parameters["preconditioner"] = "amg"
+        solver_params = self.parameters["linear_variational_solver"]
+        solver.parameters.update(solver_params)
+
+        # Solve system
         solver.solve(annotate=annotate)
+
         return vur
 
 class SplittingSolver(BasicSplittingSolver):
@@ -302,19 +263,32 @@ class SplittingSolver(BasicSplittingSolver):
         self._A = assemble(self._a)
 
         # Tune solver types
-        solver_type = self._parameters["linear_pde_solver"]
+        solver_parameters = self.parameters["linear_variational_solver"]
+        solver_type = solver_parameters["linear_solver"]
         if solver_type == "direct":
             self._linear_solver = LUSolver(self._A)
-            self._linear_solver.parameters["same_nonzero_pattern"] = True
+            self._linear_solver.parameters.update(solver_parameters["lu_solver"])
         elif solver_type == "iterative":
-            self._linear_solver = KrylovSolver("cg", "amg")
+            self._linear_solver = KrylovSolver("gmres", "amg")
+            self._linear_solver.parameters.update(solver_parameters["krylov_solver"])
             self._linear_solver.set_operator(self._A)
-            self._linear_solver.parameters["preconditioner"]["same_nonzero_pattern"] = True
-            #self._linear_solver.parameters["relative_tolerance"] = 1.e-16
-            #self._linear_solver.parameters["absolute_tolerance"] = 1.e-16
-
         else:
             error("Unknown linear_pde_solver specified: %s" % solver_type)
+
+    @staticmethod
+    def default_parameters():
+        "Set-up and return default parameters."
+        parameters = BasicSplittingSolver.default_parameters()
+
+        # Customize linear solver parameters
+        ps = parameters["linear_variational_solver"]
+        ps["linear_solver"] = "iterative"
+        ps["krylov_solver"]["preconditioner"]["same_nonzero_pattern"] = True
+        ps["lu_solver"]["same_nonzero_pattern"] = True
+
+        ps = parameters["nonlinear_variational_solver"]
+        ps["linear_solver"] = "iterative"
+        return parameters
 
     def linear_solver(self):
         "Return linear solver object (reused)."
@@ -331,7 +305,7 @@ class SplittingSolver(BasicSplittingSolver):
         (w, q, s) = TestFunctions(self.VUR)
 
         # Extract theta parameter
-        theta = self._parameters["theta"]
+        theta = self.parameters["theta"]
 
         # Set-up variational problem
         (v_, s_) = split(vs_)
@@ -354,35 +328,27 @@ class SplittingSolver(BasicSplittingSolver):
         return (a, L)
 
     def pde_step(self, interval, vs_):
-        """
-        Solve
-
-        v_t - div(M_i grad(v) ..) = applied_current
-        div (M_i grad(v) + ..) = 0
-
-        with v(t0) = v_,
-        """
+        "."
 
         # Extract interval and time-step
         (t0, t1) = interval
         dt = (t1 - t0)
-        theta = self._parameters["theta"]
+        theta = self.parameters["theta"]
         t = t0 + theta*dt
-
-        annotate = self._parameters["enable_adjoint"]
+        annotate = self.parameters["enable_adjoint"]
 
         # Update previous solution
         self.vs_.assign(vs_)
 
-        # Reuse as much as possible if possible
-        solver_type = self._parameters["linear_pde_solver"]
+        # Assemble left-hand-side: only re-assemble if necessary, and
+        # reuse all solver data possible
         solver = self.linear_solver()
         if dt == float(self._k_n):
             A = self._A
-            if solver_type == "direct":
+            if isinstance(solver, LUSolver):
                 info("Reusing LU factorization")
                 solver.parameters["reuse_factorization"] = True
-            elif solver_type == "iterative":
+            elif isinstance(solver, KrylovSolver):
                 info("Reusing KrylovSolver preconditioner")
                 solver.parameters["preconditioner"]["reuse"] = True
             else:
@@ -392,20 +358,19 @@ class SplittingSolver(BasicSplittingSolver):
             A = assemble(self._a)
             self._A = A
             solver.set_operator(self._A)
-            if solver_type == "direct":
+            if isinstance(solver, LUSolver):
                 solver.parameters["reuse_factorization"] = False
-            elif solver_type == "iterative":
+            elif isinstance(solver, KrylovSolver):
                 solver.parameters["preconditioner"]["reuse"] = False
             else:
                 pass
 
+        # Assemble right-hand-side
         if self._model.applied_current:
             self._model.applied_current.t = t
-
         b = assemble(self._L)
 
         # Solve system
         vur = Function(self.VUR)
-
         solver.solve(vur.vector(), b)
         return vur

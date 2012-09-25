@@ -29,9 +29,9 @@ class CellSolver:
 
         # Set model and parameters
         self._model = model
-        self._parameters = self.default_parameters()
+        self.parameters = self.default_parameters()
         if parameters is not None:
-            self._parameters.update(parameters)
+            self.parameters.update(parameters)
 
         # Define domain (dummy, but carefully chosen)
         self._domain = UnitInterval(1)
@@ -56,10 +56,6 @@ class CellSolver:
         parameters = Parameters("CellSolver")
         parameters.add("theta", 0.5)
         return parameters
-
-    def parameters(self):
-        "Return the current parameters"
-        return self._parameters
 
     def solution_fields(self):
         "Return tuple of 'previous' and 'current' solution fields."
@@ -109,7 +105,7 @@ class CellSolver:
         Dt_v = (v - v_)/k_n
         Dt_s = (s - s_)/k_n
 
-        theta = self.parameters()["theta"]
+        theta = self.parameters["theta"]
         F = self._model.F
         I_ion = self._model.I
 

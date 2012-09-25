@@ -62,13 +62,7 @@ cell = FitzHughNagumo(cell_parameters)
 heart = MyHeart(cell)
 
 # Set-up solver
-application_parameters = Parameters()
-application_parameters.add("theta", 0.5)
-application_parameters.add("enable_adjoint", False)
-application_parameters.add("linear_pde_solver", "iterative")
-application_parameters.add("store_solutions", True)
-application_parameters.add("plot_solutions", False)
-solver = SplittingSolver(heart, application_parameters)
+solver = SplittingSolver(heart)
 
 # Define end-time and (constant) timestep
 dt = 0.25 # mS
@@ -83,13 +77,10 @@ vs_.assign(vs0)
 # Solve
 info_green("Solving primal")
 total = Timer("XXX: Total solver time")
-solver.solve((0, T), dt)
+solutions = solver.solve((0, T), dt)
+for (timestep, vs, u) in solutions:
+    plot(u, title="u")
 total.stop()
-(v, s) = vs.split()
-
-plot(v, title="v")
-plot(s, title="s")
-plot(u, title="u")
 
 list_timings()
 
