@@ -8,10 +8,10 @@ minor = 1
 setup(name = "beatadjoint",
       version = "{0}.{1}".format(major, minor),
       description = """
-      An adjointable bi-domain equation solver 
+      An adjointable bi-domain equation solver
       """,
       author = "Marie Rognes, Johan Hake",
       author_email = "meg@simula.no",
       packages = ["beatadjoint",],
-      package_dir = {"beatadjoint": "src"},
+      package_dir = {"beatadjoint": "beatadjoint"},
       )
