@@ -1,6 +1,6 @@
 # Copyright (C) 2012 Marie E. Rognes (meg@simula.no)
 # Use and modify at will
-# Last changed: 2012-06-05
+# Last changed: 2012-09-25
 
 __all__ = ["CellSolver"]
 
@@ -49,7 +49,7 @@ class CellSolver:
         return (self.vs_, self.vs)
 
     def solve(self, interval, dt):
-
+        "Solve cell model on given inteval with given timestep 'dt'"
         # Initial set-up
         (T0, T) = interval
         t0 = T0; t1 = T0 + dt
@@ -65,6 +65,27 @@ class CellSolver:
             # Update
             self.vs_.assign(self.vs)
             t0 = t1; t1 = t0 + dt
+
+    def solve_and_yield(self, interval, dt):
+        "Return generator for solutions"
+        # Initial set-up
+        (T0, T) = interval
+        t0 = T0; t1 = T0 + dt
+        vs0 = self.vs_
+
+        while (t1 <= T):
+            # Solve
+            info_blue("Solving on t = (%g, %g)" % (t0, t1))
+            timestep = (t0, t1)
+            vs = self.step(timestep, self.vs_)
+            self.vs.assign(vs)
+
+            yield self.vs, (t0, t1)
+
+            # Update
+            self.vs_.assign(self.vs)
+            t0 = t1; t1 = t0 + dt
+
 
     def step(self, interval, ics):
         "Step through given interval with given initial conditions"
