@@ -2,20 +2,15 @@
 
 # Copyright (C) 2012 Marie E. Rognes (meg@simula.no)
 # Use and modify at will
-# Last changed: 2012-09-25
+# Last changed: 2012-10-02
 
 __all__ = ["SplittingSolver", "BasicSplittingSolver"]
 
 from dolfin import *
-
+from dolfin_adjoint import *
 from beatadjoint import CardiacModel
 from beatadjoint.utils import join
 
-try:
-    from dolfin_adjoint import *
-except:
-    print "dolfin_adjoint not found. Install it or mod this solver"
-    exit()
 
 
 class BasicSplittingSolver:
@@ -103,13 +98,13 @@ class BasicSplittingSolver:
             timestep = (t0, t1)
             (vs, u) = self.step(timestep, self.vs_)
             self.vs.assign(vs, annotate=annotate)
-            self.u.assign(u, annotate=False) # Not part of solution alg
+            self.u.assign(u, annotate=False) # Not part of solution algorithm
 
             # Yield current solutions
             yield (timestep, self.vs, self.u)
 
             # Update previous and timetime
-            self.vs_.assign(self.vs)
+            self.vs_.assign(self.vs, annotate=annotate)
             t0 = t1
             t1 = t0 + dt
 
@@ -164,7 +159,8 @@ class BasicSplittingSolver:
 
         # Set-up current variables
         vs = Function(self.VS)
-        vs.assign(ics) # Start with good guess
+        annotate = self.parameters["enable_adjoint"]
+        vs.assign(ics, annotate=annotate) # Start with good guess
         (v, s) = split(vs)
         (w, r) = TestFunctions(self.VS)
 
@@ -216,8 +212,8 @@ class BasicSplittingSolver:
         M_i, M_e = self._model.conductivities()
 
         # Define variational formulation
-        (v, u, r) = TrialFunctions(self.VUR)
-        (w, q, s) = TestFunctions(self.VUR)
+        (v, u, l) = TrialFunctions(self.VUR)
+        (w, q, lamda) = TestFunctions(self.VUR)
 
         Dt_v = (v - v_)/k_n
         theta_parabolic = (theta*inner(M_i*grad(v), grad(w))*dx
@@ -226,7 +222,7 @@ class BasicSplittingSolver:
         theta_elliptic = (theta*inner(M_i*grad(v), grad(q))*dx
                           + (1.0 - theta)*inner(M_i*grad(v_), grad(q))*dx
                           + inner((M_i + M_e)*grad(u), grad(q))*dx)
-        G = (Dt_v*w*dx + theta_parabolic + theta_elliptic + (s*u + r*q)*dx)
+        G = (Dt_v*w*dx + theta_parabolic + theta_elliptic + (lamda*u + l*q)*dx)
 
         if self._model.applied_current:
             t = t0 + theta*(t1 - t0)
@@ -260,7 +256,7 @@ class SplittingSolver(BasicSplittingSolver):
 
         # Pre-assemble left-hand side (will be updated if time-step
         # changes)
-        self._A = assemble(self._a)
+        self._A = assemble(self._a, annotate=self.parameters["enable_adjoint"])
 
         # Tune solver types
         solver_parameters = self.parameters["linear_variational_solver"]
@@ -301,8 +297,8 @@ class SplittingSolver(BasicSplittingSolver):
         M_i, M_e = self._model.conductivities()
 
         # Define variational formulation
-        (v, u, r) = TrialFunctions(self.VUR)
-        (w, q, s) = TestFunctions(self.VUR)
+        (v, u, l) = TrialFunctions(self.VUR)
+        (w, q, lamda) = TestFunctions(self.VUR)
 
         # Extract theta parameter
         theta = self.parameters["theta"]
@@ -318,7 +314,7 @@ class SplittingSolver(BasicSplittingSolver):
                           + inner((M_i + M_e)*grad(u), grad(q))*dx)
 
         G = (Dt_v*w*dx + k_n*theta_parabolic + theta_elliptic
-             + (s*u + r*q)*dx)
+             + (lamda*u + l*q)*dx)
 
         # Add applied current if specified
         if self._model.applied_current:
@@ -338,7 +334,7 @@ class SplittingSolver(BasicSplittingSolver):
         annotate = self.parameters["enable_adjoint"]
 
         # Update previous solution
-        self.vs_.assign(vs_)
+        self.vs_.assign(vs_, annotate=annotate)
 
         # Assemble left-hand-side: only re-assemble if necessary, and
         # reuse all solver data possible
@@ -354,10 +350,10 @@ class SplittingSolver(BasicSplittingSolver):
             else:
                 pass
         else:
-            self._k_n.assign(Constant(dt))
-            A = assemble(self._a)
+            self._k_n.assign(Constant(dt))#, annotate=annotate) # FIXME
+            A = assemble(self._a, annotate=annotate)
             self._A = A
-            solver.set_operator(self._A)
+            solver.set_operator(self._A)#, annotate=annotate) # NB?
             if isinstance(solver, LUSolver):
                 solver.parameters["reuse_factorization"] = False
             elif isinstance(solver, KrylovSolver):
@@ -368,9 +364,9 @@ class SplittingSolver(BasicSplittingSolver):
         # Assemble right-hand-side
         if self._model.applied_current:
             self._model.applied_current.t = t
-        b = assemble(self._L)
+        b = assemble(self._L, annotate=annotate)
 
         # Solve system
         vur = Function(self.VUR)
-        solver.solve(vur.vector(), b)
+        solver.solve(vur.vector(), b, annotate=annotate)
         return vur
