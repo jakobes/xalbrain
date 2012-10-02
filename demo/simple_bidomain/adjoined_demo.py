@@ -1,5 +1,4 @@
 """
-This demo demonstrates how to set up a basic bidomain simulation
 """
 
 # Marie E. Rognes <meg@simula.no>
@@ -10,7 +9,7 @@ from dolfin import *
 from dolfin_adjoint import *
 from beatadjoint import *
 
-#set_log_level(WARNING)
+set_log_level(WARNING)
 
 parameters["form_compiler"]["cpp_optimize"] = True
 parameters["form_compiler"]["optimize"] = True
@@ -63,20 +62,58 @@ solver = SplittingSolver(heart)
 solver.parameters["enable_adjoint"] = True
 
 # Define end-time and (constant) timestep
-dt = 0.25 # mS
+k_n = 0.25 # mS
 T = 1.0   # mS
 
-# Define initial condition(s)
-ic = InitialCondition()
-vs0 = project(ic, solver.VS)
-(vs_, vs, u) = solver.solution_fields()
-vs_.assign(vs0)
+def main(ic):
 
-# Solve
-info_green("Solving primal")
-solutions = solver.solve((0, T), dt)
-for (timestep, vs, u) in solutions:
-    continue
+    # Assign initial condition
+    (vs_, vs, u) = solver.solution_fields()
+    vs_.assign(ic, annotate=True)
 
-# Look at some replays
-success = replay_dolfin(tol=0.0, stop=True)
+    # Solve
+    info_green("Solving primal")
+    solutions = solver.solve((0, T), k_n)
+    for (timestep, vs, u) in solutions:
+        continue
+
+    return (vs, u)
+
+if __name__ == "__main__":
+
+    ic = InitialCondition()
+    ic = project(ic, solver.VS, annotate=False)
+
+    # Run stuff
+    (vs, u) = main(ic)
+
+    # 1: Compute value of functional at "end"
+    J_value = assemble(inner(vs, vs)*dx)   # Value of functional (last u)
+    print "J_value = ", J_value
+
+    # Check replay
+    info_green("Replaying")
+    success = replay_dolfin(tol=0.0, stop=True)
+
+    # Define the amount of functionals needed
+    def M(vs):
+        return inner(vs, vs)*dx*dt[FINISH_TIME]
+    J = Functional(M(vs))  # Functional as dolfin_adjoint.Functional
+    info_green("Computing gradient")
+
+    dJdic = compute_gradient(J, InitialConditionParameter(ic), forget=False)
+
+    print dJdic
+    exit()
+
+    def Jhat(ic):           # Functional value as function of ic
+        (vs, u) = main(ic)
+        return assemble(M(vs))
+
+    parameters["adjoint"]["stop_annotating"] = True
+
+    # Look at some Taylor test
+    minconv = taylor_test(Jhat, InitialConditionParameter(ic),
+                          J_value, dJdic)
+
+
