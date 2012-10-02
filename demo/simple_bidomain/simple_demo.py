@@ -73,18 +73,34 @@ vs_.assign(vs0)
 # Solve
 info_green("Solving primal")
 solutions = solver.solve((0, T), dt)
-samples = 10
 
 u_file = File("results/u.pvd")
 v_file = File("results/v.pvd")
 s_file = File("results/s.pvd")
+
+points = [(0.1, 0.1), (0.3, 0.4), (0.5, 0.5), (0.7, 0.7), (0.9, 0.9)]
+v_values = []
+u_values = []
 for (timestep, vs, u) in solutions:
-    (t0, t1) = timestep
-    if (t1 % samples == 0):
-        print "Storing solutions at = ", timestep
-        (v, s) = vs.split()
-        u_file << u
-        v_file << v
-        s_file << s
-    else:
-        print t1 % samples
+    (v, s) = vs.split()
+    v_values += [[v(p) for p in points]]
+    u_values += [[u(p) for p in points]]
+    #plot(u)
+
+import numpy
+from plot_results import *
+
+v_values = numpy.array(v_values)
+u_values = numpy.array(u_values)
+v_file = open("results/v.txt", 'w')
+u_file = open("results/u.txt", 'w')
+for i in range(v_values.shape[0]):
+    v_file.write(" ".join(["%.7e" % v for v in v_values[i, :]]))
+    v_file.write("\n")
+    u_file.write(" ".join(["%.7e" % u for u in u_values[i, :]]))
+    u_file.write("\n")
+
+plot_data(v_values, ylabel="v", show=False)
+plot_data(u_values, ylabel="u")
+
+#interactive()
