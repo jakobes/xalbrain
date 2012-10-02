@@ -8,7 +8,7 @@ also match Table 2.1 p 29 in Sundnes et al.
 """
 
 # Marie E. Rognes <meg@simula.no>
-# Last changed: 2012-09-25
+# Last changed: 2012-10-02
 
 import math
 
@@ -66,7 +66,7 @@ solver = SplittingSolver(heart)
 
 # Define end-time and (constant) timestep
 dt = 0.25 # mS
-T = 4.0   # mS
+T = 1.0   # mS
 
 # Define initial condition(s)
 ic = InitialCondition()
@@ -79,9 +79,13 @@ info_green("Solving primal")
 total = Timer("XXX: Total solver time")
 solutions = solver.solve((0, T), dt)
 for (timestep, vs, u) in solutions:
-    plot(u, title="u")
+    continue
 total.stop()
 
 list_timings()
 
-interactive()
+norm_u = norm(u)
+reference = 36.61914235891203
+diff = abs(reference - norm_u)
+tol = 1.e-14
+assert (diff < tol), "Mismatch: %r" % diff
