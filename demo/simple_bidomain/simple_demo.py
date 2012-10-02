@@ -85,7 +85,7 @@ for (timestep, vs, u) in solutions:
     v_values += [[v(p) for p in points]]
     u_values += [[u(p) for p in points]]
 
-do_the_plot_thing = True
+do_the_plot_thing = False
 if do_the_plot_thing:
 
     import numpy

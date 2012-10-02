@@ -256,7 +256,8 @@ class SplittingSolver(BasicSplittingSolver):
 
         # Pre-assemble left-hand side (will be updated if time-step
         # changes)
-        self._A = assemble(self._a, annotate=self.parameters["enable_adjoint"])
+        #self._A = assemble(self._a, annotate=self.parameters["enable_adjoint"])
+        self._A = assemble(self._a, annotate=True) # !
 
         # Tune solver types
         solver_parameters = self.parameters["linear_variational_solver"]
