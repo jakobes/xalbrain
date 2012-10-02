@@ -58,7 +58,9 @@ cell = FitzHughNagumo(cell_parameters)
 heart = MyHeart(cell)
 
 # Set-up solver
-solver = SplittingSolver(heart)
+ps = SplittingSolver.default_parameters()
+ps["linear_variational_solver"]["linear_solver"] = "direct"
+solver = SplittingSolver(heart, parameters=ps)
 
 # Define end-time and (constant) timestep
 dt = 0.25 # mS
@@ -74,33 +76,32 @@ vs_.assign(vs0)
 info_green("Solving primal")
 solutions = solver.solve((0, T), dt)
 
-u_file = File("results/u.pvd")
-v_file = File("results/v.pvd")
-s_file = File("results/s.pvd")
-
 points = [(0.1, 0.1), (0.3, 0.4), (0.5, 0.5), (0.7, 0.7), (0.9, 0.9)]
 v_values = []
 u_values = []
 for (timestep, vs, u) in solutions:
     (v, s) = vs.split()
+    print "avg(u) = ", assemble(u*dx)
     v_values += [[v(p) for p in points]]
     u_values += [[u(p) for p in points]]
-    #plot(u)
 
-import numpy
-from plot_results import *
+do_the_plot_thing = True
+if do_the_plot_thing:
 
-v_values = numpy.array(v_values)
-u_values = numpy.array(u_values)
-v_file = open("results/v.txt", 'w')
-u_file = open("results/u.txt", 'w')
-for i in range(v_values.shape[0]):
-    v_file.write(" ".join(["%.7e" % v for v in v_values[i, :]]))
-    v_file.write("\n")
-    u_file.write(" ".join(["%.7e" % u for u in u_values[i, :]]))
-    u_file.write("\n")
+    import numpy
+    from plot_results import *
 
-plot_data(v_values, ylabel="v", show=False)
-plot_data(u_values, ylabel="u")
+    v_values = numpy.array(v_values)
+    u_values = numpy.array(u_values)
+    v_file = open("results-direct/v.txt", 'w')
+    u_file = open("results-direct/u.txt", 'w')
+    for i in range(v_values.shape[0]):
+        v_file.write(" ".join(["%.7e" % v for v in v_values[i, :]]))
+        v_file.write("\n")
+        u_file.write(" ".join(["%.7e" % u for u in u_values[i, :]]))
+        u_file.write("\n")
+
+    plot_data(v_values, ylabel="v", show=False)
+    plot_data(u_values, ylabel="u")
 
 #interactive()

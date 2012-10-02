@@ -58,7 +58,7 @@ if __name__ == "__main__":
 
     for variable in ("v", "u"):
         e0 = extract_data("pycc-results/%s.txt" % variable)
-        e1 = extract_data("results/%s.txt" % variable)
+        e1 = extract_data("results-direct/%s.txt" % variable)
         compare_data(e0, e1, ylabel=variable,
                      show=True, versions=("pycc", "fenics"),
                      title="Comparing %s data for pycc and fenics" % variable)
