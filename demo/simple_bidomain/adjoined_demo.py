@@ -9,7 +9,7 @@ from dolfin import *
 from dolfin_adjoint import *
 from beatadjoint import *
 
-set_log_level(WARNING)
+#set_log_level(WARNING)
 
 parameters["form_compiler"]["cpp_optimize"] = True
 parameters["form_compiler"]["optimize"] = True
@@ -58,17 +58,20 @@ cell = FitzHughNagumo(cell_parameters)
 heart = MyHeart(cell)
 
 # Set-up solver
-solver = SplittingSolver(heart)
+solver = BasicSplittingSolver(heart)
 solver.parameters["enable_adjoint"] = True
 
 # Define end-time and (constant) timestep
 k_n = 0.25 # mS
-T = 1.0   # mS
+T = 0.25  # mS
 
 def main(ic):
 
     # Assign initial condition
     (vs_, vs, u) = solver.solution_fields()
+    vs_.adj_name = "VS_"
+    vs.adj_name = "VS"
+    u.adj_name = "U"
     vs_.assign(ic, annotate=True)
 
     # Solve
@@ -82,7 +85,7 @@ def main(ic):
 if __name__ == "__main__":
 
     ic = InitialCondition()
-    ic = project(ic, solver.VS, annotate=False)
+    ic = Function(project(ic, solver.VS, annotate=False))
 
     # Run stuff
     (vs, u) = main(ic)
@@ -91,9 +94,14 @@ if __name__ == "__main__":
     J_value = assemble(inner(vs, vs)*dx)   # Value of functional (last u)
     print "J_value = ", J_value
 
+    parameters["adjoint"]["stop_annotating"] = True
+
     # Check replay
     info_green("Replaying")
     success = replay_dolfin(tol=0.0, stop=True)
+
+    adj_html("forward.html", "forward")
+    adj_html("adjoint.html", "adjoint")
 
     # Define the amount of functionals needed
     def M(vs):
@@ -101,19 +109,19 @@ if __name__ == "__main__":
     J = Functional(M(vs))  # Functional as dolfin_adjoint.Functional
     info_green("Computing gradient")
 
-    dJdic = compute_gradient(J, InitialConditionParameter(ic), forget=False)
+    dJdic = compute_gradient(J, InitialConditionParameter("VS_"), forget=False)
 
-    print dJdic
-    exit()
+    assert dJdic is not None
+
+    info_green("Verifying")
 
     def Jhat(ic):           # Functional value as function of ic
         (vs, u) = main(ic)
-        return assemble(M(vs))
-
-    parameters["adjoint"]["stop_annotating"] = True
+        return assemble(inner(vs, vs)*dx)
 
     # Look at some Taylor test
-    minconv = taylor_test(Jhat, InitialConditionParameter(ic),
+    minconv = taylor_test(Jhat, InitialConditionParameter("VS_"),
                           J_value, dJdic)
 
+    print "Minimum convergence rate: ", minconv
 
