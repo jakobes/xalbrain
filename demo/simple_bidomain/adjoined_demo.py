@@ -2,7 +2,7 @@
 """
 
 # Marie E. Rognes <meg@simula.no>
-# Last changed: 2012-10-02
+# Last changed: 2012-10-03
 
 import math
 from dolfin import *
@@ -29,7 +29,8 @@ class MyHeart(CardiacModel):
     def __init__(self, cell_model):
         CardiacModel.__init__(self, cell_model)
     def domain(self):
-        return UnitSquare(100, 100)
+        n = 50
+        return UnitSquare(n, n)
     def conductivities(self):
         chi = 2000.0   # cm^{-1}
         s_il = 3.0/chi # mS
@@ -58,12 +59,16 @@ cell = FitzHughNagumo(cell_parameters)
 heart = MyHeart(cell)
 
 # Set-up solver
-solver = BasicSplittingSolver(heart)
-solver.parameters["enable_adjoint"] = True
+ps = SplittingSolver.default_parameters()
+ps["linear_variational_solver"]["linear_solver"] = "direct"
+ps["nonlinear_variational_solver"]["linear_solver"] = "direct"
+ps["enable_adjoint"] = True
+#ps["theta"] = 1.0
+solver = SplittingSolver(heart, parameters=ps)
 
 # Define end-time and (constant) timestep
 k_n = 0.25 # mS
-T = 0.25  # mS
+T = 2.0  # mS
 
 def main(ic):
 
@@ -75,10 +80,12 @@ def main(ic):
     vs_.assign(ic, annotate=True)
 
     # Solve
-    info_green("Solving primal")
+    begin("Solving primal")
     solutions = solver.solve((0, T), k_n)
     for (timestep, vs, u) in solutions:
+        #plot(u)
         continue
+    end()
 
     return (vs, u)
 
@@ -90,11 +97,11 @@ if __name__ == "__main__":
     # Run stuff
     (vs, u) = main(ic)
 
+    parameters["adjoint"]["stop_annotating"] = True
+
     # 1: Compute value of functional at "end"
     J_value = assemble(inner(vs, vs)*dx)   # Value of functional (last u)
     print "J_value = ", J_value
-
-    parameters["adjoint"]["stop_annotating"] = True
 
     # Check replay
     info_green("Replaying")
@@ -107,14 +114,12 @@ if __name__ == "__main__":
     def M(vs):
         return inner(vs, vs)*dx*dt[FINISH_TIME]
     J = Functional(M(vs))  # Functional as dolfin_adjoint.Functional
+
     info_green("Computing gradient")
-
     dJdic = compute_gradient(J, InitialConditionParameter("VS_"), forget=False)
-
     assert dJdic is not None
 
     info_green("Verifying")
-
     def Jhat(ic):           # Functional value as function of ic
         (vs, u) = main(ic)
         return assemble(inner(vs, vs)*dx)
