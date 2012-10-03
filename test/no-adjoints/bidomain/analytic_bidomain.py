@@ -4,7 +4,7 @@ This test just solves the bidomain equations with an analytic solution
 splitting solver.
 """
 # Marie E. Rognes <meg@simula.no>
-# Last changed: 2012-09-25
+# Last changed: 2012-10-03
 
 from dolfin import *
 from beatadjoint import *
@@ -31,6 +31,7 @@ heart.applied_current = Expression(ac_str, t=0, degree=5)
 
 # Set-up solver
 parameters = SplittingSolver.default_parameters()
+parameters["enable_adjoint"] = True # FIXME
 parameters["linear_variational_solver"]["linear_solver"] = "direct"
 solver = SplittingSolver(heart, parameters)
 theta = solver.parameters["theta"]
