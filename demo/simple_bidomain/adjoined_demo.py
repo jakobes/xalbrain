@@ -91,9 +91,14 @@ if __name__ == "__main__":
     J_value = assemble(inner(vs, vs)*dx)   # Value of functional (last u)
     print "J_value = ", J_value
 
+    parameters["adjoint"]["stop_annotating"] = True
+
     # Check replay
     info_green("Replaying")
     success = replay_dolfin(tol=0.0, stop=True)
+
+    adj_html("forward.html", "forward")
+    adj_html("adjoint.html", "adjoint")
 
     # Define the amount of functionals needed
     def M(vs):
@@ -101,19 +106,19 @@ if __name__ == "__main__":
     J = Functional(M(vs))  # Functional as dolfin_adjoint.Functional
     info_green("Computing gradient")
 
-    dJdic = compute_gradient(J, InitialConditionParameter(ic), forget=False)
+    dJdic = compute_gradient(J, InitialConditionParameter("VS_"), forget=False)
 
-    print dJdic
-    exit()
+    assert dJdic is not None
+
+    info_green("Verifying")
 
     def Jhat(ic):           # Functional value as function of ic
         (vs, u) = main(ic)
-        return assemble(M(vs))
-
-    parameters["adjoint"]["stop_annotating"] = True
+        return assemble(inner(vs, vs)*dx)
 
     # Look at some Taylor test
-    minconv = taylor_test(Jhat, InitialConditionParameter(ic),
+    minconv = taylor_test(Jhat, InitialConditionParameter("VS_"),
                           J_value, dJdic)
 
+    print "Minimum convergence rate: ", minconv
 
