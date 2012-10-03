@@ -2,7 +2,7 @@
 
 # Copyright (C) 2012 Marie E. Rognes (meg@simula.no)
 # Use and modify at will
-# Last changed: 2012-10-02
+# Last changed: 2012-10-03
 
 __all__ = ["SplittingSolver", "BasicSplittingSolver"]
 
@@ -43,15 +43,16 @@ class BasicSplittingSolver:
         # Create function spaces
         k = self.parameters["potential_polynomial_degree"]
         l = self.parameters["ode_polynomial_degree"]
+        fam = self.parameters["ode_polynomial_family"]
         num_states = self._model.cell_model().num_states()
 
         self.V = FunctionSpace(domain, "CG", k)
         R = FunctionSpace(domain, "R", 0)
         self.VUR = MixedFunctionSpace([self.V, self.V, R])
         if num_states > 1:
-            self.S = VectorFunctionSpace(domain, "DG", l, num_states)
+            self.S = VectorFunctionSpace(domain, fam, l, num_states)
         else:
-            self.S = FunctionSpace(domain, "DG", l)
+            self.S = FunctionSpace(domain, fam, l)
         self.VS = self.V*self.S
 
         # Helper functions
@@ -68,6 +69,7 @@ class BasicSplittingSolver:
 
         parameters.add("potential_polynomial_degree", 1)
         parameters.add("ode_polynomial_degree", 0)
+        parameters.add("ode_polynomial_family", "DG")
 
         ode_solver_params = NonlinearVariationalSolver.default_parameters()
         parameters.add(ode_solver_params)

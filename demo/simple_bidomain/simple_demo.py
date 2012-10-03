@@ -3,7 +3,7 @@ This demo demonstrates how to set up a basic bidomain simulation
 """
 
 # Marie E. Rognes <meg@simula.no>
-# Last changed: 2012-10-02
+# Last changed: 2012-10-03
 
 import math
 from dolfin import *
@@ -60,6 +60,9 @@ heart = MyHeart(cell)
 # Set-up solver
 ps = SplittingSolver.default_parameters()
 ps["linear_variational_solver"]["linear_solver"] = "direct"
+ps["theta"] = 1.0
+ps["ode_polynomial_family"] = "CG"
+ps["ode_polynomial_degree"] = 1
 solver = SplittingSolver(heart, parameters=ps)
 
 # Define end-time and (constant) timestep
@@ -79,13 +82,15 @@ solutions = solver.solve((0, T), dt)
 points = [(0.1, 0.1), (0.3, 0.4), (0.5, 0.5), (0.7, 0.7), (0.9, 0.9)]
 v_values = []
 u_values = []
+s_values = []
 for (timestep, vs, u) in solutions:
     (v, s) = vs.split()
     print "avg(u) = ", assemble(u*dx)
     v_values += [[v(p) for p in points]]
     u_values += [[u(p) for p in points]]
+    s_values += [[s(p) for p in points]]
 
-do_the_plot_thing = False
+do_the_plot_thing = True
 if do_the_plot_thing:
 
     import numpy
@@ -93,15 +98,20 @@ if do_the_plot_thing:
 
     v_values = numpy.array(v_values)
     u_values = numpy.array(u_values)
-    v_file = open("results-direct/v.txt", 'w')
-    u_file = open("results-direct/u.txt", 'w')
+    s_values = numpy.array(s_values)
+    v_file = open("results-direct-first-order/v.txt", 'w')
+    u_file = open("results-direct-first-order/u.txt", 'w')
+    s_file = open("results-direct-first-order/s.txt", 'w')
     for i in range(v_values.shape[0]):
         v_file.write(" ".join(["%.7e" % v for v in v_values[i, :]]))
         v_file.write("\n")
         u_file.write(" ".join(["%.7e" % u for u in u_values[i, :]]))
         u_file.write("\n")
+        s_file.write(" ".join(["%.7e" % s for s in s_values[i, :]]))
+        s_file.write("\n")
 
     plot_data(v_values, ylabel="v", show=False)
-    plot_data(u_values, ylabel="u")
+    plot_data(u_values, ylabel="u", show=False, ylimits=(-60, 40))
+    plot_data(s_values, ylabel="s", ylimits=(-10, 2000))
 
 #interactive()

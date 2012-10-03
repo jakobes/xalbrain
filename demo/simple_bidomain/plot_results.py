@@ -10,7 +10,8 @@ def extract_data(filename):
 
     return e
 
-def plot_data(e, times=None, show=True, ylabel="v", title="Title"):
+def plot_data(e, times=None, show=True, ylabel="v", title="Title",
+              ylimits=(-100,50)):
 
     pylab.figure()
     for i in range(len(e[0, :])):
@@ -23,13 +24,13 @@ def plot_data(e, times=None, show=True, ylabel="v", title="Title"):
     pylab.xlabel("t")
     pylab.ylabel("%s(x_i, t)" % ylabel)
     pylab.grid(True)
-    pylab.ylim((-100, 50))
+    pylab.ylim(ylimits)
     pylab.title(title)
     if show:
         pylab.show()
 
 def compare_data(e0, e1, times=None, show=True, ylabel="v", title="Title",
-                 versions=("0", "1"), store=True):
+                 versions=("0", "1"), store=True, ylimits=(-100, 50)):
 
     for i in range(len(e0[0, :])):
         pylab.figure()
@@ -44,7 +45,7 @@ def compare_data(e0, e1, times=None, show=True, ylabel="v", title="Title",
         pylab.xlabel("t")
         pylab.ylabel("%s(x_i, t)" % ylabel)
         pylab.grid(True)
-        pylab.ylim((-100, 50))
+        #pylab.ylim(ylimits)
         pylab.title(title)
 
         if store:
@@ -56,9 +57,9 @@ def compare_data(e0, e1, times=None, show=True, ylabel="v", title="Title",
 
 if __name__ == "__main__":
 
-    for variable in ("v", "u"):
+    for variable in ("v", "u", "s"):
         e0 = extract_data("pycc-results/%s.txt" % variable)
-        e1 = extract_data("results-direct/%s.txt" % variable)
+        e1 = extract_data("results-direct-first-order/%s.txt" % variable)
         compare_data(e0, e1, ylabel=variable,
                      show=True, versions=("pycc", "fenics"),
                      title="Comparing %s data for pycc and fenics" % variable)
