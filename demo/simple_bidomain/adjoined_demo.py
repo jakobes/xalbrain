@@ -29,7 +29,7 @@ class MyHeart(CardiacModel):
     def __init__(self, cell_model):
         CardiacModel.__init__(self, cell_model)
     def domain(self):
-        n = 50
+        n = 100
         return UnitSquare(n, n)
     def conductivities(self):
         chi = 2000.0   # cm^{-1}
@@ -63,12 +63,12 @@ ps = SplittingSolver.default_parameters()
 ps["linear_variational_solver"]["linear_solver"] = "direct"
 ps["nonlinear_variational_solver"]["linear_solver"] = "direct"
 ps["enable_adjoint"] = True
-#ps["theta"] = 1.0
+#ps["theta"] = 0.5
 solver = SplittingSolver(heart, parameters=ps)
 
 # Define end-time and (constant) timestep
 k_n = 0.25 # mS
-T = 2.0  # mS
+T = 4.0  # mS
 
 def main(ic):
 

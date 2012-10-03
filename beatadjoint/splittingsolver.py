@@ -133,9 +133,11 @@ class BasicSplittingSolver:
         end()
 
         # Merge (inverse of split) v and s_star: (needed for adjointability)
+        begin("Merging step")
         (v, u, r) = split(vur)
         (v_star, s_star) = split(vs_star)
         v_s_star = join((v, s_star), self.VS, annotate=annotate)
+        end()
 
         # If first order splitting, we are done:
         if theta == 1.0:
