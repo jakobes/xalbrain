@@ -2,7 +2,7 @@
 
 # Copyright (C) 2012 Marie E. Rognes (meg@simula.no)
 # Use and modify at will
-# Last changed: 2012-10-03
+# Last changed: 2012-10-09
 
 __all__ = ["SplittingSolver", "BasicSplittingSolver"]
 
@@ -10,8 +10,6 @@ from dolfin import *
 from dolfin_adjoint import *
 from beatadjoint import CardiacModel
 from beatadjoint.utils import join
-
-
 
 class BasicSplittingSolver:
     """Operator splitting based solver for a cardiac model.
