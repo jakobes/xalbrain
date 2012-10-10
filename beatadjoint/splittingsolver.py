@@ -2,7 +2,7 @@
 
 # Copyright (C) 2012 Marie E. Rognes (meg@simula.no)
 # Use and modify at will
-# Last changed: 2012-10-09
+# Last changed: 2012-10-10
 
 __all__ = ["SplittingSolver", "BasicSplittingSolver"]
 
@@ -371,4 +371,13 @@ class SplittingSolver(BasicSplittingSolver):
         # Solve system
         vur = Function(self.VUR)
         solver.solve(vur.vector(), b, annotate=annotate)
+
+        # Rescale u if KrylovSolver is used...
+        if (isinstance(solver, KrylovSolver) and annotate==False):
+            info_blue("Normalizing u")
+            avg_u = assemble(split(vur)[1]*dx)
+            foo = TestFunctions(self.VUR)
+            bar = project(Constant((0.0, avg_u, 0.0)), self.VUR)
+            vur.vector().axpy(-1.0, bar.vector())
+
         return vur
