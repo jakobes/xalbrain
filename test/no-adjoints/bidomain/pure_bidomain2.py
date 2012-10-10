@@ -4,7 +4,7 @@ suggested by Glenn in order to identify u discrepancy between beat and
 pycc.
 """
 # Marie E. Rognes <meg@simula.no>
-# Last changed: 2012-10-09
+# Last changed: 2012-10-10
 
 import sys
 from dolfin import *
@@ -57,12 +57,12 @@ heart = MyHeart()
 ps = CoupledBidomainSolver.default_parameters()
 ps["theta"] = 1.0
 ps["real_constraint"] = use_r
-ps["linear_variational_solver"]["linear_solver"] = "iterative"
+#ps["linear_variational_solver"]["linear_solver"] = "iterative"
 solver = CoupledBidomainSolver(heart, ps)
 
 # Define end-time and (constant) timestep
-T = 1.0
-dt = 0.1
+T = 1.0 + 1.e-6
+dt = 0.01
 
 # Define initial condition(s)
 ic = InitialCondition()
@@ -78,22 +78,22 @@ solutions = solver.solve((0, T), dt)
 v_plot = Function(solver.W.sub(0).collapse())
 u_plot = Function(solver.W.sub(1).collapse())
 
-if use_r:
-    files = File("pure_bidomain_r_comparison_data/u_r_krylov.pvd")
-else:
-    files = File("pure_bidomain_r_comparison_data/u_normalized_krylov.pvd")
+#if use_r:
+#    files = File("pure_bidomain_r_comparison_data/u_r_krylov.pvd")
+#else:
+#    files = File("pure_bidomain_r_comparison_data/u_normalized_krylov.pvd")
 
 for (timestep, w) in solutions:
     fields = w.split()
 
-    #v_plot.assign(fields[0], annotate=False)
+    v_plot.assign(fields[0], annotate=False)
     u_plot.assign(fields[1], annotate=False)
-    #plot(v_plot, title="v")
-    #plot(u_plot, title="u")
-    files << u_plot
 
+plot(v_plot, title="v")
+plot(u_plot, title="u")
 interactive()
 
 
-
-
+# 0: no R iterative
+# 1: with R iterative
+# 2: with R direct

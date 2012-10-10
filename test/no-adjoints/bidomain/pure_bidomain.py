@@ -4,7 +4,7 @@ suggested by Glenn in order to identify u discrepancy between beat and
 pycc.
 """
 # Marie E. Rognes <meg@simula.no>
-# Last changed: 2012-10-09
+# Last changed: 2012-10-10
 
 from dolfin import *
 from beatadjoint import *
@@ -49,8 +49,8 @@ solver = SplittingSolver(heart, parameters)
 #theta = solver.parameters["theta"]
 
 # Define end-time and (constant) timestep
-T = 1.0
-dt = 1.0
+T = 1.0 + 1.e-6
+dt = 0.01
 
 # Define initial condition(s)
 ic = InitialCondition()
@@ -58,8 +58,8 @@ vs0 = project(ic, solver.VS)
 (vs_, vs, u) = solver.solution_fields()
 vs_.assign(vs0)
 
-v_mf = MeshFunction("double", mesh, "pure_bidomain_pycc_data/v0000.xml")
-u_mf = MeshFunction("double", mesh, "pure_bidomain_pycc_data/u0000.xml")
+v_mf = MeshFunction("double", mesh, "pure_bidomain_pycc_data/v0099.xml")
+u_mf = MeshFunction("double", mesh, "pure_bidomain_pycc_data/u0099.xml")
 #v = Function(solver.VS.sub(0).collapse(), "pure_bidomain_pycc_data/v0000.xml")
 
 V = solver.VS.sub(0).collapse()
@@ -76,13 +76,15 @@ info_green("Solving primal")
 solutions = solver.solve((0, T), dt)
 for (timestep, vs, u) in solutions:
     (v, s) = vs.split()
-    plot(v, title="beat v")
-    plot(u, title="beat u")
 
-    print "||v_pycc - v||_0 = ", errornorm(v_pycc, v)
-    print "||u_pycc - u||_0 = ", errornorm(u_pycc, u)
+print "timestep = ", timestep
+plot(v, title="beat v")
+plot(u, title="beat u")
 
-    interactive()
+print "||v_pycc - v||_0 = ", errornorm(v_pycc, v)
+print "||u_pycc - u||_0 = ", errornorm(u_pycc, u)
+
+interactive()
 
 
 
