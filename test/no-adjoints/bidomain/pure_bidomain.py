@@ -9,18 +9,23 @@ pycc.
 from dolfin import *
 from beatadjoint import *
 
-#parameters["reorder_dofs"] = False
+parameters["reorder_dofs"] = False
 parameters["form_compiler"]["cpp_optimize"] = True
 parameters["form_compiler"]["optimize"] = True
 
 class InitialCondition(Expression):
     def eval(self, values, x):
-        values[0] = 100*exp(-100*(pow((x[0]-0.5), 2) + pow((x[1]-0.5), 2)))
+        c = (0.15, 0.05)
+        values[0] = 100*exp(-100*(pow((x[0]-c[0]), 2) + pow((x[1]-c[1]), 2)))
         values[1] = 0.0
     def value_shape(self):
         return (2,)
 
-mesh = UnitSquare(100, 100)
+N = 100
+mesh = UnitSquare(N, N)
+#plot(mesh, interactive=True)
+#exit()
+
 class MyHeart(CardiacModel):
     def __init__(self, cell_model):
         CardiacModel.__init__(self, cell_model)
@@ -41,16 +46,19 @@ cell = NoCellModel()
 heart = MyHeart(cell)
 
 # Set-up solver
-parameters = SplittingSolver.default_parameters()
+Solver = SplittingSolver
+parameters = Solver.default_parameters()
 parameters["enable_adjoint"] = True
 parameters["theta"] = 1.0
+#parameters["linear_variational_solver"]["linear_solver"] = "iterative"
 parameters["linear_variational_solver"]["linear_solver"] = "direct"
-solver = SplittingSolver(heart, parameters)
+solver = Solver(heart, parameters)
 #theta = solver.parameters["theta"]
 
 # Define end-time and (constant) timestep
 T = 1.0 + 1.e-6
 dt = 0.01
+#dt = 1.0
 
 # Define initial condition(s)
 ic = InitialCondition()
@@ -58,15 +66,9 @@ vs0 = project(ic, solver.VS)
 (vs_, vs, u) = solver.solution_fields()
 vs_.assign(vs0)
 
-v_mf = MeshFunction("double", mesh, "pure_bidomain_pycc_data/v0099.xml")
-u_mf = MeshFunction("double", mesh, "pure_bidomain_pycc_data/u0099.xml")
-#v = Function(solver.VS.sub(0).collapse(), "pure_bidomain_pycc_data/v0000.xml")
-
 V = solver.VS.sub(0).collapse()
-v_pycc = Function(V)
-v_pycc.vector()[:] = v_mf.array()
-u_pycc = Function(V)
-u_pycc.vector()[:] = u_mf.array()
+v_pycc = Function(V, "pycc-data-corner/v.xml")
+u_pycc = Function(V, "pycc-data-corner/u.xml")
 
 plot(v_pycc, title="pycc v")
 plot(u_pycc, title="pycc u")
@@ -75,11 +77,15 @@ plot(u_pycc, title="pycc u")
 info_green("Solving primal")
 solutions = solver.solve((0, T), dt)
 for (timestep, vs, u) in solutions:
-    (v, s) = vs.split()
+    (v, s) = vs.split(deepcopy=True)
 
 print "timestep = ", timestep
 plot(v, title="beat v")
 plot(u, title="beat u")
+vfile = File("v100.xml")
+vfile << v
+ufile = File("u100.xml")
+ufile << u
 
 print "||v_pycc - v||_0 = ", errornorm(v_pycc, v)
 print "||u_pycc - u||_0 = ", errornorm(u_pycc, u)

@@ -10,7 +10,7 @@ import sys
 from dolfin import *
 from beatadjoint import *
 
-#parameters["reorder_dofs"] = False
+parameters["reorder_dofs"] = False
 parameters["form_compiler"]["cpp_optimize"] = True
 parameters["form_compiler"]["optimize"] = True
 
@@ -77,6 +77,9 @@ info_green("Solving primal")
 solutions = solver.solve((0, T), dt)
 v_plot = Function(solver.W.sub(0).collapse())
 u_plot = Function(solver.W.sub(1).collapse())
+
+v_pycc = Function(V, "pycc-dat-corner/v.xml")
+u_pycc = Function(V, "pycc-dat-corner/u.xml")
 
 #if use_r:
 #    files = File("pure_bidomain_r_comparison_data/u_r_krylov.pvd")

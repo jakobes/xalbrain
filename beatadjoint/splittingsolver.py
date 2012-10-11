@@ -2,7 +2,7 @@
 
 # Copyright (C) 2012 Marie E. Rognes (meg@simula.no)
 # Use and modify at will
-# Last changed: 2012-10-10
+# Last changed: 2012-10-11
 
 __all__ = ["SplittingSolver", "BasicSplittingSolver"]
 
@@ -68,6 +68,7 @@ class BasicSplittingSolver:
         parameters.add("potential_polynomial_degree", 1)
         parameters.add("ode_polynomial_degree", 0)
         parameters.add("ode_polynomial_family", "DG")
+        parameters.add("ode_theta", 0.5)
 
         ode_solver_params = NonlinearVariationalSolver.default_parameters()
         parameters.add(ode_solver_params)
@@ -171,7 +172,7 @@ class BasicSplittingSolver:
         Dt_v = (v - v_)/k_n
         Dt_s = (s - s_)/k_n
 
-        theta = self.parameters["theta"]
+        theta = self.parameters["ode_theta"]
         F = self._model.cell_model().F
         I_ion = self._model.cell_model().I
         I_theta = - (theta*I_ion(v, s) + (1 - theta)*I_ion(v_, s_))
@@ -355,7 +356,7 @@ class SplittingSolver(BasicSplittingSolver):
             self._k_n.assign(Constant(dt))#, annotate=annotate) # FIXME
             A = assemble(self._a, annotate=annotate)
             self._A = A
-            solver.set_operator(self._A)#, annotate=annotate) # NB?
+            solver.set_operator(self._A)
             if isinstance(solver, LUSolver):
                 solver.parameters["reuse_factorization"] = False
             elif isinstance(solver, KrylovSolver):
