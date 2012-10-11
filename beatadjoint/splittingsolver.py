@@ -135,7 +135,8 @@ class BasicSplittingSolver:
         begin("Merging step")
         (v, u, r) = split(vur)
         (v_star, s_star) = split(vs_star)
-        v_s_star = join((v, s_star), self.VS, annotate=annotate)
+        v_s_star = join((v, s_star), self.VS, annotate=annotate,
+                        solver_type="cg")
         end()
 
         # If first order splitting, we are done:
