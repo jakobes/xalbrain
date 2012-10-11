@@ -1,20 +1,22 @@
 """
-This test is intended to be a verification of the splitting solver for
-the bidomain equations plus FitzHugh-Nagumo model to be compared with
-some known code, for instance PyCC
+This test case has been compared against pycc up til T = 100.0
 
-Data and parameters suggested by Glenn T. Lines, 22. sept 2012,
-also match Table 2.1 p 29 in Sundnes et al.
+The relative difference in L^2(mesh) norm between beat and pycc was
+then less than 0.2% for all timesteps in all variables.
+
+The test was then shortened to T = 4.0, and the reference at that time
+computed.
 """
 
 # Marie E. Rognes <meg@simula.no>
-# Last changed: 2012-10-02
+# Last changed: 2012-10-11
 
 import math
 
 from dolfin import *
 from beatadjoint import *
 
+parameters["reorder_dofs"] = False
 parameters["form_compiler"]["cpp_optimize"] = True
 parameters["form_compiler"]["optimize"] = True
 
@@ -62,11 +64,18 @@ cell = FitzHughNagumo(cell_parameters)
 heart = MyHeart(cell)
 
 # Set-up solver
-solver = SplittingSolver(heart)
+ps = SplittingSolver.default_parameters()
+ps["enable_adjoint"] = True
+ps["linear_variational_solver"]["linear_solver"] = "direct"
+ps["theta"] = 1.0
+ps["ode_theta"] = 0.5
+ps["ode_polynomial_family"] = "CG"
+ps["ode_polynomial_degree"] = 1
+solver = SplittingSolver(heart, ps)
 
 # Define end-time and (constant) timestep
 dt = 0.25 # mS
-T = 1.0   # mS
+T = 4.0 + 1.e-6  # mS
 
 # Define initial condition(s)
 ic = InitialCondition()
@@ -81,11 +90,11 @@ solutions = solver.solve((0, T), dt)
 for (timestep, vs, u) in solutions:
     continue
 total.stop()
-
 list_timings()
 
 norm_u = norm(u)
-reference = 36.61914235891203
+print "norm_u = %.16f" % norm_u
+reference =  11.2482303059560245
 diff = abs(reference - norm_u)
 tol = 1.e-14
 assert (diff < tol), "Mismatch: %r" % diff
