@@ -40,51 +40,57 @@ class MyHeart(CardiacModel):
         M_e = as_tensor(((s_el, 0), (0, s_et)))
         return (M_i, M_e)
 
-# Set-up cell model
-k = 0.00004;
-Vrest = -85.;
-Vthreshold = -70.;
-Vpeak = 40.;
-k = 0.00004;
-l = 0.63;
-b = 0.013;
-v_amp = Vpeak - Vrest
-cell_parameters = {"c_1": k*v_amp**2, "c_2": k*v_amp, "c_3": b/l,
-                   "a": (Vthreshold - Vrest)/v_amp, "b": l,
-                   "v_rest":Vrest, "v_peak": Vpeak}
-cell = FitzHughNagumo(cell_parameters)
+def cell_model():
+    # Set-up cell model
+    k = 0.00004;
+    Vrest = -85.;
+    Vthreshold = -70.;
+    Vpeak = 40.;
+    k = 0.00004;
+    l = 0.63;
+    b = 0.013;
+    v_amp = Vpeak - Vrest
+    cell_parameters = {"c_1": k*v_amp**2, "c_2": k*v_amp, "c_3": b/l,
+                       "a": (Vthreshold - Vrest)/v_amp, "b": l,
+                       "v_rest":Vrest, "v_peak": Vpeak}
+    model = FitzHughNagumo(cell_parameters)
+    return model
 
-# Set-up cardiac model
-heart = MyHeart(cell)
+if __name__ == "__main__":
 
-# Set-up solver: direct solver is way quicker for this case with
-# constant time step and small size
-ps = SplittingSolver.default_parameters()
-ps["enable_adjoint"] = True
-ps["linear_variational_solver"]["linear_solver"] = "direct"
-solver = SplittingSolver(heart, ps)
+    cell = cell_model()
 
-# Define end-time and (constant) timestep
-dt = 0.25 # mS
-T = 200.0 + 1.e-6  # mS
+    # Set-up cardiac model
+    heart = MyHeart(cell)
 
-# Define initial condition(s)
-ic = InitialCondition()
-vs0 = project(ic, solver.VS)
-(vs_, vs, u) = solver.solution_fields()
-vs_.assign(vs0)
+    # Set-up solver: direct solver is way quicker for this case with
+    # constant time step and small size
+    ps = SplittingSolver.default_parameters()
+    ps["enable_adjoint"] = True
+    ps["linear_variational_solver"]["linear_solver"] = "direct"
+    solver = SplittingSolver(heart, ps)
 
-# Solve
-info_green("Solving primal")
-solutions = solver.solve((0, T), dt)
-v_plot = Function(solver.VS.sub(0).collapse())
-s_plot = Function(solver.VS.sub(1).collapse())
-for (timestep, vs, u) in solutions:
-    (v, s) = vs.split(deepcopy=True)
-    v_plot.assign(v, annotate=False)
-    s_plot.assign(s, annotate=False)
+    # Define end-time and (constant) timestep
+    dt = 0.25 # mS
+    T = 200.0 + 1.e-6  # mS
 
-    plot(v_plot, title="v")
-    plot(s_plot, title="s")
-    plot(u, title="u")
-interactive()
+    # Define initial condition(s)
+    ic = InitialCondition()
+    vs0 = project(ic, solver.VS)
+    (vs_, vs, u) = solver.solution_fields()
+    vs_.assign(vs0)
+
+    # Solve
+    info_green("Solving primal")
+    solutions = solver.solve((0, T), dt)
+    v_plot = Function(solver.VS.sub(0).collapse())
+    s_plot = Function(solver.VS.sub(1).collapse())
+    for (timestep, vs, u) in solutions:
+        (v, s) = vs.split(deepcopy=True)
+        v_plot.assign(v, annotate=False)
+        s_plot.assign(s, annotate=False)
+
+        plot(v_plot, title="v")
+        plot(s_plot, title="s")
+        plot(u, title="u")
+    interactive()
