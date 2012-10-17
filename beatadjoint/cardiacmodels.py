@@ -28,6 +28,12 @@ class CardiacModel:
 
         self.applied_current = None
 
+    def before_run(self):
+        "Initialize model before a run"
+
+        # Init cell model
+        self._cell_model.before_run()
+
     def domain(self):
         "Return the spatial domain"
         error("Please overload in subclass")
