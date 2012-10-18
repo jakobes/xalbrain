@@ -50,6 +50,14 @@ class CardiacCellModel:
         parameters = Parameters("CardiacCellModel")
         return parameters
 
+    def initial_conditions(self):
+        """
+        Return initial conditions of v and s as an Expresson
+
+        Need to to be over loaded to be usefull
+        """
+        return 
+
     def before_run(self):
         "Initialize dolfin coefficients from parameters"
         self._coefficient_parameters = {}
