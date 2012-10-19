@@ -92,9 +92,6 @@ class BasicSplittingSolver:
         t1 = T0 + dt
         annotate = self.parameters["enable_adjoint"]
 
-        # Initiate CellModel
-        self._model.before_run()
-
         # Step through time steps until at end time.
         while (t1 <= T + DOLFIN_EPS):
 
