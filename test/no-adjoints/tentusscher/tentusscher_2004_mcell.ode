@@ -152,10 +152,11 @@ parameters("Membrane",
            F = 96485.3415,
            Cm = 0.185,
            V_c = 0.016404,
-           stim_start = 10,
-           stim_period = 1000,
-           stim_duration = 1,
-           stim_amplitude = 52)
+#           stim_start = 10,
+#           stim_period = 1000,
+#           stim_duration = 1,
+#           stim_amplitude = 52,
+           )
 
 parameters("Potassium dynamics",
            K_o = 5.4)
@@ -280,7 +281,8 @@ Ca_sr_bufsr = 1.0/(1.0 + Buf_sr*K_buf_sr/(Ca_SR + K_buf_sr)**2.0)
 comment("Sodium dynamics")
 
 comment("Membrane")
-i_Stim = ContinuousConditional((Ge(time - floor(time/stim_period)*stim_period, stim_start) and Le(time - floor(time/stim_period)*stim_period, stim_start + stim_duration)), -stim_amplitude, 0.0)
+#i_Stim = ContinuousConditional((Ge(time - floor(time/stim_period)*stim_period, stim_start) and Le(time - floor(time/stim_period)*stim_period, stim_start + stim_duration)), -stim_amplitude, 0.0)
+i_Stim = 0
 
 comment("Potassium dynamics")
 

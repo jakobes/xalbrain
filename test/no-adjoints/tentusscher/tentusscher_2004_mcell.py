@@ -52,10 +52,6 @@ NOT_IMPLEMENTED
         parameters.add("R", 8314.472)
         parameters.add("T", 310)
         parameters.add("V_c", 0.016404)
-        parameters.add("stim_amplitude", 52)
-        parameters.add("stim_duration", 1)
-        parameters.add("stim_period", 1000)
-        parameters.add("stim_start", 10)
         parameters.add("K_o", 5.4)
         return parameters
 
@@ -76,13 +72,11 @@ NOT_IMPLEMENTED
         # Assign parameters
         g_bca = self._coefficient_parameters["g_bca"]
         g_CaL = self._coefficient_parameters["g_CaL"]
-        stim_start = self._coefficient_parameters["stim_start"]
         K_o = self._coefficient_parameters["K_o"]
         Ca_o = self._coefficient_parameters["Ca_o"]
         g_pCa = self._coefficient_parameters["g_pCa"]
         g_Ks = self._coefficient_parameters["g_Ks"]
         g_Kr = self._coefficient_parameters["g_Kr"]
-        stim_amplitude = self._coefficient_parameters["stim_amplitude"]
         P_kna = self._coefficient_parameters["P_kna"]
         K_pCa = self._coefficient_parameters["K_pCa"]
         P_NaK = self._coefficient_parameters["P_NaK"]
@@ -99,7 +93,6 @@ NOT_IMPLEMENTED
         K_NaCa = self._coefficient_parameters["K_NaCa"]
         g_pK = self._coefficient_parameters["g_pK"]
         g_K1 = self._coefficient_parameters["g_K1"]
-        stim_period = self._coefficient_parameters["stim_period"]
         Km_Ca = self._coefficient_parameters["Km_Ca"]
         g_Na = self._coefficient_parameters["g_Na"]
         K_mk = self._coefficient_parameters["K_mk"]
@@ -129,9 +122,7 @@ NOT_IMPLEMENTED
             R*T*ufl.ln(Na_o/Na_i)/F) - 1.0*g_pK*(V -\
             R*T*ufl.ln(K_o/K_i)/F)/(ufl.exp(-0.167224080267559*V +\
             4.18060200668896) + 1.0) - 1.0*g_to*r*s*(V -\
-            R*T*ufl.ln(K_o/K_i)/F) + 1.0*stim_amplitude*(1.0 -\
-            1.0/(ufl.exp(1.0*stim_period*ufl.floor(time/stim_period) +\
-            1.0*stim_start - 1.0*time) + 1.0))
+            R*T*ufl.ln(K_o/K_i)/F)
 
         
         return current
@@ -153,11 +144,9 @@ NOT_IMPLEMENTED
         # Assign parameters
         Buf_c = self._coefficient_parameters["Buf_c"]
         g_bca = self._coefficient_parameters["g_bca"]
-        stim_amplitude = self._coefficient_parameters["stim_amplitude"]
         K_o = self._coefficient_parameters["K_o"]
         g_CaL = self._coefficient_parameters["g_CaL"]
         a_rel = self._coefficient_parameters["a_rel"]
-        stim_start = self._coefficient_parameters["stim_start"]
         c_rel = self._coefficient_parameters["c_rel"]
         K_up = self._coefficient_parameters["K_up"]
         V_sr = self._coefficient_parameters["V_sr"]
@@ -188,7 +177,6 @@ NOT_IMPLEMENTED
         g_pK = self._coefficient_parameters["g_pK"]
         Cm = self._coefficient_parameters["Cm"]
         g_K1 = self._coefficient_parameters["g_K1"]
-        stim_period = self._coefficient_parameters["stim_period"]
         Km_Ca = self._coefficient_parameters["Km_Ca"]
         R = self._coefficient_parameters["R"]
         g_Na = self._coefficient_parameters["g_Na"]
@@ -307,9 +295,7 @@ NOT_IMPLEMENTED
             1.0*g_pK*(V -\
             R*T*ufl.ln(K_o/K_i)/F)/(ufl.exp(-0.167224080267559*V +\
             4.18060200668896) + 1.0) - 1.0*g_to*r*s*(V -\
-            R*T*ufl.ln(K_o/K_i)/F) + 1.0*stim_amplitude*(1.0 -\
-            1.0/(ufl.exp(1.0*stim_period*ufl.floor(time/stim_period) +\
-            1.0*stim_start - 1.0*time) + 1.0))),
+            R*T*ufl.ln(K_o/K_i)/F)),
             ]
 
         return as_vector(F_expressions)
