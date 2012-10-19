@@ -3,7 +3,7 @@ cell models."""
 
 # Copyright (C) 2012 Marie E. Rognes (meg@simula.no)
 # Use and modify at will
-# Last changed: 2012-10-17
+# Last changed: 2012-09-25
 
 __all__ = ["CardiacCellModel", "FitzHughNagumo", "NoCellModel"]
 
@@ -60,9 +60,9 @@ class CardiacCellModel:
 
     def before_run(self):
         "Initialize dolfin coefficients from parameters"
-        self._coefficient_parameters = {}
+        self._coeff_params = {}
         for param, value in self._parameters.items():
-            self._coefficient_parameters[param] = Constant(value)
+            self._coeff_params[param] = Constant(value)
 
     def parameters(self):
         "Return the current parameters"
@@ -109,12 +109,12 @@ class FitzHughNagumo(CardiacCellModel):
 
     def I(self, v, s):
         # Extract coefficient parameters
-        c_1 = self._coefficient_parameters["c_1"]
-        c_2 = self._coefficient_parameters["c_2"]
-        v_rest = self._coefficient_parameters["v_rest"]
-        v_peak = self._coefficient_parameters["v_peak"]
+        c_1 = self._coeff_params["c_1"]
+        c_2 = self._coeff_params["c_2"]
+        v_rest = self._coeff_params["v_rest"]
+        v_peak = self._coeff_params["v_peak"]
         v_amp = v_peak - v_rest
-        v_th = v_rest + self._coefficient_parameters["a"]*v_amp
+        v_th = v_rest + self._coeff_params["a"]*v_amp
 
         # Define current
         i = (c_1/(v_amp**2)*(v - v_rest)*(v - v_th)*(v_peak - v)
@@ -123,9 +123,9 @@ class FitzHughNagumo(CardiacCellModel):
 
     def F(self, v, s):
         # Extract coefficient parameters
-        b = self._coefficient_parameters["b"]
-        v_rest = self._coefficient_parameters["v_rest"]
-        c_3 = self._coefficient_parameters["c_3"]
+        b = self._coeff_params["b"]
+        v_rest = self._coeff_params["v_rest"]
+        c_3 = self._coeff_params["c_3"]
 
         # Define model
         return b*(v - v_rest - c_3*s)
