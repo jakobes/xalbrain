@@ -110,7 +110,7 @@ end()
 (v, s) = split(vs)
 
 # Define some functional
-J = Functional(inner(v, v)*ds*dt[FINISH_TIME])
+J = Functional(inner(v, v)*ds*dt)#[FINISH_TIME])
 dJdm = compute_gradient(J, InitialConditionParameter(m))
 
 plot(dJdm, interactive=True, title="Sensitivity map")
