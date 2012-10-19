@@ -13,6 +13,17 @@ from beatadjoint import *
 parameters["form_compiler"]["cpp_optimize"] = True
 parameters["form_compiler"]["optimize"] = True
 
+class SampleConductivity(Expression):
+    """Randomly chosen values by Marie to represent some spatially
+    varying conductivity"""
+    def eval(self, values, x):
+        chi = 2000.0   # cm^{-1}
+        r = math.sqrt(x[0]**2 + x[1]**2)
+        if r > 0.05:
+            values[0] = 3.0/chi
+        else:
+            values[0] = 10.0/chi
+
 class InitialCondition(Expression):
     def eval(self, values, x):
         r = math.sqrt(x[0]**2 + x[1]**2)
@@ -24,14 +35,22 @@ class InitialCondition(Expression):
     def value_shape(self):
         return (2,)
 
+chi = 2000.0   # cm^{-1}
+
+mesh = UnitSquare(100, 100)
+CG1 = FunctionSpace(mesh, "CG", 1)
+
+# Woohoo:
+m = SampleConductivity()
+m = interpolate(m, CG1, annotate=False)
+
 class MyHeart(CardiacModel):
     def __init__(self, cell_model):
         CardiacModel.__init__(self, cell_model)
     def domain(self):
-        return UnitSquare(100, 100)
+        return mesh
     def conductivities(self):
-        chi = 2000.0   # cm^{-1}
-        s_il = 3.0/chi # mS
+        s_il = m
         s_it = 0.3/chi # mS
         s_el = 2.0/chi # mS
         s_et = 1.3/chi # mS
@@ -65,64 +84,33 @@ ps["enable_adjoint"] = True
 ps["linear_variational_solver"]["linear_solver"] = "direct"
 solver = SplittingSolver(heart, parameters=ps)
 
+# Define initial condition here (no need to annotate this step)
+ic = InitialCondition()
+ic = Function(project(ic, solver.VS, annotate=False))
+
 # Define end-time and (constant) timestep
-T = 2.0
+T = 1.0
 k_n = 0.25
 
-# Split solve out into separate function for Taylor test purposes
-def main(ic):
-    # Assign initial condition
-    (vs_, vs, u) = solver.solution_fields()
-    vs_.adj_name = "vs_"
-    vs.adj_name = "vs"
-    u.adj_name = "u"
-    vs_.assign(ic, annotate=True)
+# Assign initial condition
+(vs_, vs, u) = solver.solution_fields()
+vs_.adj_name = "vs_"
+vs.adj_name = "vs"
+u.adj_name = "u"
+vs_.assign(ic, annotate=True)
 
-    # Solve
-    begin("Solving primal")
-    solutions = solver.solve((0, T), k_n)
-    for (timestep, vs, u) in solutions:
-        continue
-    end()
+# Solve
+begin("Solving primal")
+solutions = solver.solve((0, T), k_n)
+for (timestep, vs, u) in solutions:
+    plot(u)
+    continue
+end()
 
-    return (vs, u)
+(v, s) = split(vs)
 
-if __name__ == "__main__":
+# Define some functional
+J = Functional(inner(v, v)*ds*dt[FINISH_TIME])
+dJdm = compute_gradient(J, InitialConditionParameter(m))
 
-    # Define initial condition here (no need to annotate this step)
-    ic = InitialCondition()
-    ic = Function(project(ic, solver.VS, annotate=False))
-
-    # Run forward simulation once
-    (vs, u) = main(ic)
-
-    # Stop annotating here (done with forward solve)
-    parameters["adjoint"]["stop_annotating"] = True
-
-    # Compute value of functional at "end"
-    J_value = assemble(inner(vs, vs)*dx)
-
-    # Check replay
-    info_green("Replaying")
-    success = replay_dolfin(tol=0.0, stop=True)
-
-    # Store record
-    adj_html("forward.html", "forward")
-    adj_html("adjoint.html", "adjoint")
-
-    # Define some functional
-    J = Functional(inner(vs, vs)*dx*dt[FINISH_TIME])
-
-    # Compute gradient of J with respect to vs_
-    info_green("Computing gradient")
-    dJdic = compute_gradient(J, InitialConditionParameter("vs_"), forget=False)
-    assert dJdic is not None
-
-    # Run Taylor test
-    info_green("Verifying")
-    def Jhat(ic):
-        (vs, u) = main(ic)
-        return assemble(inner(vs, vs)*dx)
-    minconv = taylor_test(Jhat, InitialConditionParameter("vs_"),J_value, dJdic)
-    print "Minimum convergence rate: ", minconv
-
+plot(dJdm, interactive=True, title="Sensitivity map")
