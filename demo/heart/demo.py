@@ -10,9 +10,10 @@ from dolfin_adjoint import *
 from beatadjoint import *
 
 parameters["reorder_dofs"] = False
+
 parameters["form_compiler"]["quadrature_degree"] = 2
 parameters["form_compiler"]["cpp_optimize"] = True
-#parameters["form_compiler"]["optimize"] = True
+parameters["form_compiler"]["optimize"] = False
 
 set_log_level(PROGRESS)
 
@@ -70,6 +71,7 @@ heart = MyHeart(cell)
 Solver = SplittingSolver
 ps = Solver.default_parameters()
 ps["enable_adjoint"] = True
+ps["num_threads"] = 8
 ps["linear_variational_solver"]["linear_solver"] = "direct"
 solver = Solver(heart, parameters=ps)
 

@@ -69,6 +69,7 @@ class BasicSplittingSolver:
         parameters.add("ode_polynomial_degree", 0)
         parameters.add("ode_polynomial_family", "DG")
         parameters.add("ode_theta", 0.5)
+        parameters.add("num_threads", 0)
 
         ode_solver_params = NonlinearVariationalSolver.default_parameters()
         parameters.add(ode_solver_params)
@@ -194,12 +195,14 @@ class BasicSplittingSolver:
         pde = NonlinearVariationalProblem(G, vs, J=derivative(G, vs))
 
         # Set-up solver
+        parameters.num_threads = self.parameters["num_threads"]
         solver = NonlinearVariationalSolver(pde)
         solver_params = self.parameters["nonlinear_variational_solver"]
         solver.parameters.update(solver_params)
 
         # Solve system
         solver.solve(annotate=self.parameters["enable_adjoint"])
+        parameters.num_threads = 0
         return vs
 
     def pde_step(self, interval, vs_):
