@@ -30,7 +30,7 @@ setup(name = "beatadjoint",
       """,
       author = "Marie Rognes, Johan Hake",
       author_email = "meg@simula.no",
-      packages = ["beatadjoint",],
+      packages = ["beatadjoint", "beatadjoint.cellmodels",],
       package_dir = {"beatadjoint": "beatadjoint"},
       scripts = scripts,
       )
