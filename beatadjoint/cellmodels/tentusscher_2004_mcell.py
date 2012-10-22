@@ -1,14 +1,13 @@
+# This file was generated using gotran2ufl from
+# tentusscher_2004_mcell.ode
 
 import ufl
-
-from dolfin import *
-from dolfin_adjoint import *
-
-from beatadjoint import CardiacCellModel
+from dolfin import Parameters, Expression, as_vector
+from cardiaccellmodel import *
 
 class Tentusscher_2004_mcell(CardiacCellModel):
     """
-NOT_IMPLEMENTED    
+NOT_IMPLEMENTED
     """
     def __init__(self, parameters=None):
         CardiacCellModel.__init__(self, parameters)
@@ -128,7 +127,7 @@ NOT_IMPLEMENTED
             4.18060200668896) + 1.0) - 1.0*g_to*r*s*(V -\
             R*T*ufl.ln(K_o/K_i)/F)
 
-        
+
         return current
 
     def F(self, v, s):

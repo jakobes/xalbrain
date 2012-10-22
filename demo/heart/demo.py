@@ -19,11 +19,6 @@ class SampleConductivity(Expression):
     def eval(self, values, x):
         chi = 2000.0   # cm^{-1}
         values[0] = 3.0/chi
-        #r = math.sqrt(x[0]**2 + x[1]**2)
-        #if r > 0.05:
-        #    values[0] = 3.0/chi
-        #else:
-        #    values[0] = 10.0/chi
 
 class InitialCondition(Expression):
     def eval(self, values, x):
