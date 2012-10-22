@@ -7,7 +7,6 @@ Test running-ness of tenTusscher cell model
 
 from dolfin import *
 from beatadjoint import *
-from tentusscher_2004_mcell import Tentusscher_2004_mcell
 
 parameters["reorder_dofs"] = False
 parameters["form_compiler"]["cpp_optimize"] = True
@@ -55,8 +54,8 @@ while (t1 <= T):
 print v_values
 
 # Plot values
-import pylab
-pylab.figure()
-pylab.plot(times, v_values)
-pylab.show()
+#import pylab
+#pylab.figure()
+#pylab.plot(times, v_values)
+#pylab.show()
 
