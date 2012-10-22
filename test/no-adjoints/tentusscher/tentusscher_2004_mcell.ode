@@ -162,10 +162,10 @@ parameters("Potassium dynamics",
            K_o = 5.4)
 
 comment("Reversal potentials")
-E_Na = R*T/F*log(Na_o/Na_i)
-E_K = R*T/F*log(K_o/K_i)
-E_Ks = R*T/F*log((K_o + P_kna*Na_o)/(K_i + P_kna*Na_i))
-E_Ca = 0.5*R*T/F*log(Ca_o/Ca_i)
+E_Na = (R*T)/F*log(Na_o/Na_i)
+E_K = (R*T)/F*log(K_o/K_i)
+E_Ks = (R*T)/F*log((K_o + P_kna*Na_o)/(K_i + P_kna*Na_i))
+E_Ca = (0.5*R*T)/F*log(Ca_o/Ca_i)
 
 comment("Inward rectifier potassium current")
 alpha_K1 = 0.1/(1.0 + exp(0.06*(V - E_K - 200.0)))
@@ -209,20 +209,20 @@ tau_m = 1.0*alpha_m*beta_m
 comment("Fast sodium current h gate")
 h_inf = 1.0/(1.0 + exp((V + 71.55)/7.43))**2.0
 alpha_h = ContinuousConditional(Lt(V, -40.0), (0.057*exp(-(V + 80.0)/6.8)), 0.0)
-beta_h = ContinuousConditional(Lt(V, -40.0), (2.7*exp(0.079*V) + 310000.0*exp(0.3485*V)), (0.77/0.13*(1.0 + exp((V + 10.66)/-11.1))))
+beta_h = ContinuousConditional(Lt(V, -40.0), (2.7*exp(0.079*V) + 310000.0*exp(0.3485*V)), (0.77/(0.13*(1.0 + exp((V + 10.66)/-11.1)))))
 tau_h = 1.0/(alpha_h + beta_h)
 
 comment("Fast sodium current j gate")
 j_inf = 1.0/(1.0 + exp((V + 71.55)/7.43))**2.0
-alpha_j = ContinuousConditional(Lt(V, -40.0), ((-25428.0*exp(0.2444*V) - 6.948*exp(-0.04391*V))*(V + 37.78)/1.0/(1.0 + exp(0.311*(V + 79.23)))), 0.0)
-beta_j = ContinuousConditional(Lt(V, -40.0), (0.02424*exp(-0.01052*V)/(1.0 + exp(-0.1378*(V + 40.14)))), (0.6*exp(0.057*V)/(1.0 + exp(-0.1*(V + 32.0)))))
+alpha_j = ContinuousConditional(Lt(V, -40.0), (((-25428.0*exp(0.2444*V) - 6.948*exp(-0.04391*V))*(V + 37.78))/1.0/(1.0 + exp(0.311*(V + 79.23)))), 0.0)
+beta_j = ContinuousConditional(Lt(V, -40.0), ((0.02424*exp(-0.01052*V))/(1.0 + exp(-0.1378*(V + 40.14)))), ((0.6*exp(0.057*V))/(1.0 + exp(-0.1*(V + 32.0)))))
 tau_j = 1.0/(alpha_j + beta_j)
 
 comment("Sodium background current")
 i_b_Na = g_bna*(V - E_Na)
 
 comment("L type ca current")
-i_CaL = g_CaL*d*f*fCa*4.0*V*F**2.0/R*T*(Ca_i*exp(2.0*V*F/R*T) - 0.341*Ca_o)/(exp(2.0*V*F/R*T) - 1.0)
+i_CaL = ((g_CaL*d*f*fCa*4.0*V*F**2.0)/(R*T)*(Ca_i*exp((2.0*V*F)/(R*T)) - 0.341*Ca_o))/(exp((2.0*V*F)/(R*T)) - 1.0)
 
 comment("L type ca current d gate")
 d_inf = 1.0/(1.0 + exp((-5.0 - V)/7.5))
@@ -258,31 +258,30 @@ r_inf = 1.0/(1.0 + exp((20.0 - V)/6.0))
 tau_r = 9.5*exp(-(V + 40.0)**2.0/1800.0) + 0.8
 
 comment("Sodium potassium pump current")
-i_NaK = P_NaK*K_o/(K_o + K_mk)*Na_i/(Na_i + K_mNa)/(1.0 + 0.1245*exp(-0.1*V*F/R*T) + 0.0353*exp(-V*F/R*T))
+i_NaK = ((P_NaK*K_o)/(K_o + K_mk)*Na_i)/(Na_i + K_mNa)/(1.0 + 0.1245*exp((-0.1*V*F)/(R*T)) + 0.0353*exp((-V*F)/(R*T)))
 
 comment("Sodium calcium exchanger current")
-i_NaCa = K_NaCa*(exp(gamma*V*F/R*T)*Na_i**3.0*Ca_o - exp((gamma - 1.0)*V*F/R*T)*Na_o**3.0*Ca_i*alpha)/(Km_Nai**3.0 + Na_o**3.0)*(Km_Ca + Ca_o)*(1.0 + K_sat*exp((gamma - 1.0)*V*F/R*T))
+i_NaCa = (K_NaCa*(exp((gamma*V*F)/(R*T))*Na_i**3.0*Ca_o - exp(((gamma - 1.0)*V*F)/(R*T))*Na_o**3.0*Ca_i*alpha))/((Km_Nai**3.0 + Na_o**3.0)*(Km_Ca + Ca_o)*(1.0 + K_sat*exp(((gamma - 1.0)*V*F)/(R*T))))
 
 comment("Calcium pump current")
-i_p_Ca = g_pCa*Ca_i/(Ca_i + K_pCa)
+i_p_Ca = (g_pCa*Ca_i)/(Ca_i + K_pCa)
 
 comment("Potassium pump current")
-i_p_K = g_pK*(V - E_K)/(1.0 + exp((25.0 - V)/5.98))
+i_p_K = (g_pK*(V - E_K))/(1.0 + exp((25.0 - V)/5.98))
 
 comment("Calcium dynamics")
-i_rel = (a_rel*Ca_SR**2.0/(b_rel**2.0 + Ca_SR**2.0) + c_rel)*d*g
+i_rel = ((a_rel*Ca_SR**2.0)/(b_rel**2.0 + Ca_SR**2.0) + c_rel)*d*g
 i_up = Vmax_up/(1.0 + K_up**2.0/Ca_i**2.0)
 i_leak = V_leak*(Ca_SR - Ca_i)
 g_inf = ContinuousConditional(Lt(Ca_i, 0.00035), (1.0/(1.0 + (Ca_i/0.00035)**6.0)), (1.0/(1.0 + (Ca_i/0.00035)**16.0)))
 d_g = (g_inf - g)/tau_g
-Ca_i_bufc = 1.0/(1.0 + Buf_c*K_buf_c/(Ca_i + K_buf_c)**2.0)
-Ca_sr_bufsr = 1.0/(1.0 + Buf_sr*K_buf_sr/(Ca_SR + K_buf_sr)**2.0)
+Ca_i_bufc = 1.0/(1.0 + (Buf_c*K_buf_c)/(Ca_i + K_buf_c)**2.0)
+Ca_sr_bufsr = 1.0/(1.0 + (Buf_sr*K_buf_sr)/(Ca_SR + K_buf_sr)**2.0)
 
 comment("Sodium dynamics")
 
 comment("Membrane")
-#i_Stim = ContinuousConditional((Ge(time - floor(time/stim_period)*stim_period, stim_start) and Le(time - floor(time/stim_period)*stim_period, stim_start + stim_duration)), -stim_amplitude, 0.0)
-i_Stim = 0
+i_Stim = 0.0#ContinuousConditional((Ge(time - floor(time/stim_period)*stim_period, stim_start) and Le(time - floor(time/stim_period)*stim_period, stim_start + stim_duration)), -stim_amplitude, 0.0)
 
 comment("Potassium dynamics")
 
@@ -299,8 +298,8 @@ diff(fCa, ContinuousConditional((Gt(fCa_inf, fCa) and Gt(V, -60.0)), 0.0, d_fCa)
 diff(s, (s_inf - s)/tau_s)
 diff(r, (r_inf - r)/tau_r)
 diff(g, ContinuousConditional((Gt(g_inf, g) and Gt(V, -60.0)), 0.0, d_g))
-diff(Ca_i, Ca_i_bufc*((i_leak - i_up + i_rel) - 1.0*((i_CaL + i_b_Ca + i_p_Ca) - 2.0*i_NaCa)/2.0*1.0*V_c*F*Cm))
-diff(Ca_SR, Ca_sr_bufsr*V_c/V_sr*(i_up - (i_rel + i_leak)))
-diff(Na_i, -1.0*(i_Na + i_b_Na + 3.0*i_NaK + 3.0*i_NaCa)*Cm/1.0*V_c*F)
+diff(Ca_i, Ca_i_bufc*((i_leak - i_up + i_rel) - (1.0*((i_CaL + i_b_Ca + i_p_Ca) - 2.0*i_NaCa))/(2.0*1.0*V_c*F)*Cm))
+diff(Ca_SR, (Ca_sr_bufsr*V_c)/V_sr*(i_up - (i_rel + i_leak)))
+diff(Na_i, (-1.0*(i_Na + i_b_Na + 3.0*i_NaK + 3.0*i_NaCa)*Cm)/(1.0*V_c*F))
 diff(V, -1.0/1.0*(i_K1 + i_to + i_Kr + i_Ks + i_CaL + i_NaK + i_Na + i_b_Na + i_NaCa + i_b_Ca + i_p_K + i_p_Ca + i_Stim))
-diff(K_i, -1.0*((i_K1 + i_to + i_Kr + i_Ks + i_p_K + i_Stim) - 2.0*i_NaK)*Cm/1.0*V_c*F)
+diff(K_i, (-1.0*((i_K1 + i_to + i_Kr + i_Ks + i_p_K + i_Stim) - 2.0*i_NaK)*Cm)/(1.0*V_c*F))

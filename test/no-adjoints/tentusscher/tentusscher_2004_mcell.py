@@ -102,13 +102,13 @@ NOT_IMPLEMENTED
         gamma = self._parameters["gamma"]
 
         current = -1.0*Ca_i*g_pCa/(Ca_i + K_pCa) - 4.0*ufl.elem_pow(F,\
-            2.0)*T*V*d*f*fCa*g_CaL*(Ca_i*ufl.exp(2.0*F*T*V/R) -\
-            0.341*Ca_o)/(R*(ufl.exp(2.0*F*T*V/R) - 1.0)) - 1.0*K_NaCa*(Ca_o +\
-            Km_Ca)*(K_sat*ufl.exp(F*T*V*(gamma - 1.0)/R) +\
-            1.0)*(-Ca_i*ufl.elem_pow(Na_o, 3.0)*alpha*ufl.exp(F*T*V*(gamma -\
-            1.0)/R) + Ca_o*ufl.elem_pow(Na_i,\
-            3.0)*ufl.exp(F*T*V*gamma/R))/(ufl.elem_pow(Km_Nai, 3.0) +\
-            ufl.elem_pow(Na_o, 3.0)) -\
+            2.0)*V*d*f*fCa*g_CaL*(Ca_i*ufl.exp(2.0*F*V/(R*T)) -\
+            0.341*Ca_o)/(R*T*(ufl.exp(2.0*F*V/(R*T)) - 1.0)) -\
+            1.0*K_NaCa*(-Ca_i*ufl.elem_pow(Na_o,\
+            3.0)*alpha*ufl.exp(F*V*(gamma - 1.0)/(R*T)) +\
+            Ca_o*ufl.elem_pow(Na_i, 3.0)*ufl.exp(F*V*gamma/(R*T)))/((Ca_o +\
+            Km_Ca)*(ufl.elem_pow(Km_Nai, 3.0) + ufl.elem_pow(Na_o,\
+            3.0))*(K_sat*ufl.exp(F*V*(gamma - 1.0)/(R*T)) + 1.0)) -\
             0.430331482911935*ufl.sqrt(K_o)*Xr1*Xr2*g_Kr*(V -\
             R*T*ufl.ln(K_o/K_i)/F) - 0.0430331482911935*ufl.sqrt(K_o)*g_K1*(V\
             - R*T*ufl.ln(K_o/K_i)/F)/((0.1/(ufl.exp(0.06*V - 12.0 -\
@@ -117,8 +117,8 @@ NOT_IMPLEMENTED
             0.1*R*T*ufl.ln(K_o/K_i)/F))/(ufl.exp(-0.5*V +\
             0.5*R*T*ufl.ln(K_o/K_i)/F) + 1.0))*(ufl.exp(0.06*V - 12.0 -\
             0.06*R*T*ufl.ln(K_o/K_i)/F) + 1.0)) - 1.0*K_o*Na_i*P_NaK/((K_mNa\
-            + Na_i)*(K_mk + K_o)*(1.0 + 0.0353*ufl.exp(-F*T*V/R) +\
-            0.1245*ufl.exp(-0.1*F*T*V/R))) - 1.0*ufl.elem_pow(Xs,\
+            + Na_i)*(K_mk + K_o)*(1.0 + 0.0353*ufl.exp(-F*V/(R*T)) +\
+            0.1245*ufl.exp(-0.1*F*V/(R*T)))) - 1.0*ufl.elem_pow(Xs,\
             2.0)*g_Ks*(V - R*T*ufl.ln((K_o + Na_o*P_kna)/(K_i +\
             Na_i*P_kna))/F) - 1.0*g_Na*h*j*ufl.elem_pow(m, 3.0)*(V -\
             R*T*ufl.ln(Na_o/Na_i)/F) - 1.0*g_bca*(V -\
@@ -212,9 +212,8 @@ NOT_IMPLEMENTED
             0.057/(ufl.exp(1.0*V + 40.0) + 1.0))*ufl.exp(-0.147058823529412*V\
             - 11.7647058823529) + 1.0*(1.0 - 1.0/(ufl.exp(1.0*V + 40.0) +\
             1.0))*(2.7*ufl.exp(0.079*V) + 310000.0*ufl.exp(0.3485*V)) +\
-            1.0*(5.92307692307692*ufl.exp(-0.0900900900900901*V -\
-            0.96036036036036) + 5.92307692307692)/(ufl.exp(1.0*V + 40.0) +\
-            1.0)),
+            0.77/((0.13*ufl.exp(-0.0900900900900901*V - 0.96036036036036) +\
+            0.13)*(ufl.exp(1.0*V + 40.0) + 1.0))),
 
             (-j + 1.0*ufl.elem_pow(ufl.exp(0.134589502018843*V +\
             9.62987886944818) + 1.0, -2.0))*(1.0*(0.02424 -\
@@ -255,20 +254,20 @@ NOT_IMPLEMENTED
             + c_rel))/(V_sr*(Buf_sr*K_buf_sr*ufl.elem_pow(Ca_SR + K_buf_sr,\
             -2.0) + 1.0)),
 
-            1.0*(-Cm*F*V_c*(0.5*Ca_i*g_pCa/(Ca_i + K_pCa) +\
-            2.0*ufl.elem_pow(F,\
-            2.0)*T*V*d*f*fCa*g_CaL*(Ca_i*ufl.exp(2.0*F*T*V/R) -\
-            0.341*Ca_o)/(R*(ufl.exp(2.0*F*T*V/R) - 1.0)) - 1.0*K_NaCa*(Ca_o +\
-            Km_Ca)*(K_sat*ufl.exp(F*T*V*(gamma - 1.0)/R) +\
-            1.0)*(-Ca_i*ufl.elem_pow(Na_o, 3.0)*alpha*ufl.exp(F*T*V*(gamma -\
-            1.0)/R) + Ca_o*ufl.elem_pow(Na_i,\
-            3.0)*ufl.exp(F*T*V*gamma/R))/(ufl.elem_pow(Km_Nai, 3.0) +\
-            ufl.elem_pow(Na_o, 3.0)) + 0.5*g_bca*(V -\
-            0.5*R*T*ufl.ln(Ca_o/Ca_i)/F)) + V_leak*(Ca_SR - Ca_i) -\
-            Vmax_up/(ufl.elem_pow(Ca_i, -2.0)*ufl.elem_pow(K_up, 2.0) + 1.0)\
-            + d*g*(ufl.elem_pow(Ca_SR, 2.0)*a_rel/(ufl.elem_pow(Ca_SR, 2.0) +\
-            ufl.elem_pow(b_rel, 2.0)) +\
-            c_rel))/(Buf_c*K_buf_c*ufl.elem_pow(Ca_i + K_buf_c, -2.0) + 1.0),
+            1.0*(-0.5*Cm*(1.0*Ca_i*g_pCa/(Ca_i + K_pCa) + 4.0*ufl.elem_pow(F,\
+            2.0)*V*d*f*fCa*g_CaL*(Ca_i*ufl.exp(2.0*F*V/(R*T)) -\
+            0.341*Ca_o)/(R*T*(ufl.exp(2.0*F*V/(R*T)) - 1.0)) -\
+            2.0*K_NaCa*(-Ca_i*ufl.elem_pow(Na_o,\
+            3.0)*alpha*ufl.exp(F*V*(gamma - 1.0)/(R*T)) +\
+            Ca_o*ufl.elem_pow(Na_i, 3.0)*ufl.exp(F*V*gamma/(R*T)))/((Ca_o +\
+            Km_Ca)*(ufl.elem_pow(Km_Nai, 3.0) + ufl.elem_pow(Na_o,\
+            3.0))*(K_sat*ufl.exp(F*V*(gamma - 1.0)/(R*T)) + 1.0)) +\
+            1.0*g_bca*(V - 0.5*R*T*ufl.ln(Ca_o/Ca_i)/F))/(F*V_c) +\
+            V_leak*(Ca_SR - Ca_i) - Vmax_up/(ufl.elem_pow(Ca_i,\
+            -2.0)*ufl.elem_pow(K_up, 2.0) + 1.0) + d*g*(ufl.elem_pow(Ca_SR,\
+            2.0)*a_rel/(ufl.elem_pow(Ca_SR, 2.0) + ufl.elem_pow(b_rel, 2.0))\
+            + c_rel))/(Buf_c*K_buf_c*ufl.elem_pow(Ca_i + K_buf_c, -2.0) +\
+            1.0),
 
             (-g + (1.0 - 1.0/(ufl.exp(1.0*Ca_i - 0.00035) +\
             1.0))/(ufl.elem_pow(2857.14285714286*Ca_i, 6.0) + 1.0) +\
@@ -276,18 +275,17 @@ NOT_IMPLEMENTED
             1.0)*(ufl.exp(1.0*Ca_i - 0.00035) + 1.0)))/(tau_g*(ufl.exp(-1.0*V\
             - 60.0) + 1.0)),
 
-            1.0*Cm*F*V_c*(-3.0*K_NaCa*(Ca_o +\
-            Km_Ca)*(K_sat*ufl.exp(F*T*V*(gamma - 1.0)/R) +\
-            1.0)*(-Ca_i*ufl.elem_pow(Na_o, 3.0)*alpha*ufl.exp(F*T*V*(gamma -\
-            1.0)/R) + Ca_o*ufl.elem_pow(Na_i,\
-            3.0)*ufl.exp(F*T*V*gamma/R))/(ufl.elem_pow(Km_Nai, 3.0) +\
-            ufl.elem_pow(Na_o, 3.0)) - 3.0*K_o*Na_i*P_NaK/((K_mNa +\
-            Na_i)*(K_mk + K_o)*(1.0 + 0.0353*ufl.exp(-F*T*V/R) +\
-            0.1245*ufl.exp(-0.1*F*T*V/R))) - 1.0*g_Na*h*j*ufl.elem_pow(m,\
-            3.0)*(V - R*T*ufl.ln(Na_o/Na_i)/F) - 1.0*g_bna*(V -\
-            R*T*ufl.ln(Na_o/Na_i)/F)),
+            1.0*Cm*(-3.0*K_NaCa*(-Ca_i*ufl.elem_pow(Na_o,\
+            3.0)*alpha*ufl.exp(F*V*(gamma - 1.0)/(R*T)) +\
+            Ca_o*ufl.elem_pow(Na_i, 3.0)*ufl.exp(F*V*gamma/(R*T)))/((Ca_o +\
+            Km_Ca)*(ufl.elem_pow(Km_Nai, 3.0) + ufl.elem_pow(Na_o,\
+            3.0))*(K_sat*ufl.exp(F*V*(gamma - 1.0)/(R*T)) + 1.0)) -\
+            3.0*K_o*Na_i*P_NaK/((K_mNa + Na_i)*(K_mk + K_o)*(1.0 +\
+            0.0353*ufl.exp(-F*V/(R*T)) + 0.1245*ufl.exp(-0.1*F*V/(R*T)))) -\
+            1.0*g_Na*h*j*ufl.elem_pow(m, 3.0)*(V - R*T*ufl.ln(Na_o/Na_i)/F) -\
+            1.0*g_bna*(V - R*T*ufl.ln(Na_o/Na_i)/F))/(F*V_c),
 
-            1.0*Cm*F*V_c*(-0.430331482911935*ufl.sqrt(K_o)*Xr1*Xr2*g_Kr*(V -\
+            1.0*Cm*(-0.430331482911935*ufl.sqrt(K_o)*Xr1*Xr2*g_Kr*(V -\
             R*T*ufl.ln(K_o/K_i)/F) - 0.0430331482911935*ufl.sqrt(K_o)*g_K1*(V\
             - R*T*ufl.ln(K_o/K_i)/F)/((0.1/(ufl.exp(0.06*V - 12.0 -\
             0.06*R*T*ufl.ln(K_o/K_i)/F) + 1.0) + (3.0*ufl.exp(0.0002*V + 0.02\
@@ -295,13 +293,13 @@ NOT_IMPLEMENTED
             0.1*R*T*ufl.ln(K_o/K_i)/F))/(ufl.exp(-0.5*V +\
             0.5*R*T*ufl.ln(K_o/K_i)/F) + 1.0))*(ufl.exp(0.06*V - 12.0 -\
             0.06*R*T*ufl.ln(K_o/K_i)/F) + 1.0)) + 2.0*K_o*Na_i*P_NaK/((K_mNa\
-            + Na_i)*(K_mk + K_o)*(1.0 + 0.0353*ufl.exp(-F*T*V/R) +\
-            0.1245*ufl.exp(-0.1*F*T*V/R))) - 1.0*ufl.elem_pow(Xs,\
+            + Na_i)*(K_mk + K_o)*(1.0 + 0.0353*ufl.exp(-F*V/(R*T)) +\
+            0.1245*ufl.exp(-0.1*F*V/(R*T)))) - 1.0*ufl.elem_pow(Xs,\
             2.0)*g_Ks*(V - R*T*ufl.ln((K_o + Na_o*P_kna)/(K_i +\
             Na_i*P_kna))/F) - 1.0*g_pK*(V -\
             R*T*ufl.ln(K_o/K_i)/F)/(ufl.exp(-0.167224080267559*V +\
             4.18060200668896) + 1.0) - 1.0*g_to*r*s*(V -\
-            R*T*ufl.ln(K_o/K_i)/F)),
+            R*T*ufl.ln(K_o/K_i)/F))/(F*V_c),
             ]
 
         return as_vector(F_expressions)
