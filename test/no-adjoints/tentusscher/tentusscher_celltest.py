@@ -23,32 +23,47 @@ cell = Tentusscher_2004_mcell()
 cell.applied_current = AppliedCurrent()
 solver = CellSolver(cell)
 
+
 # Setup initial condition
 (vs_, vs) = solver.solution_fields()
 ics = project(cell.initial_conditions(), solver.VS)
 vs_.assign(ics)
 
-# Initial set-up
-(T0, T) = (0, 10)
-dt = 1.0
-t0 = T0; t1 = T0 + dt
+(w, r) = TestFunctions(solver.VS)
+(v, s) = split(vs)
+F = cell.F(v, s)
+I = cell.I(v, s)
 
-times = []
-v_values = []
-s_values = []
+i = assemble(inner(I, w)*dx)
+print "i = ", i.array()
 
-# Solve
-while (t1 <= T):
-    info_blue("Solving on t = (%g, %g)" % (t0, t1))
-    timestep = (t0, t1)
-    times += [(t0 + t1)/2]
-    tmp = solver.step(timestep, vs_)
-    vs.assign(tmp)
+for i in range(16):
+    f = assemble(inner(F[i], r[i])*dx)
+    print "i = %d, max(f.array) = %g" % (i, max(f.array()))
 
-    v_values += [vs.vector()[0]]
-    s_values += [vs.vector()[1]]
 
-    # Update
-    vs_.assign(vs)
-    t0 = t1; t1 = t0 + dt
+
+# # Initial set-up
+# (T0, T) = (0, 10)
+# dt = 1.0
+# t0 = T0; t1 = T0 + dt
+
+# times = []
+# v_values = []
+# s_values = []
+
+# # Solve
+# while (t1 <= T):
+#     info_blue("Solving on t = (%g, %g)" % (t0, t1))
+#     timestep = (t0, t1)
+#     times += [(t0 + t1)/2]
+#     tmp = solver.step(timestep, vs_)
+#     vs.assign(tmp)
+
+#     v_values += [vs.vector()[0]]
+#     s_values += [vs.vector()[1]]
+
+#     # Update
+#     vs_.assign(vs)
+#     t0 = t1; t1 = t0 + dt
 
