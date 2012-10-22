@@ -2,7 +2,7 @@
 
 # Copyright (C) 2012 Marie E. Rognes (meg@simula.no)
 # Use and modify at will
-# Last changed: 2012-10-11
+# Last changed: 2012-10-22
 
 __all__ = ["SplittingSolver", "BasicSplittingSolver"]
 
@@ -105,6 +105,7 @@ class BasicSplittingSolver:
             yield (timestep, self.vs, self.u)
 
             # Update previous and timetime
+            adj_inc_timestep(time=t1)
             self.vs_.assign(self.vs, annotate=annotate)
             t0 = t1
             t1 = t0 + dt
