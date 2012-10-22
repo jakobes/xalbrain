@@ -1,4 +1,5 @@
 """
+Test running-ness of tenTusscher cell model
 """
 
 # Marie E. Rognes <meg@simula.no>
@@ -6,14 +7,16 @@
 
 from dolfin import *
 from beatadjoint import *
-
 from tentusscher_2004_mcell import Tentusscher_2004_mcell
+
+parameters["reorder_dofs"] = False
+parameters["form_compiler"]["cpp_optimize"] = True
 
 class AppliedCurrent(Expression):
     def __init__(self, t=0.0):
         self.t = t
     def eval(self, value, x):
-        if self.t >= 50 and self.t < 60:
+        if self.t >= 1 and self.t < 2:
             v_amp = 125
             value[0] = 0.05*v_amp
         else:
@@ -23,47 +26,37 @@ cell = Tentusscher_2004_mcell()
 cell.applied_current = AppliedCurrent()
 solver = CellSolver(cell)
 
-
 # Setup initial condition
 (vs_, vs) = solver.solution_fields()
 ics = project(cell.initial_conditions(), solver.VS)
 vs_.assign(ics)
 
-(w, r) = TestFunctions(solver.VS)
-(v, s) = split(vs)
-F = cell.F(v, s)
-I = cell.I(v, s)
-
-i = assemble(inner(I, w)*dx)
-print "i = ", i.array()
-
-for i in range(16):
-    f = assemble(inner(F[i], r[i])*dx)
-    print "i = %d, max(f.array) = %g" % (i, max(f.array()))
-
-
-
 # # Initial set-up
-# (T0, T) = (0, 10)
-# dt = 1.0
-# t0 = T0; t1 = T0 + dt
+(T0, T) = (0, 2)
+dt = 0.1
+t0 = T0; t1 = T0 + dt
 
-# times = []
-# v_values = []
-# s_values = []
+# Solve
+times = []
+v_values = []
+while (t1 <= T):
+    info_blue("Solving on t = (%g, %g)" % (t0, t1))
+    timestep = (t0, t1)
+    times += [(t0 + t1)/2]
+    tmp = solver.step(timestep, vs_)
+    vs.assign(tmp)
+    v_values += [vs.vector()[0]]
 
-# # Solve
-# while (t1 <= T):
-#     info_blue("Solving on t = (%g, %g)" % (t0, t1))
-#     timestep = (t0, t1)
-#     times += [(t0 + t1)/2]
-#     tmp = solver.step(timestep, vs_)
-#     vs.assign(tmp)
+    # Update
+    vs_.assign(vs)
+    t0 = t1; t1 = t0 + dt
 
-#     v_values += [vs.vector()[0]]
-#     s_values += [vs.vector()[1]]
+# Print v values
+print v_values
 
-#     # Update
-#     vs_.assign(vs)
-#     t0 = t1; t1 = t0 + dt
+# Plot values
+import pylab
+pylab.figure()
+pylab.plot(times, v_values)
+pylab.show()
 
