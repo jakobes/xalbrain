@@ -42,7 +42,7 @@ CG1 = FunctionSpace(mesh, "CG", 1)
 
 # Woohoo:
 m = SampleConductivity()
-m = interpolate(m, CG1, annotate=False)
+m = Function(interpolate(m, CG1, annotate=False), name="CellConductivity")
 
 class MyHeart(CardiacModel):
     def __init__(self, cell_model):

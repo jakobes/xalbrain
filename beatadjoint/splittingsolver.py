@@ -54,9 +54,9 @@ class BasicSplittingSolver:
         self.VS = self.V*self.S
 
         # Helper functions
-        self.u = Function(self.VUR.sub(1).collapse())
-        self.vs_ = Function(self.VS)
-        self.vs = Function(self.VS)
+        self.u = Function(self.VUR.sub(1).collapse(), name="u")
+        self.vs_ = Function(self.VS, name="vs_")
+        self.vs = Function(self.VS, name="vs")
 
     @staticmethod
     def default_parameters():
@@ -93,6 +93,7 @@ class BasicSplittingSolver:
         annotate = self.parameters["enable_adjoint"]
 
         # Step through time steps until at end time.
+        adj_start_timestep(t0)
         while (t1 <= T + DOLFIN_EPS):
 
             info_blue("Solving on t = (%g, %g)" % (t0, t1))
@@ -105,8 +106,9 @@ class BasicSplittingSolver:
             yield (timestep, self.vs, self.u)
 
             # Update previous and timetime
-            adj_inc_timestep(time=t1)
+            finished = (t0 + dt) >= T
             self.vs_.assign(self.vs, annotate=annotate)
+            adj_inc_timestep(time=t1, finished=finished)
             t0 = t1
             t1 = t0 + dt
 
@@ -163,7 +165,7 @@ class BasicSplittingSolver:
         (v_, s_) = split(ics)
 
         # Set-up current variables
-        vs = Function(self.VS)
+        vs = Function(self.VS, name="ode_vs")
         annotate = self.parameters["enable_adjoint"]
         vs.assign(ics, annotate=annotate) # Start with good guess
         (v, s) = split(vs)
@@ -236,7 +238,7 @@ class BasicSplittingSolver:
 
         # Define variational problem
         a, L = system(G)
-        vur = Function(self.VUR)
+        vur = Function(self.VUR, name="pde_vur")
         pde = LinearVariationalProblem(a, L, vur)
 
         # Set-up solver
@@ -372,7 +374,7 @@ class SplittingSolver(BasicSplittingSolver):
         b = assemble(self._L, annotate=annotate)
 
         # Solve system
-        vur = Function(self.VUR)
+        vur = Function(self.VUR, name="pde_vur")
         solver.solve(vur.vector(), b, annotate=annotate)
 
         # Rescale u if KrylovSolver is used...
