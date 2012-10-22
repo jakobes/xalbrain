@@ -1,0 +1,288 @@
+\documentclass[a4paper, reqno]{amsart}
+
+\usepackage{a4wide}
+
+% Amsmath
+\usepackage{amsmath}
+\usepackage{amssymb}
+
+% Algorithms
+\usepackage{algorithm}
+
+% Figures
+\usepackage{graphicx}
+
+% Pretty tables
+\usepackage{booktabs}
+
+% Color (temp)
+\usepackage{color}
+
+% Math operators
+\DeclareMathOperator{\Div}{div}
+\DeclareMathOperator{\Curl}{curl}
+\DeclareMathOperator{\Grad}{grad}
+
+% Vector spaces
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\M}{\mathbb{M}}
+\newcommand{\N}{\mathbb{N}}
+\newcommand{\Poly}[1]{\mathcal{P}^{#1}}
+
+% Measures
+\newcommand{\dx}{\,\mathrm{d}x}
+\newcommand{\ds}{\,\mathrm{d}s}
+\newcommand{\dX}{\,\mathrm{d}X}
+
+% Project names
+\newcommand{\dolfin}{\textrm{DOLFIN}}
+\newcommand{\fenics}{\textrm{FEniCS}}
+\newcommand{\ufl}{\textrm{UFL}}
+\newcommand{\ffc}{\textrm{FFC}}
+
+% Misc
+\newcommand{\triang}{\mathcal{T}}
+\newcommand{\foralls}{\forall \,}
+\newcommand{\assumption}[1]{A#1}
+\newcommand{\inner}[2]{\langle #1, #2 \rangle}
+\newcommand{\average}[1]{[#1]}
+\newcommand{\ddt}[1]{\frac{\partial #1}{\partial t}}
+
+% Theorem styles
+\newtheorem{thm}{Theorem}[section]
+\newtheorem{lem}[thm]{Lemma}
+\newtheorem{cor}[thm]{Corollary}
+\newtheorem{example}[thm]{Example}
+\newtheorem{remark}{Remark}
+
+% Equation numbering
+\numberwithin{equation}{section}
+
+% Sizes
+\newcommand{\figurewidth}{0.9\textwidth}
+
+%
+\newcommand{\heart}{\Omega^H}
+\newcommand{\torso}{\Omega^T}
+
+%------------------------------------------------------------------------------
+\title{Adjoining the electrical activity in the heart and torso}
+
+\author{Marie E. Rognes et al...}
+
+\thanks{Center for Biomedical Computing at Simula Research Laboratory,
+  P.O. Box 134, 1325 Lysaker, Norway (meg@simula.no). This work is
+  supported by a Center of Excellence grant from the Research Council
+  of Norway to the Center for Biomedical Computing at Simula Research
+  Laboratory.}
+\pagestyle{myheadings}
+\thispagestyle{plain}
+\markboth{MARIE E. ROGNES}{Adjoining a model for ze heart}
+
+%------------------------------------------------------------------------------
+\begin{document}
+\begin{abstract}
+\end{abstract}
+
+\maketitle
+
+\renewcommand{\thefootnote}{\arabic{footnote}}
+
+%------------------------------------------------------------------------------
+
+%------------------------------------------------------------------------------
+\section{Introduction}
+
+We consider the adjoint of a coupled set of transient partial
+differential equations governing the electric activity in the heart
+and torso.
+
+\section{Governing equations}
+
+This material is largely taken from~\cite{book:SundnesEtAl2006}.
+
+We consider a body $\Omega = \heart \cup \torso$ where $\heart$ and
+$\torso$ are open, disjoint domains, and such that $\partial \torso
+\cap \partial \heart = \Gamma^{HT}$, and denote $\partial \torso
+\backslash \partial \heart = \Gamma^T$; assuming for now that
+$\Gamma^{HT}$ is connected; and in particular that $\partial \heart =
+\Gamma^{HT}$.
+
+\subsection{The bidomain equations}
+
+For now, we consider a non-deforming heart in a domain $\heart$. The
+bidomain equations of the propagation of an electrical signal in the
+heart reads: find the transmembrane potential $v = v(x, t)$ and the
+extracellular potential $u_e(x, t)$ such that
+\begin{align}
+  \label{eq:bidomain:1}
+  \ddt{v} - \Div (M_i^\ast \Grad v + M_i^{\ast} \Grad u_e) &= - I_{\rm{ion}}^{\ast}
+  \quad \text{in} \; \Omega_H, \\
+  \Div \left (M_i^{\ast} \Grad v + (M_{i}^{\ast} + M_{e}^{\ast}) \Grad u_e \right )
+  &= 0 \quad \quad \text{in} \; \Omega_H.
+\end{align}
+The (negative) fluxes are defined as
+\begin{align}
+  J_{i}(v, u_e) &\equiv M_i^\ast \Grad v + M_i^{\ast} \Grad u_e, \\
+  J_{m}(v, u_e) &\equiv M_i^{\ast} \Grad v + (M_{i}^{\ast} + M_{e}^{\ast}) \Grad u_e .
+\end{align}
+We close the system by the boundary conditions
+\begin{align}
+  \label{eq:heart:bcs:essential}
+  u_e &= u_T \quad \text{on} \; \partial \heart_D, \\
+  \label{eq:heart:bcs:iflux}
+  J_i(v, u_e) \cdot n &= 0 \quad \quad \text{on} \; \partial \heart, \\
+  \label{eq:heart:bcs:mflux}
+  J_m(v, u_e) \cdot n &= g_T \quad \text{on} \; \partial \heart_N,
+\end{align}
+where $\partial \heart_D$ and $\partial \heart_N$ denotes part of the
+boundary $\partial \heart$, and $n$ is the outward pointing normal on
+$\partial \heart$. If this system were to be considered alone, we
+would assume these parts to be disjoint; however, as we shall couple
+this system to the torso and then each of these parts will be the
+whole boundary. Some initial conditions are also required for $v$.
+
+\subsection{The ODEs}
+
+The current $I_{\rm{ion}}^{\ast}$ in~\eqref{eq:bidomain:1} is governed
+by systems of ordinary differential equations modelling the
+electrophysiological behaviour of the heart cells. In general form,
+these read: find the ions concentration(s) $s$ such that
+\begin{equation}
+  \ddt{s} = F(s, v, t) \quad \\
+\end{equation}
+plus some initial conditions for $s$. These ODEs will be specified
+further later. And so, $I_{\rm{ion}} = I(s, v, t)$.
+
+\subsection{The torso}
+
+In the torso $\Omega_T$, we consider the following governing
+equations. Find the something $u_T$ such that
+\begin{align}
+ - \Div (M_T^{\ast} \Grad u_T) = 0 \quad \text{in} \; \torso,
+\end{align}
+and letting $J_T \equiv M_T^{\ast} \Grad u_T$, with the boundary
+conditions
+\begin{align}
+  \label{eq:torso:bcs:gammaT}
+  J_T(u_T) \cdot n_T = 0 \quad \text{on} \; \Gamma_T, \\
+  \label{eq:torso:bcs:gammaHT}
+  J_T(u_T) \cdot n_T = - g_H \quad \text{on} \; \Gamma_{\rm{HT}}, \\
+  u_T = u_H \quad \text{on} \; \Gamma_{\rm{HT}},
+\end{align}
+where $n_T$ denotes the outward pointing normal on the torso
+boundary. Note that $n_T = - n$ on the heart--torso boundary
+$\Gamma_{\rm{HT}}$.
+
+\section{Weak formulation of the heart--torso system}
+
+Integration by parts of the heart system gives: find $u_e$ and $v$
+such that
+\begin{align}
+\inner{\ddt{v}}{\eta}
++ \inner{J_i(v, u_e)}{\Grad \eta}
+- \inner{J_i(v, u_e) \cdot n}{\eta}_{\partial \heart}
+&= \inner{- I^\ast_{\rm{ion}}}{\eta} \\
+\inner{J_m(v, u_e)}{\Grad \xi}
+- \inner{J_m(v, u_e) \cdot n}{\xi}_{\partial \heart}
+&= 0
+\end{align}
+for all $\eta$ in some suitable space defined over $\heart$ and ditto
+for $\xi$. Inserting the boundary condition~\eqref{eq:heart:bcs:iflux}
+and recalling the assumption that $\partial \Omega^H = \Gamma^{HT}$,
+we get
+\begin{align}
+\inner{\ddt{v}}{\eta}
++ \inner{J_i(v, u_e)}{\Grad \eta}
+%- \inner{J_i(v, u_e) \cdot n}{\eta}_{\partial \heart}
+&= \inner{- I^\ast_{\rm{ion}}}{\eta} \\
+\inner{J_m(v, u_e)}{\Grad \xi}
+- \inner{J_m(v, u_e) \cdot n}{\xi}_{\partial \heart}
+&= 0
+\end{align}
+for all $\xi$ that satisfies any (homogenized) essential boundary
+conditions on $u_e$ strongly.
+
+Integration by parts of the torso system gives: find $u_T$ such that
+\begin{equation}
+  \inner{J_T(u_T)}{\Grad \eta} - \inner{J_T(u_T) \cdot n_T}{\xi}_{\partial \torso}
+  = 0
+\end{equation}
+for all $\xi$ in some suitable space defined over $\torso$.
+Splitting the boundary of the torso into $\Gamma^T$ (the outer surface
+of the body) and $\Gamma^{HT}$ (the heart--torso boundary), we have
+\begin{equation}
+  \inner{J_T(u_T)}{\Grad \eta}
+  - \inner{J_T(u_T) \cdot n_T}{\xi}_{\Gamma^T}
+  - \inner{J_T(u_T) \cdot n_T}{\xi}_{\Gamma^{HT}}
+  = 0 .
+\end{equation}
+Now, by~\eqref{eq:torso:bcs:gammaT}, the term over $\Gamma^T$ vanishes
+and so including~\eqref{eq:torso:bcs:gammaHT} with $g_H = J_m(v, u_e)
+\cdot n$ yields
+\begin{equation}
+  \inner{J_T(u_T)}{\Grad \xi}
+  + \inner{J_m(v, u_e) \cdot n}{\xi}_{\Gamma^{HT}}
+  = 0 .
+\end{equation}
+The two systems are then
+\begin{align}
+  \inner{\ddt{v}}{\eta}
+  + \inner{J_i(v, u_e)}{\Grad \eta}
+  &= \inner{- I^\ast_{\rm{ion}}}{\eta} \quad \foralls \eta \in V(\heart) \\
+  \inner{J_m(v, u_e)}{\Grad \xi}
+  - \inner{J_m(v, u_e) \cdot n}{\xi}_{\partial \heart}
+  &= 0 \quad \foralls \xi \in V(\heart) \\
+  \inner{J_T(u_T)}{\Grad \xi}
+  + \inner{J_m(v, u_e) \cdot n}{\xi}_{\Gamma^{HT}}
+  &= 0 \quad \foralls \xi \in V(\torso).
+\end{align}
+
+Now, we can combine the domains. By~\eqref{eq:heart:bcs:essential}, we
+can say that $u = u_e = u_T$ (by the restrictions to each domain), and
+get where $\xi$ is a test function over $\Omega$, and $\eta$ is a test
+function over $\heart$. Adding the last two equations give
+\begin{align}
+  \inner{\ddt{v}}{\eta}
+  + \inner{J_i(v, u_e)}{\Grad \eta}
+  &= \inner{- I^\ast_{\rm{ion}}}{\eta} \quad \foralls \eta \in V(\heart) \\
+  \inner{J_m(v, u_e)}{\Grad \xi}
+  + \inner{J_T(u_T)}{\Grad \xi}
+  &= 0 \quad \foralls \xi \in V(\Omega).
+\end{align}
+
+\section{Analytical test case for the bidomain equations}
+
+To verify the correctness of the implementation of the bidomain
+equations and any solvers of these, we consider a simple analytical
+test case. We begin by considering the case where there are no ion
+concentrations, in order words, the bidomain equations over a single
+domain $\Omega$ without any additional system of ordinary differential
+equations.
+
+Let $\Omega = [0, 1]^2$, and take
+\begin{align}
+  v(x, t) &=  \cos(2 \pi x_0) \cos(2 \pi x_1) \sin(t) \\
+  u(x, t) &= - 0.5 v(x, t)
+\end{align}
+Let $M_i = M_e = 1.0$. Then, with these choices:
+\begin{equation}
+  \Div J_m = \Div (M_i \Grad v + (M_i + M_e) \Grad u) = 0
+\end{equation}
+Further, $\int_{\Omega} u = 0$, and also with regard to the boundary
+conditions, we have for all $t$:
+\begin{equation}
+  J_m(x, t) \cdot n = 0 = J_i(x, t) \quad x \in \partial \Omega
+\end{equation}
+As initial condition, we take $v(x, 0) = 0$, which is compatible with
+the exact solutions. The suitable right-hand side in the parabolic
+equation follows by direct derivation:
+\begin{equation}
+  -I_{\textrm{ion}} = f = \frac{\partial v}{\partial t} - \Div J_i(v, u) =
+  4 \pi^2 \sin(t) \cos(2 \pi x_0) \cos(2 \pi x_1)
+  + \cos(t) \cos(2 \pi x_0) \cos(2 \pi x_1)
+\end{equation}
+
+\bibliographystyle{siam} \bibliography{bibliography}
+
+\end{document}

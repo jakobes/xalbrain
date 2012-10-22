@@ -1,0 +1,15 @@
+# beatadjoint depends on fenics, in particular dolfin (sudo apt-get
+# install fenics) and dolfin-adjoint (launchpad.net/dolfin-adjoint)
+
+
+
+# beatadjoint can be installed as any other Python module using
+# distutils:
+
+# For system-wise install do:
+
+  sudo python setup.py install
+
+# Or specify a local path:
+
+  python setup.py install --prefix=/home/me/favorite-path
