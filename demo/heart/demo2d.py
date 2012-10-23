@@ -18,18 +18,19 @@ set_log_level(PROGRESS)
 # FIXMEs:
 chi = 2000.0   # Membrane surface-to-volume ratio (Need value + unit)
 C_m = 1.0      # Membrane capacitance per unit area (Need value + unit)
-T = 1.0        # End time (need value + unit)
+T = 100.0        # End time (need value + unit)
 k_n = 0.25     # Timestep (need value)
 
 # FIXME: Define some 'stimulation protocol': Johan will fix
 class Pulse(Expression):
     def eval(self, values, x):
         values[0] = 0.0
-        if (x[0] > 59.0):
+        if (x[0] > 0.8):
             values[0] = 1.0
 
 # FIXME: Get finer mesh and fibers from Molly/Sjur/Johan
-mesh = Mesh("../../data/meshes/mesh115_coarse_no_markers.xml.gz")
+#mesh = Mesh("../../data/meshes/mesh115_coarse_no_markers.xml.gz")
+mesh = UnitSquare(50, 50)
 
 # FIXME: All of the conductivities need specification in healthy and
 # ischemic tissue (Johan and Molly will give to marie Marie)
@@ -53,13 +54,12 @@ class MyHeart(CardiacModel):
         # FIXME cf comments above
         s_il = m
         s_it = 0.3/(chi*C_m)
-        s_iz = 2.0/(chi*C_m)
         s_el = 2.0/(chi*C_m)
         s_et = 1.3/(chi*C_m)
-        s_ez = 1.3/(chi*C_m)
 
-        M_i = as_tensor(((s_il, 0, 0), (0, s_it, 0), (0, 0, s_iz)))
-        M_e = as_tensor(((s_el, 0, 0), (0, s_et, 0), (0, 0, s_ez)))
+        M_i = as_tensor(((s_il, 0), (0, s_it)))
+        M_e = as_tensor(((s_el, 0), (0, s_et)))
+
         return (M_i, M_e)
 
 # Setup cell and cardiac model
@@ -89,9 +89,10 @@ vs_.assign(ic, annotate=True)
 # Solve
 begin("Solving primal")
 solutions = solver.solve((0, T), k_n)
+file = File("results-2d/u.pvd")
 for (timestep, vs, u) in solutions:
-    plot(u, title="Extracellular potential (u)")
-    continue
+    #plot(u, title="Extracellular potential (u)")
+    file << u
 end()
 
 (v, s) = split(vs)
