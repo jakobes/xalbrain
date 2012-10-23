@@ -42,6 +42,11 @@ class CardiacCellModel:
 
        d/dt v = - I(v, s) + I_s
 
+    Note that the cardiac cell model stimulus is ignored when the cell
+    model is used a spatially-varying setting (for instance in the
+    bidomain setting). In this case, the user is expected to specify a
+    stimulus for the cardiac model instead.
+
     """
 
     def __init__(self, parameters=None):
