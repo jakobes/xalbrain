@@ -58,7 +58,8 @@ v_amp = Vpeak - Vrest
 cell_parameters = {"c_1": k*v_amp**2, "c_2": k*v_amp, "c_3": b/l,
                    "a": (Vthreshold - Vrest)/v_amp, "b": l,
                    "v_rest":Vrest, "v_peak": Vpeak}
-cell = Fitzhughnagumo(cell_parameters)
+#cell = Fitzhughnagumo(cell_parameters)
+cell = OriginalFitzHughNagumo(cell_parameters)
 
 # Set-up cardiac model
 heart = MyHeart(cell)
