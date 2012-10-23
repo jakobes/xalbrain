@@ -9,7 +9,7 @@ computed.
 """
 
 # Marie E. Rognes <meg@simula.no>
-# Last changed: 2012-10-11
+# Last changed: 2012-10-23
 
 import math
 
@@ -96,5 +96,5 @@ norm_u = norm(u)
 print "norm_u = %.16f" % norm_u
 reference =  11.2482303059560245
 diff = abs(reference - norm_u)
-tol = 1.e-14
+tol = 1.e-12
 assert (diff < tol), "Mismatch: %r" % diff
