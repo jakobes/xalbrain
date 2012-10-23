@@ -4,7 +4,7 @@ slightly diffferent parameters (see the test directory)
 """
 
 # Marie E. Rognes <meg@simula.no>
-# Last changed: 2012-10-11
+# Last changed: 2012-10-23
 
 import math
 
@@ -53,7 +53,7 @@ def cell_model():
     cell_parameters = {"c_1": k*v_amp**2, "c_2": k*v_amp, "c_3": b/l,
                        "a": (Vthreshold - Vrest)/v_amp, "b": l,
                        "v_rest":Vrest, "v_peak": Vpeak}
-    model = FitzHughNagumo(cell_parameters)
+    model = OriginalFitzHughNagumo(cell_parameters)
     return model
 
 if __name__ == "__main__":
