@@ -89,6 +89,7 @@ info_green("Solving primal")
 total = Timer("XXX: Total solver time")
 solutions = solver.solve((0, T), dt)
 for (timestep, vs, u) in solutions:
+    plot(u)
     continue
 total.stop()
 list_timings()
