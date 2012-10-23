@@ -22,7 +22,7 @@ import ufl
 from dolfin import *
 from dolfin_adjoint import *
 
-from beatadjoint import CardiacCellModel
+from beatadjoint.cellmodels import CardiacCellModel
 
 class {ModelName}(CardiacCellModel):
     \"\"\"
@@ -183,9 +183,12 @@ class CellModelGenerator(CodeGenerator):
         #body_lines.append("states = split(s)")
         body_lines.append("states = s")
         body_lines.append("assert(len(states) == {0})".format(ode.num_states-1))
-        body_lines.append(", ".join(state.name for i, state in \
-                                    enumerate(ode.iter_states()) \
-                                    if state.name != self.V_name) + " = states")
+        states = [state.name for state in ode.iter_states() \
+                 if state.name != self.V_name]
+        if len(states) == 1:
+            body_lines.append("{0}, = states".format(states[0]))
+        else:
+            body_lines.append(", ".join(states) + " = states")
         body_lines.append("")
         
         return body_lines
