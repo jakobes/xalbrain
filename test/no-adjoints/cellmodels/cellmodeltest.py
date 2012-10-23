@@ -1,12 +1,12 @@
 """
-Regression and correctness test for FitzHughNagumo model and pure
+Regression and correctness test for Fitzhughnagumo model and pure
 CellSolver: compare (in eyenorm) time evolution with results from
 Section 2.4.1 p. 36 in Sundnes et al, 2006 (checked 2012-09-19), and
 check that maximal v/s values do not regress
 """
 
 # Marie E. Rognes <meg@simula.no>
-# Last changed: 2012-09-25
+# Last changed: 2012-10-23
 
 import unittest
 
@@ -26,7 +26,7 @@ class CellSolverTestCase(unittest.TestCase):
                 else:
                     value[0] = 0.0
 
-        cell = FitzHughNagumo()
+        cell = Fitzhughnagumo()
         cell.applied_current = AppliedCurrent()
         solver = CellSolver(cell)
 
@@ -87,7 +87,7 @@ class CellSolverTestCase(unittest.TestCase):
         l = 0.63
         b = 0.013
 
-        class FitzHughNagumoModified(CardiacCellModel):
+        class FitzhughnagumoModified(CardiacCellModel):
             """ODE model:
 
             parameters(Vrest,Vthreshold,Vpeak,k,l,b,ist)
@@ -120,7 +120,7 @@ class CellSolverTestCase(unittest.TestCase):
                 CardiacCellModel.__init__(self)
 
             def default_parameters(self):
-                parameters = Parameters("FitzHughNagumoModified")
+                parameters = Parameters("FitzhughnagumoModified")
                 parameters.add("Vrest", Vrest)
                 parameters.add("Vthreshold", Vthreshold)
                 parameters.add("Vpeak", Vpeak)
@@ -172,7 +172,7 @@ class CellSolverTestCase(unittest.TestCase):
             return (v_values, s_values, times)
 
         # Try the modified one
-        cell_mod = FitzHughNagumoModified()
+        cell_mod = FitzhughnagumoModified()
         (v_values_mod, s_values_mod, times_mod) = _run(cell_mod)
 
         # Compare with our standard FitzHugh (reparametrized)
@@ -180,7 +180,7 @@ class CellSolverTestCase(unittest.TestCase):
         cell_parameters = {"c_1": k*v_amp**2, "c_2": k*v_amp, "c_3": b/l,
                            "a": (Vthreshold - Vrest)/v_amp, "b": l,
                            "v_rest": Vrest, "v_peak": Vpeak}
-        cell = FitzHughNagumo(cell_parameters)
+        cell = Fitzhughnagumo(cell_parameters)
         (v_values, s_values, times) = _run(cell)
 
         msg = "Mismatch in %s value comparison, diff = %.16e"
