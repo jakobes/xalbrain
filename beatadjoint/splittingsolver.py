@@ -2,7 +2,7 @@
 
 # Copyright (C) 2012 Marie E. Rognes (meg@simula.no)
 # Use and modify at will
-# Last changed: 2012-10-22
+# Last changed: 2012-10-23
 
 __all__ = ["SplittingSolver", "BasicSplittingSolver"]
 
@@ -183,12 +183,12 @@ class BasicSplittingSolver:
         I_theta = - (theta*I_ion(v, s) + (1 - theta)*I_ion(v_, s_))
         F_theta = theta*F(v, s) + (1 - theta)*F(v_, s_)
 
-        # Add current if applicable
-        cell_current = self._model.cell_model().applied_current
-        if cell_current:
+        # Add stimulus if applicable
+        stimulus = self._model.stimulus
+        if stimulus:
             t = t0 + theta*(t1 - t0)
-            cell_current.t = t
-            I_theta += cell_current
+            stimulus.t = t
+            I_theta += stimulus
 
         # Set-up system
         G = (Dt_v - I_theta)*w*dx + inner(Dt_s - F_theta, r)*dx
@@ -234,10 +234,12 @@ class BasicSplittingSolver:
                           + inner((M_i + M_e)*grad(u), grad(q))*dx)
         G = (Dt_v*w*dx + theta_parabolic + theta_elliptic + (lamda*u + l*q)*dx)
 
+        # Add applied current as source in ellipic equation is
+        # applicable
         if self._model.applied_current:
             t = t0 + theta*(t1 - t0)
             self._model.applied_current.t = t
-            G -= self._model.applied_current*w*dx
+            G -= self._model.applied_current*q*dx
 
         # Define variational problem
         a, L = system(G)

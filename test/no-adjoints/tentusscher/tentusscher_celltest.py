@@ -3,7 +3,7 @@ Test running-ness of tenTusscher cell model
 """
 
 # Marie E. Rognes <meg@simula.no>
-# Last changed: 2012-10-22
+# Last changed: 2012-10-23
 
 from dolfin import *
 from beatadjoint import *
@@ -11,7 +11,7 @@ from beatadjoint import *
 parameters["reorder_dofs"] = False
 parameters["form_compiler"]["cpp_optimize"] = True
 
-class AppliedCurrent(Expression):
+class Stimulus(Expression):
     def __init__(self, t=0.0):
         self.t = t
     def eval(self, value, x):
@@ -22,7 +22,7 @@ class AppliedCurrent(Expression):
             value[0] = 0.0
 
 cell = Tentusscher_2004_mcell()
-cell.applied_current = AppliedCurrent()
+cell.stimulus = Stimulus()
 solver = CellSolver(cell)
 
 # Setup initial condition

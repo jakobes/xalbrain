@@ -4,7 +4,7 @@ This test just solves the bidomain equations with an analytic solution
 splitting solver.
 """
 # Marie E. Rognes <meg@simula.no>
-# Last changed: 2012-10-03
+# Last changed: 2012-10-23
 
 from dolfin import *
 from beatadjoint import *
@@ -27,7 +27,7 @@ class MyHeart(CardiacModel):
 cell = NoCellModel()
 heart = MyHeart(cell)
 ac_str = "cos(t)*cos(2*pi*x[0])*cos(2*pi*x[1]) + 4*pow(pi, 2)*cos(2*pi*x[0])*cos(2*pi*x[1])*sin(t)"
-heart.applied_current = Expression(ac_str, t=0, degree=5)
+heart.stimulus = Expression(ac_str, t=0, degree=5)
 
 # Set-up solver
 parameters = SplittingSolver.default_parameters()
@@ -61,8 +61,8 @@ for (timestep, vs, u) in solutions:
 (v, s) = vs.split()
 
 # Procomputed reference errors (for regression checking):
-v_reference = 4.3105092332652306e-03
-u_reference = 2.0258311577533851e-03
+v_reference = 4.1152719193176370e-03
+u_reference = 2.0271098018943513e-03
 
 # Compute errors
 v_error = errornorm(v_exact, v, "L2", degree_rise=5)
@@ -71,5 +71,7 @@ v_diff = abs(v_error - v_reference)
 u_diff = abs(u_error - u_reference)
 tolerance = 1.e-10
 msg = "Maximal %s value does not match reference: diff is %.16e"
+print "v_error = %.16e" % v_error
+print "u_error = %.16e" % u_error
 assert (v_diff < tolerance), msg % ("v", v_diff)
 assert (u_diff < tolerance), msg % ("u", u_diff)

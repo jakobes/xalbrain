@@ -16,7 +16,7 @@ from beatadjoint import *
 class CellSolverTestCase(unittest.TestCase):
 
     def test_fitzhugh_nagumo(self):
-        class AppliedCurrent(Expression):
+        class Stimulus(Expression):
             def __init__(self, t=0.0):
                 self.t = t
             def eval(self, value, x):
@@ -27,7 +27,7 @@ class CellSolverTestCase(unittest.TestCase):
                     value[0] = 0.0
 
         cell = OriginalFitzHughNagumo()
-        cell.applied_current = AppliedCurrent()
+        cell.stimulus = Stimulus()
         solver = CellSolver(cell)
 
         # Setup initial condition

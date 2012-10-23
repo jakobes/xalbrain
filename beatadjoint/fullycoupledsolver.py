@@ -3,7 +3,7 @@ CardiacModel. Mainly for testing/debugging/comparison purposes"""
 
 # Copyright (C) 2012 Marie E. Rognes (meg@simula.no)
 # Use and modify at will
-# Last changed: 2012-10-09
+# Last changed: 2012-10-23
 
 __all__ = ["CoupledBidomainSolver"]
 
@@ -132,10 +132,15 @@ class CoupledBidomainSolver:
         if use_r:
             G += (lamda*u + l*q)*dx
 
+        if self._model.stimulus:
+            t = t0 + theta*(t1 - t0)
+            self._model.stimulus.t = t
+            G -= self._model.stimulus*w*dx
+
         if self._model.applied_current:
             t = t0 + theta*(t1 - t0)
             self._model.applied_current.t = t
-            G -= self._model.applied_current*w*dx
+            G -= self._model.stimulus*q*dx
 
         # Define variational problem
         a, L = system(G)
