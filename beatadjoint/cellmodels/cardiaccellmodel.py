@@ -2,7 +2,7 @@
 
 # Copyright (C) 2012 Marie E. Rognes (meg@simula.no)
 # Use and modify at will
-# Last changed: 2012-10-22
+# Last changed: 2012-10-23
 
 __all__ = ["CardiacCellModel"]
 
@@ -28,10 +28,20 @@ class CardiacCellModel:
     considered, I gives the (negative) right-hand side for the
     evolution of the transmembrane potential
 
-      d/dt v = - I(v, s)
+    (*)  d/dt v = - I(v, s)
 
     If used in a bidomain setting, the ionic current I enters into the
     parabolic partial differential equation of the bidomain equations.
+
+    If a stimulus is provided via
+
+      cell = CardiacCellModel()
+      cell.stimulus = Expression("I_s(t)")
+
+    then I_s is added to the right-hand side of (*), which thus reads
+
+       d/dt v = - I(v, s) + I_s
+
     """
 
     def __init__(self, parameters=None):
@@ -39,7 +49,7 @@ class CardiacCellModel:
         self._parameters = self.default_parameters()
         if parameters is not None:
             self._parameters.update(parameters)
-        self.applied_current = None
+        self.stimulus = None
 
     def default_parameters(self):
         "Set-up and return default parameters"

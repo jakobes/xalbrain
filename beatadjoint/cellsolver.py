@@ -2,7 +2,7 @@
 
 # Copyright (C) 2012 Marie E. Rognes (meg@simula.no)
 # Use and modify at will
-# Last changed: 2012-09-25
+# Last changed: 2012-10-23
 
 __all__ = ["CellSolver"]
 
@@ -114,10 +114,10 @@ class CellSolver:
         I_theta = - (theta*(I_ion(v, s) + (1 - theta)*I_ion(v_, s_)))
 
         # Add current if applicable
-        if self._model.applied_current:
+        if self._model.stimulus:
             t = t0 + theta*(t1 - t0)
-            self._model.applied_current.t = t
-            I_theta += self._model.applied_current
+            self._model.stimulus.t = t
+            I_theta += self._model.stimulus
 
         # Set-up system
         G = (Dt_v - I_theta)*w*dx + inner(Dt_s - F_theta, r)*dx
