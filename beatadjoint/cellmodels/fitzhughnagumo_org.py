@@ -2,11 +2,11 @@
 
 # Copyright (C) 2012 Marie E. Rognes (meg@simula.no)
 # Use and modify at will
-# Last changed: 2012-10-22
+# Last changed: 2012-10-23
 
 __all__ = ["FitzHughNagumo"]
 
-from dolfin import Parameters
+from dolfin import Parameters, Expression
 from cardiaccellmodel import *
 
 # ------------------------------------------------------------------------------
@@ -53,6 +53,10 @@ class FitzHughNagumo(CardiacCellModel):
 
         # Define model
         return b*(v - v_rest - c_3*s)
+
+    def initial_conditions(self):
+        ic = Expression(["V", "S"], V=-85.0, S=0.0)
+        return ic
 
     def num_states(self):
         return 1
