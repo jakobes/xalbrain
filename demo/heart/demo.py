@@ -22,7 +22,6 @@ chi = 2000.0   # Membrane surface-to-volume ratio (1/cm), value from book
 C_m = 1.0      # Membrane capacitance per unit area (micro F/(cm^2))
 
 # Domain
-# FIXME: MER: Check that no cell markers are in here:
 mesh = Mesh("data/mesh115_refined.xml.gz")
 mesh.coordinates()[:] /= 1000.0 # Scale mesh from mikrometer to millimeter
 mesh.coordinates()[:] /= 4.0    # Scale mesh as indicated by Johan
@@ -33,7 +32,6 @@ print "y (min, max) = ", \
     [min(mesh.coordinates()[:, 1]), max(mesh.coordinates()[:, 1])]
 print "z (min, max) = ", \
     [min(mesh.coordinates()[:, 2]), max(mesh.coordinates()[:, 2])]
-#exit()
 
 # Time and time-step
 T = 1.0        # End time (need value + unit)
@@ -109,14 +107,53 @@ class MyHeart(CardiacModel):
 cell = OriginalFitzHughNagumo()
 heart = MyHeart(cell)
 
-# FIXME: Define some 'stimulation protocol': Johan will fix
+# Define some simulation protocol (use cpp expression for speed)
 stimulation_cells = MeshFunction("uint", mesh, "data/stimulation_cells.xml.gz")
-class Pulse(Expression):
-    def eval(self, values, x):
-        values[0] = 0.0
+cpp_stimulus = """
+class Stimulus : public Expression
+{
+public:
 
-# Add given current as Stimulus
-#heart.stimulus = Pulse()
+  boost::shared_ptr<MeshFunction<unsigned int> > cell_data;
+
+  Stimulus() : Expression(), amplitude(0), duration(0), t(0)
+  {
+  }
+
+  void eval(Array<double>& values, const Array<double>& x,
+            const ufc::cell& c) const
+  {
+    assert(cell_data);
+    const Cell cell(cell_data->mesh(), c.index);
+    switch ((*cell_data)[cell.index()])
+    {
+    case 0:
+      values[0] = 0.0;
+      break;
+    case 1:
+      if (t <= duration)
+        values[0] = amplitude;
+      else
+        values[0] = 0.0;
+      break;
+    default:
+      values[0] = 0.0;
+    }
+  }
+  double amplitude;
+  double duration;
+  double t;
+};"""
+
+# Define pulse stimulus
+pulse = Expression(cpp_stimulus)
+pulse.cell_data = stimulation_cells
+pulse.amplitude = 7.0 # Ampere
+pulse.duration = 10.0 # ms
+pulse.t = 0.0         # ms
+
+# Assign pulse as stimulus to heart
+heart.stimulus = pulse
 
 # Set-up solver
 Solver = SplittingSolver
@@ -135,17 +172,12 @@ vs.adj_name = "vs"
 u.adj_name = "u"
 vs_.assign(ic, annotate=True)
 
-#(v_, s_) = vs_.split(deepcopy=True)
-#plot(v_, title="v_")
-#plot(s_, title="s_")
-#interactive()
-
 # Solve
 begin("Solving primal")
 start = time.time()
 solutions = solver.solve((0, T), k_n)
 for (timestep, vs, u) in solutions:
-    #plot(u, title="Extracellular potential (u)")
+    plot(u, title="Extracellular potential (u)")
     continue
 stop = time.time()
 print "Time elapsed: %g" % (stop - start)
@@ -154,10 +186,11 @@ end()
 list_timings()
 
 (v, s) = split(vs)
-#plot(v, title="Transmembrane potential (v)")
-#interactive()
+plot(v, title="Transmembrane potential (v)")
 
 # # Define some functional
 J = Functional(inner(v, v)*ds*dt)
-dJdm = compute_gradient(J, InitialConditionParameter(m))
+dJdm = compute_gradient(J, InitialConditionParameter(g_el_field))
 plot(dJdm, interactive=True, title="Adjoint sensitivity map")
+
+interactive()
