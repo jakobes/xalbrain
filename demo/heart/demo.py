@@ -14,7 +14,7 @@ set_log_level(PROGRESS)
 
 parameters["reorder_dofs"] = False # Crucial!
 parameters["form_compiler"]["cpp_optimize"] = True
-parameters["form_compiler"]["optimize"] = False
+parameters["form_compiler"]["optimize"] = True
 
 # Generic cardiac parameters
 chi = 2000.0   # Membrane surface-to-volume ratio (1/cm), value from book
@@ -24,29 +24,20 @@ C_m = 1.0      # Membrane capacitance per unit area (micro F/(cm^2))
 # Domain
 # FIXME: MER: Check that no cell markers are in here:
 mesh = Mesh("data/mesh115_refined.xml.gz")
-mesh.coordinates()[:] /= 4 # Scale mesh as indicated by Johan
+mesh.coordinates()[:] /= 1000.0 # Scale mesh from mikrometer to millimeter
+mesh.coordinates()[:] /= 4.0    # Scale mesh as indicated by Johan
 
-V = FunctionSpace(mesh, "CG", 1)
-u = Function(V)
-u.vector()[:] = 1.0
-v = TestFunction(V)
-
-a = u*v*dx + inner(grad(u), grad(v))*dx
-L = inner(Constant(1.0), v)*dx
-solve(a - L == 0, u)
-plot(u, interactive=True)
-exit()
-
-
-print "Coordinates (min, max), x, y, z:"
-print [min(mesh.coordinates()[:, 0]), max(mesh.coordinates()[:, 0])]
-print [min(mesh.coordinates()[:, 1]), max(mesh.coordinates()[:, 1])]
-print [min(mesh.coordinates()[:, 2]), max(mesh.coordinates()[:, 2])]
+print "x (min, max) = ", \
+    [min(mesh.coordinates()[:, 0]), max(mesh.coordinates()[:, 0])]
+print "y (min, max) = ", \
+    [min(mesh.coordinates()[:, 1]), max(mesh.coordinates()[:, 1])]
+print "z (min, max) = ", \
+    [min(mesh.coordinates()[:, 2]), max(mesh.coordinates()[:, 2])]
 #exit()
 
 # Time and time-step
 T = 1.0        # End time (need value + unit)
-k_n = 0.01     # Timestep (need value)
+k_n = 0.25     # Timestep (need value)
 
 # Load fibers and sheets
 Vv = VectorFunctionSpace(mesh, "DG", 0)
