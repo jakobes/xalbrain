@@ -14,7 +14,7 @@ set_log_level(PROGRESS)
 
 parameters["reorder_dofs"] = False # Crucial!
 parameters["form_compiler"]["cpp_optimize"] = True
-parameters["form_compiler"]["optimize"] = True
+parameters["form_compiler"]["optimize"] = False
 
 # Generic cardiac parameters
 chi = 2000.0   # Membrane surface-to-volume ratio (1/cm), value from book
@@ -26,6 +26,18 @@ C_m = 1.0      # Membrane capacitance per unit area (micro F/(cm^2))
 mesh = Mesh("data/mesh115_refined.xml.gz")
 mesh.coordinates()[:] /= 4 # Scale mesh as indicated by Johan
 
+V = FunctionSpace(mesh, "CG", 1)
+u = Function(V)
+u.vector()[:] = 1.0
+v = TestFunction(V)
+
+a = u*v*dx + inner(grad(u), grad(v))*dx
+L = inner(Constant(1.0), v)*dx
+solve(a - L == 0, u)
+plot(u, interactive=True)
+exit()
+
+
 print "Coordinates (min, max), x, y, z:"
 print [min(mesh.coordinates()[:, 0]), max(mesh.coordinates()[:, 0])]
 print [min(mesh.coordinates()[:, 1]), max(mesh.coordinates()[:, 1])]
@@ -34,7 +46,7 @@ print [min(mesh.coordinates()[:, 2]), max(mesh.coordinates()[:, 2])]
 
 # Time and time-step
 T = 1.0        # End time (need value + unit)
-k_n = 0.25     # Timestep (need value)
+k_n = 0.01     # Timestep (need value)
 
 # Load fibers and sheets
 Vv = VectorFunctionSpace(mesh, "DG", 0)
@@ -113,7 +125,7 @@ class Pulse(Expression):
         values[0] = 0.0
 
 # Add given current as Stimulus
-heart.stimulus = Pulse()
+#heart.stimulus = Pulse()
 
 # Set-up solver
 Solver = SplittingSolver
@@ -132,10 +144,10 @@ vs.adj_name = "vs"
 u.adj_name = "u"
 vs_.assign(ic, annotate=True)
 
-(v_, s_) = vs_.split(deepcopy=True)
-plot(v_, title="v_")
-plot(s_, title="s_")
-interactive()
+#(v_, s_) = vs_.split(deepcopy=True)
+#plot(v_, title="v_")
+#plot(s_, title="s_")
+#interactive()
 
 # Solve
 begin("Solving primal")
