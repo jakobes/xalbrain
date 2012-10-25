@@ -14,16 +14,6 @@ def generate_conductivities():
     mesh.coordinates()[:] /= 1000.0 # Scale mesh from micrometer to millimeter
     mesh.coordinates()[:] /= 4.0    # Scale mesh as indicated by Johan
 
-    # Load fibers and sheets
-    info("Loading fibers and sheets")
-    Vv = VectorFunctionSpace(mesh, "DG", 0)
-    fiber = Function(Vv)
-    File("data/fibers.xml.gz") >> fiber
-    sheet = Function(Vv)
-    File("data/sheet.xml.gz") >> sheet
-    cross_sheet = Function(Vv)
-    File("data/cross_sheet.xml.gz") >> cross_sheet
-
     # Load ischemic region (scalar function between 0-1, where 0 is ischemic)
     info("Loading ischemic region")
     V = FunctionSpace(mesh, "CG", 1)
@@ -75,7 +65,6 @@ def generate_conductivities():
     file << g_il_field
     file = File("data/g_it_field.xml.gz")
     file << g_it_field
-
 
 
 if __name__ == "__main__":
