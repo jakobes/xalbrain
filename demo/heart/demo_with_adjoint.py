@@ -146,6 +146,9 @@ end()
 
 (v, s) = split(vs)
 
+adj_html("forward.html", "forward")
+adj_html("adjoint.html", "adjoint")
+
 # # Define some functional
 J = Functional(inner(v, v)*ds*dt)
 begin("Computing gradient")
