@@ -6,6 +6,7 @@ parameters["reorder_dofs"] = False # Crucial!
 
 def generate_conductivities():
 
+    # Maybe reduce chi to say 1400?
     chi = 2000.0   # Membrane surface-to-volume ratio (1/cm), value from book
     C_m = 1.0      # Membrane capacitance per unit area (micro F/(cm^2))
 
@@ -23,7 +24,7 @@ def generate_conductivities():
     ischemic_array = ischemic.vector().array()
 
     # Healthy and ischemic conductivities
-    # (All values in mS/cm (milli-Siemens per centimeter)
+    # (All values in mS/cm (milli-Siemens per centimeter, before division)
 
     # Extracellular:
     g_el = 6.25/(C_m*chi) # Fiber
