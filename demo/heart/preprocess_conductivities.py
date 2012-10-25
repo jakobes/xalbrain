@@ -12,6 +12,7 @@ def generate_conductivities():
     info("Loading mesh")
     mesh = Mesh("data/mesh115_refined.xml.gz")
     mesh.coordinates()[:] /= 1000.0 # Scale mesh from micrometer to millimeter
+    mesh.coordinates()[:] /= 10.0   # Scale mesh from millimeter to centimeter
     mesh.coordinates()[:] /= 4.0    # Scale mesh as indicated by Johan
 
     # Load ischemic region (scalar function between 0-1, where 0 is ischemic)

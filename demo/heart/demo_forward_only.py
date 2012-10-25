@@ -38,6 +38,7 @@ parameters["form_compiler"]["optimize"] = True
 # Domain
 mesh = Mesh("data/mesh115_refined.xml.gz")
 mesh.coordinates()[:] /= 1000.0 # Scale mesh from micrometer to millimeter
+mesh.coordinates()[:] /= 10.0   # Scale mesh from millimeter to centimeter
 mesh.coordinates()[:] /= 4.0    # Scale mesh as indicated by Johan
 
 # Time and time-step
@@ -127,11 +128,21 @@ directory = application_parameters["directory"]
 parametersfile = File("%s/parameters.xml" % directory)
 parametersfile << application_parameters
 # (Compute) and store solutions
+
+v_pvd = File("%s/v.pvd" % directory)
+u_pvd = File("%s/u.pvd" % directory)
+s_pvd = File("%s/s.pvd" % directory)
 for (timestep, vs, u) in solutions:
     vsfile = File("%s/vs_%d.xml.gz" % (directory, timestep_counter))
     vsfile << vs
     ufile = File("%s/u_%d.xml.gz" % (directory, timestep_counter))
     ufile << u
+
+    (v, s) = vs.split()
+    v_pvd << v
+    s_pvd << s
+    u_pvd << u
+
     timestep_counter += 1
 
 stop = time.time()
