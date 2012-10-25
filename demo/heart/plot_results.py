@@ -17,7 +17,7 @@ directory = "default-results"
 u_plot = Function(V)
 v_plot = Function(W.sub(0).collapse())
 s_plot = Function(W.sub(1).collapse())
-for i in range(1, 10):
+for i in range(1, 2):
     print "i = ", i
     vs = Function(W, "%s/vs_%d.xml.gz" % (directory, i))
     u = Function(V, "%s/u_%d.xml.gz" % (directory, i))
