@@ -2,7 +2,7 @@
 
 # Copyright (C) 2012 Marie E. Rognes (meg@simula.no)
 # Use and modify at will
-# Last changed: 2012-10-23
+# Last changed: 2012-10-25
 
 __all__ = ["SplittingSolver", "BasicSplittingSolver"]
 
@@ -64,6 +64,7 @@ class BasicSplittingSolver:
         parameters = Parameters("SplittingSolver")
         parameters.add("enable_adjoint", False)
         parameters.add("theta", 0.5)
+        parameters.add("default_timestep", 1.0)
 
         parameters.add("potential_polynomial_degree", 1)
         parameters.add("ode_polynomial_degree", 0)
@@ -263,7 +264,7 @@ class SplittingSolver(BasicSplittingSolver):
         BasicSplittingSolver.__init__(self, model, parameters)
 
         # Define forms for pde_step
-        self._k_n = Constant(-1.0)
+        self._k_n = Constant(self.parameters["default_timestep"])
         (self._a, self._L) = self.pde_variational_problem(self._k_n, self.vs_)
 
         # Pre-assemble left-hand side (will be updated if time-step
@@ -351,7 +352,8 @@ class SplittingSolver(BasicSplittingSolver):
         # Assemble left-hand-side: only re-assemble if necessary, and
         # reuse all solver data possible
         solver = self.linear_solver()
-        if dt == float(self._k_n):
+        tolerance = 1.e-12
+        if abs(dt - float(self._k_n)) < tolerance:
             A = self._A
             if isinstance(solver, LUSolver):
                 info("Reusing LU factorization")
