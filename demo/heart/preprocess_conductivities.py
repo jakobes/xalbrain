@@ -6,8 +6,7 @@ parameters["reorder_dofs"] = False # Crucial!
 
 def generate_conductivities():
 
-    # Maybe reduce chi to say 1400?
-    chi = 2000.0   # Membrane surface-to-volume ratio (1/cm), value from book
+    chi = 1400.0   # Membrane surface-to-volume ratio (1/cm)
     C_m = 1.0      # Membrane capacitance per unit area (micro F/(cm^2))
 
     info("Loading mesh")
