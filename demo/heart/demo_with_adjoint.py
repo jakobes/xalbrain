@@ -161,17 +161,38 @@ adj_html("adjoint.html", "adjoint")
 #set_log_level(DEBUG)
 
 # # Define some functional
-J = Functional(inner(v, v)*ds*dt)
-begin("Computing gradient")
-start = time.time()
-dJdm = compute_gradient(J, InitialConditionParameter(g_el_field))
-stop = time.time()
-gradient_time = (stop - start)
+
+v_obs = Function(solver.VS.sub(0).collapse())
+# Read from file here!
+
+J = Functional(inner(v - v_obs, v - v_obs)*dx*dt[FINISH_TIME])
+
+begin("1. Computing dJdg_el")
+dJdg_el = compute_gradient(J, InitialConditionParameter(g_el_field),
+                           forget=False)
+file = File("%s/dJdg_el.xml.gz" % directory)
+file << dJdg_el
 end()
 
-begin("Storing gradient")
-sensfile = File("%s/adjoint_sensitivity_map.xml.gz" % directory)
-sensfile << dJdm
+begin("2. Computing dJdg_et")
+dJdg_et = compute_gradient(J, InitialConditionParameter(g_et_field),
+                           forget=False)
+file = File("%s/dJdg_et.xml.gz" % directory)
+file << dJdg_et
+end()
+
+begin("3. Computing dJdg_il")
+dJdg_il = compute_gradient(J, InitialConditionParameter(g_il_field),
+                           forget=False)
+file = File("%s/dJdg_il.xml.gz" % directory)
+file << dJdg_il
+end()
+
+begin("4. Computing dJdg_it")
+dJdg_il = compute_gradient(J, InitialConditionParameter(g_it_field),
+                           forget=False)
+file = File("%s/dJdg_it.xml.gz" % directory)
+file << dJdg_it
 end()
 
 print "Time for forward problem: %g" % (forward_time)
