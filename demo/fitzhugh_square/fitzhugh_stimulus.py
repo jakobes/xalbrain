@@ -2,7 +2,7 @@
 """
 
 # Marie E. Rognes <meg@simula.no>
-# Last changed: 2012-10-25
+# Last changed: 2012-10-26
 
 import math
 
@@ -12,18 +12,39 @@ from beatadjoint import *
 parameters["form_compiler"]["cpp_optimize"] = True
 parameters["form_compiler"]["optimize"] = True
 
+class Cond(Expression):
+    def eval(self, values, x):
+        origin = (0.2, 0.5)
+        r = 0.1**2
+        radius = ((x[0] - origin[0])**2 + (x[1] - origin[1])**2)
+        if radius < r:
+            values[0] = self.value/self.factor
+        else:
+            values[0] = self.value
+
+N = 50
+mesh = UnitSquare(N, N)
+
 class MyHeart(CardiacModel):
     def __init__(self, cell_model):
         CardiacModel.__init__(self, cell_model)
     def domain(self):
-        N = 50
-        return UnitSquare(50, 50)
+        return mesh
     def conductivities(self):
-        chi = 2000.0   # cm^{-1}
-        s_il = 1.74/chi # mS
-        s_it = 0.192/chi # mS
-        s_el = 3.125/chi # mS
-        s_et = 1.18/chi # mS
+        chi = 1400.0   # cm^{-1}
+        s_il = Cond()
+        s_il.value = 1.74/chi
+        s_il.factor = 15.0
+        s_it = Cond()
+        s_it.value = 0.192/chi # mS
+        s_it.factor = 2.0
+        s_el = Cond()
+        s_el.value = 3.125/chi
+        s_el.factor = 2.0
+        s_et = Cond()
+        s_et.value = 1.18/chi # mS
+        s_et.factor = 2.0
+
         M_i = as_tensor(((s_il, 0), (0, s_it)))
         M_e = as_tensor(((s_el, 0), (0, s_et)))
         return (M_i, M_e)
@@ -70,7 +91,7 @@ if __name__ == "__main__":
 
     # Define end-time and (constant) timestep
     dt = 1.0 # mS
-    T = 200.0 + 1.e-6  # mS
+    T = 100.0 + 1.e-6  # mS
 
     # Define initial condition(s)
     ic = cell.initial_conditions()
@@ -88,8 +109,11 @@ if __name__ == "__main__":
     solutions = solver.solve((0, T), dt)
     for (timestep, vs, u) in solutions:
         (v, s) = vs.split(deepcopy=True)
+
         print v.vector().max()
         v_pvd << v
         u_pvd << u
         s_pvd << s
+
+    plot(v)
     interactive()
