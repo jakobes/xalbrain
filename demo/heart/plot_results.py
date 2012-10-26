@@ -1,6 +1,6 @@
 from dolfin import *
 
-parameters["reorder_dofs"] = False # Crucial!
+parameters["reorder_dofs_serial"] = False # Crucial!
 parameters["form_compiler"]["cpp_optimize"] = True
 parameters["form_compiler"]["optimize"] = True
 

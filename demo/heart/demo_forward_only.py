@@ -26,7 +26,7 @@ info(application_parameters, True)
 parameters["linear_algebra_backend"] = application_parameters["backend"]
 
 # Adjust some general parameters
-parameters["reorder_dofs"] = False # Crucial!
+parameters["reorder_dofs_serial"] = False # Crucial!
 parameters["form_compiler"]["cpp_optimize"] = True
 parameters["form_compiler"]["optimize"] = True
 
