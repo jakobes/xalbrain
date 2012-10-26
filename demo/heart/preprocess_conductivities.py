@@ -2,7 +2,7 @@ from dolfin import *
 
 # Do the serial stuff here first
 
-parameters["reorder_dofs"] = False # Crucial!
+parameters["reorder_dofs_serial"] = False # Crucial!
 
 def generate_conductivities():
 

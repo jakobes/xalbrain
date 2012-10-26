@@ -9,14 +9,14 @@ computed.
 """
 
 # Marie E. Rognes <meg@simula.no>
-# Last changed: 2012-10-23
+# Last changed: 2012-10-26
 
 import math
 
 from dolfin import *
 from beatadjoint import *
 
-parameters["reorder_dofs"] = False
+parameters["reorder_dofs_serial"] = False
 parameters["form_compiler"]["cpp_optimize"] = True
 parameters["form_compiler"]["optimize"] = True
 

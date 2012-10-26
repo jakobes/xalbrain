@@ -11,7 +11,7 @@
 # """
 
 # # Marie E. Rognes <meg@simula.no>
-# # Last changed: 2012-10-22
+# # Last changed: 2012-10-26
 
 # import math
 
@@ -19,7 +19,7 @@
 # from beatadjoint import *
 # from tentusscher_2004_mcell import Tentusscher_2004_mcell
 
-# parameters["reorder_dofs"] = False
+# parameters["reorder_dofs_serial"] = False
 # parameters["form_compiler"]["cpp_optimize"] = True
 # parameters["form_compiler"]["optimize"] = True
 # parameters["form_compiler"]["representation"] = "quadrature"
