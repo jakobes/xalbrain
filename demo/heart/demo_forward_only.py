@@ -14,11 +14,11 @@ import time
 
 # Setup application parameters and parse from command-line
 application_parameters = Parameters("Application")
-application_parameters.add("T", 100.0)      # End time  (ms)
+application_parameters.add("T", 420.0)      # End time  (ms)
 application_parameters.add("timestep", 1.0) # Time step (ms)
 application_parameters.add("directory", "default-results")
 application_parameters.add("backend", "PETSc")
-application_parameters.add("stimulus_amplitude", 70.0)
+application_parameters.add("stimulus_amplitude", 30.0)
 application_parameters.parse()
 info(application_parameters, True)
 
