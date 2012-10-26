@@ -1,24 +1,24 @@
 """
+Demo for propagation of electric potential through left and right
+ventricles.
 """
 
 # Marie E. Rognes <meg@simula.no>
-# Last changed: 2012-10-25
+# Last changed: 2012-10-26
 
 import math
 from dolfin import *
 from dolfin_adjoint import *
 from beatadjoint import *
-
 import time
-
-set_log_level(PROGRESS)
 
 # Setup application parameters and parse from command-line
 application_parameters = Parameters("Application")
-application_parameters.add("T", 0.5)         # End time  (ms)
-application_parameters.add("timestep", 0.05) # Time step (ms)
+application_parameters.add("T", 100.0)      # End time  (ms)
+application_parameters.add("timestep", 1.0) # Time step (ms)
 application_parameters.add("directory", "default-results")
 application_parameters.add("backend", "PETSc")
+application_parameters.add("stimulus_amplitude", 70.0)
 application_parameters.parse()
 info(application_parameters, True)
 
@@ -31,17 +31,17 @@ parameters["form_compiler"]["cpp_optimize"] = True
 parameters["form_compiler"]["optimize"] = True
 
 # Generic cardiac parameters
-#chi = 2000.0   # Membrane surface-to-volume ratio (1/cm), value from book
+#chi = 1400.0   # Membrane surface-to-volume ratio (1/cm)
 # NB : If not 1 => must scale ionic current! see book p. 55
 #C_m = 1.0      # Membrane capacitance per unit area (micro F/(cm^2))
 
-# Domain
+# Initialize domain
 mesh = Mesh("data/mesh115_refined.xml.gz")
 mesh.coordinates()[:] /= 1000.0 # Scale mesh from micrometer to millimeter
 mesh.coordinates()[:] /= 10.0   # Scale mesh from millimeter to centimeter
-mesh.coordinates()[:] /= 4.0    # Scale mesh as indicated by Johan
+mesh.coordinates()[:] /= 4.0    # Scale mesh as indicated by Johan/Molly
 
-# Time and time-step
+# Extract time and time-step
 T = application_parameters["T"]
 k_n = application_parameters["timestep"]
 
@@ -54,7 +54,7 @@ File("data/sheet.xml.gz") >> sheet
 cross_sheet = Function(Vv)
 File("data/cross_sheet.xml.gz") >> cross_sheet
 
-# Extract conducitivity data
+# Extract conductivity data
 V = FunctionSpace(mesh, "CG", 1)
 g_el_field = Function(V, "data/g_el_field.xml.gz")
 g_et_field = Function(V, "data/g_et_field.xml.gz")
@@ -71,6 +71,8 @@ M_i_star = diag(as_vector([g_il_field, g_it_field, g_it_field]))
 M_e = A*M_e_star*A.T
 M_i = A*M_i_star*A.T
 
+# Model of the whole heart given a cell-model, using the above domain
+# and conductivities
 class MyHeart(CardiacModel):
     def __init__(self, cell_model):
         CardiacModel.__init__(self, cell_model)
@@ -79,8 +81,15 @@ class MyHeart(CardiacModel):
     def conductivities(self):
         return (M_i, M_e)
 
-# Setup cell and cardiac model
-cell = OriginalFitzHughNagumo()
+# Setup cell model based on parameters from Glenn, which seems to be a
+# little more excitable than the default FitzHugh-Nagumo parameters
+# from the book.
+k = 0.00004; Vrest = -85.; Vthreshold = -70.;
+Vpeak = 40.; k = 0.00004; l = 0.63; b = 0.013; v_amp = Vpeak - Vrest
+cell_parameters = {"c_1": k*v_amp**2, "c_2": k*v_amp, "c_3": b/l,
+                   "a": (Vthreshold - Vrest)/v_amp, "b": l,
+                   "v_rest":Vrest, "v_peak": Vpeak}
+cell = OriginalFitzHughNagumo(cell_parameters)
 heart = MyHeart(cell)
 
 # Define some simulation protocol (use cpp expression for speed)
@@ -88,7 +97,8 @@ stimulation_cells = MeshFunction("uint", mesh, "data/stimulation_cells.xml.gz")
 from stimulation import cpp_stimulus
 pulse = Expression(cpp_stimulus)
 pulse.cell_data = stimulation_cells
-pulse.amplitude = 7.0 # Ampere
+amp = application_parameters["stimulus_amplitude"]
+pulse.amplitude = amp #
 pulse.duration = 10.0 # ms
 pulse.t = 0.0         # ms
 
@@ -116,28 +126,33 @@ vs.adj_name = "vs"
 u.adj_name = "u"
 vs_.assign(ic, annotate=True)
 
-# Solve
-begin("Solving primal")
-start = time.time()
-solutions = solver.solve((0, T), k_n)
-
-timestep_counter = 1
+# Store application parameters (arbitrary whether this works in
+# parallel!)
 directory = application_parameters["directory"]
-
-# Store application parameters
 parametersfile = File("%s/parameters.xml" % directory)
 parametersfile << application_parameters
-# (Compute) and store solutions
 
+# Setup pvd storage
 v_pvd = File("%s/v.pvd" % directory)
 u_pvd = File("%s/u.pvd" % directory)
 s_pvd = File("%s/s.pvd" % directory)
+
+# Set-up solve
+solutions = solver.solve((0, T), k_n)
+
+# (Compute) and store solutions
+begin("Solving primal")
+start = time.time()
+timestep_counter = 1
 for (timestep, vs, u) in solutions:
+
+    # Store xml
     vsfile = File("%s/vs_%d.xml.gz" % (directory, timestep_counter))
     vsfile << vs
     ufile = File("%s/u_%d.xml.gz" % (directory, timestep_counter))
     ufile << u
 
+    # Store vtu
     (v, s) = vs.split()
     v_pvd << v
     s_pvd << s
