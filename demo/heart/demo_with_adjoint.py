@@ -20,7 +20,7 @@ application_parameters.add("T", 100.0)      # End time  (ms)
 application_parameters.add("timestep", 1.0) # Time step (ms)
 application_parameters.add("directory", "default-adjoint-results")
 application_parameters.add("backend", "PETSc")
-application_parameters.add("stimulus_amplitude", 70.0)
+application_parameters.add("stimulus_amplitude", 30.0)
 application_parameters.parse()
 info(application_parameters, True)
 
@@ -147,25 +147,12 @@ begin("Solving primal")
 start = time.time()
 timestep_counter = 1
 for (timestep, vs, u) in solutions:
-
-    # Store xml
-    #vsfile = File("%s/vs_%d.xml.gz" % (directory, timestep_counter))
-    #vsfile << vs
-    #ufile = File("%s/u_%d.xml.gz" % (directory, timestep_counter))
-    #ufile << u
-
-    # Store vtu
-    #(v, s) = vs.split()
-    #v_pvd << v
-    #s_pvd << s
-    #u_pvd << u
-
     timestep_counter += 1
 
 (v, s) = split(vs)
 
 stop = time.time()
-print "Time elapsed: %g" % (stop - start)
+forward_time = (stop - start)
 end()
 
 adj_html("forward.html", "forward")
@@ -182,14 +169,12 @@ stop = time.time()
 gradient_time = (stop - start)
 end()
 
-print "Time for forward problem: %g" % (forward_time)
-print "Time for computing gradient: %g" % (gradient_time)
-
 begin("Storing gradient")
 sensfile = File("%s/adjoint_sensitivity_map.xml.gz" % directory)
 sensfile << dJdm
 end()
 
-
+print "Time for forward problem: %g" % (forward_time)
+print "Time for computing gradient: %g" % (gradient_time)
 
 list_timings()
