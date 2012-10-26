@@ -25,26 +25,35 @@ class Cond(Expression):
 N = 50
 mesh = UnitSquare(N, N)
 
+V = FunctionSpace(mesh, "CG", 1)
+
+chi = 1400.0   # cm^{-1}
+s_il = Cond()
+s_il.value = 1.74/chi
+s_il.factor = 15.0
+s_il = project(s_il, V)
+
+s_it = Cond()
+s_it.value = 0.192/chi # mS
+s_it.factor = 2.0
+s_it = project(s_it, V)
+
+s_el = Cond()
+s_el.value = 3.125/chi
+s_el.factor = 2.0
+s_el = project(s_el, V)
+
+s_et = Cond()
+s_et.value = 1.18/chi # mS
+s_et.factor = 2.0
+s_et = project(s_et, V)
+
 class MyHeart(CardiacModel):
     def __init__(self, cell_model):
         CardiacModel.__init__(self, cell_model)
     def domain(self):
         return mesh
     def conductivities(self):
-        chi = 1400.0   # cm^{-1}
-        s_il = Cond()
-        s_il.value = 1.74/chi
-        s_il.factor = 15.0
-        s_it = Cond()
-        s_it.value = 0.192/chi # mS
-        s_it.factor = 2.0
-        s_el = Cond()
-        s_el.value = 3.125/chi
-        s_el.factor = 2.0
-        s_et = Cond()
-        s_et.value = 1.18/chi # mS
-        s_et.factor = 2.0
-
         M_i = as_tensor(((s_il, 0), (0, s_it)))
         M_e = as_tensor(((s_el, 0), (0, s_et)))
         return (M_i, M_e)
@@ -68,11 +77,12 @@ def cell_model():
 class Stimulus(Expression):
     def eval(self, values, x):
         if (x[0] <= 0.01 and self.t <= 10.0):
-            values[0] = 70.0
+            values[0] = 30.0
         else:
             values[0] = 0.0
 
 if __name__ == "__main__":
+
 
     cell = OriginalFitzHughNagumo()#cell_model()
     #cell = cell_model()
@@ -90,8 +100,8 @@ if __name__ == "__main__":
     solver = SplittingSolver(heart, ps)
 
     # Define end-time and (constant) timestep
-    dt = 1.0 # mS
-    T = 100.0 + 1.e-6  # mS
+    k_n = 1.0 # mS
+    T = 40.0 + 1.e-6  # mS
 
     # Define initial condition(s)
     ic = cell.initial_conditions()
@@ -106,14 +116,35 @@ if __name__ == "__main__":
 
     # Solve
     info_green("Solving primal")
-    solutions = solver.solve((0, T), dt)
+    solutions = solver.solve((0, T), k_n)
     for (timestep, vs, u) in solutions:
-        (v, s) = vs.split(deepcopy=True)
+        #(v, s) = vs.split(deepcopy=True)
+        #print v.vector().max()
+        #v_pvd << v
+        #u_pvd << u
+        #s_pvd << s
+        continue
 
-        print v.vector().max()
-        v_pvd << v
-        u_pvd << u
-        s_pvd << s
+    (v, s) = split(vs)
+    plot(v, title="v")
 
-    plot(v)
+    V = solver.VS.sub(0).collapse()
+    v_obs = Function(V, "v40.xml.gz")
+    plot(v_obs, title="v_obs")
+
+    #(v_store, s_store) = vs.split(deepcopy=True)
+    #file = File("v40.xml.gz")
+    #file << v_store
+
+    J = Functional(inner(v - v_obs, v - v_obs)*dx*dt[FINISH_TIME])
+    dJds_el = compute_gradient(J, InitialConditionParameter(s_el), forget=False)
+    plot(dJds_el, title="Sensitivity wrt s_el")
+    dJds_et = compute_gradient(J, InitialConditionParameter(s_et), forget=False)
+    plot(dJds_et, title="Sensitivity srt s_et")
+    dJds_il = compute_gradient(J, InitialConditionParameter(s_il), forget=False)
+    plot(dJds_il, title="Sensitivity srt s_il")
+    dJds_it = compute_gradient(J, InitialConditionParameter(s_it), forget=False)
+    plot(dJds_it, title="Sensitivity srt s_it")
     interactive()
+
+    exit()
