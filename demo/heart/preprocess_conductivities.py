@@ -67,6 +67,28 @@ def generate_conductivities():
     file = File("data/g_it_field.xml.gz")
     file << g_it_field
 
+    info("Creating healthy conductivities")
+    # Combine info into 2x2 distinct conductivity functions:
+    g_el_field = Function(V)
+    g_el_field.vector()[:] = g_el
+    g_et_field = Function(V)
+    g_et_field.vector()[:] = g_et
+    g_il_field = Function(V)
+    g_il_field.vector()[:] = g_il
+    g_it_field = Function(V)
+    g_it_field.vector()[:] = g_it
+
+    # Store these
+    info("Storing healthy conductivities")
+    file = File("data/healthy_g_el_field.xml.gz")
+    file << g_el_field
+    file = File("data/healthy_g_et_field.xml.gz")
+    file << g_et_field
+    file = File("data/healthy_g_il_field.xml.gz")
+    file << g_il_field
+    file = File("data/healthy_g_it_field.xml.gz")
+    file << g_it_field
+
 
 if __name__ == "__main__":
 
