@@ -29,6 +29,8 @@ fields = ["g_il_field", "g_el_field", "g_it_field", "g_et_field"]
 for field in fields:
     e = Function(E, "%s/%s_sensitivity.xml.gz" % (directory, field))
     plot(e, title=field)
+    file = File("%s/%s_sensitivity.pvd" % (directory, field))
+    file << e
 
 
 interactive()
