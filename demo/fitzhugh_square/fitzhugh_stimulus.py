@@ -150,23 +150,18 @@ if __name__ == "__main__":
     adj_html("forward.html", "forward")
     adj_html("adjoint.html", "adjoint")
 
-    info_green("Computing gradient wrt s_el_var")
+    info_green("Computing gradient(s)")
     J = Functional(inner(v - v_obs, v - v_obs)*dx*dt[FINISH_TIME])
-    dJds_el = compute_gradient(J, InitialConditionParameter(s_el_var), forget=False)
-    plot(dJds_el, title="Sensitivity wrt s_el")
 
-    info_green("Computing gradient wrt s_et_var")
-    dJds_et = compute_gradient(J, InitialConditionParameter(s_et_var), forget=False)
-    plot(dJds_et, title="Sensitivity srt s_et")
+    variables = [s_el_var, s_et_var, s_il_var, s_it_var]
+    icvariables = [InitialConditionParameter(v) for v in variables]
 
-    info_green("Computing gradient wrt s_il_var")
-    dJds_il = compute_gradient(J, InitialConditionParameter(s_il_var), forget=False)
+    dJds_es = compute_gradient(J, icvariables, forget=False)
 
-    plot(dJds_il, title="Sensitivity srt s_il")
+    for (i, dJds) in enumerate(dJds_es):
+        name = variables[i].adj_name
+        plot(dJds, title="%s" % name)
+        file = File("%s/%s_sensitivity.xml.gz" % ("results", name))
+        file << dJds
 
-    info_green("Computing gradient wrt s_it_var")
-    dJds_it = compute_gradient(J, InitialConditionParameter(s_it_var), forget=False)
-    plot(dJds_it, title="Sensitivity srt s_it")
     interactive()
-
-    exit()
