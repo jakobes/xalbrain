@@ -145,13 +145,14 @@ begin("Solving primal")
 start = time.time()
 timestep_counter = 1
 for (timestep, vs, u) in solutions:
-    timestep_counter += 1
 
     # Store xml.gz
     vsfile = File("%s/vs_%d.xml.gz" % (directory, timestep_counter))
     vsfile << vs
     ufile = File("%s/u_%d.xml.gz" % (directory, timestep_counter))
     ufile << u
+
+    timestep_counter += 1
 
 (v, s) = split(vs)
 
