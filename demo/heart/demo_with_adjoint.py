@@ -59,20 +59,10 @@ File("data/cross_sheet.xml.gz") >> cross_sheet
 
 # Extract conductivity data
 V = FunctionSpace(mesh, "CG", 1)
-g_el_var = Function(V, "data/g_el_field.xml.gz", name="g_el_var")
-g_et_var = Function(V, "data/g_et_field.xml.gz", name="g_et_var")
-g_il_var = Function(V, "data/g_il_field.xml.gz", name="g_il_var")
-g_it_var = Function(V, "data/g_it_field.xml.gz", name="g_it_var")
-
-# A touch of dolfin-adjoint magic, hopefully an optimization.
-g_el_field = Function(V, name="g_el_field")
-g_el_field.assign(g_el_var, annotate=True, force=True)
-g_et_field = Function(V, name="g_et_field")
-g_et_field.assign(g_et_var, annotate=True, force=True)
-g_il_field = Function(V, name="g_il_field")
-g_il_field.assign(g_il_var, annotate=True, force=True)
-g_it_field = Function(V, name="g_it_field")
-g_it_field.assign(g_it_var, annotate=True, force=True)
+g_el_field = Function(V, "data/g_el_field.xml.gz", name="g_el_field")
+g_et_field = Function(V, "data/g_et_field.xml.gz", name="g_et_field")
+g_il_field = Function(V, "data/g_il_field.xml.gz", name="g_il_field")
+g_it_field = Function(V, "data/g_it_field.xml.gz", name="g_it_field")
 
 # Construct conductivity tensors from directions and conductivity
 # values relative to that coordinate system
@@ -182,7 +172,7 @@ J = Functional(inner(v - v_obs, v - v_obs)*dx*dt[FINISH_TIME])
 
 # Define variables that we want to differentiate with respect to (all
 # conductivities)
-variables = [g_el_var, g_et_var, g_il_var, g_it_var]
+variables = [g_el_field, g_et_field, g_il_field, g_it_field]
 icvariables = [InitialConditionParameter(v) for v in variables]
 
 # Compute the gradient
