@@ -2,7 +2,7 @@
 """
 
 # Marie E. Rognes <meg@simula.no>
-# Last changed: 2012-10-26
+# Last changed: 2012-10-27
 
 import math
 
@@ -31,33 +31,33 @@ chi = 1400.0   # cm^{-1}
 s_il = Cond()
 s_il.value = 1.74/chi
 s_il.factor = 15.0
-s_il_var = project(s_il, V, annotate=False)
+s_il_var = Function(project(s_il, V, annotate=False), name="s_il_var")
 
 s_it = Cond()
 s_it.value = 0.192/chi # mS
 s_it.factor = 2.0
-s_it_var = project(s_it, V, annotate=False)
+s_it_var = Function(project(s_it, V, annotate=False), name="s_it_var")
 
 s_el = Cond()
 s_el.value = 3.125/chi
 s_el.factor = 2.0
-s_el_var = project(s_el, V, annotate=False)
+s_el_var = Function(project(s_el, V, annotate=False), name="s_el_var")
 
 s_et = Cond()
 s_et.value = 1.18/chi # mS
 s_et.factor = 2.0
-s_et_var = project(s_et, V, annotate=False)
+s_et_var = Function(project(s_et, V, annotate=False), name="s_et_var")
 
 # Darker magical trick recommended by Patrick
-s_il = Function(V)
-s_il.assign(s_il_var, annotate=True)
-s_it = Function(V)
-s_it.assign(s_it_var, annotate=True)
+s_il = Function(V, name="s_il")
+s_il.assign(s_il_var, annotate=True, force=True)
+s_it = Function(V, name="s_it")
+s_it.assign(s_it_var, annotate=True, force=True)
 
-s_et = Function(V)
-s_et.assign(s_et_var, annotate=True)
-s_el = Function(V)
-s_el.assign(s_el_var, annotate=True)
+s_et = Function(V, name="s_et")
+s_et.assign(s_et_var, annotate=True, force=True)
+s_el = Function(V, name="s_el")
+s_el.assign(s_el_var, annotate=True, force=True)
 
 class MyHeart(CardiacModel):
     def __init__(self, cell_model):
@@ -147,16 +147,24 @@ if __name__ == "__main__":
     #file = File("v40.xml.gz")
     #file << v_store
 
+    adj_html("forward.html", "forward")
+    adj_html("adjoint.html", "adjoint")
+
+    info_green("Computing gradient wrt s_el_var")
     J = Functional(inner(v - v_obs, v - v_obs)*dx*dt[FINISH_TIME])
     dJds_el = compute_gradient(J, InitialConditionParameter(s_el_var), forget=False)
     plot(dJds_el, title="Sensitivity wrt s_el")
 
+    info_green("Computing gradient wrt s_et_var")
     dJds_et = compute_gradient(J, InitialConditionParameter(s_et_var), forget=False)
     plot(dJds_et, title="Sensitivity srt s_et")
 
+    info_green("Computing gradient wrt s_il_var")
     dJds_il = compute_gradient(J, InitialConditionParameter(s_il_var), forget=False)
 
     plot(dJds_il, title="Sensitivity srt s_il")
+
+    info_green("Computing gradient wrt s_it_var")
     dJds_it = compute_gradient(J, InitialConditionParameter(s_it_var), forget=False)
     plot(dJds_it, title="Sensitivity srt s_it")
     interactive()
