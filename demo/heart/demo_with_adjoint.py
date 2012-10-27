@@ -25,6 +25,7 @@ application_parameters.add("use_avg_u", False)
 application_parameters.parse()
 info(application_parameters, True)
 
+
 # Update backend from application parameters
 parameters["linear_algebra_backend"] = application_parameters["backend"]
 
@@ -161,14 +162,15 @@ end()
 adj_html("%s/forward.html" % directory, "forward")
 adj_html("%s/adjoint.html" % directory, "adjoint")
 
-# Define (goal) functional: L^2(domain) difference, at given
-# "interesting" time, between the unhealthy and healthy transmembrane
-# potential (v)
-v_obs = Function(solver.VS.sub(0).collapse(), name="v_obs")
-# FIXME: Read healthy data at given time from file here and put into
-# v_obs!
 
-J = Functional(inner(v - v_obs, v - v_obs)*dx*dt[FINISH_TIME])
+## Functional A: Average surface transmembrane potential over time
+J = Functional(inner(v, v)*ds*dt)
+
+## Functional B: Average L^2(O) difference, at given "interesting"
+## time, between the unhealthy and healthy transmembrane potential (v)
+# v_obs = Function(solver.VS.sub(0).collapse(), name="v_obs")
+# File("data/healthy_x.xml.gz") << v_obs)
+# J = Functional(inner(v - v_obs, v - v_obs)*dx*dt[FINISH_TIME])
 
 # Define variables that we want to differentiate with respect to (all
 # conductivities)
