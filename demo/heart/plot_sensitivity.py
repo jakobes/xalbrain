@@ -11,17 +11,20 @@ mesh.coordinates()[:] /= 4.0    # Scale mesh as indicated by Johan
 
 E = FunctionSpace(mesh, "CG", 1)
 
-c = Function(E)
-File("data/healthy_g_il_field.xml.gz") >> c
-plot(c, interactive=True, rescale=True)
-File("data/healthy_g_it_field.xml.gz") >> c
-plot(c, interactive=True, rescale=True)
-File("data/healthy_g_el_field.xml.gz") >> c
-plot(c, interactive=True, rescale=True)
-File("data/healthy_g_et_field.xml.gz") >> c
-plot(c, interactive=True, rescale=True)
-
+if False:
+    c = Function(E)
+    File("data/healthy_g_il_field.xml.gz") >> c
+    plot(c, interactive=True, rescale=True)
+    File("data/healthy_g_it_field.xml.gz") >> c
+    plot(c, interactive=True, rescale=True)
+    File("data/healthy_g_el_field.xml.gz") >> c
+    plot(c, interactive=True, rescale=True)
+    File("data/healthy_g_et_field.xml.gz") >> c
+    plot(c, interactive=True, rescale=True)
 
 directory = "default-adjoint-results"
-e = Function(E, "%s/dJdg_el.xml.gz" % directory)
-plot(e, interactive=True)
+e = Function(E, "%s/g_el_field_sensitivity.xml.gz" % directory)
+plot(e, title="field")
+
+e = Function(E, "%s/g_el_var_sensitivity.xml.gz" % directory)
+plot(e, title= "var", interactive=True)
