@@ -2,7 +2,7 @@
 
 # Copyright (C) 2012 Marie E. Rognes (meg@simula.no)
 # Use and modify at will
-# Last changed: 2012-10-25
+# Last changed: 2012-10-27
 
 __all__ = ["SplittingSolver", "BasicSplittingSolver"]
 
@@ -72,6 +72,8 @@ class BasicSplittingSolver:
         parameters.add("ode_theta", 0.5)
         parameters.add("num_threads", 0)
 
+        parameters.add("use_avg_u_constraint", True)
+
         ode_solver_params = NonlinearVariationalSolver.default_parameters()
         parameters.add(ode_solver_params)
 
@@ -138,7 +140,8 @@ class BasicSplittingSolver:
 
         # Merge (inverse of split) v and s_star: (needed for adjointability)
         begin("Merging step")
-        (v, u, r) = split(vur)
+        v = split(vur)[0]
+        #(v, u, r) = split(vur)
         (v_star, s_star) = split(vs_star)
         v_s_star = join((v, s_star), self.VS, annotate=annotate,
                         solver_type="cg")
@@ -309,16 +312,23 @@ class SplittingSolver(BasicSplittingSolver):
         # Extract conductivities from model
         M_i, M_e = self._model.conductivities()
 
-        # Define variational formulation
-        (v, u, l) = TrialFunctions(self.VUR)
-        (w, q, lamda) = TestFunctions(self.VUR)
-
         # Extract theta parameter
         theta = self.parameters["theta"]
+
+        # Define variational formulation
+        use_R = self.parameters["use_avg_u_constraint"]
+        if not use_R:
+            self.VUR = MixedFunctionSpace([self.V, self.V])
+            (v, u) = TrialFunctions(self.VUR)
+            (w, q) = TestFunctions(self.VUR)
+        else:
+            (v, u, l) = TrialFunctions(self.VUR)
+            (w, q, lamda) = TestFunctions(self.VUR)
 
         # Set-up variational problem
         (v_, s_) = split(vs_)
         Dt_v = (v - v_)
+
         theta_parabolic = (theta*inner(M_i*grad(v), grad(w))*dx
                            + (1.0 - theta)*inner(M_i*grad(v_), grad(w))*dx
                            + inner(M_i*grad(u), grad(w))*dx)
@@ -326,8 +336,10 @@ class SplittingSolver(BasicSplittingSolver):
                           + (1.0 - theta)*inner(M_i*grad(v_), grad(q))*dx
                           + inner((M_i + M_e)*grad(u), grad(q))*dx)
 
-        G = (Dt_v*w*dx + k_n*theta_parabolic + theta_elliptic
-             + (lamda*u + l*q)*dx)
+        G = (Dt_v*w*dx + k_n*theta_parabolic + theta_elliptic)
+
+        if use_R:
+            G += (lamda*u + l*q)*dx
 
         # Add applied current if specified
         if self._model.applied_current:
@@ -388,8 +400,8 @@ class SplittingSolver(BasicSplittingSolver):
         if (isinstance(solver, KrylovSolver) and annotate==False):
             info_blue("Normalizing u")
             avg_u = assemble(split(vur)[1]*dx)
-            foo = TestFunctions(self.VUR)
             bar = project(Constant((0.0, avg_u, 0.0)), self.VUR)
             vur.vector().axpy(-1.0, bar.vector())
 
         return vur
+
