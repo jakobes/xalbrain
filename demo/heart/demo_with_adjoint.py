@@ -16,15 +16,15 @@ set_log_level(PROGRESS)
 
 # Setup application parameters and parse from command-line
 application_parameters = Parameters("Application")
-application_parameters.add("T", 420.0)      # End time  (ms)
+application_parameters.add("T", 200.0)      # End time  (ms)
 application_parameters.add("timestep", 1.0) # Time step (ms)
 application_parameters.add("directory", "default-adjoint-results")
 application_parameters.add("backend", "PETSc")
 application_parameters.add("stimulus_amplitude", 30.0)
 application_parameters.add("use_avg_u", False)
+application_parameters.add("functional", "default")
 application_parameters.parse()
 info(application_parameters, True)
-
 
 # Update backend from application parameters
 parameters["linear_algebra_backend"] = application_parameters["backend"]
@@ -137,11 +137,6 @@ directory = application_parameters["directory"]
 parametersfile = File("%s/parameters.xml" % directory)
 parametersfile << application_parameters
 
-# Setup pvd storage
-v_pvd = File("%s/v.pvd" % directory, "compressed")
-u_pvd = File("%s/u.pvd" % directory, "compressed")
-s_pvd = File("%s/s.pvd" % directory, "compressed")
-
 # Set-up solve
 solutions = solver.solve((0, T), k_n)
 
@@ -151,6 +146,12 @@ start = time.time()
 timestep_counter = 1
 for (timestep, vs, u) in solutions:
     timestep_counter += 1
+
+    # Store xml.gz
+    vsfile = File("%s/vs_%d.xml.gz" % (directory, timestep_counter))
+    vsfile << vs
+    ufile = File("%s/u_%d.xml.gz" % (directory, timestep_counter))
+    ufile << u
 
 (v, s) = split(vs)
 
@@ -162,15 +163,20 @@ end()
 adj_html("%s/forward.html" % directory, "forward")
 adj_html("%s/adjoint.html" % directory, "adjoint")
 
-
-## Functional A: Average surface transmembrane potential over time
-J = Functional(inner(v, v)*ds*dt)
-
 ## Functional B: Average L^2(O) difference, at given "interesting"
 ## time, between the unhealthy and healthy transmembrane potential (v)
-# v_obs = Function(solver.VS.sub(0).collapse(), name="v_obs")
-# File("data/healthy_x.xml.gz") << v_obs)
-# J = Functional(inner(v - v_obs, v - v_obs)*dx*dt[FINISH_TIME])
+if application_parameters["functional"] == "ill-versus-healthy":
+    info_green("Using ill-versus-healthy functional")
+    # Extract synthetic observed data:
+    vs_obs = Function(solver.VS, name="vs_obs")
+    File("data/vs_healthy_T200.xml.gz") >> vs_obs
+    v_obs = split(vs_obs)[0]
+    J = Functional(inner(v - v_obs, v - v_obs)*dx*dt[FINISH_TIME])
+
+## Default functional: Average surface transmembrane potential over time
+else:
+    info_green("Using default (average surface) functional")
+    J = Functional(inner(v, v)*ds*dt)
 
 # Define variables that we want to differentiate with respect to (all
 # conductivities)
@@ -178,7 +184,7 @@ variables = [g_el_field, g_et_field, g_il_field, g_it_field]
 icvariables = [InitialConditionParameter(v) for v in variables]
 
 # Compute the gradient
-info_green("Computing gradient")
+info_blue("Computing gradient")
 start = time.time()
 dJdg_s = compute_gradient(J, icvariables, forget=False)
 stop = time.time()
