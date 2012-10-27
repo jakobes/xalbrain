@@ -4,7 +4,7 @@ ventricles.
 """
 
 # Marie E. Rognes <meg@simula.no>
-# Last changed: 2012-10-26
+# Last changed: 2012-10-27
 
 import math
 from dolfin import *
@@ -19,6 +19,7 @@ application_parameters.add("timestep", 1.0) # Time step (ms)
 application_parameters.add("directory", "default-results")
 application_parameters.add("backend", "PETSc")
 application_parameters.add("stimulus_amplitude", 30.0)
+application_parameters.add("healthy", False)
 application_parameters.parse()
 info(application_parameters, True)
 
@@ -56,10 +57,18 @@ File("data/cross_sheet.xml.gz") >> cross_sheet
 
 # Extract conductivity data
 V = FunctionSpace(mesh, "CG", 1)
-g_el_field = Function(V, "data/g_el_field.xml.gz")
-g_et_field = Function(V, "data/g_et_field.xml.gz")
-g_il_field = Function(V, "data/g_il_field.xml.gz")
-g_it_field = Function(V, "data/g_it_field.xml.gz")
+if (application_parameters["healthy"] == True):
+    info_blue("Using healthy conductivities")
+    g_el_field = Function(V, "data/healthy_g_el_field.xml.gz")
+    g_et_field = Function(V, "data/healthy_g_et_field.xml.gz")
+    g_il_field = Function(V, "data/healthy_g_il_field.xml.gz")
+    g_it_field = Function(V, "data/healthy_g_it_field.xml.gz")
+else:
+    info_blue("Using unhealthy conductivities")
+    g_el_field = Function(V, "data/g_el_field.xml.gz")
+    g_et_field = Function(V, "data/g_et_field.xml.gz")
+    g_il_field = Function(V, "data/g_il_field.xml.gz")
+    g_it_field = Function(V, "data/g_it_field.xml.gz")
 
 # Construct conductivity tensors from directions and conductivity
 # values relative to that coordinate system
@@ -133,9 +142,9 @@ parametersfile = File("%s/parameters.xml" % directory)
 parametersfile << application_parameters
 
 # Setup pvd storage
-v_pvd = File("%s/v.pvd" % directory)
-u_pvd = File("%s/u.pvd" % directory)
-s_pvd = File("%s/s.pvd" % directory)
+v_pvd = File("%s/v.pvd" % directory, "compressed")
+u_pvd = File("%s/u.pvd" % directory, "compressed")
+s_pvd = File("%s/s.pvd" % directory, "compressed")
 
 # Set-up solve
 solutions = solver.solve((0, T), k_n)
