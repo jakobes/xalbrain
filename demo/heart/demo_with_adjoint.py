@@ -16,11 +16,12 @@ set_log_level(PROGRESS)
 
 # Setup application parameters and parse from command-line
 application_parameters = Parameters("Application")
-application_parameters.add("T", 100.0)      # End time  (ms)
+application_parameters.add("T", 420.0)      # End time  (ms)
 application_parameters.add("timestep", 1.0) # Time step (ms)
 application_parameters.add("directory", "default-adjoint-results")
 application_parameters.add("backend", "PETSc")
 application_parameters.add("stimulus_amplitude", 30.0)
+application_parameters.add("use_avg_u", False)
 application_parameters.parse()
 info(application_parameters, True)
 
@@ -120,6 +121,7 @@ heart.stimulus = pulse
 begin("Setting-up solver")
 Solver = SplittingSolver
 ps = Solver.default_parameters()
+ps["use_avg_u_constraint"] = application_parameters["use_avg_u"] # NB!
 ps["default_timestep"] = k_n
 ps["enable_adjoint"] = True
 ps["linear_variational_solver"]["linear_solver"] = "direct"
@@ -145,9 +147,9 @@ parametersfile = File("%s/parameters.xml" % directory)
 parametersfile << application_parameters
 
 # Setup pvd storage
-v_pvd = File("%s/v.pvd" % directory)
-u_pvd = File("%s/u.pvd" % directory)
-s_pvd = File("%s/s.pvd" % directory)
+v_pvd = File("%s/v.pvd" % directory, "compressed")
+u_pvd = File("%s/u.pvd" % directory, "compressed")
+s_pvd = File("%s/s.pvd" % directory, "compressed")
 
 # Set-up solve
 solutions = solver.solve((0, T), k_n)
@@ -165,48 +167,41 @@ stop = time.time()
 forward_time = (stop - start)
 end()
 
-adj_html("forward.html", "forward")
-adj_html("adjoint.html", "adjoint")
+# Store
+adj_html("%s/forward.html" % directory, "forward")
+adj_html("%s/adjoint.html" % directory, "adjoint")
 
-#set_log_level(DEBUG)
-
-# # Define some functional
-
-v_obs = Function(solver.VS.sub(0).collapse())
-# Read from file here!
+# Define (goal) functional: L^2(domain) difference, at given
+# "interesting" time, between the unhealthy and healthy transmembrane
+# potential (v)
+v_obs = Function(solver.VS.sub(0).collapse(), name="v_obs")
+# FIXME: Read healthy data at given time from file here and put into
+# v_obs!
 
 J = Functional(inner(v - v_obs, v - v_obs)*dx*dt[FINISH_TIME])
 
-begin("1. Computing dJdg_el")
-dJdg_el = compute_gradient(J, InitialConditionParameter(g_el_var), forget=False)
-file = File("%s/dJdg_el.xml.gz" % directory)
-file << dJdg_el
-end()
+# Define variables that we want to differentiate with respect to (all
+# conductivities)
+variables = [g_el_var, g_et_var, g_il_var, g_it_var]
+icvariables = [InitialConditionParameter(v) for v in variables]
 
-exit()
+# Compute the gradient
+info_green("Computing gradient")
+start = time.time()
+dJdg_s = compute_gradient(J, icvariables, forget=False)
+stop = time.time()
+gradient_time = (stop - start)
 
-begin("2. Computing dJdg_et")
-dJdg_et = compute_gradient(J, InitialConditionParameter(g_et_field),
-                           forget=False)
-file = File("%s/dJdg_et.xml.gz" % directory)
-file << dJdg_et
-end()
+# Store the results
+for (i, dJdg) in enumerate(dJdg_s):
+    name = variables[i].adj_name
+    #plot(dJdg, title="%s" % name)
+    file = File("%s/%s_sensitivity.xml.gz" % (directory, name))
+    file << dJdg
 
-begin("3. Computing dJdg_il")
-dJdg_il = compute_gradient(J, InitialConditionParameter(g_il_field),
-                           forget=False)
-file = File("%s/dJdg_il.xml.gz" % directory)
-file << dJdg_il
-end()
-
-begin("4. Computing dJdg_it")
-dJdg_il = compute_gradient(J, InitialConditionParameter(g_it_field),
-                           forget=False)
-file = File("%s/dJdg_it.xml.gz" % directory)
-file << dJdg_it
-end()
-
+# Output some timings
 print "Time for forward problem: %g" % (forward_time)
 print "Time for computing gradient: %g" % (gradient_time)
-
 list_timings()
+
+#interactive()
