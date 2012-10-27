@@ -1,4 +1,7 @@
+import sys
 from dolfin import *
+
+directory = sys.argv[1]
 
 parameters["reorder_dofs_serial"] = False # Crucial!
 parameters["form_compiler"]["cpp_optimize"] = True
@@ -22,9 +25,10 @@ if False:
     File("data/healthy_g_et_field.xml.gz") >> c
     plot(c, interactive=True, rescale=True)
 
-directory = "default-adjoint-results"
-e = Function(E, "%s/g_el_field_sensitivity.xml.gz" % directory)
-plot(e, title="field")
+fields = ["g_il_field", "g_el_field", "g_it_field", "g_et_field"]
+for field in fields:
+    e = Function(E, "%s/%s_sensitivity.xml.gz" % (directory, field))
+    plot(e, title=field)
 
-e = Function(E, "%s/g_el_var_sensitivity.xml.gz" % directory)
-plot(e, title= "var", interactive=True)
+
+interactive()
