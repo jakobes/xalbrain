@@ -1,0 +1,8 @@
+Compile tex with
+
+  pdflatex report.tex
+
+All figures are in the png/ folder.
+
+If this material is used, please give credit to Molly, Johan, Marie
+and Patrick.
