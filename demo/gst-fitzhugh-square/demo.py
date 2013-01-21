@@ -37,7 +37,8 @@ class InitialCondition(Expression):
 
 chi = 2000.0   # cm^{-1}
 
-mesh = UnitSquareMesh(100, 100)
+n = 10
+mesh = UnitSquareMesh(10, 10)
 CG1 = FunctionSpace(mesh, "CG", 1)
 
 # Woohoo:
@@ -89,7 +90,7 @@ ic = InitialCondition()
 ic = Function(project(ic, solver.VS, annotate=False))
 
 # Define end-time and (constant) timestep
-T = 1.0
+T = 0.5
 k_n = 0.25
 
 # Assign initial condition
@@ -111,6 +112,14 @@ end()
 
 # Define some functional
 J = Functional(inner(v, v)*ds*dt)#[FINISH_TIME])
-dJdm = compute_gradient(J, InitialConditionParameter(m))
 
-plot(dJdm, interactive=True, title="Sensitivity map")
+# Compute the gst
+gst = compute_gst("vs_", "vs", 1)
+
+for i in range(gst.ncv):
+  (sigma, u, v, error) = gst.get_gst(i, return_vectors=True, return_residual=True)
+  print "sigma = ", sigma
+  plot(u, title="u")
+  plot(v, title="v")
+
+interactive()

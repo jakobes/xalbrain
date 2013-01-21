@@ -2,7 +2,7 @@
 """
 
 # Marie E. Rognes <meg@simula.no>
-# Last changed: 2012-10-26
+# Last changed: 2013-01-21
 
 import sys
 import math
@@ -12,7 +12,7 @@ import time
 
 assert(len(sys.argv) > 1), "Please give N (int), mesh size as command-line arg"
 
-set_log_level(DEBUG)
+#set_log_level(DEBUG)
 
 # Adjust some general parameters
 parameters["form_compiler"]["cpp_optimize"] = True
