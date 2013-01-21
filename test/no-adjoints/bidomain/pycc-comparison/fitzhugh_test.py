@@ -9,7 +9,7 @@ computed.
 """
 
 # Marie E. Rognes <meg@simula.no>
-# Last changed: 2012-10-26
+# Last changed: 2013-01-21
 
 import math
 
@@ -35,7 +35,7 @@ class MyHeart(CardiacModel):
     def __init__(self, cell_model):
         CardiacModel.__init__(self, cell_model)
     def domain(self):
-        return UnitSquare(100, 100)
+        return UnitSquareMeshMesh(100, 100)
     def conductivities(self):
         chi = 2000.0   # cm^{-1}
         s_il = 3.0/chi # mS

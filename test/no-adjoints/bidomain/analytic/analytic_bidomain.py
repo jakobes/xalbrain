@@ -17,7 +17,7 @@ class MyHeart(CardiacModel):
         CardiacModel.__init__(self, cell_model)
     def domain(self):
         N = 10*(2**level)
-        return UnitSquare(N, N)
+        return UnitSquareMesh(N, N)
     def conductivities(self):
         M_i = 1.0
         M_e = 1.0

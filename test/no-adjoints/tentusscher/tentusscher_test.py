@@ -28,7 +28,7 @@
 #     def __init__(self, cell_model):
 #         CardiacModel.__init__(self, cell_model)
 #     def domain(self):
-#         return UnitSquare(100, 100)
+#         return UnitSquareMesh(100, 100)
 #     def conductivities(self):
 #         chi = 2000.0   # cm^{-1}
 #         s_il = 3.0/chi # mS
