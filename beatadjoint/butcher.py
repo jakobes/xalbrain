@@ -22,23 +22,28 @@ class ButcherTable(object):
         assert self.s == b.shape[0]
         assert self.s == c.shape[0]
         for i in range(self.s):
-          for j in range(i):
-            if a[j, i] != 0:
-              raise AssertionError, "Current states cannot depend on future states!"
+            for j in range(i):
+                if a[j, i] != 0:
+                    raise AssertionError("Current states cannot depend on future states!")
 
     def human_form(self):
         for i in range(self.s):
-            kterm = " + ".join(["h*%s*k_%s" % (self.a[i,j], j) for j in range(self.s) if self.a[i,j] != 0])
+            kterm = " + ".join("h*%s*k_%s" % (self.a[i,j], j) \
+                               for j in range(self.s) if self.a[i,j] != 0)
             if len(kterm) == 0:
                 print "k_%(i)s = f(t_n + %(c)s*h, y_n)" % {"i": i, "c": self.c[i]}
             else:
-                print "k_%(i)s = f(t_n + %(c)s*h, y_n + %(kterm)s)" % {"i": i, "c": self.c[i], "kterm": kterm}
+                print "k_%(i)s = f(t_n + %(c)s*h, y_n + %(kterm)s)" % \
+                      {"i": i, "c": self.c[i], "kterm": kterm}
 
-        print "y_{n+1} = y_n + " + " + ".join(["%s*k_%s" % (self.b[i], i) for i in range(self.s) if self.b[i] > 0])
+        parentheses = "(%s)" if numpy.sum(self.b>0) > 1 else "%s"
+        print "y_{n+1} = y_n + h*" + parentheses % (" + ".join(\
+            "%s*k_%s" % (self.b[i], i) for i in range(self.s) if self.b[i] > 0))
 
     def to_ufl(self, f, solution, time, dt):
         """
-        Return a list of ufl equations corresponding to the steps associated with this forward temporal discretisation.
+        Return a list of ufl equations corresponding to the steps
+        associated with this forward temporal discretisation.
 
         f - UFL form of the right hand side for the ODE dy/dt = f(t, y)
         solution - the Function appearing in f that represents the solution
@@ -72,29 +77,47 @@ class ButcherTable(object):
             else:
                 evaltime = None
 
-            evalargs = y_ + dt * sum([self.a[i,j] * k[j] for j in range(i) if self.a[i, j] != 0])
+            evalargs = y_ + dt * sum(self.a[i,j] * k[j] for j in range(i))
             equation = inner(k[i], v)*dx - inner(g(evalargs, evaltime), v)*dx
             equations.append(equation)
 
         y_next = Function(Y)
-        equation = inner(y_, v)*dx - inner(sum([self.b[i] * k[i] for i in range(self.s) if self.b[i] != 0]), v)*dx
+        equation = inner(y_, v)*dx - inner(sum(self.b[i] * k[i] \
+                                               for i in range(self.s)), v)*dx
         equations.append(equation)
 
         return (equations, k, y_next)
 
 class ForwardEuler(ButcherTable):
     def __init__(self):
-        ButcherTable.__init__(self, numpy.array([[0]]), numpy.array([1]), numpy.array([0]))
+        ButcherTable.__init__(self, numpy.array([[0]]), numpy.array([1]),
+                              numpy.array([0]))
 
 class BackwardEuler(ButcherTable):
     def __init__(self):
-        ButcherTable.__init__(self, numpy.array([[1]]), numpy.array([1]), numpy.array([1]))
+        ButcherTable.__init__(self, numpy.array([[1]]), numpy.array([1]),
+                              numpy.array([1]))
 
 class MidpointMethod(ButcherTable):
     def __init__(self):
-        ButcherTable.__init__(self, numpy.array([[0, 0], [0.5, 0]]), numpy.array([0, 1]), numpy.array([0, 0.5]))
+        ButcherTable.__init__(self, numpy.array([[0, 0], [0.5, 0]]),
+                              numpy.array([0, 1]), numpy.array([0, 0.5]))
+
+class RK4(ButcherTable):
+    def __init__(self):
+        ButcherTable.__init__(self, numpy.array([[0, 0, 0, 0],
+                                                 [0.5, 0, 0, 0],
+                                                 [0, 0.5, 0, 0],
+                                                 [0, 0, 1, 0]]),
+                              numpy.array([1./6, 1./3, 1./3, 1./6]),
+                              numpy.array([0, 0.5, 0.5, 1]))
 
 if __name__ == "__main__":
+
+    MidpointMethod().human_form()
+    print
+    RK4().human_form()
+    print
     backward = BackwardEuler()
     backward.human_form()
 
