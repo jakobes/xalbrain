@@ -82,7 +82,7 @@ class ButcherTable(object):
             equations.append(equation)
 
         y_next = Function(Y)
-        equation = inner(y_, v)*dx - inner(sum(self.b[i] * k[i] \
+        equation = inner(y_, v)*dx - dt*inner(sum(self.b[i] * k[i] \
                                                for i in range(self.s)), v)*dx
         equations.append(equation)
 
@@ -113,19 +113,26 @@ class RK4(ButcherTable):
                               numpy.array([0, 0.5, 0.5, 1]))
 
 if __name__ == "__main__":
-
-    MidpointMethod().human_form()
-    print
-    RK4().human_form()
-    print
-    backward = BackwardEuler()
-    backward.human_form()
-
     mesh = UnitIntervalMesh(10)
     V = FunctionSpace(mesh, "R", 0)
     y = Function(V)
     form = y
 
+    print "-" * 80
+    print "Midpoint rule: "
+    print "-" * 80
+    MidpointMethod().human_form()
+
+    print "-" * 80
+    print "RK4: "
+    print "-" * 80
+    RK4().human_form()
+
+    print "-" * 80
+    print "Backward Euler: "
+    print "-" * 80
+    backward = BackwardEuler()
+    backward.human_form()
+
     to_ufl = backward.to_ufl(form, y, time=None, dt=0.1)
-    print len(to_ufl[0])
     print to_ufl[0]
