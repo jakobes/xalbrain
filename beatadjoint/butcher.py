@@ -79,7 +79,7 @@ class ButcherTable(object):
             else:
                 evaltime = None
 
-            evalargs = y_ + Constant(dt) * sum(self.a[i,j] * k[j] for j in range(i))
+            evalargs = y_ + Constant(dt) * sum(self.a[i,j] * k[j] for j in range(i+1))
             equation = inner(k[i], v)*dx - inner(g(evalargs, evaltime), v)*dx
             equations.append(equation)
 
