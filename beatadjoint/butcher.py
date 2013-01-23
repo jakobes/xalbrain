@@ -8,13 +8,14 @@ from dolfin import *
 from dolfin_adjoint import *
 
 class ButcherTable(object):
-    def __init__(self, a, b, c):
+    def __init__(self, a, b, c, name="UnknownScheme"):
         """
         a - numpy array for a matrix of Butcher table.
         b - numpy array for linear combination coefficients.
         c - numpy array for time evaluation offsets.
         """
 
+        self.name = name
         self.a = a
         self.b = b
         self.c = c
@@ -78,17 +79,20 @@ class ButcherTable(object):
             else:
                 evaltime = None
 
-            evalargs = y_ + dt * sum(self.a[i,j] * k[j] for j in range(i))
+            evalargs = y_ + Constant(dt) * sum(self.a[i,j] * k[j] for j in range(i))
             equation = inner(k[i], v)*dx - inner(g(evalargs, evaltime), v)*dx
             equations.append(equation)
 
         y_next = Function(Y, name="y_next")
-        equation = inner(y_next, v)*dx - inner(y_, v)*dx - dt*inner(sum(self.b[i] * k[i] \
+        equation = inner(y_next, v)*dx - inner(y_, v)*dx - Constant(dt)*inner(sum(self.b[i] * k[i] \
                                                                     for i in range(self.s)), v)*dx
         equations.append(equation)
         k.append(y_next)
 
         return (equations, k)
+
+    def __str__(self):
+        return self.name
 
 # For those who prefer pretentious foreign words over stout Anglo-Saxon ones
 ButcherTableau = ButcherTable
@@ -96,17 +100,17 @@ ButcherTableau = ButcherTable
 class ForwardEuler(ButcherTable):
     def __init__(self):
         ButcherTable.__init__(self, numpy.array([[0]]), numpy.array([1]),
-                              numpy.array([0]))
+                              numpy.array([0]), name="ForwardEuler")
 
 class BackwardEuler(ButcherTable):
     def __init__(self):
         ButcherTable.__init__(self, numpy.array([[1]]), numpy.array([1]),
-                              numpy.array([1]))
+                              numpy.array([1]), name="BackwardEuler")
 
 class MidpointMethod(ButcherTable):
     def __init__(self):
         ButcherTable.__init__(self, numpy.array([[0, 0], [0.5, 0]]),
-                              numpy.array([0, 1]), numpy.array([0, 0.5]))
+                              numpy.array([0, 1]), numpy.array([0, 0.5]), name="MidpointMethod")
 
 class RK4(ButcherTable):
     def __init__(self):
@@ -115,17 +119,18 @@ class RK4(ButcherTable):
                                                  [0, 0.5, 0, 0],
                                                  [0, 0, 1, 0]]),
                               numpy.array([1./6, 1./3, 1./3, 1./6]),
-                              numpy.array([0, 0.5, 0.5, 1]))
+                              numpy.array([0, 0.5, 0.5, 1]),
+                              name="RungeKutta4")
 
 class NaiveODESolver(object):
     def __init__(self, equations, variables):
         self.equations = equations
         self.variables = variables
 
-    def solve(self):
+    def solve(self, verbose=True):
         for i in range(len(self.equations)):
             solve(self.equations[i] == 0, self.variables[i], J=derivative(self.equations[i], self.variables[i]))
-            print "%s: %s" % (self.variables[i], self.variables[i].vector().array())
+            if verbose: print "%s: %s" % (self.variables[i], self.variables[i].vector().array())
 
 if __name__ == "__main__":
     set_log_level(ERROR)
@@ -135,32 +140,24 @@ if __name__ == "__main__":
     y = Function(V, name="y")
     form = y
 
-    print "-" * 80
-    print "Midpoint rule: "
-    print "-" * 80
-    MidpointMethod().human_form()
+    for scheme in [ForwardEuler(), BackwardEuler(), MidpointMethod(), RK4()]:
+      print "-" * 80
+      print scheme
+      print "-" * 80
+      y_true = Expression("exp(t)", t=1.0)
+      y_errors = []
 
-    print "-" * 80
-    print "RK4: "
-    print "-" * 80
-    RK4().human_form()
+      for dt in [0.05, 0.025, 0.0125]:
+        y.interpolate(Constant(1.0))
+        to_ufl = scheme.to_ufl(form, y, time=Constant(0.0), dt=dt)
+        solver = NaiveODESolver(*to_ufl)
+        y_next = to_ufl[1][-1]
 
-    print "-" * 80
-    print "Backward Euler: "
-    print "-" * 80
-    BackwardEuler().human_form()
+        for i in range(int(1.0/dt)):
+          solver.solve(verbose=False)
+          y.assign(y_next)
 
-    print "-" * 80
-    print "Forward Euler: "
-    print "-" * 80
-    forward = ForwardEuler()
-    forward.human_form()
+        y_errors.append(y_true(0.0) - y(0.0))
 
-    y.interpolate(Constant(1.0))
-    to_ufl = forward.to_ufl(form, y, time=Constant(0.0), dt=0.1)
-    solver = NaiveODESolver(*to_ufl)
-    y_next = to_ufl[1][-1]
-
-    for i in range(10):
-      solver.solve()
-      y.assign(y_next)
+      print "y_errors: ", y_errors
+      print "convergence: ", convergence_order(y_errors)
