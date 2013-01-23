@@ -138,7 +138,7 @@ if __name__ == "__main__":
     mesh = UnitIntervalMesh(10)
     V = FunctionSpace(mesh, "R", 0)
     y = Function(V, name="y")
-    form = y
+    form = y # solving the equation dy/dt = y
 
     for scheme in [ForwardEuler(), BackwardEuler(), MidpointMethod(), RK4()]:
       print "-" * 80
@@ -159,5 +159,5 @@ if __name__ == "__main__":
 
         y_errors.append(y_true(0.0) - y(0.0))
 
-      print "y_errors: ", y_errors
+      print "errors: ", y_errors
       print "convergence: ", convergence_order(y_errors)
