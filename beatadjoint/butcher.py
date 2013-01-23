@@ -5,6 +5,7 @@ for flexibly discretising ODEs in Dolfin.
 
 import numpy
 from dolfin import *
+from dolfin_adjoint import *
 
 class ButcherTable(object):
     def __init__(self, a, b, c):
@@ -69,7 +70,7 @@ class ButcherTable(object):
               return replace(f, {y_: y})
 
         equations = []
-        k = [Function(Y) for i in range(self.s)]
+        k = [Function(Y, name="k_%s" % i) for i in range(self.s)]
         for i in range(self.s):
 
             if t is not None:
@@ -81,12 +82,16 @@ class ButcherTable(object):
             equation = inner(k[i], v)*dx - inner(g(evalargs, evaltime), v)*dx
             equations.append(equation)
 
-        y_next = Function(Y)
-        equation = inner(y_, v)*dx - dt*inner(sum(self.b[i] * k[i] \
-                                               for i in range(self.s)), v)*dx
+        y_next = Function(Y, name="y_next")
+        equation = inner(y_next, v)*dx - inner(y_, v)*dx - dt*inner(sum(self.b[i] * k[i] \
+                                                                    for i in range(self.s)), v)*dx
         equations.append(equation)
+        k.append(y_next)
 
-        return (equations, k, y_next)
+        return (equations, k)
+
+# For those who prefer pretentious foreign words over stout Anglo-Saxon ones
+ButcherTableau = ButcherTable
 
 class ForwardEuler(ButcherTable):
     def __init__(self):
@@ -112,10 +117,22 @@ class RK4(ButcherTable):
                               numpy.array([1./6, 1./3, 1./3, 1./6]),
                               numpy.array([0, 0.5, 0.5, 1]))
 
+class NaiveODESolver(object):
+    def __init__(self, equations, variables):
+        self.equations = equations
+        self.variables = variables
+
+    def solve(self):
+        for i in range(len(self.equations)):
+            solve(self.equations[i] == 0, self.variables[i], J=derivative(self.equations[i], self.variables[i]))
+            print "%s: %s" % (self.variables[i], self.variables[i].vector().array())
+
 if __name__ == "__main__":
+    set_log_level(ERROR)
+
     mesh = UnitIntervalMesh(10)
     V = FunctionSpace(mesh, "R", 0)
-    y = Function(V)
+    y = Function(V, name="y")
     form = y
 
     print "-" * 80
@@ -131,8 +148,19 @@ if __name__ == "__main__":
     print "-" * 80
     print "Backward Euler: "
     print "-" * 80
-    backward = BackwardEuler()
-    backward.human_form()
+    BackwardEuler().human_form()
 
-    to_ufl = backward.to_ufl(form, y, time=None, dt=0.1)
-    print to_ufl[0]
+    print "-" * 80
+    print "Forward Euler: "
+    print "-" * 80
+    forward = ForwardEuler()
+    forward.human_form()
+
+    y.interpolate(Constant(1.0))
+    to_ufl = forward.to_ufl(form, y, time=Constant(0.0), dt=0.1)
+    solver = NaiveODESolver(*to_ufl)
+    y_next = to_ufl[1][-1]
+
+    for i in range(10):
+      solver.solve()
+      y.assign(y_next)
