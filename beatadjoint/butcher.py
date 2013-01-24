@@ -66,9 +66,9 @@ class ButcherTable(object):
 
         def g(y, t):
             if t is not None:
-              return replace(f, {y_: y, t_: t})
+                return replace(f, {y_: y, t_: t})
             else:
-              return replace(f, {y_: y})
+                return replace(f, {y_: y})
 
         equations = []
         k = [Function(Y, name="k_%s" % i) for i in range(self.s)]
@@ -79,13 +79,13 @@ class ButcherTable(object):
             else:
                 evaltime = None
 
-            evalargs = y_ + Constant(dt) * sum(self.a[i,j] * k[j] for j in range(i+1))
+            evalargs = y_ + Constant(dt) * sum([float(self.a[i,j]) * k[j] for j in range(i+1)], zero(*y_.shape()))
             equation = inner(k[i], v)*dx - inner(g(evalargs, evaltime), v)*dx
             equations.append(equation)
 
         y_next = Function(Y, name="y_next")
-        equation = inner(y_next, v)*dx - inner(y_, v)*dx - Constant(dt)*inner(sum(self.b[i] * k[i] \
-                                                                    for i in range(self.s)), v)*dx
+        equation = inner(y_next, v)*dx - inner(y_, v)*dx - Constant(dt)*inner(sum([float(self.b[i]) * k[i] \
+                                                                              for i in range(self.s)], zero(*y_.shape())), v)*dx
         equations.append(equation)
         k.append(y_next)
 
@@ -135,29 +135,37 @@ class NaiveODESolver(object):
 if __name__ == "__main__":
     set_log_level(ERROR)
 
-    mesh = UnitIntervalMesh(10)
-    V = FunctionSpace(mesh, "R", 0)
+    mesh = UnitIntervalMesh(2)
+    V = VectorFunctionSpace(mesh, "R", 0, dim=2)
     y = Function(V, name="y")
-    form = y # solving the equation dy/dt = y
+
+    # solve the ODE
+    # \dot{u} = -v
+    # \dot{v} =  u
+    form = as_vector((-y[1], y[0]))
 
     for scheme in [ForwardEuler(), BackwardEuler(), MidpointMethod(), RK4()]:
-      print "-" * 80
-      print scheme
-      print "-" * 80
-      y_true = Expression("exp(t)", t=1.0)
-      y_errors = []
+        print "-" * 80
+        print scheme
+        print "-" * 80
+        y_true = Expression(("cos(t)", "sin(t)"), t=1.0)
+        u_errors = []
+        v_errors = []
 
-      for dt in [0.05, 0.025, 0.0125]:
-        y.interpolate(Constant(1.0))
-        to_ufl = scheme.to_ufl(form, y, time=Constant(0.0), dt=dt)
-        solver = NaiveODESolver(*to_ufl)
-        y_next = to_ufl[1][-1]
+        for dt in [0.05, 0.025, 0.0125]:
+          y.interpolate(Expression(("1", "0")))
+          to_ufl = scheme.to_ufl(form, y, time=Constant(0.0), dt=dt)
+          solver = NaiveODESolver(*to_ufl)
+          y_next = to_ufl[1][-1]
 
-        for i in range(int(1.0/dt)):
-          solver.solve(verbose=False)
-          y.assign(y_next)
+          for i in range(int(1.0/dt)):
+            solver.solve(verbose=False)
+            y.assign(y_next)
 
-        y_errors.append(y_true(0.0) - y(0.0))
+          u_errors.append((y_true(0.0) - y(0.0))[0])
+          v_errors.append((y_true(0.0) - y(0.0))[1])
 
-      print "errors: ", y_errors
-      print "convergence: ", convergence_order(y_errors)
+        print "u_errors: ", u_errors
+        print "u_convergence: ", convergence_order(u_errors)
+        print "v_errors: ", v_errors
+        print "v_convergence: ", convergence_order(v_errors)
