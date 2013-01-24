@@ -8,7 +8,7 @@ from dolfin import *
 from dolfin_adjoint import *
 
 class ButcherTable(object):
-    def __init__(self, a, b, c, name="UnknownScheme"):
+    def __init__(self, a, b, c, name="UnknownScheme", order="UnknownOrder"):
         """
         a - numpy array for a matrix of Butcher table.
         b - numpy array for linear combination coefficients.
@@ -16,9 +16,12 @@ class ButcherTable(object):
         """
 
         self.name = name
+        self.order = order
+
         self.a = a
         self.b = b
         self.c = c
+
         self.s = a.shape[0]
         assert self.s == a.shape[1]
         assert self.s == b.shape[0]
@@ -100,17 +103,18 @@ ButcherTableau = ButcherTable
 class ForwardEuler(ButcherTable):
     def __init__(self):
         ButcherTable.__init__(self, numpy.array([[0]]), numpy.array([1]),
-                              numpy.array([0]), name="ForwardEuler")
+                              numpy.array([0]), name="ForwardEuler", order=1)
 
 class BackwardEuler(ButcherTable):
     def __init__(self):
         ButcherTable.__init__(self, numpy.array([[1]]), numpy.array([1]),
-                              numpy.array([1]), name="BackwardEuler")
+                              numpy.array([1]), name="BackwardEuler", order=1)
 
 class MidpointMethod(ButcherTable):
     def __init__(self):
         ButcherTable.__init__(self, numpy.array([[0, 0], [0.5, 0]]),
-                              numpy.array([0, 1]), numpy.array([0, 0.5]), name="MidpointMethod")
+                              numpy.array([0, 1]), numpy.array([0, 0.5]), name="MidpointMethod",
+                              order=2)
 
 class RK4(ButcherTable):
     def __init__(self):
@@ -120,7 +124,8 @@ class RK4(ButcherTable):
                                                  [0, 0, 1, 0]]),
                               numpy.array([1./6, 1./3, 1./3, 1./6]),
                               numpy.array([0, 0.5, 0.5, 1]),
-                              name="RungeKutta4")
+                              name="RungeKutta4",
+                              order=4)
 
 class NaiveODESolver(object):
     def __init__(self, equations, variables):
@@ -136,6 +141,40 @@ if __name__ == "__main__":
     set_log_level(ERROR)
 
     mesh = UnitIntervalMesh(2)
+
+    # Scalar test
+    V = FunctionSpace(mesh, "R", 0)
+    y = Function(V, name="y")
+
+    # solve the ODE
+    # \dot{y} = y
+    form = y
+
+
+    for scheme in [ForwardEuler(), BackwardEuler(), MidpointMethod(), RK4()]:
+        print "-" * 80
+        print str(scheme) + " (scalar)"
+        print "-" * 80
+        y_true = Expression("exp(t)", t=1.0)
+        y_errors = []
+
+        for dt in [0.05, 0.025, 0.0125]:
+          y.interpolate(Constant(1.0))
+          to_ufl = scheme.to_ufl(form, y, time=Constant(0.0), dt=dt)
+          solver = NaiveODESolver(*to_ufl)
+          y_next = to_ufl[1][-1]
+
+          for i in range(int(1.0/dt)):
+            solver.solve(verbose=False)
+            y.assign(y_next)
+
+          y_errors.append(y_true(0.0) - y(0.0))
+
+        print "y_errors: ", y_errors
+        print "y_convergence: ", convergence_order(y_errors)
+        assert min(convergence_order(y_errors)) > float(scheme.order) - 0.1
+
+    # Vector test
     V = VectorFunctionSpace(mesh, "R", 0, dim=2)
     y = Function(V, name="y")
 
@@ -146,7 +185,7 @@ if __name__ == "__main__":
 
     for scheme in [ForwardEuler(), BackwardEuler(), MidpointMethod(), RK4()]:
         print "-" * 80
-        print scheme
+        print str(scheme) + " (vector)"
         print "-" * 80
         y_true = Expression(("cos(t)", "sin(t)"), t=1.0)
         u_errors = []
@@ -169,3 +208,5 @@ if __name__ == "__main__":
         print "u_convergence: ", convergence_order(u_errors)
         print "v_errors: ", v_errors
         print "v_convergence: ", convergence_order(v_errors)
+        assert min(convergence_order(u_errors)) > float(scheme.order) - 0.1
+        assert min(convergence_order(v_errors)) > float(scheme.order) - 0.1
