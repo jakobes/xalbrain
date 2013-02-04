@@ -6,7 +6,8 @@ for flexibly discretising ODEs in Dolfin.
 import numpy
 from dolfin import *
 from dolfin_adjoint import *
-
+import ufl
+        
 class ButcherTable(object):
     def __init__(self, a, b, c, name="UnknownScheme", order="UnknownOrder"):
         """
@@ -31,23 +32,32 @@ class ButcherTable(object):
                 if a[j, i] != 0:
                     raise AssertionError("Current states cannot depend on future states!")
 
-    def human_form(self):
+    def __str__(self):
+        output = [self.name]
         for i in range(self.s):
-            kterm = " + ".join("h*%s*k_%s" % (self.a[i,j], j) \
+            kterm = " + ".join("%sh*k_%s" % ("" if self.a[i,j] == 1.0 else \
+                                             "%s*"%self.a[i,j], j) \
                                for j in range(self.s) if self.a[i,j] != 0)
-            if len(kterm) == 0:
-                print "k_%(i)s = f(t_n + %(c)s*h, y_n)" % {"i": i, "c": self.c[i]}
+            if self.c[i] in [0.0, 1.0]:
+                cih = " + h" if self.c[i] == 1.0 else ""
             else:
-                print "k_%(i)s = f(t_n + %(c)s*h, y_n + %(kterm)s)" % \
-                      {"i": i, "c": self.c[i], "kterm": kterm}
+                cih = " + %s*h"%self.c[i]
+                
+            if len(kterm) == 0:
+                output.append("k_%(i)s = f(t_n%(cih)s, y_n)" % {"i": i, "cih": cih})
+            else:
+                output.append("k_%(i)s = f(t_n%(cih)s, y_n + %(kterm)s)" % \
+                              {"i": i, "cih": cih, "kterm": kterm})
 
         parentheses = "(%s)" if numpy.sum(self.b>0) > 1 else "%s"
-        print "y_{n+1} = y_n + h*" + parentheses % (" + ".join(\
-            "%s*k_%s" % (self.b[i], i) for i in range(self.s) if self.b[i] > 0))
+        output.append("y_{n+1} = y_n + h*" + parentheses % (" + ".join(\
+            "%sk_%s" % ("" if self.b[i] == 1.0 else "%s*"%self.b[i], i) \
+            for i in range(self.s) if self.b[i] > 0)))
+        return "\n".join(output)
 
     def to_ufl(self, f, solution, time, dt):
         """
-        Return a list of ufl equations corresponding to the steps
+        Return a list of ufl rhs_expressions corresponding to the steps
         associated with this forward temporal discretisation.
 
         f - UFL form of the right hand side for the ODE dy/dt = f(t, y)
@@ -73,7 +83,7 @@ class ButcherTable(object):
             else:
                 return replace(f, {y_: y})
 
-        equations = []
+        rhs_expressions = []
         k = [Function(Y, name="k_%s" % i) for i in range(self.s)]
         for i in range(self.s):
 
@@ -82,20 +92,19 @@ class ButcherTable(object):
             else:
                 evaltime = None
 
-            evalargs = y_ + Constant(dt) * sum([float(self.a[i,j]) * k[j] for j in range(i+1)], zero(*y_.shape()))
-            equation = inner(k[i], v)*dx - inner(g(evalargs, evaltime), v)*dx
-            equations.append(equation)
+            evalargs = y_ + Constant(dt) * sum([float(self.a[i,j]) * k[j] \
+                                                for j in range(i+1)], zero(*y_.shape()))
+            equation = inner(g(evalargs, evaltime), v)*dx
+            rhs_expressions.append(equation)
 
         y_next = Function(Y, name="y_next")
-        equation = inner(y_next, v)*dx - inner(y_, v)*dx - Constant(dt)*inner(sum([float(self.b[i]) * k[i] \
-                                                                              for i in range(self.s)], zero(*y_.shape())), v)*dx
-        equations.append(equation)
+        equation = y_ + sum((float(dt*self.b[i]) * k[i] for i in range(self.s)), \
+                            zero(*y_.shape()))
+        
+        rhs_expressions.append(equation)
         k.append(y_next)
 
-        return (equations, k)
-
-    def __str__(self):
-        return self.name
+        return (rhs_expressions, k, v)
 
 # For those who prefer pretentious foreign words over stout Anglo-Saxon ones
 ButcherTableau = ButcherTable
@@ -113,7 +122,8 @@ class BackwardEuler(ButcherTable):
 class MidpointMethod(ButcherTable):
     def __init__(self):
         ButcherTable.__init__(self, numpy.array([[0, 0], [0.5, 0]]),
-                              numpy.array([0, 1]), numpy.array([0, 0.5]), name="MidpointMethod",
+                              numpy.array([0, 1]), numpy.array([0, 0.5]),
+                              name="MidpointMethod",
                               order=2)
 
 class RK4(ButcherTable):
@@ -128,17 +138,51 @@ class RK4(ButcherTable):
                               order=4)
 
 class NaiveODESolver(object):
-    def __init__(self, equations, variables):
-        self.equations = equations
+    def __init__(self, rhs_expressions, variables, v):
+
+        expressions = []
+
+        # Check if rhs are explicit, not dependent on the corresponding
+        # prognostic variable
+        for rhs, variable in zip(rhs_expressions, variables):
+
+            if isinstance(rhs, ufl.Form):
+                rhs_der = ufl.algorithms.expand_derivatives(\
+                    derivative(rhs, variable))
+                
+                # If no integrals in differentiated rhs we have an explicit step
+                if not rhs_der.integrals():
+                    # Explicit step
+                    expressions.append(rhs)
+                else:
+                    form = rhs-inner(variable,v)*dx
+                    expressions.append(form == 0)
+            
+            else:
+                expressions.append(rhs)
+        
+        self.expressions = expressions
         self.variables = variables
 
     def solve(self, verbose=True):
-        for i in range(len(self.equations)):
-            solve(self.equations[i] == 0, self.variables[i], J=derivative(self.equations[i], self.variables[i]))
-            if verbose: print "%s: %s" % (self.variables[i], self.variables[i].vector().array())
+        for expr, var in zip(self.expressions, self.variables):
+
+            if isinstance(expr, ufl.classes.Equation):
+                # If implicit make a solve
+                solve(expr, var)
+            elif isinstance(expr, ufl.Form):
+                # If explicit just assemble the expression
+                assemble(expr, tensor=var.vector())
+            else:
+                var.assign(expr)
+            
+            if verbose: print "%s: %s" % (var, var.vector().array())
 
 if __name__ == "__main__":
+    import sys
     set_log_level(ERROR)
+
+    schemes = [ForwardEuler(), BackwardEuler(), MidpointMethod(), RK4()]
 
     mesh = UnitIntervalMesh(2)
 
@@ -150,10 +194,9 @@ if __name__ == "__main__":
     # \dot{y} = y
     form = y
 
-
-    for scheme in [ForwardEuler(), BackwardEuler(), MidpointMethod(), RK4()]:
+    for scheme in schemes:
         print "-" * 80
-        print str(scheme) + " (scalar)"
+        print "Scalar", scheme
         print "-" * 80
         y_true = Expression("exp(t)", t=1.0)
         y_errors = []
@@ -183,7 +226,7 @@ if __name__ == "__main__":
     # \dot{v} =  u
     form = as_vector((-y[1], y[0]))
 
-    for scheme in [ForwardEuler(), BackwardEuler(), MidpointMethod(), RK4()]:
+    for scheme in schemes:
         print "-" * 80
         print str(scheme) + " (vector)"
         print "-" * 80
