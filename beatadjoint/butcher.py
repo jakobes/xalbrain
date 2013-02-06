@@ -33,7 +33,10 @@ class ButcherTable(object):
                     raise AssertionError("Current states cannot depend on future states!")
 
     def __str__(self):
-        output = [self.name]
+        return self.name
+    
+    def human_form(self):
+        output = []
         for i in range(self.s):
             kterm = " + ".join("%sh*k_%s" % ("" if self.a[i,j] == 1.0 else \
                                              "%s*"%self.a[i,j], j) \
@@ -196,7 +199,8 @@ if __name__ == "__main__":
 
     for scheme in schemes:
         print "-" * 80
-        print "Scalar", scheme
+        print scheme, "(Scalar)"
+        print scheme.human_form()
         print "-" * 80
         y_true = Expression("exp(t)", t=1.0)
         y_errors = []
@@ -228,7 +232,8 @@ if __name__ == "__main__":
 
     for scheme in schemes:
         print "-" * 80
-        print str(scheme) + " (vector)"
+        print scheme, "(Vector)"
+        print scheme.human_form()
         print "-" * 80
         y_true = Expression(("cos(t)", "sin(t)"), t=1.0)
         u_errors = []
