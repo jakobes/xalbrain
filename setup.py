@@ -8,7 +8,8 @@ from os.path import join as pjoin
 major = 0
 minor = 1
 
-scripts = [pjoin("scripts", "gotran2beat")]
+scripts = [pjoin("scripts", "gotran2beat"),
+           pjoin("scripts", "gotran2ufl")]
 
 if platform.system() == "Windows" or "bdist_wininst" in sys.argv:
     # In the Windows command prompt we can't execute Python scripts
