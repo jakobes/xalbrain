@@ -13,8 +13,8 @@ except Exception, e:
     raise e
 
 # Gotran imports
-from gotran2.codegeneration.codegenerator import CodeGenerator
-from gotran2.common import error as gotran_error
+from gotran.codegeneration.codegenerator import CodeGenerator
+from gotran.common import error as gotran_error
 
 _class_template = """
 import ufl
@@ -159,6 +159,7 @@ class CellModelGenerator(CodeGenerator):
         self._class_form["F_body"] = self.F_body()
         self._class_form["I_body"] = self.I_body()
         self._class_form["initial_conditions"] = self.initial_conditions_body()
+
     @property
     def name(self):
         return self._name
