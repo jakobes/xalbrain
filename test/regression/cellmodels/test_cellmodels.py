@@ -1,21 +1,24 @@
 """
-Regression and correctness test for OriginalFitzHughNagumo model and pure
+Regression and correctness test for FitzHughNagumoManual model and pure
 CellSolver: compare (in eyenorm) time evolution with results from
 Section 2.4.1 p. 36 in Sundnes et al, 2006 (checked 2012-09-19), and
 check that maximal v/s values do not regress
 """
 
-# Marie E. Rognes <meg@simula.no>
-# Last changed: 2012-10-23
+__author__ = "Marie E. Rognes (meg@simula.no), 2012--2013"
+__all__ = ["CellSolverTestCase"]
 
 import unittest
-
 from dolfin import *
-from beatadjoint import *
+from beatadjoint import FitzHughNagumoManual, CardiacCellModel, CellSolver
 
 class CellSolverTestCase(unittest.TestCase):
 
-    def test_fitzhugh_nagumo(self):
+    def test_fitzhugh_nagumo_manual(self):
+        """Test that the manually written FitzHugh-Nagumo model gives
+        comparable results to a given reference from Sundnes et al,
+        2006."""
+
         class Stimulus(Expression):
             def __init__(self, t=0.0):
                 self.t = t
@@ -26,14 +29,15 @@ class CellSolverTestCase(unittest.TestCase):
                 else:
                     value[0] = 0.0
 
-        cell = OriginalFitzHughNagumo()
+        cell = FitzHughNagumoManual()
         cell.stimulus = Stimulus()
         solver = CellSolver(cell)
 
         # Setup initial condition
+        ic = cell.initial_conditions()
         (vs_, vs) = solver.solution_fields()
-        vs_.vector()[0] = -85. # Initial condition resting state
-        vs_.vector()[1] = 0.
+        VS = vs_.function_space()
+        vs_.assign(project(ic, VS))
 
         # Initial set-up
         (T0, T) = (0, 400)
@@ -87,7 +91,7 @@ class CellSolverTestCase(unittest.TestCase):
         l = 0.63
         b = 0.013
 
-        class OriginalFitzHughNagumoModified(CardiacCellModel):
+        class FHN2(CardiacCellModel):
             """ODE model:
 
             parameters(Vrest,Vthreshold,Vpeak,k,l,b,ist)
@@ -120,7 +124,7 @@ class CellSolverTestCase(unittest.TestCase):
                 CardiacCellModel.__init__(self)
 
             def default_parameters(self):
-                parameters = Parameters("OriginalFitzHughNagumoModified")
+                parameters = Parameters("FHN2")
                 parameters.add("Vrest", Vrest)
                 parameters.add("Vthreshold", Vthreshold)
                 parameters.add("Vpeak", Vpeak)
@@ -172,7 +176,7 @@ class CellSolverTestCase(unittest.TestCase):
             return (v_values, s_values, times)
 
         # Try the modified one
-        cell_mod = OriginalFitzHughNagumoModified()
+        cell_mod = FHN2()
         (v_values_mod, s_values_mod, times_mod) = _run(cell_mod)
 
         # Compare with our standard FitzHugh (reparametrized)
@@ -180,7 +184,7 @@ class CellSolverTestCase(unittest.TestCase):
         cell_parameters = {"c_1": k*v_amp**2, "c_2": k*v_amp, "c_3": b/l,
                            "a": (Vthreshold - Vrest)/v_amp, "b": l,
                            "v_rest": Vrest, "v_peak": Vpeak}
-        cell = OriginalFitzHughNagumo(cell_parameters)
+        cell = FitzHughNagumoManual(cell_parameters)
         (v_values, s_values, times) = _run(cell)
 
         msg = "Mismatch in %s value comparison, diff = %.16e"
@@ -193,12 +197,12 @@ class CellSolverTestCase(unittest.TestCase):
         import os
         if int(os.environ.get("DOLFIN_NOPLOT", 0)) != 1:
             import pylab
-            pylab.title("FitzHugh with converted parameters")
+            pylab.title("Standard FitzHugh-Nagumo")
             pylab.plot(times, v_values, 'b*')
             pylab.plot(times, s_values, 'r-')
 
             pylab.figure()
-            pylab.title("FitzHugh modified model")
+            pylab.title("Modified FitzHugh-Nagumo")
             pylab.plot(times_mod, v_values_mod, 'b*')
             pylab.plot(times_mod, s_values_mod, 'r-')
             pylab.show()
