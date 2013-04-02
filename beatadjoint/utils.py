@@ -1,8 +1,6 @@
-"This module provides various utilities for internal use."
+"""This module provides various utilities for internal use."""
 
-# Copyright (C) 2012 Marie E. Rognes (meg@simula.no)
-# Use and modify at will
-# Last changed: 2012-10-11
+__author__ = "Marie E. Rognes (meg@simula.no), 2012--2013"
 
 __all__ = ["join"]
 
@@ -15,6 +13,7 @@ def join(subfunctions, V, annotate=False, solver_type="lu"):
     mixed function s = {s[0], s[1], ..., s[n]} in V
 
     **Optional arguments**
+
     * annotate (default: False)
       turn on annotation with annotate = True
     * solver_type (default: "lu")
