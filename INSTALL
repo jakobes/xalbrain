@@ -4,13 +4,28 @@ Installation:
 beatadjoint can be installed as any other Python module using
 distutils:
 
-# For system-wise install do:
+For system-wise install do:
 
-sudo python setup.py install
+  sudo python setup.py install
 
-# Or specify a local path:
+Or specify a local path:
 
-python setup.py install --prefix=/home/me/favorite-path
+  python setup.py install --prefix=/home/me/favorite-path
+
+Tests and demos can be run without installation by adding the top
+level directory to your PYTHONPATH:
+
+  export PYTHONPATH=`pwd`:$PYTHONPATH
+
+Verifying the installation:
+---------------------------
+
+The installation can be verified by running the collection of tests
+located under test/:
+
+  cd test
+  python test.py
+
 
 Dependencies:
 -------------
