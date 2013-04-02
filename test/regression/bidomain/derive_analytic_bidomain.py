@@ -1,9 +1,10 @@
 """
 Script that derives an analytic solution to the bidomain equations --
-used in analytic_bidomain.py.
+used in test_analytic_bidomain.py.
 """
+
 # Marie E. Rognes <meg@simula.no>
-# Last changed: 2012-09-19
+# Last changed: 2013-04-02
 
 from sympy import *
 
