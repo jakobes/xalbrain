@@ -1,8 +1,6 @@
 """This module contains a base class for cardiac cell models."""
 
-# Copyright (C) 2012 Marie E. Rognes (meg@simula.no)
-# Use and modify at will
-# Last changed: 2012-10-23
+__author__ = "Marie E. Rognes (meg@simula.no), 2012--2013"
 
 __all__ = ["CardiacCellModel"]
 
@@ -46,31 +44,27 @@ class CardiacCellModel:
     model is used a spatially-varying setting (for instance in the
     bidomain setting). In this case, the user is expected to specify a
     stimulus for the cardiac model instead.
-
     """
 
     def __init__(self, parameters=None):
-        "Create cardiac cell model, optionally from given parameters"
+        "Create cardiac cell model, optionally from given parameters."
         self._parameters = self.default_parameters()
         if parameters is not None:
             self._parameters.update(parameters)
         self.stimulus = None
 
     def default_parameters(self):
-        "Set-up and return default parameters"
+        "Set-up and return default parameters."
         parameters = Parameters("CardiacCellModel")
         return parameters
 
     def initial_conditions(self):
-        """
-        Return initial conditions of v and s as an Expresson
-
-        Need to to be over loaded to be usefull
-        """
+        "Return initial conditions for v and s as an Expression."
+        error("Must define initial_conditions.")
         return
 
     def parameters(self):
-        "Return the current parameters"
+        "Return the current parameters."
         return self._parameters
 
     def F(self, v, s):
@@ -78,7 +72,7 @@ class CardiacCellModel:
         error("Must define F = F(v, s)")
 
     def I(self, v, s):
-        "Return ionic current."
+        "Return the ionic current."
         error("Must define I = I(v, s)")
 
     def num_states(self):
@@ -87,5 +81,5 @@ class CardiacCellModel:
         error("Must overload num_states")
 
     def __str__(self):
-        "Return string representation of class"
+        "Return string representation of class."
         return "Some cardiac cell model"

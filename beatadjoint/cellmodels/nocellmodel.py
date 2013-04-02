@@ -1,16 +1,13 @@
-"""This module contains a dummy cardiac cell models."""
+"""This module contains a dummy cardiac cell model."""
 
-# Copyright (C) 2012 Marie E. Rognes (meg@simula.no)
-# Use and modify at will
-# Last changed: 2012-10-22
-
+__author__ = "Marie E. Rognes (meg@simula.no), 2012--2013"
 __all__ = ["NoCellModel"]
 
-from cardiaccellmodel import *
+from beatadjoint.cellmodels import CardiacCellModel
 
-# ------------------------------------------------------------------------------
-# Dummy cell model
-# ------------------------------------------------------------------------------
+# FIXME: This class represents a design flaw rather than anything
+# else. Remove in a clean-up of the solvers.
+
 class NoCellModel(CardiacCellModel):
     """
     Class representing no cell model (only bidomain equations). It
@@ -23,7 +20,6 @@ class NoCellModel(CardiacCellModel):
         return 0
 
     def F(self, v, s):
-        # Define model
         return -s
 
     def num_states(self):
