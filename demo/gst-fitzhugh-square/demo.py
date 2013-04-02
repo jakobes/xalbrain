@@ -1,9 +1,5 @@
-"""
-A simple demo demonstrating how to produce sensitivity maps.
-"""
-
 # Marie E. Rognes <meg@simula.no>
-# Last changed: 2013-01-21
+# Last changed: 2013-04-02
 
 import math
 from dolfin import *

@@ -1,9 +1,0 @@
-
-# Reorganize structure before merging some of this back in with cbc.beat
-# so that we can generate more meaningful doc with:
-
-sphinx-apidoc -o doc --full beatadjoint/
-export PYTHONPATH=$PYTHONPATH:`pwd`
-cd doc
-make html
-firefox _build/html/index.html
