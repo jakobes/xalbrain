@@ -2,8 +2,8 @@
 Test running-ness of tenTusscher cell model
 """
 
-# Marie E. Rognes <meg@simula.no>
-# Last changed: 2012-10-26
+__author__ = "Marie E. Rognes (meg@simula.no), 2012--2013"
+__all__ = []
 
 from dolfin import *
 from beatadjoint import *

@@ -1,8 +1,6 @@
 "This module contains solvers for (subclasses of) CardiacCellModel."
 
-# Copyright (C) 2012 Marie E. Rognes (meg@simula.no)
-# Use and modify at will
-# Last changed: 2012-10-23
+__author__ = "Marie E. Rognes (meg@simula.no), 2012--2013"
 
 __all__ = ["CellSolver"]
 
@@ -13,7 +11,7 @@ from beatadjoint import CardiacCellModel
 # Cardiac cell solver
 # ------------------------------------------------------------------------------
 class CellSolver:
-    """This class provides a basic solver for cardiac cell models
+    """This class provides a basic solver for cardiac cell models.
 
     This solver solves the (nonlinear) ODE system described by the
     cell model using a basic theta-scheme. By default, theta=0.5,
@@ -34,7 +32,7 @@ class CellSolver:
             self.parameters.update(parameters)
 
         # Define domain (dummy, but carefully chosen)
-        self._domain = UnitInterval(1)
+        self._domain = UnitIntervalMesh(1)
 
         # Extract number of state variables from model
         num_states = self._model.num_states()

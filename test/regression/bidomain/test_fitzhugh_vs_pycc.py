@@ -1,15 +1,17 @@
 """
-This test case has been compared against pycc up til T = 100.0
+This test tests the splitting solver for the bidomain equations with a
+FitzHughNagumo model.
 
-The relative difference in L^2(mesh) norm between beat and pycc was
-then less than 0.2% for all timesteps in all variables.
+The test case was been compared against pycc up till T = 100.0. The
+relative difference in L^2(mesh) norm between beat and pycc was then
+less than 0.2% for all timesteps in all variables.
 
 The test was then shortened to T = 4.0, and the reference at that time
-computed.
+computed and used as a reference here.
 """
 
-# Marie E. Rognes <meg@simula.no>
-# Last changed: 2013-01-25
+__author__ = "Marie E. Rognes (meg@simula.no), 2012--2013"
+__all__ = []
 
 import math
 
@@ -46,57 +48,59 @@ class MyHeart(CardiacModel):
         M_e = as_tensor(((s_el, 0), (0, s_et)))
         return (M_i, M_e)
 
-# Set-up cell model
-k = 0.00004;
-Vrest = -85.;
-Vthreshold = -70.;
-Vpeak = 40.;
-k = 0.00004;
-l = 0.63;
-b = 0.013;
-v_amp = Vpeak - Vrest
-cell_parameters = {"c_1": k*v_amp**2, "c_2": k*v_amp, "c_3": b/l,
-                   "a": (Vthreshold - Vrest)/v_amp, "b": l,
-                   "v_rest":Vrest, "v_peak": Vpeak}
-#cell = Fitzhughnagumo(cell_parameters)
-cell = OriginalFitzHughNagumo(cell_parameters)
+def setup_model():
+    "Set-up cardiac model based on a slightly non-standard set of parameters."
 
-# Set-up cardiac model
-heart = MyHeart(cell)
+    k = 0.00004; Vrest = -85.; Vthreshold = -70.; Vpeak = 40.;
+    v_amp = Vpeak - Vrest
+    l = 0.63; b = 0.013;
+    cell_parameters = {"c_1": k*v_amp**2, "c_2": k*v_amp, "c_3": b/l,
+                       "a": (Vthreshold - Vrest)/v_amp, "b": l,
+                       "v_rest":Vrest, "v_peak": Vpeak}
 
-# Set-up solver
-ps = SplittingSolver.default_parameters()
-ps["enable_adjoint"] = True
-ps["linear_variational_solver"]["linear_solver"] = "direct"
-ps["theta"] = 1.0
-ps["ode_theta"] = 0.5
-ps["ode_polynomial_family"] = "CG"
-ps["ode_polynomial_degree"] = 1
-solver = SplittingSolver(heart, ps)
+    cell = FitzHughNagumoManual(cell_parameters)
+    heart = MyHeart(cell)
 
-# Define end-time and (constant) timestep
-dt = 0.25 # mS
-T = 4.0 + 1.e-6  # mS
+    return heart
 
-# Define initial condition(s)
-ic = InitialCondition()
-vs0 = project(ic, solver.VS)
-(vs_, vs, u) = solver.solution_fields()
-vs_.assign(vs0)
+if __name__ == "__main__":
 
-# Solve
-info_green("Solving primal")
-total = Timer("XXX: Total solver time")
-solutions = solver.solve((0, T), dt)
-for (timestep, vs, u) in solutions:
-    plot(u)
-    continue
-total.stop()
-list_timings()
+    # Set-up cardiac model
+    heart = setup_model()
 
-norm_u = norm(u)
-print "norm_u = %.16f" % norm_u
-reference =  11.2482303059560245
-diff = abs(reference - norm_u)
-tol = 1.e-12
-assert (diff < tol), "Mismatch: %r" % diff
+    # Set-up solver
+    ps = SplittingSolver.default_parameters()
+    ps["enable_adjoint"] = True
+    ps["linear_variational_solver"]["linear_solver"] = "direct"
+    ps["theta"] = 1.0
+    ps["ode_theta"] = 0.5
+    ps["ode_polynomial_family"] = "CG"
+    ps["ode_polynomial_degree"] = 1
+    solver = SplittingSolver(heart, ps)
+
+    # Define end-time and (constant) timestep
+    dt = 0.25 # mS
+    T = 4.0 + 1.e-6  # mS
+
+    # Define initial condition(s)
+    ic = InitialCondition()
+    vs0 = project(ic, solver.VS)
+    (vs_, vs, u) = solver.solution_fields()
+    vs_.assign(vs0)
+
+    # Solve
+    info_green("Solving primal")
+    total = Timer("XXX: Total solver time")
+    solutions = solver.solve((0, T), dt)
+    for (timestep, vs, u) in solutions:
+        plot(u)
+        continue
+    total.stop()
+    list_timings()
+
+    norm_u = norm(u)
+    print "norm_u = %.16f" % norm_u
+    reference =  11.2482303059560245
+    diff = abs(reference - norm_u)
+    tol = 1.e-12
+    assert (diff < tol), "Mismatch: %r" % diff

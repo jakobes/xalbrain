@@ -3,7 +3,7 @@ from cardiaccellmodel import CardiacCellModel
 
 # Manually written specialized cell models
 from nocellmodel import NoCellModel
-from fitzhughnagumo_manual import FitzHughNagumoManual as OriginalFitzHughNagumo
+from fitzhughnagumo_manual import FitzHughNagumoManual
 
 # Automatically generated specialized cell models
 from fitzhughnagumo import *
