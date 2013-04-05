@@ -2,7 +2,7 @@
 
 # Copyright (C) 2012 Marie E. Rognes (meg@simula.no)
 # Use and modify at will
-# Last changed: 2012-10-27
+# Last changed: 2013-04-05
 
 __all__ = ["SplittingSolver", "BasicSplittingSolver"]
 
@@ -47,16 +47,30 @@ class BasicSplittingSolver:
         self.V = FunctionSpace(domain, "CG", k)
         R = FunctionSpace(domain, "R", 0)
         self.VUR = MixedFunctionSpace([self.V, self.V, R])
-        if num_states > 1:
-            self.S = VectorFunctionSpace(domain, fam, l, num_states)
-        else:
-            self.S = FunctionSpace(domain, fam, l)
+        self.S = BasicSplittingSolver.state_space(domain, num_states, fam, l)
         self.VS = self.V*self.S
 
         # Helper functions
         self.u = Function(self.VUR.sub(1).collapse(), name="u")
         self.vs_ = Function(self.VS, name="vs_")
         self.vs = Function(self.VS, name="vs")
+
+    @staticmethod
+    def state_space(domain, d, family=None, k=1):
+        """Return function space for the state variables.
+
+        If there are more states than one: defaults to the vector
+        space CG_k^d for degree 'k' and number of states 'd'. Defaults to
+        the scalar space CG_k for degree k in the case of only one
+        state variable.
+        """
+        if family is None:
+            family = "CG"
+        if d > 1:
+            S = VectorFunctionSpace(domain, family, k, d)
+        else:
+            S = FunctionSpace(domain, family, k)
+        return S
 
     @staticmethod
     def default_parameters():
