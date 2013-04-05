@@ -8,7 +8,7 @@ from beatadjoint.cellmodels import CardiacCellModel
 
 class Fitzhughnagumo(CardiacCellModel):
     """
-NOT_IMPLEMENTED    
+NOT_IMPLEMENTED
     """
     def __init__(self, parameters=None):
         CardiacCellModel.__init__(self, parameters)
@@ -47,7 +47,7 @@ NOT_IMPLEMENTED
             v_rest)/(v_peak - v_rest*v_peak - v_rest) + c_2*s*(v -\
             v_rest)/(v_peak - v_rest)
 
-        
+
         return current
 
     def F(self, v, s):
@@ -75,8 +75,8 @@ NOT_IMPLEMENTED
         return as_vector(F_expressions)
 
     def initial_conditions(self):
-        ic = Expression(["v", "s"],\
-            v=-85.0, s = 0.0)
+        ic = Expression(["V", "S"],\
+            V=-85.0, S = 0.0)
 
         return ic
 

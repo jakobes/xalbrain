@@ -3,6 +3,7 @@
 __author__ = "Marie E. Rognes (meg@simula.no), 2012--2013"
 __all__ = ["NoCellModel"]
 
+from dolfin import Expression
 from beatadjoint.cellmodels import CardiacCellModel
 
 # FIXME: This class represents a design flaw rather than anything
@@ -24,6 +25,11 @@ class NoCellModel(CardiacCellModel):
 
     def num_states(self):
         return 1
+
+    def initial_conditions(self):
+        "Return initial conditions for v and s as an Expression."
+        ic = Expression(("0.0", "S"), S=0.0)
+        return ic
 
     def __str__(self):
         return "No cardiac cell model"
