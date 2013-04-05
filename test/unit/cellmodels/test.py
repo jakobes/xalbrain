@@ -15,6 +15,12 @@ class TestCellModels(unittest.TestCase):
             model = Model()
             print "Successfully created %s." % model
 
+    def test_create_cell_model_ics(self):
+        "Test that all supported cell models have initial conditions."
+        for Model in supported_cell_models:
+            model = Model()
+            print model.initial_conditions()
+
 if __name__ == "__main__":
     print ""
     print "Testing cell models"
