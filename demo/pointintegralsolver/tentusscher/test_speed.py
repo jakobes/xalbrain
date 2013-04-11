@@ -1,5 +1,7 @@
 from dolfin import *
 from tentusscher_2004_mcell import *
+import pylab
+import numpy
 
 def main(form_compiler_parameters):
 
@@ -9,7 +11,7 @@ def main(form_compiler_parameters):
     params = default_parameters(stim_start=0.0)
     state_init = init_values()
 
-    mesh = UnitSquareMesh(10, 10)
+    mesh = UnitSquareMesh(5, 5)
     V = VectorFunctionSpace(mesh, "CG", 1, dim=state_init.value_size())
     u = Function(V)
     time = Constant(0.0)
@@ -37,11 +39,44 @@ def main(form_compiler_parameters):
 
     return timings(True) # True argument makes sure to reset timings
 
+def make_bar_diagram(options, results, title):
+
+    N = len(options)
+    ind = numpy.arange(N)  # the x locations for the groups
+    width = 0.35       # the width of the bars
+
+    fig = pylab.figure(figsize=(20, 8))
+    pylab.title(title)
+    ax = fig.add_subplot(111)
+
+    pylab.bar(ind, [results[op] for op in options])
+    ax.set_xticks(ind+width)
+    ax.set_xticklabels(options)
+
+    pylab.ylabel("Time (s)")
+    filename = "%s.pdf" % title.replace(" ", "_")
+    print "Saving to %s" % filename
+    pylab.savefig(filename)
+
 if __name__ == "__main__":
 
-    options = ("-O0",
-               "-O2",
-               "-O3 -ffast-math -march=native")
+    options = (#"-O0",
+               #"-O2",
+               "-O3",
+               #"-ffast-math", # slow
+               "-ffast-math -O3", # fast
+               #"-march=native",
+               #"-O3 -ffast-math -march=native", # fast
+               #"-O3 -fno-math-errno -funsafe-math-optimizations -ffinite-math-only -fno-rounding-math -fno-signaling-nans -fcx-limited-range"
+               "-O3 -fno-math-errno", # Pretty fast!
+               "-O3 -ffinite-math-only",
+               "-O3 -fno-signaling-nans",
+               "-O3 -fcx-limited-range",
+               "-O3 -funsafe-math-optimizations" # Pretty slow!
+               )
+
+    F_results = {}
+    J_results = {}
 
     for cpp_flags in options:
 
@@ -62,10 +97,11 @@ if __name__ == "__main__":
         tabulate_J_total = times.get("Implicit stage: tabulate_tensor (J)",
                                      "Total time")
 
-        #info(times, True)
-        print "cpp_flags = ", cpp_flags
-        print "tabulate_F_avg = ", tabulate_F_avg,
-        print ", tabulate_J_avg = ", tabulate_J_avg
-        print "tabulate_F_total = ", tabulate_F_total,
-        print ", tabulate_J_total = ", tabulate_J_total
-        print
+        F_results[cpp_flags] = float(tabulate_F_avg)#, float(tabulate_F_total)
+        J_results[cpp_flags] = float(tabulate_J_avg)# float(tabulate_J_total)
+
+
+    make_bar_diagram(options, F_results, title="tabulate_tensor (F) (avg)")
+    make_bar_diagram(options, J_results, title="tabulate_tensor (J) (avg)")
+
+    pylab.show()
