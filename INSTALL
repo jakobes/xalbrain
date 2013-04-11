@@ -54,3 +54,15 @@ beatadjoint depends in particular on the following software components
 
   Sphinx is a tool for generating documentation for Python module
 
+* [Optional] Model Parameters: https://launchpad.net/modelparameters
+
+  Model Parameters is a Python library for easy use of parameters in
+  Python models, written by Johan Hake. Obtain by
+
+    bzr branch lp:modelparameters
+
+  This module is only required for running some of the tests (and this
+  dependency will be removed).
+
+
+
