@@ -1,5 +1,5 @@
 """
-This module contains splitting solvers for (subclasses of) CardiacModel.
+This module contains splitting solvers for CardiacModel objects.
 
 In particular, the two classes
 
@@ -80,7 +80,6 @@ class BasicSplittingSolver:
         potential in combination with the extracellular potential and
         an additional Lagrange multiplier is also used.
 
-
     The algorithm can be controlled by a number of parameters. In
     particular, the splitting algorithm can be controlled by the
     parameter "theta": "theta" set to 1.0 corresponds to a (1st order)
@@ -115,14 +114,14 @@ class BasicSplittingSolver:
             self.parameters.update(parameters)
 
         # Extract solution domain
-        domain = self._model.domain()
+        domain = self._model.domain
         self._domain = domain
 
         # Create function spaces
         k = self.parameters["potential_polynomial_degree"]
         l = self.parameters["ode_polynomial_degree"]
         fam = self.parameters["ode_polynomial_family"]
-        num_states = self._model.cell_model().num_states()
+        num_states = self._model.cell_model.num_states()
 
         self.V = FunctionSpace(domain, "CG", k)
         R = FunctionSpace(domain, "R", 0)
@@ -353,8 +352,8 @@ class BasicSplittingSolver:
         Dt_s = (s - s_)/k_n
 
         theta = self.parameters["ode_theta"]
-        F = self._model.cell_model().F
-        I_ion = self._model.cell_model().I
+        F = self._model.cell_model.F
+        I_ion = self._model.cell_model.I
         I_theta = - (theta*I_ion(v, s) + (1 - theta)*I_ion(v_, s_))
         F_theta = theta*F(v, s) + (1 - theta)*F(v_, s_)
 

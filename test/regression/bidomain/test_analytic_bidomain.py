@@ -10,26 +10,22 @@ __all__ = []
 from dolfin import *
 from beatadjoint import *
 
-level = 0
-
-class MyHeart(CardiacModel):
-    def __init__(self, cell_model):
-        CardiacModel.__init__(self, cell_model)
-    def domain(self):
-        N = 10*(2**level)
-        return UnitSquareMesh(N, N)
-    def conductivities(self):
-        M_i = 1.0
-        M_e = 1.0
-        return (M_i, M_e)
-
 if __name__ == "__main__":
 
-    # Set-up model
-    cell = NoCellModel()
-    heart = MyHeart(cell)
+    # Create domain
+    level = 0
+    N = 10*(2**level)
+    mesh = UnitSquareMesh(N, N)
+
+    # Create cardiac cell model
+    cell_model = NoCellModel()
+
+    # Create stimulus
     ac_str = "cos(t)*cos(2*pi*x[0])*cos(2*pi*x[1]) + 4*pow(pi, 2)*cos(2*pi*x[0])*cos(2*pi*x[1])*sin(t)"
-    heart.stimulus = Expression(ac_str, t=0, degree=5)
+    stimulus = Expression(ac_str, t=0, degree=5)
+
+    # Create cardiac model
+    heart = CardiacModel(mesh, 1.0, 1.0, cell_model, stimulus=stimulus)
 
     # Set-up solver
     parameters = SplittingSolver.default_parameters()
