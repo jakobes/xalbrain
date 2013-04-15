@@ -1,7 +1,6 @@
 """
-This module contains splitting solvers for CardiacModel objects.
-
-In particular, the two classes
+This module contains splitting solvers for CardiacModel objects. In
+particular, the two classes
 
   * SplittingSolver
   * BasicSplittingSolver
@@ -538,6 +537,12 @@ class SplittingSolver(BasicSplittingSolver):
     def pde_variational_problem(self, k_n, vs_):
         """Create and return the variational problem for the PDE step
         of the splitting algorithm.
+
+        *Arguments*
+          k_n (:py:class:`ufl.Expr` or float)
+            The time step
+          vs\_ (:py:class:`dolfin.Function`)
+            Solution for vs at "previous time"
 
         *Returns*
           (lhs, rhs) (:py:class:`tuple` of :py:class:`ufl.Form`)
