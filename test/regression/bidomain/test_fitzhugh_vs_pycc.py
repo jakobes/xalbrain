@@ -33,39 +33,31 @@ class InitialCondition(Expression):
     def value_shape(self):
         return (2,)
 
-class MyHeart:
-    def __init__(self, cell_model):
-        self.cell_model = cell_model
-        #CardiacModel.__init__(self, cell_model)
-    def domain(self):
-        return UnitSquareMesh(100, 100)
-    def conductivities(self):
-        chi = 2000.0   # cm^{-1}
-        s_il = 3.0/chi # mS
-        s_it = 0.3/chi # mS
-        s_el = 2.0/chi # mS
-        s_et = 1.3/chi # mS
-        M_i = as_tensor(((s_il, 0), (0, s_it)))
-        M_e = as_tensor(((s_el, 0), (0, s_et)))
-        return (M_i, M_e)
-
 def setup_model():
     "Set-up cardiac model based on a slightly non-standard set of parameters."
 
+    # Define cell parameters
     k = 0.00004; Vrest = -85.; Vthreshold = -70.; Vpeak = 40.;
     v_amp = Vpeak - Vrest
     l = 0.63; b = 0.013;
     cell_parameters = {"c_1": k*v_amp**2, "c_2": k*v_amp, "c_3": b/l,
                        "a": (Vthreshold - Vrest)/v_amp, "b": l,
                        "v_rest":Vrest, "v_peak": Vpeak}
-
     cell = FitzHughNagumoManual(cell_parameters)
 
-    heart = MyHeart(cell)
+    # Define conductivities
+    chi = 2000.0   # cm^{-1}
+    s_il = 3.0/chi # mS
+    s_it = 0.3/chi # mS
+    s_el = 2.0/chi # mS
+    s_et = 1.3/chi # mS
+    M_i = as_tensor(((s_il, 0), (0, s_it)))
+    M_e = as_tensor(((s_el, 0), (0, s_et)))
 
-    (M_i, M_e) = heart.conductivities()
-    heart = CardiacModel(heart.domain(), M_i, M_e, cell)
+    # Define mesh
+    domain = UnitSquareMesh(100, 100)
 
+    heart = CardiacModel(domain, M_i, M_e, cell)
     return heart
 
 if __name__ == "__main__":

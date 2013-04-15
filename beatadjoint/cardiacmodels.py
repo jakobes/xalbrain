@@ -88,7 +88,7 @@ class CardiacModel(object):
     @property
     def extracellular_conductivity(self):
         "The intracellular conductivity (:py:class:`ufl.Expr`)."
-        return self._intracellular_conductivity
+        return self._extracellular_conductivity
 
     @property
     def domain(self):
