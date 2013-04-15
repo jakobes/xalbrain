@@ -33,9 +33,10 @@ class InitialCondition(Expression):
     def value_shape(self):
         return (2,)
 
-class MyHeart(CardiacModel):
+class MyHeart:
     def __init__(self, cell_model):
-        CardiacModel.__init__(self, cell_model)
+        self.cell_model = cell_model
+        #CardiacModel.__init__(self, cell_model)
     def domain(self):
         return UnitSquareMesh(100, 100)
     def conductivities(self):
@@ -59,7 +60,11 @@ def setup_model():
                        "v_rest":Vrest, "v_peak": Vpeak}
 
     cell = FitzHughNagumoManual(cell_parameters)
+
     heart = MyHeart(cell)
+
+    (M_i, M_e) = heart.conductivities()
+    heart = CardiacModel(heart.domain(), M_i, M_e, cell)
 
     return heart
 
