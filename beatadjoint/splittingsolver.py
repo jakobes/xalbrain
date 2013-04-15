@@ -1,8 +1,59 @@
-"This module contains splitting solvers for (subclasses of) CardiacModel."
+"""
+This module contains splitting solvers for (subclasses of) CardiacModel.
 
-# Copyright (C) 2012 Marie E. Rognes (meg@simula.no)
+In particular, the two classes
+
+  * SplittingSolver
+  * BasicSplittingSolver
+
+These solvers solve the bidomain equations on the form: find the
+transmembrane potential :math:`v = v(x, t)`, the extracellular
+potential :math:`u = u(x, t)`, and any additional state variables
+:math:`s = s(x, t)` such that
+
+.. math::
+
+   v_t - \mathrm{div} ( G_i v + G_i u) = - I_{ion}(v, s) + I_s
+
+   \mathrm{div} (G_i v + (G_i + G_e) u) = I_a
+
+   s_t = F(v, s)
+
+where the subscript :math:`t` denotes the time derivative;
+:math:`G_x` denotes a weighted gradient: :math:`G_x = M_x
+\mathrm{grad}(v)` for :math:`x \in \{i, e\}`, where :math:`M_i` and
+:math:`M_e` are cardiac conductivity tensors; :math:`I_s` and
+:math:`I_a` are prescribed input; :math:`I_{ion}` and :math:`F` are
+given functions specified by a cell model (or alternatively defining
+the cell model). In addition, initial conditions are given for
+:math:`v` and :math:`s`:
+
+.. math::
+
+   v(x, 0) = v_0
+
+   s(x, 0) = s_0
+
+Finally, boundary conditions must be prescribed. These solvers assume
+pure Neumann boundary conditions for :math:`v` and :math:`u` and
+enforce the additional average value zero constraint for u.
+
+The solvers take as input a
+:py:class:`~beatadjoint.cardiacmodels.CardiacModel` providing the
+required input specification of the problem. In particular, the
+applied current :math:`I_a` is extracted from the
+:py:attr:`~beatadjoint.cardiacmodels.CardiacModel.applied_current`
+attribute, while the stimulus :math:`I_s` is extracted from the
+:py:attr:`~beatadjoint.cardiacmodels.CardiacModel.stimulus` attribute.
+
+It should be possible to use the solvers interchangably. However, note
+that the BasicSplittingSolver is not optimised and should be used for
+testing or debugging purposes primarily.
+"""
+
+# Copyright (C) 2012-2013 Marie E. Rognes (meg@simula.no)
 # Use and modify at will
-# Last changed: 2013-04-05
+# Last changed: 2013-04-15
 
 __all__ = ["SplittingSolver", "BasicSplittingSolver"]
 
@@ -12,15 +63,44 @@ from beatadjoint import CardiacModel
 from beatadjoint.utils import join
 
 class BasicSplittingSolver:
-    """Operator splitting based solver for a cardiac model.
+    """
 
-    The splitting algorithm can be controlled by the parameter
-    'theta'.  theta = 1.0 corresponds to a (1st order) Godunov
-    splitting, theta = 0.5 to a (2nd order) Strang splitting.
+    A non-optimised solver for the bidomain equations based on the
+    operator splitting scheme described in Sundnes et al 2006, p. 78
+    ff.
 
-    See p. 78 ff in Sundnes et al 2006 for details.
+    The solver computes as solutions:
 
-    Assumes that conductivities does not change over time.
+      * "vs" (:py:class:`dolfin.Function`) representing the solution
+        for the transmembrane potential and any additional state
+        variables, and
+      * "u" (:py:class:`dolfin.Function`) representing the solution
+        for the extracellular potential.
+      * Internally, the object "vur" representing the transmembrane
+        potential in combination with the extracellular potential and
+        an additional Lagrange multiplier is also used.
+
+
+    The algorithm can be controlled by a number of parameters. In
+    particular, the splitting algorithm can be controlled by the
+    parameter "theta": "theta" set to 1.0 corresponds to a (1st order)
+    Godunov splitting while "theta" set to 0.5 to a (2nd order) Strang
+    splitting.
+
+    This solver has not been optimised for computational efficiency
+    and should therefore primarily be used for debugging purposes. For
+    an equivalent, but more efficient, solver, see
+    :py:class:`beatadjoint.splittingsolver.SplittingSolver`.
+
+    *Arguments*
+      model (:py:class:`beatadjoint.cardiacmodels.CardiacModel`)
+        a CardiacModel object describing the simulation set-up
+      parameters (:py:class:`dolfin.Parameters`, optional)
+        a Parameters object controlling solver parameters
+
+    *Assumptions*
+      * The cardiac conductivities do not vary in time
+
     """
     def __init__(self, model, parameters=None):
         "Create solver from given Cardiac Model and (optional) parameters."
@@ -59,10 +139,18 @@ class BasicSplittingSolver:
     def state_space(domain, d, family=None, k=1):
         """Return function space for the state variables.
 
-        If there are more states than one: defaults to the vector
-        space CG_k^d for degree 'k' and number of states 'd'. Defaults to
-        the scalar space CG_k for degree k in the case of only one
-        state variable.
+        *Arguments*
+          domain (:py:class:`dolfin.Mesh`)
+            The computational domain
+          d (int)
+            The number of states
+          family (string, optional)
+            The finite element family, defaults to "CG" if None is given.
+          k (int, optional)
+            The finite element degree, defaults to 1
+
+        *Returns*
+          a function space (:py:class:`dolfin.FunctionSpace`)
         """
         if family is None:
             family = "CG"
@@ -74,7 +162,17 @@ class BasicSplittingSolver:
 
     @staticmethod
     def default_parameters():
-        "Set-up and return default parameters."
+        """Initialize and return a set of default parameters for the
+        splitting solver
+
+        *Returns*
+          A set of parameters (:py:class:`dolfin.Parameters`)
+
+        To inspect all the default parameters, do::
+
+          info(BasicSplittingSolver.default_parameters(), True)
+        """
+
         parameters = Parameters("SplittingSolver")
         parameters.add("enable_adjoint", False)
         parameters.add("theta", 0.5)
@@ -96,13 +194,43 @@ class BasicSplittingSolver:
         return parameters
 
     def solution_fields(self):
-        "Return tuple of: (previous vs, current vs, and u)"
+        """
+        Return tuple of previous and current solution objects.
+
+        Modifying these will modify the solution objects of the solver
+        and thus provides a way for setting initial conditions for
+        instance.
+
+        *Returns*
+          (previous vs, current vs, current u) (:py:class:`tuple` of :py:class:`dolfin.Function`)
+        """
         return (self.vs_, self.vs, self.u)
 
     def solve(self, interval, dt):
         """
-        Return generator for solutions on given time interval (t0, t1)
-        with given timestep 'dt'.
+        Solve the problem given by the model on a given time interval
+        (t0, t1) with a given timestep dt and return generator for a
+        tuple of the time, the current vs solution and the current u
+        solution.
+
+        *Arguments*
+          interval (:py:class:`tuple`)
+            The time interval for the solve given by (t0, t1)
+          dt (int)
+            The timestep for the solve
+
+        *Returns*
+          (timestep, current vs, current u) via (:py:class:`genexpr`)
+
+        *Example of usage*::
+
+          # Create generator
+          solutions = solver.solve((0.0, 1.0), 0.1)
+
+          # Iterate over generator (computes solutions as you go)
+          for (t, vs, u) in solutions:
+            # do something with the solutions
+
         """
         # Initial set-up
         (T0, T) = interval
@@ -131,7 +259,21 @@ class BasicSplittingSolver:
             t1 = t0 + dt
 
     def step(self, interval, ics):
-        "Step through given 'interval' with given initial conditions."
+        """
+        Solve the problem given by the model on a given time interval
+        (t0, t1) with timestep given by the interval length and given
+        initial conditions, return the current vs and the current u
+        solutions.
+
+        *Arguments*
+          interval (:py:class:`tuple`)
+            The time interval for the solve given by (t0, t1)
+          ics (:py:class:`dolfin.Function`)
+            Initial conditions for vs for this interval
+
+        *Returns*
+          (current vs, current u) (:py:class:`tuple` of :py:class:`dolfin.Function`)
+        """
 
         # Extract some parameters for readability
         theta = self.parameters["theta"]
@@ -173,7 +315,22 @@ class BasicSplittingSolver:
         return (vs, vur.split()[1])
 
     def ode_step(self, interval, ics):
-        "..."
+        """
+        Solve the ODE step of the splitting scheme for the problem
+        given by the model on a given time interval (t0, t1) with
+        timestep given by the interval length and given initial
+        conditions, return the current vs solution.
+
+        *Arguments*
+          interval (:py:class:`tuple`)
+            The time interval for the solve given by (t0, t1)
+          ics (:py:class:`dolfin.Function`)
+            Initial conditions for vs for this interval
+
+        *Returns*
+          current vs (:py:class:`dolfin.Function`)
+        """
+
         # For now, just use theta scheme. To be improved.
 
         # Extract time domain
@@ -224,7 +381,21 @@ class BasicSplittingSolver:
         return vs
 
     def pde_step(self, interval, vs_):
-        "..."
+        """
+        Solve the PDE step of the splitting scheme for the problem
+        given by the model on a given time interval (t0, t1) with
+        timestep given by the interval length and given initial
+        conditions, return the current vur solution.
+
+        *Arguments*
+          interval (:py:class:`tuple`)
+            The time interval for the solve given by (t0, t1)
+          vs\_ (:py:class:`dolfin.Function`)
+            Initial conditions for vs for this interval
+
+        *Returns*
+          current vur (:py:class:`dolfin.Function`)
+        """
 
         # Hack, not sure if this is a good design (previous value for
         # s should not be required as data)
@@ -252,7 +423,7 @@ class BasicSplittingSolver:
                           + inner((M_i + M_e)*grad(u), grad(q))*dx)
         G = (Dt_v*w*dx + theta_parabolic + theta_elliptic + (lamda*u + l*q)*dx)
 
-        # Add applied current as source in ellipic equation is
+        # Add applied current as source in elliptic equation if
         # applicable
         if self._model.applied_current:
             t = t0 + theta*(t1 - t0)
@@ -275,7 +446,37 @@ class BasicSplittingSolver:
         return vur
 
 class SplittingSolver(BasicSplittingSolver):
-    """Optimized splitting solver for the bidomain equations"""
+    """
+
+    An optimised solver for the bidomain equations based on the
+    operator splitting scheme described in Sundnes et al 2006, p. 78
+    ff.
+
+    The solver computes as solutions:
+
+      * "vs" (:py:class:`dolfin.Function`) representing the solution
+        for the transmembrane potential and any additional state
+        variables, and
+      * "u" (:py:class:`dolfin.Function`) representing the solution
+        for the extracellular potential.
+
+    The algorithm can be controlled by a number of parameters. In
+    particular, the splitting algorithm can be controlled by the
+    parameter "theta": "theta" set to 1.0 corresponds to a (1st order)
+    Godunov splitting while "theta" set to 0.5 to a (2nd order) Strang
+    splitting.
+
+    *Arguments*
+      model (:py:class:`beatadjoint.cardiacmodels.CardiacModel`)
+        a CardiacModel object describing the simulation set-up
+      parameters (:py:class:`dolfin.Parameters`)
+        a Parameters object controlling solver parameters
+
+    *Assumptions*
+      * The cardiac conductivities do not vary in time
+
+
+    """
 
     def __init__(self, model, parameters=None):
         BasicSplittingSolver.__init__(self, model, parameters)
@@ -303,7 +504,17 @@ class SplittingSolver(BasicSplittingSolver):
 
     @staticmethod
     def default_parameters():
-        "Set-up and return default parameters."
+        """Initialize and return a set of default parameters for the
+        splitting solver
+
+        *Returns*
+          A set of parameters (:py:class:`dolfin.Parameters`)
+
+        To inspect all the default parameters, do::
+
+          info(SplittingSolver.default_parameters(), True)
+        """
+
         parameters = BasicSplittingSolver.default_parameters()
 
         # Customize linear solver parameters
@@ -317,11 +528,21 @@ class SplittingSolver(BasicSplittingSolver):
         return parameters
 
     def linear_solver(self):
-        "Return linear solver object (reused)."
+        """Return the linear solver (re-)used for the PDE step of the
+        splitting algorithm.
+
+        *Returns*
+          linear solver (:py:class:`dolfin.LinearSolver`)
+        """
         return self._linear_solver
 
     def pde_variational_problem(self, k_n, vs_):
-        "Return left- and right-hand sides for variational problem"
+        """Create and return the variational problem for the PDE step
+        of the splitting algorithm.
+
+        *Returns*
+          (lhs, rhs) (:py:class:`tuple` of :py:class:`ufl.Form`)
+        """
 
         # Extract conductivities from model
         M_i, M_e = self._model.conductivities()
@@ -363,7 +584,22 @@ class SplittingSolver(BasicSplittingSolver):
         return (a, L)
 
     def pde_step(self, interval, vs_):
-        "."
+        """
+        Solve the PDE step of the splitting scheme for the problem
+        given by the model on a given time interval (t0, t1) with
+        timestep given by the interval length and given initial
+        conditions, return the current vur solution.
+
+        *Arguments*
+          interval (:py:class:`tuple`)
+            The time interval for the solve given by (t0, t1)
+          vs\_ (:py:class:`dolfin.Function`)
+            Initial conditions for vs for this interval
+
+        *Returns*
+          current vur (:py:class:`dolfin.Function`)
+
+        """
 
         # Extract interval and time-step
         (t0, t1) = interval

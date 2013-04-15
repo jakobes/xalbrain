@@ -1,6 +1,11 @@
 """
 The beatadjoint Python module is a problem and solver collection for
 cardiac electrophysiology models.
+
+To import the module, type::
+
+  from beatadjoint import *
+
 """
 
 # Model imports
