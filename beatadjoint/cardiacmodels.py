@@ -1,8 +1,12 @@
-"""This module contains a base class for cardiac models."""
+"""This module contains an abstract base class for cardiac models:
+:py:class:`~beatadjoint.cardiacmodels.CardiacModel`.  This class
+should be subclassed for setting up specific cardiac simulation
+scenarios.
+"""
 
 # Copyright (C) 2012 Marie E. Rognes (meg@simula.no)
 # Use and modify at will
-# Last changed: 2012-10-23
+# Last changed: 2013-04-15
 
 __all__ = ["CardiacModel"]
 
@@ -12,32 +16,26 @@ from cellmodels import *
 # ------------------------------------------------------------------------------
 # Cardiac models
 # ------------------------------------------------------------------------------
-class CardiacModel:
-    """Base class for cardiac models.
+class CardiacModel(object):
+    """An abstract base class for cardiac models.
 
-    A stimulation protocol (or combinations) can be specified in two
-    ways, by setting 'applied_current' or 'stimulus', respectively.
+    Subclasses of CardiacModel represent a specific cardiac simulation
+    set-up and must provide
 
-    Example:
+      * A cardiac cell model (if any)
+      * A computational domain
+      * Extra-cellular and intra-cellular conductivities
+      * Stimulus
 
-      (a) model.applied_current = Expression("I_a(x, t)", t = t0)
-      (b) model.stimulus = Expression("I_s(x, t)", t = t0)
+    *Arguments*
+      cell_model (:py:class:`~beatadjoint.cellmodels.cardiaccellmodel.CardiacCellModel`)
+        a cell model
+      parameters (:py:class:`dolfin.Parameters`)
+        (optional) a Parameters object controlling solver parameters
 
-    Example (a) corresponds to a right-hand side in the elliptic
-    bidomain equation. Example (b) corresponds to a right-hand side in
-    the parabolic bidomain equation.
-
-    In other words, with L_i and L_e denoting the appropriate weighted
-    Laplacians, the bidomain + state equations are interpreted as:
-
-    v_t - L_i(v, u) = - I_ion(v, s) + I_s
-
-          L_e(v, u) = I_a
-
-          s_t = F(v, s)
     """
     def __init__(self, cell_model=None, parameters=None):
-        "Create cardiac model from given cell model and parameters (optional)."
+        "Create cardiac model from given cell model and parameters."
         self._parameters = self.default_parameters()
         if parameters is not None:
             self._parameters.update(parameters)
@@ -49,23 +47,61 @@ class CardiacModel:
             self._cell_model = cell_model
 
         # If applied
+        #self._applied_current = None
+        #self._stimulus = None
         self.applied_current = None
         self.stimulus = None
 
+    #@property
+    #def applied_current(self):
+    #    "Any applied current as a :py:class:`dolfin.GenericFunction`."
+    #    return self._applied_current
+
+    #@property
+    #def stimulus(self):
+    #    "Any stimulus as a :py:class:`dolfin.GenericFunction`."
+    #    return self._stimulus
+
+    def conductivities(self):
+        """Return the intracellular and extracellular conductivities
+        as UFL Expressions
+
+        *Returns*
+           (M_i, M_e) (:py:class:`tuple` of :py:class:`ufl.Expr`)
+        """
+
+        error("Please overload in subclass.")
+
     def domain(self):
-        "Return the spatial domain"
+        """Return the spatial domain as a dolfin Mesh
+
+        *Returns*
+           mesh (:py:class:`dolfin.Mesh`)
+        """
         error("Please overload in subclass")
 
     def cell_model(self):
-        "Return the cell model"
+        """Return the cell model as a CardiacCellModel
+
+        *Returns*
+           cell model (:py:class:`~beatadjoint.cellmodels.cardiaccellmodel.CardiacCellModel`)
+        """
         return self._cell_model
 
     def parameters(self):
-        "Return parameters"
+        """Return the current parameters
+
+        *Returns*
+           parameters (:py:class:`dolfin.Parameters`)
+        """
         return self._parameters
 
     def default_parameters(self):
-        "Return default parameters"
+        """Return the default parameters
+
+        *Returns*
+           default parameters (:py:class:`dolfin.Parameters`)
+        """
         parameters = Parameters("CardiacModel")
         return parameters
 
