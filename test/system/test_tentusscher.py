@@ -23,7 +23,7 @@ class Stimulus(Expression):
 
 cell = Tentusscher_2004_mcell()
 cell.stimulus = Stimulus()
-solver = CellSolver(cell)
+solver = BasicSingleCellSolver(cell)
 
 # Setup initial condition
 (vs_, vs) = solver.solution_fields()
