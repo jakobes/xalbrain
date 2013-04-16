@@ -16,7 +16,7 @@ class BasicSingleCellSolver:
     which corresponds to a Crank-Nicolson scheme.
     """
 
-    def __init__(self, model, parameters=None):
+    def __init__(self, model, params=None):
         """Create solver from given CardiacCellModel (model) and
         optional parameters."""
 
@@ -26,8 +26,8 @@ class BasicSingleCellSolver:
         # Set model and parameters
         self._model = model
         self.parameters = self.default_parameters()
-        if parameters is not None:
-            self.parameters.update(parameters)
+        if params is not None:
+            self.parameters.update(params)
 
         # Define domain (dummy, but carefully chosen)
         self._domain = UnitIntervalMesh(1)
@@ -47,11 +47,12 @@ class BasicSingleCellSolver:
         self.vs_ = Function(self.VS, name="vs_")
         self.vs = Function(self.VS, name="vs")
 
-    def default_parameters(self):
+    @staticmethod
+    def default_parameters():
         "Set-up and return default parameters"
-        parameters = Parameters("BasicSingleCellSolver")
-        parameters.add("theta", 0.5)
-        return parameters
+        params = Parameters("BasicSingleCellSolver")
+        params.add("theta", 0.5)
+        return params
 
     def solution_fields(self):
         "Return tuple of 'previous' and 'current' solution fields."
@@ -70,31 +71,29 @@ class BasicSingleCellSolver:
         # Step through time steps until at end time
         while (t1 <= T) :
             info_blue("Solving on t = (%g, %g)" % (t0, t1))
-            vs = self.step((t0, t1), self.vs_)
-            self.vs.assign(vs)
+            self.step((t0, t1))
 
             # Yield solutions
-            yield (t0, t1), vs
+            yield (t0, t1), self.vs
 
             # Update members and move to next time
             self.vs_.assign(self.vs)
             t0 = t1
             t1 = t0 + dt
 
-    def step(self, interval, ics):
-        "Step through given interval with given initial conditions"
+    def step(self, interval):
+        "Step through given interval"
 
         # Extract time domain
         (t0, t1) = interval
         k_n = Constant(t1 - t0)
 
-        # Extract initial conditions
-        (v_, s_) = split(ics)
+        # Extract previous solution(s)
+        (v_, s_) = split(self.vs_)
 
         # Set-up current variables
-        vs = Function(self.VS)
-        vs.assign(ics) # Start with good guess
-        (v, s) = split(vs)
+        self.vs.assign(self.vs_) # Start with good guess
+        (v, s) = split(self.vs)
         (w, r) = TestFunctions(self.VS)
 
         # Define equation based on cell model
@@ -119,8 +118,6 @@ class BasicSingleCellSolver:
         G = (Dt_v - I_theta)*w*dx + inner(Dt_s - F_theta, r)*dx
 
         # Solve system
-        pde = NonlinearVariationalProblem(G, vs, J=derivative(G, vs))
+        pde = NonlinearVariationalProblem(G, self.vs, J=derivative(G, self.vs))
         solver = NonlinearVariationalSolver(pde)
         solver.solve()
-
-        return vs

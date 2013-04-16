@@ -17,10 +17,10 @@ class TestBasicSingleBasicSingleCellSolver(unittest.TestCase):
         interval = (0.0, 2*dt)
 
         # Initialize solver
-        solver = BasicSingleCellSolver(model)
+        params = BasicSingleCellSolver.default_parameters()
         if theta is not None:
-            info("Updating theta to %g" % theta)
-            solver.parameters["theta"] = theta
+            params["theta"] = theta
+        solver = BasicSingleCellSolver(model, params)
 
         # Assign initial conditions
         (vs_, vs) = solver.solution_fields()
@@ -45,19 +45,21 @@ class TestBasicSingleBasicSingleCellSolver(unittest.TestCase):
 
         # Assign initial conditions
         (vs_, vs) = solver.solution_fields()
-        vs.assign(model.initial_conditions())
+        vs_.assign(model.initial_conditions())
 
         # Solve for a couple of steps
-        vs = solver.step((0.0, dt), vs)
-        vs = solver.step((dt, 2*dt), vs)
+        solver.step((0.0, dt))
+        vs_.assign(vs)
+        solver.step((dt, 2*dt))
 
         return vs.vector()
 
     def _compare_solve_step(self, model, theta=None):
         model.stimulus = Expression("1000*t", t=0.0)
-        vec_solve = self._run_solve(model)
-        vec_step = self._run_step(model)
+        vec_solve = self._run_solve(model, theta)
+        vec_step = self._run_step(model, theta)
         for i in range(len(vec_solve)):
+            print vec_solve[i], vec_step[i]
             self.assertAlmostEqual(vec_solve[i], vec_step[i])
 
     def test_default_basic_single_cell_solver(self):

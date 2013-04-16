@@ -34,10 +34,9 @@ class BasicSingleCellSolverTestCase(unittest.TestCase):
         solver = BasicSingleCellSolver(cell)
 
         # Setup initial condition
-        ic = cell.initial_conditions()
         (vs_, vs) = solver.solution_fields()
-        VS = vs_.function_space()
-        vs_.assign(project(ic, VS))
+        ic = cell.initial_conditions()
+        vs_.assign(ic)
 
         # Initial set-up
         (T0, T) = (0, 400)
@@ -53,8 +52,8 @@ class BasicSingleCellSolverTestCase(unittest.TestCase):
             info_blue("Solving on t = (%g, %g)" % (t0, t1))
             timestep = (t0, t1)
             times += [(t0 + t1)/2]
-            tmp = solver.step(timestep, vs_)
-            vs.assign(tmp)
+            solver.step(timestep)
+            vs_.assign(vs)
 
             v_values += [vs.vector()[0]]
             s_values += [vs.vector()[1]]

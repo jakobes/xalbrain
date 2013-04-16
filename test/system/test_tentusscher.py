@@ -27,8 +27,7 @@ solver = BasicSingleCellSolver(cell)
 
 # Setup initial condition
 (vs_, vs) = solver.solution_fields()
-ics = project(cell.initial_conditions(), solver.VS)
-vs_.assign(ics)
+vs_.assign(cell.initial_conditions())
 
 # # Initial set-up
 (T0, T) = (0, 2)
@@ -42,9 +41,9 @@ while (t1 <= T):
     info_blue("Solving on t = (%g, %g)" % (t0, t1))
     timestep = (t0, t1)
     times += [(t0 + t1)/2]
-    tmp = solver.step(timestep, vs_)
-    vs.assign(tmp)
+    solver.step(timestep)
     v_values += [vs.vector()[0]]
+    vs_.assign(vs)
 
     # Update
     vs_.assign(vs)
