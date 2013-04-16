@@ -1,5 +1,13 @@
 """
 Basic and more advanced tests for the cell models and their forms.
+In particular, the tests
+
+* check that cardiac cell models can be initialized
+* check that basic cell model methods can be called
+* check that the forms (F and I) can be compiled by a form compiler
+  with various optimizations
+* check that the results from compiling the forms with various form
+  compiler parameters match
 """
 
 __author__ = "Marie E. Rognes (meg@simula.no), 2013"
@@ -11,7 +19,25 @@ import numpy.linalg
 from dolfin import *
 from beatadjoint import supported_cell_models, BasicSplittingSolver
 
+def _setup_rhs_form(model):
+    "Helper function to setup rhs form for a given cell model."
+    mesh = UnitSquareMesh(100, 100)
+    V = FunctionSpace(mesh, "CG", 1)
+    S = BasicSplittingSolver.state_space(mesh, model.num_states())
+    VS = V*S
+    vs = Function(VS)
+    vs.assign(project(model.initial_conditions(), VS))
+    (v, s) = split(vs)
+
+    # Define the right-hand-side of the system of ODEs: Dt(u) = rhs(u)
+    # Note sign of the ionic current
+    (w, r) = TestFunctions(VS)
+    rhs = inner(model.F(v, s), r) + inner(- model.I(v, s), w)
+    form = rhs*dP
+    return (vs, form)
+
 class TestCellModelBasics(unittest.TestCase):
+    "Test basic functionality for cell models."
     def test_create_cell_model(self):
         "Test that all supported cell models can be initialized and printed."
         for Model in supported_cell_models:
@@ -25,35 +51,20 @@ class TestCellModelBasics(unittest.TestCase):
             ics = model.initial_conditions()
 
 class TestCellModelFormCompilation(unittest.TestCase):
-
+    "Test that model forms compile with various optimisations."
     def setUp(self):
         "Set-up rhs forms for all cell models."
 
+        # NB: Reducing quadrature degree
         parameters["form_compiler"]["quadrature_degree"] = 2
 
         self.forms = []
         self.vss = []
         self.models = []
-
         for Model in supported_cell_models:
             model = Model()
+            (vs, form) = _setup_rhs_form(model)
             self.models += [model]
-
-            # Set-up mesh and functions
-            #mesh = UnitCubeMesh(2, 2, 2)
-            mesh = UnitSquareMesh(100, 100)
-            V = FunctionSpace(mesh, "CG", 1)
-            S = BasicSplittingSolver.state_space(mesh, model.num_states())
-            VS = V*S
-            vs = Function(VS)
-            vs.assign(project(model.initial_conditions(), VS))
-            (v, s) = split(vs)
-
-            # Define the right-hand-side of the system of ODEs: Dt(u) = rhs(u)
-            # Note sign of the ionic current
-            (w, r) = TestFunctions(VS)
-            rhs = inner(model.F(v, s), r) + inner(- model.I(v, s), w)
-            form = rhs*dP
             self.vss += [vs]
             self.forms += [form]
 
@@ -87,17 +98,23 @@ class TestCellModelFormCompilation(unittest.TestCase):
         print("Testing form compilation with custom optimization.")
         flags = ["-O3", "-ffast-math", "-march=native"]
         fc_parameters = parameters["form_compiler"].copy()
+        fc_parameters["cpp_optimize"] = True
         fc_parameters["cpp_optimize_flags"] = " ".join(flags)
         for form in self.forms:
             f = Form(form, form_compiler_parameters=fc_parameters)
 
-    # FIXME: This test is not yet working. Results are very odd, and
-    # something is very fishy with the parameters.
-    def test_point_integral_solver(self):
-        """Test that point integral solver gives same result with and
-        without various optimisations."""
+class TestCellModelFormCompilationCorrectness(unittest.TestCase):
+    "Test that various compilation options gives same results"
 
-        def _run(form, vs, Solver):
+    def test_point_integral_solver(self):
+        "Compare form compilation result with and without optimizations."
+
+        parameters["form_compiler"]["quadrature_degree"] = 2
+
+        def _point_integral_step(model, Solver=BackwardEuler):
+            (vs, form) = _setup_rhs_form(model)
+
+            # Set-up scheme
             time = Constant(0.0)
             scheme = Solver(form, vs, time)
             scheme.t().assign(float(time))
@@ -107,40 +124,34 @@ class TestCellModelFormCompilation(unittest.TestCase):
             #solver.parameters.newton_solver.report = False
             dt = 0.1
             solver.step(dt)
+            return vs
 
-        for (i, (form, vs)) in enumerate(zip(self.forms, self.vss)):
+        # For each model: compare result with and without aggressive
+        # optimizations
+        for Model in supported_cell_models:
+            model = Model()
 
-            # NB: FIXME
-            if (i != 2): break
+            # Run with no particular optimizations
+            vs = _point_integral_step(model)
+            non_opt_result = vs.vector().array()
 
-            print "\n\nTesting %s with FFC optimizations" % self.models[i]
-
-            parameters["form_compiler"]["quadrature_degree"] = 2
-            parameters["form_compiler"]["optimize"] = True
+            # Turn on aggresssive optimizations
+            flags = "-O3 -ffast-math -march=native"
             parameters["form_compiler"]["cpp_optimize"] = True
+            parameters["form_compiler"]["cpp_optimize_flags"] = flags
+            vs = _point_integral_step(model)
+            opt_result = vs.vector().array()
+
+            # Reset parameters by turning off optimizations
+            parameters["form_compiler"]["cpp_optimize"] = False
             parameters["form_compiler"]["cpp_optimize_flags"] = "-O2"
 
-            start = time()
-            _run(form, vs, BackwardEuler)
-            time_elapsed = time() - start
-            print "time_elapsed = ", time_elapsed
-            a = vs.vector().array()
-
-            print "\n\nTesting %s with gcc optimizations" % self.models[i]
-
-            parameters["form_compiler"]["optimize"] = False
-            parameters["form_compiler"]["cpp_optimize"] = True
-            flags = ["-O3", "-ffast-math", "-march=native"]
-            parameters["form_compiler"]["cpp_optimize_flags"] = " ".join(flags)
-
-            start = time()
-            _run(form, vs, BackwardEuler)
-            time_elapsed = time() - start
-            print "time_elapsed with optimizations = ", time_elapsed
-
-            b = vs.vector().array()
-            c = a - b
+            # Compare results
+            c = non_opt_result - opt_result
+            c_inf = numpy.linalg.norm(c, numpy.inf)
             print "|c|_inf = ", numpy.linalg.norm(c, numpy.inf)
+            tolerance = 1.e-12
+            assert (c_inf < tolerance), "Mismatch in compiled results."
 
 if __name__ == "__main__":
     print("")
