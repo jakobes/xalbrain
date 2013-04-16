@@ -1,18 +1,18 @@
 """
 Regression and correctness test for FitzHughNagumoManual model and pure
-CellSolver: compare (in eyenorm) time evolution with results from
+BasicSingleCellSolver: compare (in eyenorm) time evolution with results from
 Section 2.4.1 p. 36 in Sundnes et al, 2006 (checked 2012-09-19), and
 check that maximal v/s values do not regress
 """
 
 __author__ = "Marie E. Rognes (meg@simula.no), 2012--2013"
-__all__ = ["CellSolverTestCase"]
+__all__ = ["BasicSingleCellSolverTestCase"]
 
 import unittest
 from dolfin import *
-from beatadjoint import FitzHughNagumoManual, CardiacCellModel, CellSolver
+from beatadjoint import FitzHughNagumoManual, CardiacCellModel, BasicSingleCellSolver
 
-class CellSolverTestCase(unittest.TestCase):
+class BasicSingleCellSolverTestCase(unittest.TestCase):
 
     def test_fitzhugh_nagumo_manual(self):
         """Test that the manually written FitzHugh-Nagumo model gives
@@ -31,7 +31,7 @@ class CellSolverTestCase(unittest.TestCase):
 
         cell = FitzHughNagumoManual()
         cell.stimulus = Stimulus()
-        solver = CellSolver(cell)
+        solver = BasicSingleCellSolver(cell)
 
         # Setup initial condition
         ic = cell.initial_conditions()
@@ -156,7 +156,7 @@ class CellSolverTestCase(unittest.TestCase):
                 return "Modified FitzHugh-Nagumo cardiac cell model"
 
         def _run(cell):
-            solver = CellSolver(cell)
+            solver = BasicSingleCellSolver(cell)
 
             # Setup initial condition
             (vs_, vs) = solver.solution_fields()

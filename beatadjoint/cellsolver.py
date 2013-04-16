@@ -2,15 +2,13 @@
 
 __author__ = "Marie E. Rognes (meg@simula.no), 2012--2013"
 
-__all__ = ["CellSolver"]
+__all__ = ["BasicSingleCellSolver"]
 
 from dolfin import *
+from dolfin_adjoint import *
 from beatadjoint import CardiacCellModel
 
-# ------------------------------------------------------------------------------
-# Cardiac cell solver
-# ------------------------------------------------------------------------------
-class CellSolver:
+class BasicSingleCellSolver:
     """This class provides a basic solver for cardiac cell models.
 
     This solver solves the (nonlinear) ODE system described by the
@@ -23,7 +21,7 @@ class CellSolver:
         optional parameters."""
 
         assert isinstance(model, CardiacCellModel), \
-            "Expecting CardiacCellModel as first argument to CellSolver"
+            "Expecting CardiacCellModel as first argument to BasicSingleCellSolver"
 
         # Set model and parameters
         self._model = model
@@ -46,12 +44,12 @@ class CellSolver:
         self.VS = V*S
 
         # Initialize helper functions
-        self.vs_ = Function(self.VS)
-        self.vs = Function(self.VS)
+        self.vs_ = Function(self.VS, name="vs_")
+        self.vs = Function(self.VS, name="vs")
 
     def default_parameters(self):
         "Set-up and return default parameters"
-        parameters = Parameters("CellSolver")
+        parameters = Parameters("BasicSingleCellSolver")
         parameters.add("theta", 0.5)
         return parameters
 

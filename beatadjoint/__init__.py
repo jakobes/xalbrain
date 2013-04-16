@@ -16,7 +16,7 @@ from beatadjoint.cellmodels import *
 from beatadjoint.splittingsolver import BasicSplittingSolver
 from beatadjoint.splittingsolver import SplittingSolver
 from beatadjoint.fullycoupledsolver import CoupledBidomainSolver
-from beatadjoint.cellsolver import CellSolver
+from beatadjoint.cellsolver import BasicSingleCellSolver
 
 # Various utility functions, mainly for internal use
 import beatadjoint.utils
