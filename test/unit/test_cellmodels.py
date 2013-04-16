@@ -17,13 +17,14 @@ import unittest
 import time
 import numpy.linalg
 from dolfin import *
-from beatadjoint import supported_cell_models, BasicSplittingSolver
+from beatadjoint import supported_cell_models
+from beatadjoint.utils import state_space
 
 def _setup_rhs_form(model):
     "Helper function to setup rhs form for a given cell model."
     mesh = UnitSquareMesh(100, 100)
     V = FunctionSpace(mesh, "CG", 1)
-    S = BasicSplittingSolver.state_space(mesh, model.num_states())
+    S = state_space(mesh, model.num_states())
     VS = V*S
     vs = Function(VS)
     vs.assign(project(model.initial_conditions(), VS))

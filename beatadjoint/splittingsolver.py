@@ -59,7 +59,7 @@ __all__ = ["SplittingSolver", "BasicSplittingSolver"]
 from dolfin import *
 from dolfin_adjoint import *
 from beatadjoint import CardiacModel
-from beatadjoint.utils import join
+from beatadjoint.utils import join, state_space
 
 class BasicSplittingSolver:
     """
@@ -125,38 +125,13 @@ class BasicSplittingSolver:
         self.V = FunctionSpace(domain, "CG", k)
         R = FunctionSpace(domain, "R", 0)
         self.VUR = MixedFunctionSpace([self.V, self.V, R])
-        self.S = BasicSplittingSolver.state_space(domain, num_states, fam, l)
+        self.S = state_space(domain, num_states, fam, l)
         self.VS = self.V*self.S
 
         # Helper functions
         self.u = Function(self.VUR.sub(1).collapse(), name="u")
         self.vs_ = Function(self.VS, name="vs_")
         self.vs = Function(self.VS, name="vs")
-
-    @staticmethod
-    def state_space(domain, d, family=None, k=1):
-        """Return function space for the state variables.
-
-        *Arguments*
-          domain (:py:class:`dolfin.Mesh`)
-            The computational domain
-          d (int)
-            The number of states
-          family (string, optional)
-            The finite element family, defaults to "CG" if None is given.
-          k (int, optional)
-            The finite element degree, defaults to 1
-
-        *Returns*
-          a function space (:py:class:`dolfin.FunctionSpace`)
-        """
-        if family is None:
-            family = "CG"
-        if d > 1:
-            S = VectorFunctionSpace(domain, family, k, d)
-        else:
-            S = FunctionSpace(domain, family, k)
-        return S
 
     @staticmethod
     def default_parameters():

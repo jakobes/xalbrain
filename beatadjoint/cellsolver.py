@@ -6,7 +6,8 @@ __all__ = ["BasicSingleCellSolver"]
 
 from dolfin import *
 from dolfin_adjoint import *
-from beatadjoint import CardiacCellModel, BasicSplittingSolver
+from beatadjoint import CardiacCellModel
+from beatadjoint.utils import state_space
 
 class BasicSingleCellSolver:
     """A basic, non-optimised solver for standalone cardiac cell
@@ -55,7 +56,7 @@ class BasicSingleCellSolver:
 
         # Create (mixed) function space for potential + states
         V = FunctionSpace(self._domain, "DG", 0)
-        S = BasicSplittingSolver.state_space(self._domain, num_states, "DG", 0)
+        S = state_space(self._domain, num_states, "DG", 0)
         self.VS = V*S
 
         # Initialize helper functions
