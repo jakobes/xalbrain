@@ -52,7 +52,7 @@ class BasicSingleCellSolverTestCase(unittest.TestCase):
             info_blue("Solving on t = (%g, %g)" % (t0, t1))
             timestep = (t0, t1)
             times += [(t0 + t1)/2]
-            solver.step(timestep)
+            solver._step(timestep)
             vs_.assign(vs)
 
             v_values += [vs.vector()[0]]
