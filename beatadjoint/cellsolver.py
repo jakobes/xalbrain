@@ -6,19 +6,37 @@ __all__ = ["BasicSingleCellSolver"]
 
 from dolfin import *
 from dolfin_adjoint import *
-from beatadjoint import CardiacCellModel
+from beatadjoint import CardiacCellModel, BasicSplittingSolver
 
 class BasicSingleCellSolver:
-    """This class provides a basic solver for cardiac cell models.
+    """A basic, non-optimised solver for standalone cardiac cell
+    models.
 
-    This solver solves the (nonlinear) ODE system described by the
-    cell model using a basic theta-scheme. By default, theta=0.5,
-    which corresponds to a Crank-Nicolson scheme.
+    The nonlinear ODE system described by the cell model is solved via
+    a theta-scheme.  By default theta=0.5, which corresponds to a
+    Crank-Nicolson scheme. This can be changed by modifying the solver
+    parameters.
+
+    .. note::
+
+       For the sake of simplicity and consistency with other solver
+       objects, this solver operates on its solution fields (as state
+       variables) directly internally. More precisely, solve (and
+       step) calls will act by updating the internal solution
+       fields. It implies that initial conditions can be set (and are
+       intended to be set) by modifying the solution fields prior to
+       simulation.
+
+    *Arguments*
+      model (:py:class:`~beatadjoint.cellmodels.cardiaccellmodel.CardiacCellModel`)
+        The cardiac cell model in
+      params (:py:class:`dolfin.Parameters`, optional)
+        Solver parameters
+
     """
 
     def __init__(self, model, params=None):
-        """Create solver from given CardiacCellModel (model) and
-        optional parameters."""
+        "Create solver from given cell model and optional parameters."
 
         assert isinstance(model, CardiacCellModel), \
             "Expecting CardiacCellModel as first argument to BasicSingleCellSolver"
@@ -29,7 +47,7 @@ class BasicSingleCellSolver:
         if params is not None:
             self.parameters.update(params)
 
-        # Define domain (dummy, but carefully chosen)
+        # Define domain (carefully chosen dummy)
         self._domain = UnitIntervalMesh(1)
 
         # Extract number of state variables from model
@@ -37,10 +55,7 @@ class BasicSingleCellSolver:
 
         # Create (mixed) function space for potential + states
         V = FunctionSpace(self._domain, "DG", 0)
-        if num_states > 1:
-            S = VectorFunctionSpace(self._domain, "DG", 0, num_states)
-        else:
-            S = FunctionSpace(self._domain, "DG", 0)
+        S = BasicSplittingSolver.state_space(self._domain, num_states, "DG", 0)
         self.VS = V*S
 
         # Initialize helper functions
@@ -49,40 +64,91 @@ class BasicSingleCellSolver:
 
     @staticmethod
     def default_parameters():
-        "Set-up and return default parameters"
+        """Initialize and return a set of default parameters
+
+        *Returns*
+          A set of parameters (:py:class:`dolfin.Parameters`)
+        """
         params = Parameters("BasicSingleCellSolver")
         params.add("theta", 0.5)
         return params
 
     def solution_fields(self):
-        "Return tuple of 'previous' and 'current' solution fields."
+        """
+        Return tuple of previous and current solution objects.
+
+        Modifying these will modify the solution objects of the solver
+        and thus provides a way for setting initial conditions for
+        instance.
+
+        *Returns*
+          (previous vs, current vs) (:py:class:`tuple` of :py:class:`dolfin.Function`)
+        """
         return (self.vs_, self.vs)
 
-    def solve(self, interval, dt):
+    def solve(self, interval, dt=None):
         """
-        Return generator for solutions on given time interval (t0, t1)
-        with given timestep 'dt'.
+        Solve the problem given by the model on a given time interval
+        (t0, t1) with a given timestep dt and return generator for a
+        tuple of the interval and the current vs solution.
+
+        *Arguments*
+          interval (:py:class:`tuple`)
+            The time interval for the solve given by (t0, t1)
+          dt (int, optional)
+            The timestep for the solve. Defaults to length of interval
+
+        *Returns*
+          (timestep, current vs) via (:py:class:`genexpr`)
+
+        *Example of usage*::
+
+          # Create generator
+          solutions = solver.solve((0.0, 1.0), 0.1)
+
+          # Iterate over generator (computes solutions as you go)
+          for (interval, vs) in solutions:
+            # do something with the solutions
+
         """
+
+        # Solve on entire interval if no interval is given.
+        if dt is None:
+            dt = (T - T0)
+
+        # FIXME: Add check that T >= T0 + dt
+
         # Initial set-up
         (T0, T) = interval
         t0 = T0
         t1 = T0 + dt
 
         # Step through time steps until at end time
-        while (t1 <= T) :
+        while (True) :
             info_blue("Solving on t = (%g, %g)" % (t0, t1))
-            self.step((t0, t1))
+            self._step((t0, t1))
 
             # Yield solutions
             yield (t0, t1), self.vs
 
-            # Update members and move to next time
+            # Break if this is the last step
+            if ((t1 + dt) > T):
+                break
+
+            # If not: update members and move to next time
             self.vs_.assign(self.vs)
             t0 = t1
             t1 = t0 + dt
 
-    def step(self, interval):
-        "Step through given interval"
+    def _step(self, interval):
+        """
+        Step the solver forward on the given time interval (t0,
+        t1). Users are recommended to use solve instead.
+
+        *Arguments*
+          interval (:py:class:`tuple`)
+            The time interval for the solve given by (t0, t1)
+        """
 
         # Extract time domain
         (t0, t1) = interval

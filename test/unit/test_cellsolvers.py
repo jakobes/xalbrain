@@ -12,7 +12,15 @@ from beatadjoint import *
 class TestBasicSingleBasicSingleCellSolver(unittest.TestCase):
     "Test functionality for the basic single cell solver."
 
+    def setUp(self):
+        "Set-up references when existing."
+        self.references = {NoCellModel: {1.0: 0.3, None: 0.2, 0.0: 0.1},
+                           FitzHughNagumoManual: {1.0:  -84.70013280019053,
+                                                  None: -84.80004595187799,
+                                                  0.0:  -84.9}}
+
     def _run_solve(self, model, theta=None):
+        "Run two time steps for the given model with the given theta solver."
         dt = 0.01
         interval = (0.0, 2*dt)
 
@@ -35,50 +43,31 @@ class TestBasicSingleBasicSingleCellSolver(unittest.TestCase):
         self.assertAlmostEqual(t1, 2*dt)
         return vs.vector()
 
-    def _run_step(self, model, theta=None):
-        dt = 0.01
-        # Initialize solver
-        solver = BasicSingleCellSolver(model)
-        if theta is not None:
-            info("Updating theta to %g" % theta)
-            solver.parameters["theta"] = theta
-
-        # Assign initial conditions
-        (vs_, vs) = solver.solution_fields()
-        vs_.assign(model.initial_conditions())
-
-        # Solve for a couple of steps
-        solver.step((0.0, dt))
-        vs_.assign(vs)
-        solver.step((dt, 2*dt))
-
-        return vs.vector()
-
-    def _compare_solve_step(self, model, theta=None):
+    def _compare_solve_step(self, Model, theta=None):
+        "Set-up model and compare result to precomputed reference if available."
+        model = Model()
         model.stimulus = Expression("1000*t", t=0.0)
         vec_solve = self._run_solve(model, theta)
-        vec_step = self._run_step(model, theta)
-        for i in range(len(vec_solve)):
-            print vec_solve[i], vec_step[i]
-            self.assertAlmostEqual(vec_solve[i], vec_step[i])
+        if Model in self.references and theta in self.references[Model]:
+            self.assertAlmostEqual(vec_solve[0],
+                                   self.references[Model][theta])
+        else:
+            info("Missing references for %r, %r" % (Model, theta))
 
     def test_default_basic_single_cell_solver(self):
         "Test basic single cell solver."
         for Model in supported_cell_models:
-            model = Model()
-            self._compare_solve_step(model)
+            self._compare_solve_step(Model)
 
     def test_default_basic_single_cell_solver_be(self):
         "Test basic single cell solver with Backward Euler."
         for Model in supported_cell_models:
-            model = Model()
-            self._compare_solve_step(model, theta=1.0)
+            self._compare_solve_step(Model, theta=1.0)
 
     def test_default_basic_single_cell_solver_fe(self):
         "Test basic single cell solver with Forward Euler."
         for Model in supported_cell_models:
-            model = Model()
-            self._compare_solve_step(model, theta=0.0)
+            self._compare_solve_step(Model, theta=0.0)
 
 if __name__ == "__main__":
     print("")
