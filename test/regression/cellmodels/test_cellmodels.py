@@ -39,28 +39,21 @@ class BasicSingleCellSolverTestCase(unittest.TestCase):
         vs_.assign(ic)
 
         # Initial set-up
-        (T0, T) = (0, 400)
+        interval = (0, 400)
         dt = 1.0
-        t0 = T0; t1 = T0 + dt
 
         times = []
         v_values = []
         s_values = []
 
         # Solve
-        while (t1 <= T):
-            info_blue("Solving on t = (%g, %g)" % (t0, t1))
-            timestep = (t0, t1)
+        solutions = solver.solve(interval, dt=dt)
+        for (timestep, vs) in solutions:
+            (t0, t1) = timestep
             times += [(t0 + t1)/2]
-            solver._step(timestep)
-            vs_.assign(vs)
 
             v_values += [vs.vector()[0]]
             s_values += [vs.vector()[1]]
-
-            # Update
-            vs_.assign(vs)
-            t0 = t1; t1 = t0 + dt
 
         # Regression test
         v_max_reference = 2.3839115023509514e+01
@@ -78,7 +71,6 @@ class BasicSingleCellSolverTestCase(unittest.TestCase):
             import pylab
             pylab.plot(times, v_values, 'b*')
             pylab.plot(times, s_values, 'r-')
-            pylab.show()
 
     def test_fitz_hugh_nagumo_modified(self):
 
@@ -204,7 +196,6 @@ class BasicSingleCellSolverTestCase(unittest.TestCase):
             pylab.title("Modified FitzHugh-Nagumo")
             pylab.plot(times_mod, v_values_mod, 'b*')
             pylab.plot(times_mod, s_values_mod, 'r-')
-            pylab.show()
 
 
 
@@ -213,3 +204,4 @@ if __name__ == "__main__":
     print "Testing cell models and solvers"
     print "-------------------------------"
     unittest.main()
+    pylab.show()
