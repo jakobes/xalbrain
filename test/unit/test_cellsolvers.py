@@ -18,7 +18,7 @@ class TestBasicSingleBasicSingleCellSolver(unittest.TestCase):
         "Set-up references when existing."
         self.references = {NoCellModel: {1.0: 0.3, None: 0.2, 0.0: 0.1},
                            FitzHughNagumoManual: {1.0:  -84.70013280019053,
-                                                  None: -84.80004595187799,
+                                                  None: -84.80005016079546,
                                                   0.0:  -84.9}}
 
     def _run_solve(self, model, theta=None):
@@ -56,27 +56,25 @@ class TestBasicSingleBasicSingleCellSolver(unittest.TestCase):
         else:
             info("Missing references for %r, %r" % (Model, theta))
 
-    def _test_default_basic_single_cell_solver(self):
+    def test_default_basic_single_cell_solver(self):
         "Test basic single cell solver."
         for Model in supported_cell_models:
             self._compare_solve_step(Model)
 
-    def _test_default_basic_single_cell_solver_be(self):
+    def test_default_basic_single_cell_solver_be(self):
         "Test basic single cell solver with Backward Euler."
         for Model in supported_cell_models:
             self._compare_solve_step(Model, theta=1.0)
 
-    def _test_default_basic_single_cell_solver_fe(self):
+    def test_default_basic_single_cell_solver_fe(self):
         "Test basic single cell solver with Forward Euler."
         for Model in supported_cell_models:
             self._compare_solve_step(Model, theta=0.0)
 
 class TestPointIntegralSolver(unittest.TestCase):
     def setUp(self):
-
-        # Note that these should be identical to the ones for the
-        # BasicSingleCellSolver, but note that CN does not match
-        # perfectly, not sure if this is round-off or bug.
+        # Note that these should be (and are) identical to the ones
+        # for the BasicSingleCellSolver
         self.references = {NoCellModel: {BackwardEuler: 0.3,
                                          CrankNicolson: 0.2,
                                          ForwardEuler: 0.1},
@@ -120,6 +118,8 @@ class TestPointIntegralSolver(unittest.TestCase):
         solver.step(next_dt)
 
         if Model in self.references and Scheme in self.references[Model]:
+            info("Value for %s, %s is %g"
+                 % (Model, Scheme, vs.vector()[0]))
             self.assertAlmostEqual(vs.vector()[0],
                                    self.references[Model][Scheme])
         else:
