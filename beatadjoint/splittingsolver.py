@@ -243,6 +243,8 @@ class BasicSplittingSolver:
             # Yield current solutions
             yield (timestep, self.vs, self.u)
 
+            # FIXME: Break here as usual.
+
             # Update previous and timetime
             finished = (t0 + dt) >= T
             self.vs_.assign(self.vs, annotate=annotate)
@@ -277,19 +279,19 @@ class BasicSplittingSolver:
         # Compute tentative membrane potential and state (vs_star)
         begin("Tentative ODE step")
         self.ode_solver._step((t0, t))
-        vs_star = self.vs
         end()
 
         # Compute tentative potentials vu = (v, u)
         begin("PDE step")
-        vur = self.pde_step((t0, t1), vs_star)
+        self.vs_.assign(self.vs) # Update self.vs_ (pde_step) operates on this one. Is this really a good idea?
+        vur = self.pde_step((t0, t1))#, self.vs)
         end()
 
         # Merge (inverse of split) v and s_star: (needed for adjointability)
         begin("Merging step")
         v = split(vur)[0]
         #(v, u, r) = split(vur)
-        (v_star, s_star) = split(vs_star)
+        (v_star, s_star) = split(self.vs)
         v_s_star = join((v, s_star), self.VS, annotate=annotate,
                         solver_type="cg")
         end()
@@ -302,13 +304,11 @@ class BasicSplittingSolver:
         begin("Corrective ODE step")
         self.vs_.assign(v_s_star)
         self.ode_solver._step((t, t1))
-        vs = self.vs
-
         end()
 
-        return (vs, vur.split()[1])
+        return (self.vs, vur.split()[1])
 
-    def pde_step(self, interval, vs_):
+    def pde_step(self, interval):
         """
         Solve the PDE step of the splitting scheme for the problem
         given by the model on a given time interval (t0, t1) with
@@ -327,7 +327,7 @@ class BasicSplittingSolver:
 
         # Hack, not sure if this is a good design (previous value for
         # s should not be required as data)
-        (v_, s_) = split(vs_)
+        (v_, s_) = split(self.vs_)
 
         # Extract interval and time-step
         (t0, t1) = interval
@@ -515,7 +515,7 @@ class SplittingSolver(BasicSplittingSolver):
         (a, L) = system(G)
         return (a, L)
 
-    def pde_step(self, interval, vs_):
+    def pde_step(self, interval):
         """
         Solve the PDE step of the splitting scheme for the problem
         given by the model on a given time interval (t0, t1) with
@@ -541,7 +541,7 @@ class SplittingSolver(BasicSplittingSolver):
         annotate = self.parameters["enable_adjoint"]
 
         # Update previous solution
-        self.vs_.assign(vs_, annotate=annotate)
+        #self.vs_.assign(vs_, annotate=annotate)
 
         # Assemble left-hand-side: only re-assemble if necessary, and
         # reuse all solver data possible
