@@ -56,10 +56,13 @@ class BasicSingleCellSolverTestCase(unittest.TestCase):
             s_values += [vs.vector()[1]]
 
         # Regression test
-        v_max_reference = 2.3839115023509514e+01
-        s_max_reference = 6.9925836316850834e+01
+        v_max_reference = 2.6877888776829597e+01
+        s_max_reference = 6.8659498561853880e+01
         tolerance = 1.e-14
+        print "max(v_values) %.16e" % max(v_values)
+        print "max(s_values) %.16e" % max(s_values)
         msg = "Maximal %s value does not match reference: diff is %.16e"
+
         v_diff = abs(max(v_values) - v_max_reference)
         s_diff = abs(max(s_values) - s_max_reference)
         assert (v_diff < tolerance), msg % ("v", v_diff)
