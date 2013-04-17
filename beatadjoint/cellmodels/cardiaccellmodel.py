@@ -46,17 +46,17 @@ class CardiacCellModel:
     stimulus for the cardiac model instead.
     """
 
-    def __init__(self, parameters=None):
+    def __init__(self, params=None):
         "Create cardiac cell model, optionally from given parameters."
         self._parameters = self.default_parameters()
-        if parameters is not None:
-            self._parameters.update(parameters)
+        if params is not None:
+            self._parameters.update(params)
         self.stimulus = None
 
     def default_parameters(self):
         "Set-up and return default parameters."
-        parameters = Parameters("CardiacCellModel")
-        return parameters
+        params = Parameters("CardiacCellModel")
+        return params
 
     def initial_conditions(self):
         "Return initial conditions for v and s as an Expression."
