@@ -10,19 +10,19 @@ class Fitzhughnagumo(CardiacCellModel):
     """
 NOT_IMPLEMENTED
     """
-    def __init__(self, parameters=None):
-        CardiacCellModel.__init__(self, parameters)
+    def __init__(self, params=None):
+        CardiacCellModel.__init__(self, params)
 
     def default_parameters(self):
-        parameters = Parameters("Fitzhughnagumo")
-        parameters.add("a", 0.13)
-        parameters.add("b", 0.013)
-        parameters.add("c_1", 0.26)
-        parameters.add("c_2", 0.1)
-        parameters.add("c_3", 1.0)
-        parameters.add("v_peak", 40.0)
-        parameters.add("v_rest", -85.0)
-        return parameters
+        params = Parameters("Fitzhughnagumo")
+        params.add("a", 0.13)
+        params.add("b", 0.013)
+        params.add("c_1", 0.26)
+        params.add("c_2", 0.1)
+        params.add("c_3", 1.0)
+        params.add("v_peak", 40.0)
+        params.add("v_rest", -85.0)
+        return params
 
     def I(self, v, s):
         """
