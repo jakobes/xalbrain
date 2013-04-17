@@ -97,11 +97,10 @@ if __name__ == "__main__":
         plot(u)
         continue
     total.stop()
-    list_timings()
 
     norm_u = norm(u)
     print "norm_u = %.16f" % norm_u
     reference =  11.2482303059560245
     diff = abs(reference - norm_u)
-    tol = 1.e-12
+    tol = 1.e-11
     assert (diff < tol), "Mismatch: %r" % diff
