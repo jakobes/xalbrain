@@ -73,6 +73,10 @@ if __name__ == "__main__":
     ps["ode_theta"] = 0.5
     ps["ode_polynomial_family"] = "CG"
     ps["ode_polynomial_degree"] = 1
+    ps["BasicCardiacODESolver"]["S_polynomial_family"] = "CG"
+    ps["BasicCardiacODESolver"]["S_polynomial_degree"] = 1
+    ps["BasicCardiacODESolver"]["V_polynomial_family"] = "CG"
+    ps["BasicCardiacODESolver"]["V_polynomial_degree"] = 1
     solver = SplittingSolver(heart, ps)
 
     # Define end-time and (constant) timestep

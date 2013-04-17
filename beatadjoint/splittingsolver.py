@@ -129,12 +129,15 @@ class BasicSplittingSolver:
         self.S = state_space(domain, num_states, fam, l)
         self.VS = self.V*self.S
 
+        # Create ODE solver and extract solution fields
+        self.ode_solver = self._create_ode_solver()
+        (self.vs_, self.vs) = self.ode_solver.solution_fields()
+
         # (Internal) solution fields
         self.u = Function(self.VUR.sub(1).collapse(), name="u")
-        self.vs_ = Function(self.VS, name="vs_")
-        self.vs = Function(self.VS, name="vs")
+        #self.vs_ = Function(self.VS, name="vs_")
+        #self.vs = Function(self.VS, name="vs")
 
-        self.ode_solver = self._create_ode_solver()
         #self.pde_solver = BidomainSolver()
 
     def _create_ode_solver(self):
@@ -184,8 +187,11 @@ class BasicSplittingSolver:
         params.add("num_threads", 0)
         params.add("use_avg_u_constraint", True)
 
-        # Add default parameters from ODE solver
+        # Add default parameters from ODE solver, but update for V
+        # space
         ode_solver_params = BasicCardiacODESolver.default_parameters()
+        ode_solver_params["V_polynomial_degree"] = 1
+        ode_solver_params["V_polynomial_family"] = "CG"
         params.add(ode_solver_params)
 
         # FIXME: Add default parameters from PDE solver
@@ -516,8 +522,6 @@ class SplittingSolver(BasicSplittingSolver):
         """
 
         parameters = BasicSplittingSolver.default_parameters()
-
-        info(parameters, True)
 
         # Customize linear solver parameters
         ps = parameters["linear_variational_solver"]
