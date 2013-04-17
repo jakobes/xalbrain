@@ -114,27 +114,21 @@ class BasicSplittingSolver:
             self.parameters.update(params)
 
         # Extract solution domain
-        domain = self._model.domain
-        self._domain = domain
-
-        # Create function spaces
-        k = self.parameters["potential_polynomial_degree"]
-        l = self.parameters["ode_polynomial_degree"]
-        fam = self.parameters["ode_polynomial_family"]
-        num_states = self._model.cell_model.num_states()
-
-        self.V = FunctionSpace(domain, "CG", k)
-        R = FunctionSpace(domain, "R", 0)
-        self.VUR = MixedFunctionSpace([self.V, self.V, R])
-        self.S = state_space(domain, num_states, fam, l)
-        self.VS = self.V*self.S
+        self._domain = self._model.domain
 
         # Create ODE solver and extract solution fields
         self.ode_solver = self._create_ode_solver()
         (self.vs_, self.vs) = self.ode_solver.solution_fields()
+        self.VS = self.vs.function_space()
+
+        # FIXME
+        self.V = self.VS.sub(0).collapse()
+        R = FunctionSpace(self._domain, "R", 0)
+        self.VUR = MixedFunctionSpace([self.V, self.V, R])
 
         # (Internal) solution fields
         self.u = Function(self.VUR.sub(1).collapse(), name="u")
+
         #self.vs_ = Function(self.VS, name="vs_")
         #self.vs = Function(self.VS, name="vs")
 
@@ -174,14 +168,6 @@ class BasicSplittingSolver:
         params.add("enable_adjoint", False)
         params.add("theta", 0.5)
         params.add("default_timestep", 1.0)
-
-        # To be removed
-        params.add("ode_polynomial_degree", 0)
-        params.add("ode_polynomial_family", "DG")
-        params.add("ode_theta", 0.5)
-
-        foo = NonlinearVariationalSolver.default_parameters()
-        params.add(foo)
 
         params.add("potential_polynomial_degree", 1)
         params.add("num_threads", 0)
@@ -250,7 +236,7 @@ class BasicSplittingSolver:
 
             info_blue("Solving on t = (%g, %g)" % (t0, t1))
             timestep = (t0, t1)
-            (vs, u) = self.step(timestep, self.vs_)
+            (vs, u) = self.step(timestep)
             self.vs.assign(vs, annotate=annotate)
             self.u.assign(u, annotate=False) # Not part of solution algorithm
 
@@ -264,7 +250,7 @@ class BasicSplittingSolver:
             t0 = t1
             t1 = t0 + dt
 
-    def step(self, interval, ics):
+    def step(self, interval):
         """
         Solve the problem given by the model on a given time interval
         (t0, t1) with timestep given by the interval length and given
@@ -274,8 +260,6 @@ class BasicSplittingSolver:
         *Arguments*
           interval (:py:class:`tuple`)
             The time interval for the solve given by (t0, t1)
-          ics (:py:class:`dolfin.Function`)
-            Initial conditions for vs for this interval
 
         *Returns*
           (current vs, current u) (:py:class:`tuple` of :py:class:`dolfin.Function`)
@@ -292,7 +276,8 @@ class BasicSplittingSolver:
 
         # Compute tentative membrane potential and state (vs_star)
         begin("Tentative ODE step")
-        vs_star = self.ode_step((t0, t), ics)
+        self.ode_solver._step((t0, t))
+        vs_star = self.vs
         end()
 
         # Compute tentative potentials vu = (v, u)
@@ -315,76 +300,13 @@ class BasicSplittingSolver:
 
         # Otherwise, we do another ode_step:
         begin("Corrective ODE step")
-        vs = self.ode_step((t, t1), v_s_star)
+        self.vs_.assign(v_s_star)
+        self.ode_solver._step((t, t1))
+        vs = self.vs
+
         end()
 
         return (vs, vur.split()[1])
-
-    def ode_step(self, interval, ics):
-        """
-        Solve the ODE step of the splitting scheme for the problem
-        given by the model on a given time interval (t0, t1) with
-        timestep given by the interval length and given initial
-        conditions, return the current vs solution.
-
-        *Arguments*
-          interval (:py:class:`tuple`)
-            The time interval for the solve given by (t0, t1)
-          ics (:py:class:`dolfin.Function`)
-            Initial conditions for vs for this interval
-
-        *Returns*
-          current vs (:py:class:`dolfin.Function`)
-        """
-
-        # For now, just use theta scheme. To be improved.
-
-        # Extract time domain
-        (t0, t1) = interval
-        k_n = Constant(t1 - t0)
-
-        # Extract initial conditions
-        (v_, s_) = split(ics)
-
-        # Set-up current variables
-        vs = Function(self.VS, name="ode_vs")
-        annotate = self.parameters["enable_adjoint"]
-        vs.assign(ics, annotate=annotate) # Start with good guess
-        (v, s) = split(vs)
-        (w, r) = TestFunctions(self.VS)
-
-        # Define equation based on cell model
-        # Note sign for I_theta
-        Dt_v = (v - v_)/k_n
-        Dt_s = (s - s_)/k_n
-
-        theta = self.parameters["ode_theta"]
-        F = self._model.cell_model.F
-        I_ion = self._model.cell_model.I
-        I_theta = - (theta*I_ion(v, s) + (1 - theta)*I_ion(v_, s_))
-        F_theta = theta*F(v, s) + (1 - theta)*F(v_, s_)
-
-        # Add stimulus if applicable
-        stimulus = self._model.stimulus
-        if stimulus:
-            t = t0 + theta*(t1 - t0)
-            stimulus.t = t
-            I_theta += stimulus
-
-        # Set-up system
-        G = (Dt_v - I_theta)*w*dx + inner(Dt_s - F_theta, r)*dx
-        pde = NonlinearVariationalProblem(G, vs, J=derivative(G, vs))
-
-        # Set-up solver
-        parameters.num_threads = self.parameters["num_threads"]
-        solver = NonlinearVariationalSolver(pde)
-        solver_params = self.parameters["nonlinear_variational_solver"]
-        solver.parameters.update(solver_params)
-
-        # Solve system
-        solver.solve(annotate=self.parameters["enable_adjoint"])
-        parameters.num_threads = 0
-        return vs
 
     def pde_step(self, interval, vs_):
         """
@@ -529,8 +451,6 @@ class SplittingSolver(BasicSplittingSolver):
         ps["krylov_solver"]["preconditioner"]["same_nonzero_pattern"] = True
         ps["lu_solver"]["same_nonzero_pattern"] = True
 
-        ps = parameters["nonlinear_variational_solver"]
-        ps["linear_solver"] = "iterative"
         return parameters
 
     def linear_solver(self):
