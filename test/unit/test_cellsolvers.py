@@ -3,11 +3,13 @@ Unit tests for various types of solvers for cardiac cell models.
 """
 
 __author__ = "Marie E. Rognes (meg@simula.no), 2013"
-__all__ = [""]
+__all__ = ["TestBasicSingleBasicSingleCellSolver",
+           "TestPointIntegralSolver"]
 
 import unittest
 from dolfin import *
 from beatadjoint import *
+from beatadjoint.utils import state_space
 
 class TestBasicSingleBasicSingleCellSolver(unittest.TestCase):
     "Test functionality for the basic single cell solver."
@@ -54,20 +56,84 @@ class TestBasicSingleBasicSingleCellSolver(unittest.TestCase):
         else:
             info("Missing references for %r, %r" % (Model, theta))
 
-    def test_default_basic_single_cell_solver(self):
+    def _test_default_basic_single_cell_solver(self):
         "Test basic single cell solver."
         for Model in supported_cell_models:
             self._compare_solve_step(Model)
 
-    def test_default_basic_single_cell_solver_be(self):
+    def _test_default_basic_single_cell_solver_be(self):
         "Test basic single cell solver with Backward Euler."
         for Model in supported_cell_models:
             self._compare_solve_step(Model, theta=1.0)
 
-    def test_default_basic_single_cell_solver_fe(self):
+    def _test_default_basic_single_cell_solver_fe(self):
         "Test basic single cell solver with Forward Euler."
         for Model in supported_cell_models:
             self._compare_solve_step(Model, theta=0.0)
+
+class TestPointIntegralSolver(unittest.TestCase):
+    def setUp(self):
+
+        # Note that these should be identical to the ones for the
+        # BasicSingleCellSolver, but note that CN does not match
+        # perfectly, not sure if this is round-off or bug.
+        self.references = {NoCellModel: {BackwardEuler: 0.3,
+                                         CrankNicolson: 0.2,
+                                         ForwardEuler: 0.1},
+                           FitzHughNagumoManual:
+                               {BackwardEuler: -84.70013280019053,
+                                CrankNicolson: -84.80005016079546,
+                                ForwardEuler:  -84.9}}
+
+    def _compare_against_reference(self, Model, Scheme, mesh):
+
+        # Create model instance
+        model = Model()
+        info("Testing %s" % str(model))
+
+        # Initialize time and stimulus (note t=time construction!)
+        time = Constant(0.0)
+        model.stimulus = Expression("1000*t", t=time)
+
+        # Create rhs form by combining cell model info with function space
+        V = FunctionSpace(mesh, "CG", 1)
+        S = state_space(mesh, model.num_states())
+        VS = V*S
+        vs = Function(VS)
+        (v, s) = split(vs)
+        (w, q) = TestFunction(VS)
+        rhs = (inner(model.F(v, s), q) - inner(model.I(v, s), w))*dP
+        if model.stimulus:
+            rhs += inner(model.stimulus, w)*dP
+
+        # Create scheme
+        scheme = Scheme(rhs, vs, time)
+        scheme.t().assign(0.0) # MER: Why is this needed, Johan?
+
+        # Start with native initial conditions, step twice and compare
+        # results to given reference
+        next_dt = 0.01
+        vs.assign(model.initial_conditions())
+        solver = PointIntegralSolver(scheme)
+        solver.parameters.newton_solver.report = False
+        solver.step(next_dt)
+        solver.step(next_dt)
+
+        if Model in self.references and Scheme in self.references[Model]:
+            self.assertAlmostEqual(vs.vector()[0],
+                                   self.references[Model][Scheme])
+        else:
+            info("Missing references for %s, %s: value is %g"
+                 % (Model, Scheme, vs.vector()[0]))
+
+    def test_point_integral_solver(self):
+        mesh = UnitIntervalMesh(1)
+        for Model in supported_cell_models:
+            for Scheme in [BackwardEuler, ForwardEuler, CrankNicolson,
+                           RK4]:
+                self._compare_against_reference(Model, Scheme, mesh)
+
+
 
 if __name__ == "__main__":
     print("")
