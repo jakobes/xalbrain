@@ -137,20 +137,21 @@ class BasicCardiacODESolver(object):
 
         """
 
-        # Solve on entire interval if no interval is given.
-        if dt is None:
-            dt = (T - T0)
-
         # FIXME: Add check that T >= T0 + dt
 
         # Initial set-up
         (T0, T) = interval
+
+        # Solve on entire interval if no interval is given.
+        if dt is None:
+            dt = (T - T0)
+
         t0 = T0
         t1 = T0 + dt
 
         # Step through time steps until at end time
         while (True) :
-            info_blue("Solving on t = (%g, %g)" % (t0, t1))
+            #info_blue("Solving on t = (%g, %g)" % (t0, t1))
             self._step((t0, t1))
 
             # Yield solutions
@@ -168,12 +169,14 @@ class BasicCardiacODESolver(object):
     def _step(self, interval):
         """
         Step the solver forward on the given time interval (t0,
-        t1). Users are recommended to use solve instead.
+        t1). End users are recommended to use solve instead.
 
         *Arguments*
           interval (:py:class:`tuple`)
             The time interval for the solve given by (t0, t1)
         """
+
+        info_green("Solving on t = (%g, %g)" % interval)
 
         # Extract time domain
         (t0, t1) = interval
@@ -195,8 +198,8 @@ class BasicCardiacODESolver(object):
 
         # Note sign for I_theta
         F_theta = theta*self._F(v, s) + (1 - theta)*self._F(v_, s_)
-        I_theta = - (theta*(self._I_ion(v, s)
-                            + (1 - theta)*self._I_ion(v_, s_)))
+        I_theta = - (theta*self._I_ion(v, s)
+                     + (1 - theta)*self._I_ion(v_, s_))
 
         # Add stimulus (I_s) if applicable
         if self._I_s:
