@@ -2,21 +2,28 @@
 
 __author__ = "Marie E. Rognes (meg@simula.no), 2012--2013"
 
-__all__ = ["BasicSingleCellSolver"]
+__all__ = ["BasicSingleCellSolver, BasicCardiacODESolver"]
 
 from dolfin import *
 from dolfin_adjoint import *
 from beatadjoint import CardiacCellModel
 from beatadjoint.utils import state_space
 
-class BasicSingleCellSolver:
-    """A basic, non-optimised solver for standalone cardiac cell
-    models.
+class BasicCardiacODESolver(object):
+    """A basic, non-optimised solver for systems of ODEs typically
+    encountered in cardiac applications of the form: find a scalar
+    field v = v(x, t) and a vector field s = s(x, t)
 
-    The nonlinear ODE system described by the cell model is solved via
-    a theta-scheme.  By default theta=0.5, which corresponds to a
-    Crank-Nicolson scheme. This can be changed by modifying the solver
-    parameters.
+      v_t = - I_ion(v, s) + I_s
+      s_t = F(v, s)
+
+    where I_ion and F are given non-linear functions, I_s is some
+    prescribed stimulus. If I_s depends on time, it is assumed
+    that I_s is an Expression with parameter 't'.
+
+    Here, this nonlinear ODE system is solved via a theta-scheme.  By
+    default theta=0.5, which corresponds to a Crank-Nicolson
+    scheme. This can be changed by modifying the solver parameters.
 
     .. note::
 
@@ -29,37 +36,46 @@ class BasicSingleCellSolver:
        simulation.
 
     *Arguments*
-      model (:py:class:`~beatadjoint.cellmodels.cardiaccellmodel.CardiacCellModel`)
-        The cardiac cell model in
+      domain (:py:class:`dolfin.Mesh`)
+        The spatial domain (mesh)
+
+      num_states (int)
+        The number of state variables (length of s)
+
+      F (:py:func:`lambda`)
+        A (non-)linear lambda vector function describing the evolution
+        of the state variables (s)
+
+      I_ion (:py:func:`lambda`)
+        A (non-)linear lambda scalar function describing the evolution
+        of the variable v
+
+      I_s (:py:class:`dolfin.Expression`, optional)
+        A (typically time-dependent) external stimulus
+
       params (:py:class:`dolfin.Parameters`, optional)
         Solver parameters
 
     """
+    def __init__(self, domain, num_states, F, I_ion, I_s=None, params=None):
+        # Store input
+        self._domain = domain
+        self._F = F
+        self._I_ion = I_ion
+        self._num_states = num_states
+        self._I_s = I_s
 
-    def __init__(self, model, params=None):
-        "Create solver from given cell model and optional parameters."
-
-        assert isinstance(model, CardiacCellModel), \
-            "Expecting CardiacCellModel as first argument to BasicSingleCellSolver"
-
-        # Set model and parameters
-        self._model = model
+        # Initialize and update parameters if given
         self.parameters = self.default_parameters()
         if params is not None:
             self.parameters.update(params)
 
-        # Define domain (carefully chosen dummy)
-        self._domain = UnitIntervalMesh(1)
-
-        # Extract number of state variables from model
-        num_states = self._model.num_states()
-
         # Create (mixed) function space for potential + states
         V = FunctionSpace(self._domain, "DG", 0)
-        S = state_space(self._domain, num_states, "DG", 0)
+        S = state_space(self._domain, self._num_states, "DG", 0)
         self.VS = V*S
 
-        # Initialize helper functions
+        # Initialize solution fields
         self.vs_ = Function(self.VS, name="vs_")
         self.vs = Function(self.VS, name="vs")
 
@@ -70,7 +86,7 @@ class BasicSingleCellSolver:
         *Returns*
           A set of parameters (:py:class:`dolfin.Parameters`)
         """
-        params = Parameters("BasicSingleCellSolver")
+        params = Parameters("BidomainODESolver")
         params.add("theta", 0.5)
         return params
 
@@ -168,18 +184,17 @@ class BasicSingleCellSolver:
         Dt_s = (s - s_)/k_n
 
         theta = self.parameters["theta"]
-        F = self._model.F
-        I_ion = self._model.I
 
         # Note sign for I_theta
-        F_theta = theta*F(v, s) + (1 - theta)*F(v_, s_)
-        I_theta = - (theta*(I_ion(v, s) + (1 - theta)*I_ion(v_, s_)))
+        F_theta = theta*self._F(v, s) + (1 - theta)*self._F(v_, s_)
+        I_theta = - (theta*(self._I_ion(v, s)
+                            + (1 - theta)*self._I_ion(v_, s_)))
 
-        # Add current if applicable
-        if self._model.stimulus:
+        # Add stimulus (I_s) if applicable
+        if self._I_s:
             t = t0 + theta*(t1 - t0)
-            self._model.stimulus.t = t
-            I_theta += self._model.stimulus
+            self._I_s.t = t
+            I_theta += self._I_s
 
         # Set-up system
         G = (Dt_v - I_theta)*w*dx + inner(Dt_s - F_theta, r)*dx
@@ -188,3 +203,63 @@ class BasicSingleCellSolver:
         pde = NonlinearVariationalProblem(G, self.vs, J=derivative(G, self.vs))
         solver = NonlinearVariationalSolver(pde)
         solver.solve()
+
+class BasicSingleCellSolver(BasicCardiacODESolver):
+    """A basic, non-optimised solver for systems of ODEs typically
+    encountered in cardiac applications of the form: find a scalar
+    field v = v(t) and a vector field s = s(t)
+
+      v_t = - I_ion(v, s) + I_s
+      s_t = F(v, s)
+
+    where I_ion and F are given non-linear functions, I_s is some
+    prescribed stimulus. If I_s depends on time, it is assumed
+    that I_s is an Expression with parameter 't'.
+
+    Use this solver if you just want to test the results from a
+    cardiac cell model without any spatial domain dependence.
+
+    Here, this nonlinear ODE system is solved via a theta-scheme.  By
+    default theta=0.5, which corresponds to a Crank-Nicolson
+    scheme. This can be changed by modifying the solver parameters.
+
+    .. note::
+
+       For the sake of simplicity and consistency with other solver
+       objects, this solver operates on its solution fields (as state
+       variables) directly internally. More precisely, solve (and
+       step) calls will act by updating the internal solution
+       fields. It implies that initial conditions can be set (and are
+       intended to be set) by modifying the solution fields prior to
+       simulation.
+
+    *Arguments*
+      model (:py:class:`~beatadjoint.cellmodels.cardiaccellmodels.CardiacCellModel`)
+        A cardiac cell model
+
+      params (:py:class:`dolfin.Parameters`, optional)
+        Solver parameters
+
+    """
+
+    def __init__(self, model, params=None):
+        "Create solver from given cell model and optional parameters."
+
+        assert isinstance(model, CardiacCellModel), \
+            "Expecting CardiacCellModel as first argument to BasicSingleCellSolver"
+
+        # Store model
+        self._model = model
+
+        # Define carefully chosen dummy domain
+        domain = UnitIntervalMesh(1)
+
+        # Extract information from cardiac cell model and ship off to
+        # super-class.
+        BasicCardiacODESolver.__init__(self,
+                                       domain,
+                                       model.num_states(),
+                                       model.F,
+                                       model.I,
+                                       I_s=model.stimulus,
+                                       params=params)
