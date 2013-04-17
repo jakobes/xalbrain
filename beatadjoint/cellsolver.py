@@ -71,9 +71,11 @@ class BasicCardiacODESolver(object):
             self.parameters.update(params)
 
         # Create (mixed) function space for potential + states
-        family = self.parameters["polynomial_family"]
-        degree = self.parameters["polynomial_degree"]
+        family = self.parameters["V_polynomial_family"]
+        degree = self.parameters["V_polynomial_degree"]
         V = FunctionSpace(self._domain, family, degree)
+        family = self.parameters["S_polynomial_family"]
+        degree = self.parameters["S_polynomial_degree"]
         S = state_space(self._domain, self._num_states, family, degree)
         self.VS = V*S
 
@@ -90,8 +92,10 @@ class BasicCardiacODESolver(object):
         """
         params = Parameters("BasicCardiacODESolver")
         params.add("theta", 0.5)
-        params.add("polynomial_degree", 0)
-        params.add("polynomial_family", "DG")
+        params.add("V_polynomial_degree", 0)
+        params.add("V_polynomial_family", "DG")
+        params.add("S_polynomial_degree", 0)
+        params.add("S_polynomial_family", "DG")
         return params
 
     def solution_fields(self):
