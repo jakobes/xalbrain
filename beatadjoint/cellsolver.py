@@ -2,7 +2,7 @@
 
 __author__ = "Marie E. Rognes (meg@simula.no), 2012--2013"
 
-__all__ = ["BasicSingleCellSolver, BasicCardiacODESolver"]
+__all__ = ["BasicSingleCellSolver", "BasicCardiacODESolver"]
 
 from dolfin import *
 from dolfin_adjoint import *
@@ -60,9 +60,9 @@ class BasicCardiacODESolver(object):
     def __init__(self, domain, num_states, F, I_ion, I_s=None, params=None):
         # Store input
         self._domain = domain
+        self._num_states = num_states
         self._F = F
         self._I_ion = I_ion
-        self._num_states = num_states
         self._I_s = I_s
 
         # Initialize and update parameters if given
@@ -71,8 +71,10 @@ class BasicCardiacODESolver(object):
             self.parameters.update(params)
 
         # Create (mixed) function space for potential + states
-        V = FunctionSpace(self._domain, "DG", 0)
-        S = state_space(self._domain, self._num_states, "DG", 0)
+        family = self.parameters["polynomial_family"]
+        degree = self.parameters["polynomial_degree"]
+        V = FunctionSpace(self._domain, family, degree)
+        S = state_space(self._domain, self._num_states, family, degree)
         self.VS = V*S
 
         # Initialize solution fields
@@ -86,8 +88,10 @@ class BasicCardiacODESolver(object):
         *Returns*
           A set of parameters (:py:class:`dolfin.Parameters`)
         """
-        params = Parameters("BidomainODESolver")
+        params = Parameters("BasicCardiacODESolver")
         params.add("theta", 0.5)
+        params.add("polynomial_degree", 0)
+        params.add("polynomial_family", "DG")
         return params
 
     def solution_fields(self):

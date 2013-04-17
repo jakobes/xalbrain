@@ -59,6 +59,7 @@ __all__ = ["SplittingSolver", "BasicSplittingSolver"]
 from dolfin import *
 from dolfin_adjoint import *
 from beatadjoint import CardiacModel
+from beatadjoint.cellsolver import BasicCardiacODESolver
 from beatadjoint.utils import join, state_space
 
 class BasicSplittingSolver:
@@ -100,7 +101,7 @@ class BasicSplittingSolver:
       * The cardiac conductivities do not vary in time
 
     """
-    def __init__(self, model, parameters=None):
+    def __init__(self, model, params=None):
         "Create solver from given Cardiac Model and (optional) parameters."
 
         assert isinstance(model, CardiacModel), \
@@ -109,8 +110,8 @@ class BasicSplittingSolver:
         # Set model and parameters
         self._model = model
         self.parameters = self.default_parameters()
-        if parameters is not None:
-            self.parameters.update(parameters)
+        if params is not None:
+            self.parameters.update(params)
 
         # Extract solution domain
         domain = self._model.domain
@@ -128,10 +129,30 @@ class BasicSplittingSolver:
         self.S = state_space(domain, num_states, fam, l)
         self.VS = self.V*self.S
 
-        # Helper functions
+        # (Internal) solution fields
         self.u = Function(self.VUR.sub(1).collapse(), name="u")
         self.vs_ = Function(self.VS, name="vs_")
         self.vs = Function(self.VS, name="vs")
+
+        self.ode_solver = self._create_ode_solver()
+        #self.pde_solver = BidomainSolver()
+
+    def _create_ode_solver(self):
+        """Helper function to initialize a suitable ODE solver from
+        the cardiac model."""
+
+        # Extract cardiac cell model from cardiac model
+        cell_model = self._model.cell_model
+
+        # Extract stimulus from the cardiac model(!)
+        stimulus = self._model.stimulus
+
+        # Extract ode solver parameters
+        params = self.parameters["BasicCardiacODESolver"]
+        solver = BasicCardiacODESolver(self._domain, cell_model.num_states(),
+                                       cell_model.F, cell_model.I,
+                                       I_s = stimulus, params=params)
+        return solver
 
     @staticmethod
     def default_parameters():
@@ -146,25 +167,31 @@ class BasicSplittingSolver:
           info(BasicSplittingSolver.default_parameters(), True)
         """
 
-        parameters = Parameters("SplittingSolver")
-        parameters.add("enable_adjoint", False)
-        parameters.add("theta", 0.5)
-        parameters.add("default_timestep", 1.0)
+        params = Parameters("SplittingSolver")
+        params.add("enable_adjoint", False)
+        params.add("theta", 0.5)
+        params.add("default_timestep", 1.0)
 
-        parameters.add("potential_polynomial_degree", 1)
-        parameters.add("ode_polynomial_degree", 0)
-        parameters.add("ode_polynomial_family", "DG")
-        parameters.add("ode_theta", 0.5)
-        parameters.add("num_threads", 0)
+        # To be removed
+        params.add("ode_polynomial_degree", 0)
+        params.add("ode_polynomial_family", "DG")
+        params.add("ode_theta", 0.5)
 
-        parameters.add("use_avg_u_constraint", True)
+        foo = NonlinearVariationalSolver.default_parameters()
+        params.add(foo)
 
-        ode_solver_params = NonlinearVariationalSolver.default_parameters()
-        parameters.add(ode_solver_params)
+        params.add("potential_polynomial_degree", 1)
+        params.add("num_threads", 0)
+        params.add("use_avg_u_constraint", True)
 
+        # Add default parameters from ODE solver
+        ode_solver_params = BasicCardiacODESolver.default_parameters()
+        params.add(ode_solver_params)
+
+        # FIXME: Add default parameters from PDE solver
         pde_solver_params = LinearVariationalSolver.default_parameters()
-        parameters.add(pde_solver_params)
-        return parameters
+        params.add(pde_solver_params)
+        return params
 
     def solution_fields(self):
         """
@@ -489,6 +516,8 @@ class SplittingSolver(BasicSplittingSolver):
         """
 
         parameters = BasicSplittingSolver.default_parameters()
+
+        info(parameters, True)
 
         # Customize linear solver parameters
         ps = parameters["linear_variational_solver"]
