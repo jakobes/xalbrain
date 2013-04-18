@@ -168,12 +168,13 @@ class BasicCardiacODESolver(object):
 
     def _step(self, interval):
         """
-        Step the solver forward on the given time interval (t0,
-        t1). End users are recommended to use solve instead.
+        Solve on the given time step (t0, t1).
+
+        End users are recommended to use solve instead.
 
         *Arguments*
           interval (:py:class:`tuple`)
-            The time interval for the solve given by (t0, t1)
+            The time interval (t0, t1) for the step
         """
 
         info_green("Solving on t = (%g, %g)" % interval)
