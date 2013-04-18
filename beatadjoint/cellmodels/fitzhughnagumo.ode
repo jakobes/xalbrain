@@ -1,7 +1,7 @@
 # Cell model file for modified Fitz-Hugo-Nagumo model
 
 # States with default initial conditions
-states(v=[-85.0],
+states(v=-85.0,
        s=0.0)
 
 # Parameters with default values
@@ -21,5 +21,5 @@ I = (c_1/(v_amp**2)*(v - v_rest)*(v - v_th)*(v_peak - v)
      - c_2/(v_amp)*(v - v_rest)*s)
 
 # Time derivatives
-diff(v, -I)
-diff(s, b*(v - v_rest - c_3*s))
+dv_dt = -I
+ds_dt = b*(v - v_rest - c_3*s)

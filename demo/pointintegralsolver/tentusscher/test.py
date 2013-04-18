@@ -13,8 +13,15 @@ params = default_parameters(stim_start=5)
 state_init = init_values()
 
 parameters.form_compiler.optimize=False
-parameters.form_compiler.cpp_optimize=True
+#parameters.form_compiler.cpp_optimize=True
 parameters.form_compiler.quadrature_degree = 2
+parameters["form_compiler"]["cpp_optimize"] = True
+
+opt = False
+
+if opt:
+    parameters["form_compiler"]["cpp_optimize_flags"] = "-O3 -ffast-math -march=native"
+#parameters.form_compiler.representation = "uflacs"
 
 mesh = UnitSquareMesh(10,10)
 V = VectorFunctionSpace(mesh, "CG", 1, dim=state_init.value_size())
@@ -30,7 +37,7 @@ ind_V = 15
 dt = 0.1
 dt_output = 5.0
 for integral, Solver, solver_str in [(dP, PointIntegralSolver, "PointIntegralSolver"),
-                                     (dx, RKSolver, "RKSolver"), 
+#                                     (dx, RKSolver, "RKSolver"), 
                                      ]:
     for Scheme in [BackwardEuler, 
                    #ExplicitMidPoint, RK4, ForwardEuler, 
@@ -68,6 +75,7 @@ for integral, Solver, solver_str in [(dP, PointIntegralSolver, "PointIntegralSol
             
             # Step solver
             solver.step(next_dt)
+            timer.stop()
 
             # Collect plt output data
             u_array[vertex_to_dof_map] = u.vector().array()
@@ -84,4 +92,6 @@ for integral, Solver, solver_str in [(dP, PointIntegralSolver, "PointIntegralSol
             # Next time step
             next_dt = max(min(tstop-float(scheme.t()), dt), 0.0)
 
-#list_timings()
+np.array(output).tofile("solution{0}.npy".format("_opt" if opt else ""))
+
+list_timings()
