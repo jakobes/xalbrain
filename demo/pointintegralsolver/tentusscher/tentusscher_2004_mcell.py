@@ -51,12 +51,12 @@ def default_parameters(**values):
     # V_sr=0.001094, Vmax_up=0.000425, a_rel=0.016464, b_rel=0.25,
     # c_rel=0.008232, tau_g=2, Na_o=140, Cm=0.185, F=96485.3415,
     # R=8314.472, T=310, V_c=0.016404, stim_amplitude=52,
-    # stim_duration=1, stim_period=1000, stim_start=10, K_o=5.4
+    # stim_duration=1, stim_start=5, K_o=5.4
     param_values = [0.03, 5.405, 0.096, 0.062, 14.838, 0.00029, 0.000175,\
         0.000592, 0.294, 40, 1, 1.362, 1000, 0.1, 1.38, 87.5, 2.5, 0.35,\
         0.0005, 0.825, 0.0146, 0.15, 10, 2, 0.001, 0.3, 0.00025, 8e-05,\
         0.001094, 0.000425, 0.016464, 0.25, 0.008232, 2, 140, 0.185,\
-        96485.3415, 8314.472, 310, 0.016404, 52, 1, 1000, 10, 5.4]
+        96485.3415, 8314.472, 310, 0.016404, 52, 1, 5, 5.4]
 
     # Parameter indices and limit checker
     param_ind = dict(P_kna=(0, Range()), g_K1=(1, Range()), g_Kr=(2,\
@@ -73,8 +73,7 @@ def default_parameters(**values):
         Range()), Na_o=(34, Range()), Cm=(35, Range()), F=(36, Range()),\
         R=(37, Range()), T=(38, Range()), V_c=(39, Range()),\
         stim_amplitude=(40, Range()), stim_duration=(41, Range()),\
-        stim_period=(42, Range()), stim_start=(43, Range()), K_o=(44,\
-        Range()))
+        stim_start=(42, Range()), K_o=(43, Range()))
 
     for param_name, value in values.items():
         if param_name not in param_ind:
@@ -109,14 +108,14 @@ def rhs(states, time, parameters, dy=None):
     assert(isinstance(parameters, (dolfin.Function, dolfin.Constant)))
     if isinstance(parameters, dolfin.Function):
         assert(parameters.function_space().depth() == 1)
-        assert(parameters.function_space().num_sub_spaces() == 45)
+        assert(parameters.function_space().num_sub_spaces() == 44)
     else:
-        assert(parameters.value_size() == 45)
+        assert(parameters.value_size() == 44)
     P_kna, g_K1, g_Kr, g_Ks, g_Na, g_bna, g_CaL, g_bca, g_to, K_mNa, K_mk,\
         P_NaK, K_NaCa, K_sat, Km_Ca, Km_Nai, alpha, gamma, K_pCa, g_pCa,\
         g_pK, Buf_c, Buf_sr, Ca_o, K_buf_c, K_buf_sr, K_up, V_leak, V_sr,\
         Vmax_up, a_rel, b_rel, c_rel, tau_g, Na_o, Cm, F, R, T, V_c,\
-        stim_amplitude, stim_duration, stim_period, stim_start, K_o =\
+        stim_amplitude, stim_duration, stim_start, K_o =\
         dolfin.split(parameters)
 
     # Reversal potentials
@@ -152,7 +151,7 @@ def rhs(states, time, parameters, dy=None):
     i_Ks = (Xs*Xs)*(V - E_Ks)*g_Ks
 
     # Slow time dependent potassium current xs gate
-    xs_inf = 1.0/(1.0 + 0.751477293075286*ufl.exp(-0.0714285714285714*V))
+    xs_inf = 1.0/(1.0 + 0.69967253737513*ufl.exp(-0.0714285714285714*V))
     alpha_xs = 1100.0/ufl.sqrt(1.0 +\
         0.188875602837562*ufl.exp(-0.166666666666667*V))
     beta_xs = 1.0/(1.0 + 0.0497870683678639*ufl.exp(0.05*V))
@@ -165,9 +164,9 @@ def rhs(states, time, parameters, dy=None):
     m_inf = 1.0/((1.0 +\
         0.00184221158116513*ufl.exp(-0.110741971207087*V))*(1.0 +\
         0.00184221158116513*ufl.exp(-0.110741971207087*V)))
-    alpha_m = 1.0/(1.0 + ufl.exp(-15.0 - V/4.0))
+    alpha_m = 1.0/(1.0 + ufl.exp(-12.0 - V/5.0))
     beta_m = 0.1/(1.0 + 0.778800783071405*ufl.exp(0.005*V)) + 0.1/(1.0 +\
-        ufl.exp(35/4 + V/4.0))
+        ufl.exp(7.0 + V/5.0))
     tau_m = alpha_m*beta_m
 
     # Fast sodium current h gate
@@ -201,10 +200,10 @@ def rhs(states, time, parameters, dy=None):
         ufl.exp(2.0*F*V/(R*T)))*R*T)
 
     # L type ca current d gate
-    d_inf = 1.0/(1.0 + 0.586646219510032*ufl.exp(-0.133333333333333*V))
+    d_inf = 1.0/(1.0 + 0.513417119032592*ufl.exp(-0.133333333333333*V))
     alpha_d = 0.25 + 1.4/(1.0 +\
         0.0677244716592409*ufl.exp(-0.0769230769230769*V))
-    beta_d = 1.4/(1.0 + ufl.exp(1.0 + V/4.0))
+    beta_d = 1.4/(1.0 + ufl.exp(1.0 + V/5.0))
     gamma_d = 1.0/(1.0 + 12.1824939607035*ufl.exp(-0.05*V))
     tau_d = gamma_d + alpha_d*beta_d
 
@@ -229,9 +228,9 @@ def rhs(states, time, parameters, dy=None):
     i_to = (-E_K + V)*g_to*r*s
 
     # Transient outward current s gate
-    s_inf = 1.0/(1.0 + ufl.exp(5.0 + V/4.0))
-    tau_s = 3.0 + 4.0/(1.0 + ufl.exp(-5.0 + V/4.0)) +\
-        85.0*ufl.exp(-0.003125*((45.0 + V)*(45.0 + V)))
+    s_inf = 1.0/(1.0 + ufl.exp(4.0 + V/5.0))
+    tau_s = 3.0 + 85.0*ufl.exp(-0.003125*((45.0 + V)*(45.0 + V))) + 5.0/(1.0 +\
+        ufl.exp(-4.0 + V/5.0))
 
     # Transient outward current r gate
     r_inf = 1.0/(1.0 + 28.0316248945261*ufl.exp(-0.166666666666667*V))
@@ -258,7 +257,9 @@ def rhs(states, time, parameters, dy=None):
     i_rel = ((Ca_SR*Ca_SR)*a_rel/((Ca_SR*Ca_SR) + (b_rel*b_rel)) + c_rel)*d*g
     i_up = Vmax_up/(1.0 + (K_up*K_up)/(Ca_i*Ca_i))
     i_leak = (-Ca_i + Ca_SR)*V_leak
-    g_inf = 1.0/(1.0 + 5.43991024148102e+20*ufl.elem_pow(Ca_i, 6.0))
+    g_inf = ufl.conditional(ufl.lt(Ca_i, 0.00035), 1.0/(1.0 +\
+        5.43991024148102e+20*ufl.elem_pow(Ca_i, 6.0)), 1.0/(1.0 +\
+        1.97201988740492e+55*ufl.elem_pow(Ca_i, 16.0)))
     d_g = (-g + g_inf)/tau_g
     Ca_i_bufc = 1.0/(1.0 + Buf_c*K_buf_c/((K_buf_c + Ca_i)*(K_buf_c + Ca_i)))
     Ca_sr_bufsr = 1.0/(1.0 + Buf_sr*K_buf_sr/((K_buf_sr + Ca_SR)*(K_buf_sr +\

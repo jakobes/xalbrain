@@ -152,8 +152,7 @@ parameters("Membrane",
            F = 96485.3415,
            Cm = 0.185,
            V_c = 0.016404,
-           stim_start = 10,
-           stim_period = 1000,
+           stim_start = 5,
            stim_duration = 1,
            stim_amplitude = 52)
 
@@ -272,7 +271,7 @@ component("Calcium dynamics")
 i_rel = ((a_rel*Ca_SR**two)/(b_rel**two + Ca_SR**two) + c_rel)*d*g
 i_up = Vmax_up/(one + K_up**two/Ca_i**two)
 i_leak = V_leak*(Ca_SR - Ca_i)
-g_inf = one/(one + (Ca_i/0.00035)**6)#Conditional(Lt(Ca_i, 0.00035), one/(one + (Ca_i/0.00035)**6), one/(one + (Ca_i/0.00035)**16))
+g_inf = Conditional(Lt(Ca_i, 0.00035), one/(one + (Ca_i/0.00035)**6), one/(one + (Ca_i/0.00035)**16))
 d_g = (g_inf - g)/tau_g
 Ca_i_bufc = one/(one + (Buf_c*K_buf_c)/(Ca_i + K_buf_c)**two)
 Ca_sr_bufsr = one/(one + (Buf_sr*K_buf_sr)/(Ca_SR + K_buf_sr)**two)
@@ -293,10 +292,10 @@ dh_dt = (h_inf - h)/tau_h
 dj_dt = (j_inf - j)/tau_j
 dd_dt = (d_inf - d)/tau_d
 df_dt = (f_inf - f)/tau_f
-dfCa_dt = Conditional((Gt(fCa_inf, fCa) & Gt(V, -60)), 0, d_fCa)
+dfCa_dt = Conditional(And(Gt(fCa_inf, fCa), Gt(V, -60)), 0, d_fCa)
 ds_dt = (s_inf - s)/tau_s
 dr_dt = (r_inf - r)/tau_r
-dg_dt = Conditional((Gt(g_inf, g) & Gt(V, -60)), 0, d_g)
+dg_dt = Conditional(And(Gt(g_inf, g), Gt(V, -60)), 0, d_g)
 dCa_i_dt = Ca_i_bufc*((i_leak - i_up + i_rel) - (one*((i_CaL + i_b_Ca + i_p_Ca) - two*i_NaCa))/(two*one*V_c*F)*Cm)
 dCa_SR_dt = (Ca_sr_bufsr*V_c)/V_sr*(i_up - (i_rel + i_leak))
 dNa_i_dt = (-one*(i_Na + i_b_Na + three*i_NaK + three*i_NaCa)*Cm)/(one*V_c*F)
