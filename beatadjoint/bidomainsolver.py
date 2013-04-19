@@ -11,20 +11,19 @@ potential :math:`u = u(x, t)` such that
 
 where the subscript :math:`t` denotes the time derivative; :math:`G_x`
 denotes a weighted gradient: :math:`G_x = M_x \mathrm{grad}(v)` for
-:math:`x \in \{i, e\}`, where :math:`M_i` and :math:`M_e` are cardiac
-conductivity tensors; :math:`I_s` and :math:`I_a` are prescribed
-input. In addition, initial conditions are given for :math:`v`:
+:math:`x \in \{i, e\}`, where :math:`M_i` and :math:`M_e` are the
+intracellular and extracellular cardiac conductivity tensors,
+respectively; :math:`I_s` and :math:`I_a` are prescribed input. In
+addition, initial conditions are given for :math:`v`:
 
 .. math::
 
    v(x, 0) = v_0
 
 Finally, boundary conditions must be prescribed. For now, this solver
-assumes pure Neumann boundary conditions for :math:`v` and :math:`u`
-and enforce the additional average value zero constraint for u.
-
-The solver is based on a theta-scheme discretization in time and CG_1
-x CG_1 (x R) elements in space.
+assumes pure homogeneous Neumann boundary conditions for :math:`v` and
+:math:`u` and enforces the additional average value zero constraint
+for u.
 
 """
 
@@ -40,6 +39,39 @@ from dolfin_adjoint import *
 #from beatadjoint.utils import join, state_space
 
 class BidomainSolver:
+    """This solver is based on a theta-scheme discretization in time
+    and CG_1 x CG_1 (x R) elements in space.
+
+    .. note::
+
+       For the sake of simplicity and consistency with other solver
+       objects, this solver operates on its solution fields (as state
+       variables) directly internally. More precisely, solve (and
+       step) calls will act by updating the internal solution
+       fields. It implies that initial conditions can be set (and are
+       intended to be set) by modifying the solution fields prior to
+       simulation.
+
+    *Arguments*
+      domain (:py:class:`dolfin.Mesh`)
+        The spatial domain (mesh)
+
+      M_i (:py:class:`ufl.Expr`)
+        The intracellular conductivity tensor (as an UFL expression)
+
+      M_e (:py:class:`ufl.Expr`)
+        The extracellular conductivity tensor (as an UFL expression)
+
+      I_s (:py:class:`dolfin.Expression`, optional)
+        A (typically time-dependent) external stimulus
+
+      I_a (:py:class:`dolfin.Expression`, optional)
+        A (typically time-dependent) external applied current
+
+      params (:py:class:`dolfin.Parameters`, optional)
+        Solver parameters
+
+      """
     def __init__(self, domain, M_i, M_e,
                  I_s=None, I_a=None, params=None):
 
@@ -124,10 +156,10 @@ class BidomainSolver:
                 break
 
             # If not: update members and move to next time
+            # Subfunction assignment would be good here.
             self.v_.assign(project(self.vur[0], self.v_.function_space()))
             t0 = t1
             t1 = t0 + dt
-        pass
 
     def _step(self, interval):
         """
