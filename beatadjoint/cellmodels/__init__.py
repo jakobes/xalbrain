@@ -13,5 +13,5 @@ from tentusscher_2004_mcell import *
 supported_cell_models = (FitzHughNagumoManual,
                          Fitzhughnagumo,
                          NoCellModel,
-#                         Tentusscher_2004_mcell
+                         Tentusscher_2004_mcell,
                          )
