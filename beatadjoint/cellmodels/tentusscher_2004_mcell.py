@@ -61,7 +61,7 @@ NOT_IMPLEMENTED
         parameters.add("V_c", 0.016404)
         parameters.add("stim_amplitude", 52)
         parameters.add("stim_duration", 1)
-        parameters.add("stim_start", 10)
+        parameters.add("stim_start", 5)
         parameters.add("K_o", 5.4)
         return parameters
 
@@ -107,7 +107,20 @@ NOT_IMPLEMENTED
         K_mk = self._parameters["K_mk"]
         gamma = self._parameters["gamma"]
 
-        current = -0.0430331482911935*ufl.sqrt(K_o)*(V -\
+        current = (V - R*T*ufl.ln(K_o/K_i)/F)*g_to*r*s + (V -\
+            0.5*R*T*ufl.ln(Ca_o/Ca_i)/F)*g_bca +\
+            (m*m*m)*(-R*T*ufl.ln(Na_o/Na_i)/F + V)*g_Na*h*j +\
+            Ca_i*g_pCa/(K_pCa + Ca_i) + K_o*Na_i*P_NaK/((K_mk + K_o)*(Na_i +\
+            K_mNa)*(1.0 + 0.0353*ufl.exp(-F*V/(R*T)) +\
+            0.1245*ufl.exp(-0.1*F*V/(R*T)))) + (-R*T*ufl.ln(Na_o/Na_i)/F +\
+            V)*g_bna + (-(Na_o*Na_o*Na_o)*Ca_i*alpha*ufl.exp((-1.0 +\
+            gamma)*F*V/(R*T)) +\
+            (Na_i*Na_i*Na_i)*Ca_o*ufl.exp(F*V*gamma/(R*T)))*K_NaCa/((1.0 +\
+            K_sat*ufl.exp((-1.0 + gamma)*F*V/(R*T)))*((Na_o*Na_o*Na_o) +\
+            (Km_Nai*Km_Nai*Km_Nai))*(Km_Ca + Ca_o)) + (V -\
+            R*T*ufl.ln(K_o/K_i)/F)*g_pK/(1.0 +\
+            65.4052157419383*ufl.exp(-0.167224080267559*V)) +\
+            0.0430331482911935*ufl.sqrt(K_o)*(V -\
             R*T*ufl.ln(K_o/K_i)/F)*g_K1/((1.0 +\
             6.14421235332821e-6*ufl.exp(0.06*V -\
             0.06*R*T*ufl.ln(K_o/K_i)/F))*((0.367879441171442*ufl.exp(0.1*V -\
@@ -115,24 +128,13 @@ NOT_IMPLEMENTED
             0.0002*R*T*ufl.ln(K_o/K_i)/F))/(1.0 +\
             ufl.exp(0.5*R*T*ufl.ln(K_o/K_i)/F - 0.5*V)) + 0.1/(1.0 +\
             6.14421235332821e-6*ufl.exp(0.06*V -\
-            0.06*R*T*ufl.ln(K_o/K_i)/F)))) - 4.0*(F*F)*(-0.341*Ca_o +\
-            Ca_i*ufl.exp(2.0*F*V/(R*T)))*V*d*f*fCa*g_CaL/((-1.0 +\
-            ufl.exp(2.0*F*V/(R*T)))*R*T) - (m*m*m)*(-R*T*ufl.ln(Na_o/Na_i)/F\
-            + V)*g_Na*h*j - Ca_i*g_pCa/(K_pCa + Ca_i) -\
-            (-R*T*ufl.ln(Na_o/Na_i)/F + V)*g_bna - (Xs*Xs)*(V -\
-            R*T*ufl.ln((Na_o*P_kna + K_o)/(Na_i*P_kna + K_i))/F)*g_Ks - (V -\
-            R*T*ufl.ln(K_o/K_i)/F)*g_to*r*s - (V -\
-            R*T*ufl.ln(K_o/K_i)/F)*g_pK/(1.0 +\
-            65.4052157419383*ufl.exp(-0.167224080267559*V)) -\
-            K_o*Na_i*P_NaK/((K_mk + K_o)*(Na_i + K_mNa)*(1.0 +\
-            0.0353*ufl.exp(-F*V/(R*T)) + 0.1245*ufl.exp(-0.1*F*V/(R*T)))) -\
+            0.06*R*T*ufl.ln(K_o/K_i)/F)))) +\
             0.430331482911935*ufl.sqrt(K_o)*(V -\
-            R*T*ufl.ln(K_o/K_i)/F)*Xr1*Xr2*g_Kr -\
-            (-(Na_o*Na_o*Na_o)*Ca_i*alpha*ufl.exp((-1.0 + gamma)*F*V/(R*T)) +\
-            (Na_i*Na_i*Na_i)*Ca_o*ufl.exp(F*V*gamma/(R*T)))*K_NaCa/((1.0 +\
-            K_sat*ufl.exp((-1.0 + gamma)*F*V/(R*T)))*((Na_o*Na_o*Na_o) +\
-            (Km_Nai*Km_Nai*Km_Nai))*(Km_Ca + Ca_o)) - (V -\
-            0.5*R*T*ufl.ln(Ca_o/Ca_i)/F)*g_bca
+            R*T*ufl.ln(K_o/K_i)/F)*Xr1*Xr2*g_Kr + (Xs*Xs)*(V -\
+            R*T*ufl.ln((Na_o*P_kna + K_o)/(Na_i*P_kna + K_i))/F)*g_Ks +\
+            4.0*(F*F)*(-0.341*Ca_o +\
+            Ca_i*ufl.exp(2.0*F*V/(R*T)))*V*d*f*fCa*g_CaL/((-1.0 +\
+            ufl.exp(2.0*F*V/(R*T)))*R*T)
 
         
         return current
@@ -195,26 +197,31 @@ NOT_IMPLEMENTED
 
         F_expressions = [\
 
+            # Derivative for state Xr1
             0.00037037037037037*(1.0 +\
             13.5813245225782*ufl.exp(0.0869565217391304*V))*(1.0 +\
             ufl.exp(-9/2 - V/10.0))*(-Xr1 + 1.0/(1.0 +\
             0.0243728440732796*ufl.exp(-0.142857142857143*V))),
 
+            # Derivative for state Xr2
             0.297619047619048*(1.0 + 0.0497870683678639*ufl.exp(0.05*V))*(1.0 +\
             0.0497870683678639*ufl.exp(-0.05*V))*(-Xr2 + 1.0/(1.0 +\
             39.1212839981532*ufl.exp(0.0416666666666667*V))),
 
+            # Derivative for state Xs
             0.000909090909090909*ufl.sqrt(1.0 +\
             0.188875602837562*ufl.exp(-0.166666666666667*V))*(1.0 +\
             0.0497870683678639*ufl.exp(0.05*V))*(-Xs + 1.0/(1.0 +\
             0.69967253737513*ufl.exp(-0.0714285714285714*V))),
 
+            # Derivative for state m
             (1.0 + ufl.exp(-12.0 - V/5.0))*(1.0/((1.0 +\
             0.00184221158116513*ufl.exp(-0.110741971207087*V))*(1.0 +\
             0.00184221158116513*ufl.exp(-0.110741971207087*V))) -\
             m)/(0.1/(1.0 + 0.778800783071405*ufl.exp(0.005*V)) + 0.1/(1.0 +\
             ufl.exp(7.0 + V/5.0))),
 
+            # Derivative for state h
             (-h + 1.0/((1.0 +\
             15212.5932856544*ufl.exp(0.134589502018843*V))*(1.0 +\
             15212.5932856544*ufl.exp(0.134589502018843*V))))*(ufl.conditional(ufl.lt(V,\
@@ -223,6 +230,7 @@ NOT_IMPLEMENTED
             + ufl.conditional(ufl.lt(V, -40.0),\
             4.43126792958051e-7*ufl.exp(-0.147058823529412*V), 0.0)),
 
+            # Derivative for state j
             (1.0/((1.0 + 15212.5932856544*ufl.exp(0.134589502018843*V))*(1.0 +\
             15212.5932856544*ufl.exp(0.134589502018843*V))) -\
             j)*(ufl.conditional(ufl.lt(V, -40.0),\
@@ -233,16 +241,19 @@ NOT_IMPLEMENTED
             V)*(-6.948*ufl.exp(-0.04391*V) - 25428.0*ufl.exp(0.2444*V))/(1.0 +\
             50262745825.954*ufl.exp(0.311*V)), 0.0)),
 
+            # Derivative for state d
             (1.0/(1.0 + 0.513417119032592*ufl.exp(-0.133333333333333*V)) -\
             d)/(1.0/(1.0 + 12.1824939607035*ufl.exp(-0.05*V)) + 1.4*(0.25 +\
             1.4/(1.0 +\
             0.0677244716592409*ufl.exp(-0.0769230769230769*V)))/(1.0 +\
             ufl.exp(1.0 + V/5.0))),
 
+            # Derivative for state f
             (1.0/(1.0 + 17.4117080633276*ufl.exp(0.142857142857143*V)) -\
             f)/(80.0 + 165.0/(1.0 + ufl.exp(5/2 - V/10.0)) +\
             1125.0*ufl.exp(-0.00416666666666667*((27.0 + V)*(27.0 + V)))),
 
+            # Derivative for state fCa
             ufl.conditional(ufl.And(ufl.gt(0.157534246575342 +\
             0.684931506849315/(1.0 + 8.03402376701711e+27*ufl.elem_pow(Ca_i,\
             8.0)) + 0.136986301369863/(1.0 +\
@@ -254,19 +265,23 @@ NOT_IMPLEMENTED
             8.0)) + 0.0684931506849315/(1.0 +\
             0.391605626676799*ufl.exp(1250.0*Ca_i)) - fCa/2.0),
 
+            # Derivative for state s
             (-s + 1.0/(1.0 + ufl.exp(4.0 + V/5.0)))/(3.0 +\
             85.0*ufl.exp(-0.003125*((45.0 + V)*(45.0 + V))) + 5.0/(1.0 +\
             ufl.exp(-4.0 + V/5.0))),
 
+            # Derivative for state r
             (-r + 1.0/(1.0 +\
             28.0316248945261*ufl.exp(-0.166666666666667*V)))/(0.8 +\
             9.5*ufl.exp(-0.000555555555555556*((40.0 + V)*(40.0 + V)))),
 
+            # Derivative for state Ca_SR
             (Vmax_up/(1.0 + (K_up*K_up)/(Ca_i*Ca_i)) - (-Ca_i + Ca_SR)*V_leak\
             - ((Ca_SR*Ca_SR)*a_rel/((Ca_SR*Ca_SR) + (b_rel*b_rel)) +\
             c_rel)*d*g)*V_c/((1.0 + Buf_sr*K_buf_sr/((K_buf_sr +\
             Ca_SR)*(K_buf_sr + Ca_SR)))*V_sr),
 
+            # Derivative for state Ca_i
             ((-Ca_i + Ca_SR)*V_leak - Vmax_up/(1.0 + (K_up*K_up)/(Ca_i*Ca_i))\
             + ((Ca_SR*Ca_SR)*a_rel/((Ca_SR*Ca_SR) + (b_rel*b_rel)) +\
             c_rel)*d*g - ((V - 0.5*R*T*ufl.ln(Ca_o/Ca_i)/F)*g_bca +\
@@ -280,6 +295,7 @@ NOT_IMPLEMENTED
             ufl.exp(2.0*F*V/(R*T)))*R*T))*Cm/(2.0*F*V_c))/(1.0 +\
             Buf_c*K_buf_c/((K_buf_c + Ca_i)*(K_buf_c + Ca_i))),
 
+            # Derivative for state g
             ufl.conditional(ufl.And(ufl.gt(ufl.conditional(ufl.lt(Ca_i,\
             0.00035), 1.0/(1.0 + 5.43991024148102e+20*ufl.elem_pow(Ca_i,\
             6.0)), 1.0/(1.0 + 1.97201988740492e+55*ufl.elem_pow(Ca_i,\
@@ -288,6 +304,7 @@ NOT_IMPLEMENTED
             5.43991024148102e+20*ufl.elem_pow(Ca_i, 6.0)), 1.0/(1.0 +\
             1.97201988740492e+55*ufl.elem_pow(Ca_i, 16.0))))/tau_g),
 
+            # Derivative for state Na_i
             (-3.0*(-(Na_o*Na_o*Na_o)*Ca_i*alpha*ufl.exp((-1.0 +\
             gamma)*F*V/(R*T)) +\
             (Na_i*Na_i*Na_i)*Ca_o*ufl.exp(F*V*gamma/(R*T)))*K_NaCa/((1.0 +\
@@ -298,6 +315,7 @@ NOT_IMPLEMENTED
             (m*m*m)*(-R*T*ufl.ln(Na_o/Na_i)/F + V)*g_Na*h*j -\
             (-R*T*ufl.ln(Na_o/Na_i)/F + V)*g_bna)*Cm/(F*V_c),
 
+            # Derivative for state K_i
             (-0.0430331482911935*ufl.sqrt(K_o)*(V -\
             R*T*ufl.ln(K_o/K_i)/F)*g_K1/((1.0 +\
             6.14421235332821e-6*ufl.exp(0.06*V -\

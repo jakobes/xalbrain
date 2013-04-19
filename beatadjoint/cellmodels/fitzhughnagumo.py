@@ -45,8 +45,8 @@ NOT_IMPLEMENTED
         v_rest = self._parameters["v_rest"]
         v_peak = self._parameters["v_peak"]
 
-        current = -(v - v_rest)*(v_peak - v)*(-(v_peak - v_rest)*a + v -\
-            v_rest)*c_1/((v_peak - v_rest)*(v_peak - v_rest)) + (v -\
+        current = (v - v_rest)*(v_peak - v)*(-(v_peak - v_rest)*a + v -\
+            v_rest)*c_1/((v_peak - v_rest)*(v_peak - v_rest)) - (v -\
             v_rest)*c_2*s/(v_peak - v_rest)
 
         
