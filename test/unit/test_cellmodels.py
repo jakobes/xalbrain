@@ -22,7 +22,7 @@ from beatadjoint.utils import state_space
 
 def _setup_rhs_form(model):
     "Helper function to setup rhs form for a given cell model."
-    mesh = UnitSquareMesh(100, 100)
+    mesh = UnitSquareMesh(10, 10)
     V = FunctionSpace(mesh, "CG", 1)
     S = state_space(mesh, model.num_states())
     VS = V*S
