@@ -2,8 +2,9 @@
 
 __author__ = "Marie E. Rognes (meg@simula.no), 2012--2013"
 
-__all__ = ["join", "state_space"]
+__all__ = ["join", "state_space", "end_of_time", "convergence_rate"]
 
+import math
 import dolfin
 import dolfin_adjoint
 
@@ -49,6 +50,15 @@ def state_space(domain, d, family=None, k=1):
     return S
 
 def end_of_time(T, t0, t1, dt):
-    dolfin.debug("End of time:%.16f > %.16f" % ((t1 + dt),
-                                                T + dolfin.DOLFIN_EPS))
+    dolfin.info("End of time:%.16f > %.16f" % ((t1 + dt),
+                                               T + dolfin.DOLFIN_EPS))
     return (t1 + dt) > (T + dolfin.DOLFIN_EPS)
+
+def convergence_rate(hs, errors):
+    assert (len(hs) == len(errors)), "hs and errors must have same length."
+    # Compute converence rates
+    rates = [(math.log(errors[i+1]/errors[i]))/(math.log(hs[i+1]/hs[i]))
+             for i in range(len(hs)-1)]
+
+    # Return convergence rates
+    return rates
