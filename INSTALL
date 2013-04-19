@@ -38,7 +38,7 @@ beatadjoint depends in particular on the following software components
   solution of partial differential equations using finite element
   methods.
 
-  Version: 1.2+
+  Version: 1.2+ (> April 19 2013)
 
 * dolfin-adjoint: www.dolfin-adjoint.org
 
