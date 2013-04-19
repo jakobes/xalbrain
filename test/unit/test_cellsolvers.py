@@ -17,8 +17,8 @@ class TestBasicSingleBasicSingleCellSolver(unittest.TestCase):
     def setUp(self):
         "Set-up references when existing."
         self.references = {NoCellModel: {1.0: 0.3, None: 0.2, 0.0: 0.1},
-                           FitzHughNagumoManual: {1.0:  -84.70013280019053,
-                                                  None: -84.80005016079546,
+                           FitzHughNagumoManual: {1.0:  -84.70013280019053, 
+                                                 None: -84.80005016079546,
                                                   0.0:  -84.9}}
 
     def _run_solve(self, model, theta=None):
@@ -99,7 +99,7 @@ class TestPointIntegralSolver(unittest.TestCase):
         VS = V*S
         vs = Function(VS)
         (v, s) = split(vs)
-        (w, q) = TestFunction(VS)
+        (w, q) = TestFunctions(VS)
         rhs = (inner(model.F(v, s), q) - inner(model.I(v, s), w))*dP
         if model.stimulus:
             rhs += inner(model.stimulus, w)*dP
