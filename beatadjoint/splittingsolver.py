@@ -231,7 +231,8 @@ class BasicSplittingSolver:
         annotate = self.parameters["enable_adjoint"]
 
         # Step through time steps until at end time.
-        adj_start_timestep(t0)
+        if annotate:
+            adj_start_timestep(t0)
         while (t1 <= T + DOLFIN_EPS):
 
             info_blue("Solving on t = (%g, %g)" % (t0, t1))
@@ -248,7 +249,8 @@ class BasicSplittingSolver:
             # Update previous and timetime
             finished = (t0 + dt) >= T
             self.vs_.assign(self.vs, annotate=annotate)
-            adj_inc_timestep(time=t1, finished=finished)
+            if annotate:
+                adj_inc_timestep(time=t1, finished=finished)
             t0 = t1
             t1 = t0 + dt
 

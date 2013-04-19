@@ -36,7 +36,7 @@ __all__ = ["BidomainSolver"]
 from dolfin import *
 from dolfin_adjoint import *
 #from beatadjoint import CardiacModel
-from beatadjoint.utils import end_of_time
+from beatadjoint.utils import end_of_time, convergence_rate
 
 class BidomainSolver:
     """This solver is based on a theta-scheme discretization in time
@@ -175,7 +175,6 @@ class BidomainSolver:
         (t0, t1) = interval
         k_n = Constant(t1 - t0)
         theta = self.parameters["theta"]
-        #annotate = beat_parameters["enable_adjoint"]
 
         # Extract conductivities from model
         M_i, M_e = self._M_i, self._M_e
@@ -215,11 +214,6 @@ class BidomainSolver:
 
         # Set-up solver
         solver = LinearVariationalSolver(pde)
-        #solver_params = self.parameters["linear_variational_solver"]
-        #solver.parameters.update(solver_params)
-
-        # Solve system
-        #solver.solve(annotate=annotate)
         solver.solve()
 
     @staticmethod
@@ -239,11 +233,8 @@ class BidomainSolver:
         return params
 
 
-if __name__ == "__main__":
-
+def main(N, dt, T, theta):
     # Create domain
-    level = 3
-    N = 10*(2**level)
     mesh = UnitSquareMesh(N, N)
 
     # Create stimulus
@@ -255,12 +246,9 @@ if __name__ == "__main__":
     M_e = 1.0
 
     # Set-up solver
-    solver = BidomainSolver(mesh, M_i, M_e, I_s=stimulus)
-    theta = solver.parameters["theta"]
-
-    # Define end-time and (constant) timestep
-    dt = 0.001#/(2**level)
-    T = 20*dt
+    params = BidomainSolver.default_parameters()
+    params["theta"] = theta
+    solver = BidomainSolver(mesh, M_i, M_e, I_s=stimulus, params=params)
 
     # Define exact solution (Note: v is returned at end of time
     # interval(s), u is computed at somewhere in the time interval
@@ -276,31 +264,69 @@ if __name__ == "__main__":
     solutions = solver.solve((0, T), dt)
     info_green("Solving primal")
     for (interval, fields) in solutions:
-        #print "interval = ", interval
-        #plot(stimulus, title="Stimulus", mesh=mesh)
         continue
-    interactive()
-    (v, u, r) = vur.split(deepcopy=True)
 
     # Compute errors
+    (v, u, r) = vur.split(deepcopy=True)
     v_error = errornorm(v_exact, v, "L2", degree_rise=2)
     u_error = errornorm(u_exact, u, "L2", degree_rise=2)
-    print "v_error = %.16e" % v_error
-    print "u_error = %.16e" % u_error
+    return [v_error, u_error, mesh.hmin(), dt, T]
 
-"""
-Convergence tests:
+def test_spatial_convergence():
+    """Take a very small timestep, reduce mesh size, expect 2nd order
+    convergence."""
+    v_errors = []
+    u_errors = []
+    hs = []
+    set_log_level(WARNING)
+    dt = 0.001
+    T = 10*dt
+    for N in (5, 10, 20, 40):
+        (v_error, u_error, h, dt, T) = main(N, dt, T, 0.5)
+        v_errors.append(v_error)
+        u_errors.append(u_error)
+        hs.append(h)
 
-v_error = 5.1913975566026706e-04
-u_error = 2.5095794862192537e-04
+    v_rates = convergence_rate(hs, v_errors)
+    u_rates = convergence_rate(hs, u_errors)
+    print "dt, T = ", dt, T
+    print "v_errors = ", v_errors
+    print "u_errors = ", u_errors
+    print "v_rates = ", v_rates
+    print "u_rates = ", u_rates
 
-v_error = 1.2709198977645071e-04
-u_error = 6.1389756255939929e-05
+    assert all(v > 1.99 for v in v_rates), "Failed convergence for v"
+    assert all(u > 1.99 for u in u_rates), "Failed convergence for u"
 
-v_error = 3.1607671581472865e-05
-u_error = 1.5264892592415211e-05
+def test_spatial_and_temporal_convergence():
+    v_errors = []
+    u_errors = []
+    dts = []
+    hs = []
+    set_log_level(WARNING)
+    T = 0.5
+    dt = 0.05
+    theta = 0.5
+    N = 5
+    for level in (0, 1, 2, 3):
+        a = dt/(2**level)
+        (v_error, u_error, h, a, T) = main(N*(2**level), a, T, theta)
+        v_errors.append(v_error)
+        u_errors.append(u_error)
+        dts.append(a)
+        hs.append(h)
 
-v_error = 7.8928214705244280e-06
-u_error = 3.8119244660922680e-06
+    v_rates = convergence_rate(hs, v_errors)
+    u_rates = convergence_rate(hs, u_errors)
+    print "v_errors = ", v_errors
+    print "u_errors = ", u_errors
+    print "v_rates = ", v_rates
+    print "u_rates = ", u_rates
 
-"""
+    assert v_rates[-1] > 1.95, "Failed convergence for v"
+    assert u_rates[-1] > 1.9, "Failed convergence for u"
+
+if __name__ == "__main__":
+
+    test_spatial_convergence()
+    test_spatial_and_temporal_convergence()
