@@ -36,7 +36,7 @@ __all__ = ["BidomainSolver"]
 from dolfin import *
 from dolfin_adjoint import *
 #from beatadjoint import CardiacModel
-#from beatadjoint.utils import join, state_space
+from beatadjoint.utils import end_of_time
 
 class BidomainSolver:
     """This solver is based on a theta-scheme discretization in time
@@ -72,15 +72,14 @@ class BidomainSolver:
         Solver parameters
 
       """
-    def __init__(self, domain, M_i, M_e,
-                 I_s=None, I_a=None, params=None):
+    def __init__(self, domain, M_i, M_e, I_s=None, I_a=None, params=None):
 
         # Store input
         self._domain = domain
         self._M_i = M_i
         self._M_e = M_e
-        self._I_a = I_a
         self._I_s = I_s
+        self._I_a = I_a
 
         # Initialize and update parameters if given
         self.parameters = self.default_parameters()
@@ -123,7 +122,7 @@ class BidomainSolver:
             The timestep for the solve. Defaults to length of interval
 
         *Returns*
-          (timestep, current vur) via (:py:class:`genexpr`)
+          (timestep, solution_fields) via (:py:class:`genexpr`)
 
         *Example of usage*::
 
@@ -131,7 +130,9 @@ class BidomainSolver:
           solutions = solver.solve((0.0, 1.0), 0.1)
 
           # Iterate over generator (computes solutions as you go)
-          for (interval, vur) in solutions:
+          for (interval, solution_fields) in solutions:
+            (t0, t1) = interval
+            v_, vur = solution_fields
             # do something with the solutions
         """
 
@@ -152,7 +153,7 @@ class BidomainSolver:
             yield (t0, t1), self.solution_fields()
 
             # Break if this is the last step
-            if ((t1 + dt) > T):
+            if end_of_time(T, t0, t1, dt):
                 break
 
             # If not: update members and move to next time
@@ -183,13 +184,12 @@ class BidomainSolver:
         (v, u, l) = TrialFunctions(self.VUR)
         (w, q, lamda) = TestFunctions(self.VUR)
 
-        v_ = self.v_
-        Dt_v = (v - v_)/k_n
-        theta_parabolic = (theta*inner(M_i*grad(v), grad(w))*dx
-                           + (1.0 - theta)*inner(M_i*grad(v_), grad(w))*dx
+        Dt_v = (v - self.v_)/k_n
+        v_mid = theta*v + (1.0 - theta)*self.v_
+
+        theta_parabolic = (inner(M_i*grad(v_mid), grad(w))*dx
                            + inner(M_i*grad(u), grad(w))*dx)
-        theta_elliptic = (theta*inner(M_i*grad(v), grad(q))*dx
-                          + (1.0 - theta)*inner(M_i*grad(v_), grad(q))*dx
+        theta_elliptic = (inner(M_i*grad(v_mid), grad(q))*dx
                           + inner((M_i + M_e)*grad(u), grad(q))*dx)
         G = (Dt_v*w*dx + theta_parabolic + theta_elliptic + (lamda*u + l*q)*dx)
 
@@ -241,24 +241,66 @@ class BidomainSolver:
 
 if __name__ == "__main__":
 
-    # Input
-    mesh = UnitSquare(10, 10)
+    # Create domain
+    level = 3
+    N = 10*(2**level)
+    mesh = UnitSquareMesh(N, N)
+
+    # Create stimulus
+    ac_str = "cos(t)*cos(2*pi*x[0])*cos(2*pi*x[1]) + 4*pow(pi, 2)*cos(2*pi*x[0])*cos(2*pi*x[1])*sin(t)"
+    stimulus = Expression(ac_str, t=0, degree=5)
+
+    # Create conductivity "tensors"
     M_i = 1.0
     M_e = 1.0
 
-    # Set-up solver and initial conditions
-    solver = BidomainSolver(mesh, M_i, M_e)
-    v_, vur = solver.solution_fields()
-    v_.vector()[:] = 1.0
+    # Set-up solver
+    solver = BidomainSolver(mesh, M_i, M_e, I_s=stimulus)
+    theta = solver.parameters["theta"]
 
-    dt = 0.1
-    interval = (0.0, 4*dt)
+    # Define end-time and (constant) timestep
+    dt = 0.001#/(2**level)
+    T = 20*dt
+
+    # Define exact solution (Note: v is returned at end of time
+    # interval(s), u is computed at somewhere in the time interval
+    # depending on theta)
+    v_exact = Expression("cos(2*pi*x[0])*cos(2*pi*x[1])*sin(t)", t=T, degree=3)
+    u_exact = Expression("-cos(2*pi*x[0])*cos(2*pi*x[1])*sin(t)/2.0",
+                         t=T - (1. - theta)*dt, degree=3)
+
+    # Define initial condition(s)
+    (v_, vur) = solver.solution_fields()
 
     # Solve
-    solutions = solver.solve(interval, dt)
-    for (timestep, bar) in solutions:
-        print timestep
-        plot(vur[0], interactive=True)
-        print vur.vector().array()
-
+    solutions = solver.solve((0, T), dt)
+    info_green("Solving primal")
+    for (interval, fields) in solutions:
+        #print "interval = ", interval
+        #plot(stimulus, title="Stimulus", mesh=mesh)
+        continue
     interactive()
+    (v, u, r) = vur.split(deepcopy=True)
+
+    # Compute errors
+    v_error = errornorm(v_exact, v, "L2", degree_rise=2)
+    u_error = errornorm(u_exact, u, "L2", degree_rise=2)
+    print "v_error = %.16e" % v_error
+    print "u_error = %.16e" % u_error
+
+"""
+Convergence tests:
+
+v_error = 5.1913975566026706e-04
+u_error = 2.5095794862192537e-04
+
+v_error = 1.2709198977645071e-04
+u_error = 6.1389756255939929e-05
+
+v_error = 3.1607671581472865e-05
+u_error = 1.5264892592415211e-05
+
+v_error = 7.8928214705244280e-06
+u_error = 3.8119244660922680e-06
+
+"""

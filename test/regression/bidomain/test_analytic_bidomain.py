@@ -31,12 +31,12 @@ if __name__ == "__main__":
     parameters = SplittingSolver.default_parameters()
     parameters["enable_adjoint"] = True # FIXME
     parameters["linear_variational_solver"]["linear_solver"] = "direct"
-    solver = SplittingSolver(heart, parameters)
+    solver = BasicSplittingSolver(heart, parameters)
     theta = solver.parameters["theta"]
 
     # Define end-time and (constant) timestep
-    T = 0.1
     dt = 0.01/(2**level)
+    T = 0.1
 
     # Define exact solution (Note: v is returned at end of time
     # interval(s), u is computed at somewhere in the time interval
@@ -54,9 +54,12 @@ if __name__ == "__main__":
     info_green("Solving primal")
     solutions = solver.solve((0, T), dt)
     for (timestep, vs, u) in solutions:
-        continue
+        plot(stimulus, title="stimulus", mesh=mesh)
 
-    (v, s) = vs.split()
+        continue
+    interactive()
+
+    (v, s) = vs.split(deepcopy=True)
 
     # Pre-computed reference errors (for regression checking):
     v_reference = 4.1152719193176370e-03
