@@ -17,8 +17,8 @@ class TestBasicSingleBasicSingleCellSolver(unittest.TestCase):
     def setUp(self):
         "Set-up references when existing."
         self.references = {NoCellModel: {1.0: 0.3, None: 0.2, 0.0: 0.1},
-                           FitzHughNagumoManual: {1.0:  -84.70013280019053, 
-                                                 None: -84.80005016079546,
+                           FitzHughNagumoManual: {1.0:  -84.70013280019053,
+                                                  None: -84.80005016079546,
                                                   0.0:  -84.9}}
 
     def _run_solve(self, model, theta=None):
