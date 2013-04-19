@@ -1,0 +1,25 @@
+Collection of tests for beatadjoint
+===================================
+
+Running the tests:
+------------------
+
+We recommend running the tests from the test/ directory. The complete
+test suite can be run with:
+
+  python test.py
+
+In order to only run tests in specified sub-directories, do
+
+  python test.py subdirectory1 subdirectory2 ...
+
+Organizing the tests:
+---------------------
+
+* Place proper unit tests under unit/
+
+* Place proper regression tests under regression/
+
+* Place tests that just check whether something run under system/
+
+* Add other test directories at will.
