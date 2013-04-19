@@ -1,6 +1,6 @@
 # Copyright (C) 2012 Johan Hake (hake.dev@gmail.com)
 # Use and modify at will
-# Last changed: 2013-04-18
+# Last changed: 2013-04-19
 
 
 __all__ = ["gotran2cellmodel"]
@@ -130,23 +130,28 @@ class CellModelGenerator(CodeGenerator):
         self._I_expression = [expr for derivatives, expr in all_derivatives \
                               if derivatives.name == self.V_name][0]
 
+        # I(v,s) in gotran is given by dv_dt = I(v,s) but a beat cell model
+        # wants dv_dt = -I(v,s)
+        self._I_expression *= -1
+
         # Get the used parameters
         I_used_parameters = set()
         for param in ode.parameters:
             
-            if param.sym in self._I_expression:
+            if param.sym in self._I_expression.atoms():
                 I_used_parameters.add(param.name)
         
         self._I_used_parameters = list(I_used_parameters)
         
-        self._F_expressions = [expr for derivatives, expr in all_derivatives \
+        self._F_expressions = [(derivatives.name, expr) \
+                               for derivatives, expr in all_derivatives \
                                if derivatives.name != self.V_name]
 
         # Get the used parameters
         F_used_parameters = set()
         for param in ode.parameters:
 
-            for expr in self._F_expressions:
+            for state, expr in self._F_expressions:
                 if param.sym in expr.atoms():
                     F_used_parameters.add(param.name)
         self._F_used_parameters = list(F_used_parameters)
@@ -236,8 +241,9 @@ class CellModelGenerator(CodeGenerator):
                               "\"{1}\"]".format(param, param))
         body_lines.append("")
         body_lines.append("F_expressions = [\\")
-        for expr in self._F_expressions:
+        for state, expr in self._F_expressions:
             body_lines.append("")
+            body_lines.append("    # Derivative for state {0}".format(state))
             body_lines.append("    {0},".format(pythoncode(expr, namespace="ufl")))
         body_lines.append("    ]")
         body_lines.append("")

@@ -72,8 +72,12 @@ class UFLCodeGenerator(CodeGenerator):
             zip(ode.states, self.oderepr.iter_derivative_expr())):
             assert(state.sym == derivative[0].sym)
             if ind == 0:
+                body_lines.append("")
+                body_lines.append("# Derivative for state {0}".format(state))
                 body_lines.append("dy = ({0})*_v[0]".format(self.to_code(expr, None)))
             else:
+                body_lines.append("")
+                body_lines.append("# Derivative for state {0}".format(state))
                 body_lines.append("dy += ({0})*_v[{1}]".format(self.to_code(expr, None), ind))
 
         # Return body lines 
