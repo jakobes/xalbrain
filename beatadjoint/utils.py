@@ -47,3 +47,8 @@ def state_space(domain, d, family=None, k=1):
     else:
         S = dolfin.FunctionSpace(domain, family, k)
     return S
+
+def end_of_time(T, t0, t1, dt):
+    dolfin.debug("End of time:%.16f > %.16f" % ((t1 + dt),
+                                                T + dolfin.DOLFIN_EPS))
+    return (t1 + dt) > (T + dolfin.DOLFIN_EPS)

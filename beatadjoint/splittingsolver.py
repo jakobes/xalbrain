@@ -283,7 +283,9 @@ class BasicSplittingSolver:
 
         # Compute tentative potentials vu = (v, u)
         begin("PDE step")
-        self.vs_.assign(self.vs) # Update self.vs_ (pde_step) operates on this one. Is this really a good idea?
+        self.vs_.assign(self.vs) # Update self.vs_ (pde_step) operates
+                                 # on this one. Is this really a good
+                                 # idea?
         vur = self.pde_step((t0, t1))#, self.vs)
         end()
 
