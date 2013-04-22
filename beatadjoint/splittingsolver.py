@@ -419,7 +419,7 @@ class SplittingSolver(BasicSplittingSolver):
 
         # Pre-assemble left-hand side (will be updated if time-step
         # changes)
-        self._A = assemble(self._a, annotate=self.parameters["enable_adjoint"])
+        self._A = assemble(self._a, annotate=True)
 
         # Tune solver types
         solver_parameters = self.parameters["linear_variational_solver"]
@@ -563,7 +563,7 @@ class SplittingSolver(BasicSplittingSolver):
                 pass
         else:
             self._k_n.assign(Constant(dt))#, annotate=annotate) # FIXME
-            A = assemble(self._a, annotate=annotate)
+            A = assemble(self._a, annotate=True)
             self._A = A
             solver.set_operator(self._A)
             if isinstance(solver, LUSolver):
@@ -576,7 +576,7 @@ class SplittingSolver(BasicSplittingSolver):
         # Assemble right-hand-side
         if self._model.applied_current:
             self._model.applied_current.t = t
-        b = assemble(self._L, annotate=annotate)
+        b = assemble(self._L, annotate=True)
 
         # Solve system
         vur = Function(self.VUR, name="pde_vur")
