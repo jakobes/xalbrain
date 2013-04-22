@@ -9,6 +9,8 @@ import unittest
 from dolfin import *
 from beatadjoint import *
 
+parameters["reorder_dofs_serial"] = False
+
 class TestBasicBidomainSolver(unittest.TestCase):
     "Test functionality for the basic bidomain solver."
 
@@ -71,7 +73,8 @@ class TestBasicBidomainSolver(unittest.TestCase):
 
 class TestBidomainSolver(unittest.TestCase):
     def setUp(self):
-        self.mesh = UnitCubeMesh(5, 5, 5)
+        N = 5
+        self.mesh = UnitCubeMesh(N, N, N)
 
         # Create stimulus
         self.stimulus = Expression("2.0")
@@ -86,16 +89,13 @@ class TestBidomainSolver(unittest.TestCase):
         self.t0 = 0.0
         self.dt = 0.1
 
-    def test_basic_solve(self):
+    def test_solve(self):
         "Test that solver runs."
 
-        Solver = BidomainSolver
-
-        # Create solver
-        solver = Solver(self.mesh, self.M_i, self.M_e, I_s=self.stimulus,
-                        I_a=self.applied_current)
-
-        # Solve
+        # Create solver and solve
+        solver = BidomainSolver(self.mesh, self.M_i, self.M_e,
+                                I_s=self.stimulus,
+                                I_a=self.applied_current)
         solutions = solver.solve((self.t0, self.t0 + 2*self.dt), self.dt)
         for (interval, fields) in solutions:
             (v_, vs) = fields
@@ -115,6 +115,8 @@ class TestBidomainSolver(unittest.TestCase):
         # Reset
         v_.vector()[:] = 0.0
 
+        print
+
         # Create solver and solve
         solver = BasicBidomainSolver(self.mesh, self.M_i, self.M_e,
                                      I_s=self.stimulus,
@@ -124,7 +126,48 @@ class TestBidomainSolver(unittest.TestCase):
             (v_, vs) = fields
         basic_bidomain_result = vs.vector().norm("l2")
 
-        self.assertEqual(bidomain_result, basic_bidomain_result)
+        print bidomain_result
+        print basic_bidomain_result
+        self.assertAlmostEqual(bidomain_result, basic_bidomain_result,
+                               places=13)
+
+    def test_compare_direct_iterative(self):
+        "Test that direct and iterative solution give comparable results."
+
+        # Create solver and solve
+        solver = BidomainSolver(self.mesh, self.M_i, self.M_e,
+                                I_s=self.stimulus,
+                                I_a=self.applied_current)
+        solutions = solver.solve((self.t0, self.t0 + 3*self.dt), self.dt)
+        for (interval, fields) in solutions:
+            (v_, vs) = fields
+        a = vs.vector().norm("l2")
+
+        # Reset
+        v_.vector()[:] = 0.0
+
+        print
+
+        # Create solver and solve using iterative means
+        params = BidomainSolver.default_parameters()
+
+        params["linear_solver_type"] = "iterative"
+        params["use_avg_u_constraint"] = False
+        params["default_timestep"] = self.dt
+        params["krylov_solver"]["monitor_convergence"] = True
+        solver = BidomainSolver(self.mesh, self.M_i, self.M_e,
+                                I_s=self.stimulus,
+                                I_a=self.applied_current,
+                                params=params)
+        solutions = solver.solve((self.t0, self.t0 + 3*self.dt), self.dt)
+        for (interval, fields) in solutions:
+            (v_, vs) = fields
+        b = vs.vector().norm("l2")
+
+        print a
+        print b
+        self.assertAlmostEqual(a, b, places=2)
+
 
 if __name__ == "__main__":
     print("")
