@@ -293,6 +293,7 @@ class BidomainSolver(BasicBidomainSolver):
         return self._linear_solver
 
     def _create_linear_solver(self):
+        "Helper function for creating linear solver based on parameters."
         solver_type = self.parameters["linear_solver_type"]
 
         if solver_type == "direct":
@@ -440,6 +441,8 @@ class BidomainSolver(BasicBidomainSolver):
                                  annotate=annotate)
 
     def _update_matrix(self, dt):
+        "Helper function for updating the matrix when timestep has changed."
+
         debug("Timestep has changed, updating matrix and stored timestep")
         annotate = True
 
@@ -454,6 +457,8 @@ class BidomainSolver(BasicBidomainSolver):
         self.linear_solver.set_operator(self._lhs_matrix)
 
     def _update_lu_solver(self, timestep_unchanged):
+        """Helper function for updating an LUSolver depending on
+        whether timestep has changed."""
 
         # Update reuse of factorization parameter in accordance with
         # changes in timestep
@@ -465,6 +470,8 @@ class BidomainSolver(BasicBidomainSolver):
             self.linear_solver.parameters["reuse_factorization"] = False
 
     def _update_krylov_solver(self, timestep_unchanged):
+        """Helper function for updating a KrylovSolver depending on
+        whether timestep has changed."""
 
         # Update reuse of preconditioner parameter in accordance with
         # changes in timestep
