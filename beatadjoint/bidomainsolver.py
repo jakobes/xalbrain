@@ -35,8 +35,7 @@ __all__ = ["BidomainSolver"]
 
 from dolfin import *
 from dolfin_adjoint import *
-#from beatadjoint import CardiacModel
-from beatadjoint.utils import end_of_time, convergence_rate
+from beatadjoint.utils import end_of_time
 
 class BidomainSolver:
     """This solver is based on a theta-scheme discretization in time
@@ -68,7 +67,7 @@ class BidomainSolver:
       I_a (:py:class:`dolfin.Expression`, optional)
         A (typically time-dependent) external applied current
 
-      v_ (:py:class:`ufl.Expr`, optional)
+      v\_ (:py:class:`ufl.Expr`, optional)
         Initial condition for v. A new :py:class:`dolfin.Function`
         will be created if none is given.
 

@@ -7,7 +7,7 @@ __all__ = ["BasicSingleCellSolver", "BasicCardiacODESolver"]
 from dolfin import *
 from dolfin_adjoint import *
 from beatadjoint import CardiacCellModel
-from beatadjoint.utils import state_space
+from beatadjoint.utils import state_space, end_of_time
 
 class BasicCardiacODESolver(object):
     """A basic, non-optimised solver for systems of ODEs typically
@@ -152,13 +152,13 @@ class BasicCardiacODESolver(object):
         # Step through time steps until at end time
         while (True) :
             #info_blue("Solving on t = (%g, %g)" % (t0, t1))
-            self._step((t0, t1))
+            self.step((t0, t1))
 
             # Yield solutions
             yield (t0, t1), self.vs
 
             # Break if this is the last step
-            if ((t1 + dt) > T):
+            if end_of_time(T, t0, t1, dt):
                 break
 
             # If not: update members and move to next time
@@ -166,7 +166,7 @@ class BasicCardiacODESolver(object):
             t0 = t1
             t1 = t0 + dt
 
-    def _step(self, interval):
+    def step(self, interval):
         """
         Solve on the given time step (t0, t1).
 

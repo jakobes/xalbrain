@@ -66,9 +66,8 @@ if __name__ == "__main__":
     heart = setup_model()
 
     # Set-up solver
-    ps = SplittingSolver.default_parameters()
+    ps = BasicSplittingSolver.default_parameters()
     ps["enable_adjoint"] = True
-    ps["linear_variational_solver"]["linear_solver"] = "direct"
     ps["BidomainSolver"]["linear_variational_solver"]["linear_solver"] = "direct"
     ps["BidomainSolver"]["theta"] = 1.0
     ps["theta"] = 1.0
@@ -76,7 +75,7 @@ if __name__ == "__main__":
     ps["BasicCardiacODESolver"]["S_polynomial_degree"] = 1
     ps["BasicCardiacODESolver"]["V_polynomial_family"] = "CG"
     ps["BasicCardiacODESolver"]["V_polynomial_degree"] = 1
-    solver = SplittingSolver(heart, ps)
+    solver = BasicSplittingSolver(heart, ps)
 
     # Define end-time and (constant) timestep
     dt = 0.25 # mS
@@ -92,12 +91,13 @@ if __name__ == "__main__":
     info_green("Solving primal")
     total = Timer("XXX: Total solver time")
     solutions = solver.solve((0, T), dt)
-    for (timestep, vs, u) in solutions:
-        plot(u)
+    for (timestep, (vs_, vs, vur)) in solutions:
         continue
     total.stop()
 
+    u = project(vur[1], vur.function_space().sub(1).collapse())
     norm_u = norm(u)
+    plot(u, title="Final u", interactive=True)
     print "norm_u = %.16f" % norm_u
     reference =  11.2482303059560245
     diff = abs(reference - norm_u)

@@ -27,11 +27,11 @@ def main(N, dt, T, theta):
     heart = CardiacModel(mesh, 1.0, 1.0, cell_model, stimulus=stimulus)
 
     # Set-up solver
-    parameters = SplittingSolver.default_parameters()
-    parameters["theta"] = theta
-    parameters["enable_adjoint"] = False # FIXME
-    parameters["linear_variational_solver"]["linear_solver"] = "direct"
-    solver = SplittingSolver(heart, parameters)
+    ps = BasicSplittingSolver.default_parameters()
+    ps["theta"] = theta
+    ps["enable_adjoint"] = False
+    ps["BidomainSolver"]["linear_variational_solver"]["linear_solver"] = "direct"
+    solver = BasicSplittingSolver(heart, params=ps)
 
     # Define exact solution (Note: v is returned at end of time
     # interval(s), u is computed at somewhere in the time interval
@@ -42,18 +42,19 @@ def main(N, dt, T, theta):
 
     # Define initial condition(s)
     vs0 = Function(solver.VS)
-    (vs_, vs, u) = solver.solution_fields()
+    (vs_, vs, vur) = solver.solution_fields()
     vs_.assign(vs0)
 
     # Solve
     solutions = solver.solve((0, T), dt)
-    for (timestep, vs, u) in solutions:
+    for (timestep, (vs_, vs, vur)) in solutions:
         continue
 
+    # Compute errors
     (v, s) = vs.split(deepcopy=True)
-
-    # Pre-computed reference errors (for regression checking):
     v_error = errornorm(v_exact, v, "L2", degree_rise=2)
+
+    (v, u, r) = vur.split(deepcopy=True)
     u_error = errornorm(u_exact, u, "L2", degree_rise=2)
 
     return (v_error, u_error, mesh.hmin(), dt, T)
