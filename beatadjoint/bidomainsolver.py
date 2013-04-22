@@ -181,11 +181,15 @@ class BasicBidomainSolver(object):
 
     def step(self, interval):
         """
-        Solve on the given time step (t0, t1).
+        Solve on the given time interval (t0, t1).
 
         *Arguments*
           interval (:py:class:`tuple`)
             The time interval (t0, t1) for the step
+
+        *Invariants*
+          Assuming that v\_ is in the correct state for t0, gives
+          self.vur in correct state at t1.
         """
 
         # Extract interval and thus time-step
@@ -288,8 +292,8 @@ class BidomainSolver(BasicBidomainSolver):
 
     @property
     def linear_solver(self):
-        """The linear solver (:py:class`dolfin.LUSolver` or
-        :py:class`dolfin.KrylovSolver`."""
+        """The linear solver (:py:class:`dolfin.LUSolver` or
+        :py:class:`dolfin.KrylovSolver`)."""
         return self._linear_solver
 
     def _create_linear_solver(self):
@@ -353,7 +357,8 @@ class BidomainSolver(BasicBidomainSolver):
         return params
 
     def variational_forms(self, k_n):
-        """Create the variational forms
+        """Create the variational forms corresponding to the given
+        discretization of the given system of equations.
 
         *Arguments*
           k_n (:py:class:`ufl.Expr` or float)
@@ -410,7 +415,7 @@ class BidomainSolver(BasicBidomainSolver):
             The time interval (t0, t1) for the step
 
         *Invariants*
-          Assuming that v_ is in the correct state for t0, gives
+          Assuming that v\_ is in the correct state for t0, gives
           self.vur in correct state at t1.
         """
 
