@@ -31,7 +31,7 @@ def main(N, dt, T, theta):
     parameters["theta"] = theta
     parameters["enable_adjoint"] = False # FIXME
     parameters["linear_variational_solver"]["linear_solver"] = "direct"
-    solver = BasicSplittingSolver(heart, parameters)
+    solver = SplittingSolver(heart, parameters)
 
     # Define exact solution (Note: v is returned at end of time
     # interval(s), u is computed at somewhere in the time interval
