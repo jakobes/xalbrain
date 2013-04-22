@@ -29,8 +29,8 @@ def main(N, dt, T, theta):
     # Set-up solver
     ps = BasicSplittingSolver.default_parameters()
     ps["theta"] = theta
-    ps["enable_adjoint"] = False
-    ps["BidomainSolver"]["linear_variational_solver"]["linear_solver"] = "direct"
+    ps["enable_adjoint"] = False # FIXME
+    ps["BasicBidomainSolver"]["linear_variational_solver"]["linear_solver"] = "direct"
     solver = BasicSplittingSolver(heart, params=ps)
 
     # Define exact solution (Note: v is returned at end of time

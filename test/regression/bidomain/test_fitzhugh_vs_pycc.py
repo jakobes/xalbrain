@@ -67,9 +67,8 @@ if __name__ == "__main__":
 
     # Set-up solver
     ps = BasicSplittingSolver.default_parameters()
-    ps["enable_adjoint"] = True
-    ps["BidomainSolver"]["linear_variational_solver"]["linear_solver"] = "direct"
-    ps["BidomainSolver"]["theta"] = 1.0
+    ps["BasicBidomainSolver"]["linear_variational_solver"]["linear_solver"] = "direct"
+    ps["BasicBidomainSolver"]["theta"] = 1.0
     ps["theta"] = 1.0
     ps["BasicCardiacODESolver"]["S_polynomial_family"] = "CG"
     ps["BasicCardiacODESolver"]["S_polynomial_degree"] = 1

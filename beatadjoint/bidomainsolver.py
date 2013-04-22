@@ -31,13 +31,13 @@ for u.
 # Use and modify at will
 # Last changed: 2013-04-18
 
-__all__ = ["BidomainSolver"]
+__all__ = ["BasicBidomainSolver", "BidomainSolver"]
 
 from dolfin import *
 from dolfin_adjoint import *
 from beatadjoint.utils import end_of_time
 
-class BidomainSolver:
+class BasicBidomainSolver(object):
     """This solver is based on a theta-scheme discretization in time
     and CG_1 x CG_1 (x R) elements in space.
 
@@ -97,13 +97,12 @@ class BidomainSolver:
         R = FunctionSpace(self._domain, "R", 0)
         self.VUR = MixedFunctionSpace((V, U, R))
 
-        # Solution fields:
+        # Set-up solution fields:
         if v_ is None:
             self.v_ = Function(V)
         else:
             info_red("Experimental: v_ shipped from elsewhere.")
             self.v_ = v_
-
         self.vur = Function(self.VUR)
 
     def solution_fields(self):
@@ -242,9 +241,11 @@ class BidomainSolver:
           info(BidomainSolver.default_parameters(), True)
         """
 
-        params = Parameters("BidomainSolver")
+        params = Parameters("BasicBidomainSolver")
         params.add("theta", 0.5)
         params.add("polynomial_degree", 1)
 
         params.add(LinearVariationalSolver.default_parameters())
         return params
+
+BidomainSolver = BasicBidomainSolver
