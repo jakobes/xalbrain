@@ -137,8 +137,6 @@ class BasicSplittingSolver:
         #self.vs_ = Function(self.VS, name="vs_")
         #self.vs = Function(self.VS, name="vs")
 
-        #self.pde_solver = BidomainSolver()
-
     def _create_ode_solver(self):
         """Helper function to initialize a suitable ODE solver from
         the cardiac model."""
@@ -170,8 +168,11 @@ class BasicSplittingSolver:
         # Extract ode solver parameters
         params = self.parameters["BidomainSolver"]
         solver = BidomainSolver(self._domain, M_i, M_e,
-                                I_s=None, I_a=applied_current, v_ = self.vs_[0],
+                                I_s=None, I_a=applied_current, v_ = self.vs[0],
                                 params=params)
+        # solver = BidomainSolver(self._domain, M_i, M_e,
+        #                         I_s=None, I_a=applied_current,
+        #                         params=params)
         return solver
 
     @staticmethod
@@ -312,10 +313,21 @@ class BasicSplittingSolver:
 
         # Compute tentative potentials vu = (v, u)
         begin("PDE step")
-        self.vs_.assign(self.vs) # Update self.vs_ (pde_step) operates
-                                 # on this one. Is this really a good
-                                 # idea?
-        vur = self.pde_step((t0, t1))#, self.vs)
+
+        # Alt 1
+        #self.vs_.assign(self.vs) # Update self.vs_ as pde_step operates
+        #                         # on (parts of) this one.
+        #vur = self.pde_step((t0, t1))#, self.vs)
+
+        # Alt 2
+        #self.v_.assign(project(self.vs[0], self.VS.sub(0).collapse(),
+        #                       solver_type="lu"))
+        self.pde_solver.step((t0, t1))
+        vur = self.vur
+
+        print "vs = ", self.vs.vector().norm("l2")
+        print "vur = ", vur.vector().norm("l2")
+
         end()
 
         # Merge (inverse of split) v and s_star: (needed for adjointability)
@@ -338,71 +350,6 @@ class BasicSplittingSolver:
         end()
 
         return (self.vs, vur.split()[1])
-
-    def pde_step(self, interval):
-        """
-        Solve the PDE step of the splitting scheme for the problem
-        given by the model on a given time interval (t0, t1) with
-        timestep given by the interval length and given initial
-        conditions, return the current vur solution.
-
-        *Arguments*
-          interval (:py:class:`tuple`)
-            The time interval for the solve given by (t0, t1)
-          vs\_ (:py:class:`dolfin.Function`)
-            Initial conditions for vs for this interval
-
-        *Returns*
-          current vur (:py:class:`dolfin.Function`)
-        """
-
-        # Hack, not sure if this is a good design (previous value for
-        # s should not be required as data)
-        (v_, s_) = split(self.vs_)
-
-        # Extract interval and time-step
-        (t0, t1) = interval
-        k_n = Constant(t1 - t0)
-        theta = self.parameters["theta"]
-        annotate = self.parameters["enable_adjoint"]
-
-        # Extract conductivities from model
-        M_i, M_e = self._model.conductivities()
-
-        # Define variational formulation
-        (v, u, l) = TrialFunctions(self.VUR)
-        (w, q, lamda) = TestFunctions(self.VUR)
-
-        Dt_v = (v - v_)/k_n
-        theta_parabolic = (theta*inner(M_i*grad(v), grad(w))*dx
-                           + (1.0 - theta)*inner(M_i*grad(v_), grad(w))*dx
-                           + inner(M_i*grad(u), grad(w))*dx)
-        theta_elliptic = (theta*inner(M_i*grad(v), grad(q))*dx
-                          + (1.0 - theta)*inner(M_i*grad(v_), grad(q))*dx
-                          + inner((M_i + M_e)*grad(u), grad(q))*dx)
-        G = (Dt_v*w*dx + theta_parabolic + theta_elliptic + (lamda*u + l*q)*dx)
-
-        # Add applied current as source in elliptic equation if
-        # applicable
-        if self._model.applied_current:
-            t = t0 + theta*(t1 - t0)
-            self._model.applied_current.t = t
-            G -= self._model.applied_current*q*dx
-
-        # Define variational problem
-        a, L = system(G)
-        vur = Function(self.VUR, name="pde_vur")
-        pde = LinearVariationalProblem(a, L, vur)
-
-        # Set-up solver
-        solver = LinearVariationalSolver(pde)
-        solver_params = self.parameters["linear_variational_solver"]
-        solver.parameters.update(solver_params)
-
-        # Solve system
-        solver.solve(annotate=annotate)
-
-        return vur
 
 class SplittingSolver(BasicSplittingSolver):
     """

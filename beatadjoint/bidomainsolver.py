@@ -102,6 +102,7 @@ class BidomainSolver:
         if v_ is None:
             self.v_ = Function(V)
         else:
+            info_red("Experimental: v_ shipped from elsewhere.")
             self.v_ = v_
 
         self.vur = Function(self.VUR)
@@ -227,6 +228,7 @@ class BidomainSolver:
 
         # Set-up solver
         solver = LinearVariationalSolver(pde)
+        solver.parameters.update(self.parameters["linear_variational_solver"])
         solver.solve()
 
     @staticmethod
@@ -244,4 +246,6 @@ class BidomainSolver:
         params = Parameters("BidomainSolver")
         params.add("theta", 0.5)
         params.add("polynomial_degree", 1)
+
+        params.add(LinearVariationalSolver.default_parameters())
         return params
