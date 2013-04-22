@@ -60,6 +60,7 @@ from dolfin import *
 from dolfin_adjoint import *
 from beatadjoint import CardiacModel
 from beatadjoint.cellsolver import BasicCardiacODESolver
+from beatadjoint.bidomainsolver import BidomainSolver
 from beatadjoint.utils import join, state_space
 
 class BasicSplittingSolver:
@@ -121,6 +122,10 @@ class BasicSplittingSolver:
         (self.vs_, self.vs) = self.ode_solver.solution_fields()
         self.VS = self.vs.function_space()
 
+        # Create PDE solver and extract solution fields
+        self.pde_solver = self._create_pde_solver()
+        (self.v_, self.vur) = self.pde_solver.solution_fields()
+
         # FIXME
         self.V = self.VS.sub(0).collapse()
         R = FunctionSpace(self._domain, "R", 0)
@@ -151,6 +156,24 @@ class BasicSplittingSolver:
                                        I_s = stimulus, params=params)
         return solver
 
+    def _create_pde_solver(self):
+        """Helper function to initialize a suitable PDE solver from
+        the cardiac model."""
+
+        # Extract applied current from the cardiac model (stimulus
+        # invoked in the ODE step)
+        applied_current = self._model.applied_current
+
+        # Extract conductivities from the cardiac model
+        (M_i, M_e) = self._model.conductivities()
+
+        # Extract ode solver parameters
+        params = self.parameters["BidomainSolver"]
+        solver = BidomainSolver(self._domain, M_i, M_e,
+                                I_s=None, I_a=applied_current, v_ = self.vs_[0],
+                                params=params)
+        return solver
+
     @staticmethod
     def default_parameters():
         """Initialize and return a set of default parameters for the
@@ -179,6 +202,10 @@ class BasicSplittingSolver:
         ode_solver_params["V_polynomial_degree"] = 1
         ode_solver_params["V_polynomial_family"] = "CG"
         params.add(ode_solver_params)
+
+        pde_solver_params = BidomainSolver.default_parameters()
+        pde_solver_params["polynomial_degree"] = 1
+        params.add(pde_solver_params)
 
         # FIXME: Add default parameters from PDE solver
         pde_solver_params = LinearVariationalSolver.default_parameters()

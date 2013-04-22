@@ -68,11 +68,16 @@ class BidomainSolver:
       I_a (:py:class:`dolfin.Expression`, optional)
         A (typically time-dependent) external applied current
 
+      v_ (:py:class:`ufl.Expr`, optional)
+        Initial condition for v. A new :py:class:`dolfin.Function`
+        will be created if none is given.
+
       params (:py:class:`dolfin.Parameters`, optional)
         Solver parameters
 
       """
-    def __init__(self, domain, M_i, M_e, I_s=None, I_a=None, params=None):
+    def __init__(self, domain, M_i, M_e, I_s=None, I_a=None, v_=None,
+                 params=None):
 
         # Store input
         self._domain = domain
@@ -87,13 +92,18 @@ class BidomainSolver:
             self.parameters.update(params)
 
         # Set-up function spaces
-        V = FunctionSpace(self._domain, "CG", 1)
-        U = FunctionSpace(self._domain, "CG", 1)
+        k = self.parameters["polynomial_degree"]
+        V = FunctionSpace(self._domain, "CG", k)
+        U = FunctionSpace(self._domain, "CG", k)
         R = FunctionSpace(self._domain, "R", 0)
         self.VUR = MixedFunctionSpace((V, U, R))
 
         # Solution fields:
-        self.v_ = Function(V)
+        if v_ is None:
+            self.v_ = Function(V)
+        else:
+            self.v_ = v_
+
         self.vur = Function(self.VUR)
 
     def solution_fields(self):
@@ -158,7 +168,10 @@ class BidomainSolver:
 
             # If not: update members and move to next time
             # Subfunction assignment would be good here.
-            self.v_.assign(project(self.vur[0], self.v_.function_space()))
+            if isinstance(self.v_, Function):
+                self.v_.assign(project(self.vur[0], self.v_.function_space()))
+            else:
+                info_red("Assuming that v_ is updated elsewhere. Experimental.")
             t0 = t1
             t1 = t0 + dt
 
@@ -176,7 +189,7 @@ class BidomainSolver:
         k_n = Constant(t1 - t0)
         theta = self.parameters["theta"]
 
-        # Extract conductivities from model
+        # Extract conductivities
         M_i, M_e = self._M_i, self._M_e
 
         # Define variational formulation
@@ -230,4 +243,5 @@ class BidomainSolver:
 
         params = Parameters("BidomainSolver")
         params.add("theta", 0.5)
+        params.add("polynomial_degree", 1)
         return params
