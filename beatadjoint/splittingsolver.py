@@ -313,26 +313,13 @@ class BasicSplittingSolver:
 
         # Compute tentative potentials vu = (v, u)
         begin("PDE step")
-
-        # Alt 1
-        #self.vs_.assign(self.vs) # Update self.vs_ as pde_step operates
-        #                         # on (parts of) this one.
-        #vur = self.pde_step((t0, t1))#, self.vs)
-
-        # Alt 2
-        #self.v_.assign(project(self.vs[0], self.VS.sub(0).collapse(),
-        #                       solver_type="lu"))
         self.pde_solver.step((t0, t1))
-        vur = self.vur
-
-        print "vs = ", self.vs.vector().norm("l2")
-        print "vur = ", vur.vector().norm("l2")
-
+        #vur = self.vur
         end()
 
         # Merge (inverse of split) v and s_star: (needed for adjointability)
         begin("Merging step")
-        v = split(vur)[0]
+        v = split(self.vur)[0]
         #(v, u, r) = split(vur)
         (v_star, s_star) = split(self.vs)
         v_s_star = join((v, s_star), self.VS, annotate=annotate,
@@ -341,7 +328,7 @@ class BasicSplittingSolver:
 
         # If first order splitting, we are done:
         if theta == 1.0:
-            return (v_s_star, vur.split()[1])
+            return (v_s_star, self.vur.split()[1])
 
         # Otherwise, we do another ode_step:
         begin("Corrective ODE step")
@@ -349,7 +336,7 @@ class BasicSplittingSolver:
         self.ode_solver._step((t, t1))
         end()
 
-        return (self.vs, vur.split()[1])
+        return (self.vs, self.vur.split()[1])
 
 class SplittingSolver(BasicSplittingSolver):
     """
