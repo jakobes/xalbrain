@@ -59,7 +59,7 @@ from dolfin import *
 from dolfin_adjoint import *
 from beatadjoint import CardiacModel
 from beatadjoint.cellsolver import BasicCardiacODESolver
-from beatadjoint.bidomainsolver import BidomainSolver
+from beatadjoint.bidomainsolver import BasicBidomainSolver
 from beatadjoint.utils import join, state_space, end_of_time
 
 class BasicSplittingSolver:
@@ -152,13 +152,11 @@ class BasicSplittingSolver:
         (M_i, M_e) = self._model.conductivities()
 
         # Extract ode solver parameters
-        params = self.parameters["BidomainSolver"]
-        solver = BidomainSolver(self._domain, M_i, M_e,
-                                I_s=None, I_a=applied_current, v_ = self.vs[0],
-                                params=params)
-        # solver = BidomainSolver(self._domain, M_i, M_e,
-        #                         I_s=None, I_a=applied_current,
-        #                         params=params)
+        params = self.parameters["BasicBidomainSolver"]
+        solver = BasicBidomainSolver(self._domain, M_i, M_e,
+                                     I_s=None, I_a=applied_current,
+                                     v_ = self.vs[0],
+                                     params=params)
         return solver
 
     @staticmethod
@@ -175,11 +173,8 @@ class BasicSplittingSolver:
         """
 
         params = Parameters("BasicSplittingSolver")
-        params.add("enable_adjoint", False)
+        params.add("enable_adjoint", True)
         params.add("theta", 0.5)
-        #params.add("default_timestep", 1.0)
-
-        #params.add("use_avg_u_constraint", True)
 
         # Add default parameters from ODE solver, but update for V
         # space
@@ -188,13 +183,10 @@ class BasicSplittingSolver:
         ode_solver_params["V_polynomial_family"] = "CG"
         params.add(ode_solver_params)
 
-        pde_solver_params = BidomainSolver.default_parameters()
+        pde_solver_params = BasicBidomainSolver.default_parameters()
         pde_solver_params["polynomial_degree"] = 1
         params.add(pde_solver_params)
 
-        # FIXME: Add default parameters from PDE solver
-        #pde_solver_params = LinearVariationalSolver.default_parameters()
-        #params.add(pde_solver_params)
         return params
 
     def solution_fields(self):
@@ -285,7 +277,7 @@ class BasicSplittingSolver:
 
         # Extract some parameters for readability
         theta = self.parameters["theta"]
-        annotate = self.parameters["enable_adjoint"]
+        #annotate = self.parameters["enable_adjoint"]
 
         # Extract time domain
         (t0, t1) = interval
