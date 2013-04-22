@@ -330,217 +330,53 @@ class BasicSplittingSolver:
         solve(a == L, solution, solver_parameters={"linear_solver": "cg"})
         end()
 
-# class SplittingSolver(BasicSplittingSolver):
-#     """
+class SplittingSolver(BasicSplittingSolver):
 
-#     An optimised solver for the bidomain equations based on the
-#     operator splitting scheme described in Sundnes et al 2006, p. 78
-#     ff.
+    @staticmethod
+    def default_parameters():
+        """Initialize and return a set of default parameters for the
+        splitting solver
 
-#     The solver computes as solutions:
+        *Returns*
+          A set of parameters (:py:class:`dolfin.Parameters`)
 
-#       * "vs" (:py:class:`dolfin.Function`) representing the solution
-#         for the transmembrane potential and any additional state
-#         variables, and
-#       * "u" (:py:class:`dolfin.Function`) representing the solution
-#         for the extracellular potential.
+        To inspect all the default parameters, do::
 
-#     The algorithm can be controlled by a number of parameters. In
-#     particular, the splitting algorithm can be controlled by the
-#     parameter "theta": "theta" set to 1.0 corresponds to a (1st order)
-#     Godunov splitting while "theta" set to 0.5 to a (2nd order) Strang
-#     splitting.
+          info(SplittingSolver.default_parameters(), True)
+        """
 
-#     *Arguments*
-#       model (:py:class:`beatadjoint.cardiacmodels.CardiacModel`)
-#         a CardiacModel object describing the simulation set-up
-#       parameters (:py:class:`dolfin.Parameters`)
-#         a Parameters object controlling solver parameters
+        params = Parameters("SplittingSolver")
+        params.add("enable_adjoint", True)
+        params.add("theta", 0.5)
 
-#     *Assumptions*
-#       * The cardiac conductivities do not vary in time
+        # Add default parameters from ODE solver, but update for V
+        # space
+        ode_solver_params = BasicCardiacODESolver.default_parameters()
+        ode_solver_params["V_polynomial_degree"] = 1
+        ode_solver_params["V_polynomial_family"] = "CG"
+        params.add(ode_solver_params)
 
+        pde_solver_params = BidomainSolver.default_parameters()
+        pde_solver_params["polynomial_degree"] = 1
+        params.add(pde_solver_params)
 
-#     """
+        return params
 
-#     def __init__(self, model, parameters=None):
-#         BasicSplittingSolver.__init__(self, model, parameters)
+    def _create_pde_solver(self):
+        """Helper function to initialize a suitable PDE solver from
+        the cardiac model."""
 
-#         # Define forms for pde_step
-#         self._k_n = Constant(self.parameters["default_timestep"])
-#         (self._a, self._L) = self.pde_variational_problem(self._k_n, self.vs_)
+        # Extract applied current from the cardiac model (stimulus
+        # invoked in the ODE step)
+        applied_current = self._model.applied_current
 
-#         # Pre-assemble left-hand side (will be updated if time-step
-#         # changes)
-#         self._A = assemble(self._a, annotate=True)
+        # Extract conductivities from the cardiac model
+        (M_i, M_e) = self._model.conductivities()
 
-#         # Tune solver types
-#         solver_parameters = self.parameters["linear_variational_solver"]
-#         solver_type = solver_parameters["linear_solver"]
-#         if solver_type == "direct":
-#             self._linear_solver = LUSolver(self._A)
-#             self._linear_solver.parameters.update(solver_parameters["lu_solver"])
-#         elif solver_type == "iterative":
-#             self._linear_solver = KrylovSolver("gmres", "amg")
-#             self._linear_solver.parameters.update(solver_parameters["krylov_solver"])
-#             self._linear_solver.set_operator(self._A)
-#         else:
-#             error("Unknown linear_pde_solver specified: %s" % solver_type)
-
-#     @staticmethod
-#     def default_parameters():
-#         """Initialize and return a set of default parameters for the
-#         splitting solver
-
-#         *Returns*
-#           A set of parameters (:py:class:`dolfin.Parameters`)
-
-#         To inspect all the default parameters, do::
-
-#           info(SplittingSolver.default_parameters(), True)
-#         """
-
-#         parameters = BasicSplittingSolver.default_parameters()
-
-#         # Customize linear solver parameters
-#         ps = parameters["linear_variational_solver"]
-#         ps["linear_solver"] = "iterative"
-#         ps["krylov_solver"]["preconditioner"]["same_nonzero_pattern"] = True
-#         ps["lu_solver"]["same_nonzero_pattern"] = True
-
-#         return parameters
-
-#     def linear_solver(self):
-#         """Return the linear solver (re-)used for the PDE step of the
-#         splitting algorithm.
-
-#         *Returns*
-#           linear solver (:py:class:`dolfin.LinearSolver`)
-#         """
-#         return self._linear_solver
-
-#     def pde_variational_problem(self, k_n, vs_):
-#         """Create and return the variational problem for the PDE step
-#         of the splitting algorithm.
-
-#         *Arguments*
-#           k_n (:py:class:`ufl.Expr` or float)
-#             The time step
-#           vs\_ (:py:class:`dolfin.Function`)
-#             Solution for vs at "previous time"
-
-#         *Returns*
-#           (lhs, rhs) (:py:class:`tuple` of :py:class:`ufl.Form`)
-#         """
-
-#         # Extract conductivities from model
-#         M_i, M_e = self._model.conductivities()
-
-#         # Extract theta parameter
-#         theta = self.parameters["theta"]
-
-#         # Define variational formulation
-#         use_R = self.parameters["use_avg_u_constraint"]
-#         if not use_R:
-#             self.VUR = MixedFunctionSpace([self.V, self.V])
-#             (v, u) = TrialFunctions(self.VUR)
-#             (w, q) = TestFunctions(self.VUR)
-#         else:
-#             (v, u, l) = TrialFunctions(self.VUR)
-#             (w, q, lamda) = TestFunctions(self.VUR)
-
-#         # Set-up variational problem
-#         (v_, s_) = split(vs_)
-#         Dt_v = (v - v_)
-
-#         theta_parabolic = (theta*inner(M_i*grad(v), grad(w))*dx
-#                            + (1.0 - theta)*inner(M_i*grad(v_), grad(w))*dx
-#                            + inner(M_i*grad(u), grad(w))*dx)
-#         theta_elliptic = (theta*inner(M_i*grad(v), grad(q))*dx
-#                           + (1.0 - theta)*inner(M_i*grad(v_), grad(q))*dx
-#                           + inner((M_i + M_e)*grad(u), grad(q))*dx)
-
-#         G = (Dt_v*w*dx + k_n*theta_parabolic + theta_elliptic)
-
-#         if use_R:
-#             G += (lamda*u + l*q)*dx
-
-#         # Add applied current if specified
-#         if self._model.applied_current:
-#             G -= k_n*self._model.applied_current*w*dx
-
-#         (a, L) = system(G)
-#         return (a, L)
-
-#     def pde_step(self, interval):
-#         """
-#         Solve the PDE step of the splitting scheme for the problem
-#         given by the model on a given time interval (t0, t1) with
-#         timestep given by the interval length and given initial
-#         conditions, return the current vur solution.
-
-#         *Arguments*
-#           interval (:py:class:`tuple`)
-#             The time interval for the solve given by (t0, t1)
-#           vs\_ (:py:class:`dolfin.Function`)
-#             Initial conditions for vs for this interval
-
-#         *Returns*
-#           current vur (:py:class:`dolfin.Function`)
-
-#         """
-
-#         # Extract interval and time-step
-#         (t0, t1) = interval
-#         dt = (t1 - t0)
-#         theta = self.parameters["theta"]
-#         t = t0 + theta*dt
-#         annotate = self.parameters["enable_adjoint"]
-
-#         # Update previous solution
-#         #self.vs_.assign(vs_, annotate=annotate)
-
-#         # Assemble left-hand-side: only re-assemble if necessary, and
-#         # reuse all solver data possible
-#         solver = self.linear_solver()
-#         tolerance = 1.e-12
-#         if abs(dt - float(self._k_n)) < tolerance:
-#             A = self._A
-#             if isinstance(solver, LUSolver):
-#                 info("Reusing LU factorization")
-#                 solver.parameters["reuse_factorization"] = True
-#             elif isinstance(solver, KrylovSolver):
-#                 info("Reusing KrylovSolver preconditioner")
-#                 solver.parameters["preconditioner"]["reuse"] = True
-#             else:
-#                 pass
-#         else:
-#             self._k_n.assign(Constant(dt))#, annotate=annotate) # FIXME
-#             A = assemble(self._a, annotate=True)
-#             self._A = A
-#             solver.set_operator(self._A)
-#             if isinstance(solver, LUSolver):
-#                 solver.parameters["reuse_factorization"] = False
-#             elif isinstance(solver, KrylovSolver):
-#                 solver.parameters["preconditioner"]["reuse"] = False
-#             else:
-#                 pass
-
-#         # Assemble right-hand-side
-#         if self._model.applied_current:
-#             self._model.applied_current.t = t
-#         b = assemble(self._L, annotate=True)
-
-#         # Solve system
-#         vur = Function(self.VUR, name="pde_vur")
-#         solver.solve(vur.vector(), b, annotate=annotate)
-
-#         # Rescale u if KrylovSolver is used...
-#         if (isinstance(solver, KrylovSolver) and annotate==False):
-#             info_blue("Normalizing u")
-#             avg_u = assemble(split(vur)[1]*dx)
-#             bar = project(Constant((0.0, avg_u, 0.0)), self.VUR)
-#             vur.vector().axpy(-1.0, bar.vector())
-
-#         return vur
-
+        # Extract ode solver parameters
+        params = self.parameters["BidomainSolver"]
+        solver = BidomainSolver(self._domain, M_i, M_e,
+                                I_s=None, I_a=applied_current,
+                                v_ = self.vs[0],
+                                params=params)
+        return solver
