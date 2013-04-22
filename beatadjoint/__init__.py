@@ -14,7 +14,6 @@ from beatadjoint.cellmodels import *
 
 # Solver imports
 from beatadjoint.splittingsolver import BasicSplittingSolver
-from beatadjoint.fullycoupledsolver import CoupledBidomainSolver
 from beatadjoint.cellsolver import BasicSingleCellSolver
 from beatadjoint.cellsolver import BasicCardiacODESolver
 from beatadjoint.bidomainsolver import BasicBidomainSolver
