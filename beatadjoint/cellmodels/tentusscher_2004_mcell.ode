@@ -152,9 +152,10 @@ parameters("Membrane",
            F = 96485.3415,
            Cm = 0.185,
            V_c = 0.016404,
-           stim_start = 10,
+           stim_start = 5,
            stim_duration = 1,
-           stim_amplitude = 52)
+           stim_amplitude = 52,
+           stim_period = 1000)
 
 parameters("Potassium dynamics",
            K_o = 5.4)
@@ -212,7 +213,7 @@ tau_h = one/(alpha_h + beta_h)
 
 component("Fast sodium current j gate")
 j_inf = one/(one + exp((V + 71.55)/7.43))**two
-alpha_j = Conditional(Lt(V, -40), ((-25428*exp(0.2444*V) - 6.948*exp(-0.04391*V))*(V + 37.78))/one/(one + exp(0.311*(V + 79.23))), 0)
+alpha_j = Conditional(Lt(V, -40), ((-25428*exp(0.2444*V) - 6.948e-6*exp(-0.04391*V))*(V + 37.78))/one/(one + exp(0.311*(V + 79.23))), 0)
 beta_j = Conditional(Lt(V, -40), (0.02424*exp(-0.01052*V))/(one + exp(-0.1378*(V + 40.14))), (0.6*exp(0.057*V))/(one + exp(-0.1*(V + 32))))
 tau_j = one/(alpha_j + beta_j)
 
@@ -279,7 +280,7 @@ Ca_sr_bufsr = one/(one + (Buf_sr*K_buf_sr)/(Ca_SR + K_buf_sr)**two)
 component("Sodium dynamics")
 
 component("Membrane")
-i_Stim = 0 #Conditional(Ge(time, stim_start) & Le(time, stim_start + stim_duration), -stim_amplitude, 0)
+i_Stim = 0.0#Conditional(And(Ge(time, stim_start), Le(time, stim_start + stim_duration)), -stim_amplitude, 0)
 
 component("Potassium dynamics")
 
