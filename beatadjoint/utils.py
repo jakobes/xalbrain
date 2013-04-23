@@ -34,9 +34,21 @@ def state_space(domain, d, family=None, k=1):
     return S
 
 def end_of_time(T, t0, t1, dt):
+    """
+    Return True if the interval (t0, t1) is the last before the end
+    time T, otherwise False.
+    """
     return (t1 + dt) > (T + dolfin.DOLFIN_EPS)
 
 def convergence_rate(hs, errors):
+    """
+    Compute and return rates of convergence :math:`r_i` such that
+
+    .. math::
+
+      errors = C hs^r
+
+    """
     assert (len(hs) == len(errors)), "hs and errors must have same length."
     # Compute converence rates
     rates = [(math.log(errors[i+1]/errors[i]))/(math.log(hs[i+1]/hs[i]))
@@ -46,7 +58,7 @@ def convergence_rate(hs, errors):
     return rates
 
 class Projecter(object):
-    """Class for customized for repeated projection.
+    """Customized class for repeated projection.
 
     *Arguments*
       V (:py:class:`dolfin.FunctionSpace`)
@@ -54,6 +66,11 @@ class Projecter(object):
       solver_type (string, optional)
         "iterative" (default) or "direct"
 
+    *Example of usage*::
+      my_project = Projecter(V, solver_type="direct")
+      u = Function(V)
+      f = Function(W)
+      my_project(f, u)
     """
 
     def __init__(self, V, solver_type="iterative"):
