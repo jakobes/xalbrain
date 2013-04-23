@@ -6,7 +6,7 @@ scenarios.
 
 # Copyright (C) 2012 Marie E. Rognes (meg@simula.no)
 # Use and modify at will
-# Last changed: 2013-04-15
+# Last changed: 2013-04-23
 
 __all__ = ["CardiacModel"]
 
@@ -41,15 +41,14 @@ class CardiacModel(object):
         the extra-cellular conductivity as an ufl Expression
       cell_model (:py:class:`~beatadjoint.cellmodels.cardiaccellmodel.CardiacCellModel`)
         a cell model
-      applied_current (:py:class:`ufl.Expr`, optional)
-        an applied current as an ufl Expression
       stimulus (:py:class:`ufl.Expr`, optional)
         a stimulus as an ufl Expression
-
+      applied_current (:py:class:`ufl.Expr`, optional)
+        an applied current as an ufl Expression
 
     """
-    def __init__(self, domain, M_i, M_e, cell_model, applied_current=None,
-                 stimulus=None):
+    def __init__(self, domain, M_i, M_e, cell_model, stimulus=None,
+                 applied_current=None):
         "Create CardiacModel from given input."
 
         # Store attributes
@@ -57,8 +56,8 @@ class CardiacModel(object):
         self._intracellular_conductivity = M_i
         self._extracellular_conductivity = M_e
         self._cell_model = cell_model
-        self._applied_current = applied_current
         self._stimulus = stimulus
+        self._applied_current = applied_current
 
     @property
     def applied_current(self):

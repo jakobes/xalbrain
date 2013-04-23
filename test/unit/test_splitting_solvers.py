@@ -29,8 +29,8 @@ class TestSplittingSolver(unittest.TestCase):
 
         self.cardiac_model = CardiacModel(self.mesh, self.M_i, self.M_e,
                                           self.cell_model,
-                                          self.applied_current,
-                                          self.stimulus)
+                                          self.stimulus,
+                                          self.applied_current)
 
         self.t0 = 0.0
         self.dt = 0.1
