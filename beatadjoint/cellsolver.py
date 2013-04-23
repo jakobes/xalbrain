@@ -12,14 +12,18 @@ from beatadjoint.utils import state_space, end_of_time
 class BasicCardiacODESolver(object):
     """A basic, non-optimised solver for systems of ODEs typically
     encountered in cardiac applications of the form: find a scalar
-    field v = v(x, t) and a vector field s = s(x, t)
+    field :math:`v = v(x, t)` and a vector field :math:`s = s(x, t)`
 
-      v_t = - I_ion(v, s) + I_s
+    .. math::
+
+      v_t = - I_{ion}(v, s) + I_s
+
       s_t = F(v, s)
 
-    where I_ion and F are given non-linear functions, I_s is some
-    prescribed stimulus. If I_s depends on time, it is assumed
-    that I_s is an Expression with parameter 't'.
+    where :math:`I_{ion}` and :math:`F` are given non-linear
+    functions, :math:`I_s` is some prescribed stimulus. If :math:`I_s`
+    depends on time, it is assumed that :math:`I_s` is a
+    :py:class:`dolfin.Expression` with parameter 't'.
 
     Here, this nonlinear ODE system is solved via a theta-scheme.  By
     default theta=0.5, which corresponds to a Crank-Nicolson
@@ -219,14 +223,18 @@ class BasicCardiacODESolver(object):
 class BasicSingleCellSolver(BasicCardiacODESolver):
     """A basic, non-optimised solver for systems of ODEs typically
     encountered in cardiac applications of the form: find a scalar
-    field v = v(t) and a vector field s = s(t)
+    field :math:`v = v(t)` and a vector field :math:`s = s(t)`
 
-      v_t = - I_ion(v, s) + I_s
+    .. math::
+
+      v_t = - I_{ion}(v, s) + I_s
+
       s_t = F(v, s)
 
-    where I_ion and F are given non-linear functions, I_s is some
-    prescribed stimulus. If I_s depends on time, it is assumed
-    that I_s is an Expression with parameter 't'.
+    where :math:`I_{ion}` and :math:`F` are given non-linear
+    functions, :math:`I_s`is some prescribed stimulus. If :math:`I_s`
+    depends on time, it is assumed that :math:`I_s` is a
+    :py:class:`dolfin.Expression` with parameter 't'.
 
     Use this solver if you just want to test the results from a
     cardiac cell model without any spatial domain dependence.
@@ -246,7 +254,7 @@ class BasicSingleCellSolver(BasicCardiacODESolver):
        simulation.
 
     *Arguments*
-      model (:py:class:`~beatadjoint.cellmodels.cardiaccellmodels.CardiacCellModel`)
+      model (:py:class:`~beatadjoint.cellmodels.cardiaccellmodel.CardiacCellModel`)
         A cardiac cell model
 
       params (:py:class:`dolfin.Parameters`, optional)
