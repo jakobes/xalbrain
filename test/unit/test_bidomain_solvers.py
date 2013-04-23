@@ -154,8 +154,8 @@ class TestBidomainSolver(unittest.TestCase):
             b = v.vector().norm("l2")
 
         print "lu gives ", a
-        print "krylov (gmres, jacobi) gives ", b
-        self.assertAlmostEqual(a, b, places=3)
+        print "krylov gives ", b
+        self.assertAlmostEqual(a, b, places=4)
 
 
 if __name__ == "__main__":
