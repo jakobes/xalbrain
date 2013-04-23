@@ -270,7 +270,6 @@ class BasicSplittingSolver:
             The time interval for the solve given by (t0, t1)
 
         *Invariants*
-
           Given self._vs in a correct state at t0, provide v and s (in
           self.vs) and u (in self.vur) in a correct state at t1. (Note
           that self.vur[0] == self.vs[0] only if theta = 1.0.)
@@ -322,6 +321,14 @@ class BasicSplittingSolver:
         end()
 
     def merge(self, solution):
+        """
+        Combine solutions from the PDE solve and the ODE solve to form
+        a single mixed function.
+
+        *Arguments*
+          solution (:py:class:`dolfin.Function`)
+            Function holding the combined result
+        """
         begin("Merging")
         v = split(self.vur)[0]
         s = split(self.vs)[1]
@@ -391,6 +398,14 @@ class SplittingSolver(BasicSplittingSolver):
         return solver
 
     def merge(self, solution):
+        """
+        Combine solutions from the PDE solve and the ODE solve to form
+        a single mixed function.
+
+        *Arguments*
+          solution (:py:class:`dolfin.Function`)
+            Function holding the combined result
+        """
         begin("Merging using custom projecter")
         v = split(self.vur)[0]
         s = split(self.vs)[1]
