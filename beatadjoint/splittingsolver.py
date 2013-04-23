@@ -270,9 +270,10 @@ class BasicSplittingSolver:
             The time interval for the solve given by (t0, t1)
 
         *Invariants*
-          Given self._vs in a correct state at t0, provide self.vs and
-          self.vur in a correct state at t1 and such that self.vs[0]
-          == self.vur[0].
+
+          Given self._vs in a correct state at t0, provide v and s (in
+          self.vs) and u (in self.vur) in a correct state at t1. (Note
+          that self.vur[0] == self.vs[0] only if theta = 1.0.)
         """
 
         # Extract some parameters for readability

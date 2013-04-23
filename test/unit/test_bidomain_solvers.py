@@ -9,8 +9,6 @@ import unittest
 from dolfin import *
 from beatadjoint import *
 
-parameters["reorder_dofs_serial"] = False
-
 class TestBasicBidomainSolver(unittest.TestCase):
     "Test functionality for the basic bidomain solver."
 
@@ -57,8 +55,8 @@ class TestBasicBidomainSolver(unittest.TestCase):
         interval = (self.t0, self.t0 + self.dt)
         solutions = solver.solve(interval, self.dt)
         for (interval, fields) in solutions:
-            (v_, vs) = fields
-            a = vs.vector().norm("l2")
+            (v_, vur) = fields
+            a = vur.vector().norm("l2")
 
         # Reset v_
         v_.vector()[:] = 0.0
@@ -98,7 +96,7 @@ class TestBidomainSolver(unittest.TestCase):
                                 I_a=self.applied_current)
         solutions = solver.solve((self.t0, self.t0 + 2*self.dt), self.dt)
         for (interval, fields) in solutions:
-            (v_, vs) = fields
+            (v_, vur) = fields
 
     def test_compare_with_basic_solve(self):
         "Test that solver gives same results as basic bidomain solver."
@@ -109,22 +107,17 @@ class TestBidomainSolver(unittest.TestCase):
                                 I_a=self.applied_current)
         solutions = solver.solve((self.t0, self.t0 + 2*self.dt), self.dt)
         for (interval, fields) in solutions:
-            (v_, vs) = fields
-        bidomain_result = vs.vector().norm("l2")
+            (v_, vur) = fields
+        bidomain_result = vur.vector().norm("l2")
 
-        # Reset
-        v_.vector()[:] = 0.0
-
-        print
-
-        # Create solver and solve
+        # Create other solver and solve
         solver = BasicBidomainSolver(self.mesh, self.M_i, self.M_e,
                                      I_s=self.stimulus,
                                      I_a=self.applied_current)
         solutions = solver.solve((self.t0, self.t0 + 2*self.dt), self.dt)
         for (interval, fields) in solutions:
-            (v_, vs) = fields
-        basic_bidomain_result = vs.vector().norm("l2")
+            (v_, vur) = fields
+        basic_bidomain_result = vur.vector().norm("l2")
 
         print bidomain_result
         print basic_bidomain_result
@@ -140,17 +133,12 @@ class TestBidomainSolver(unittest.TestCase):
                                 I_a=self.applied_current)
         solutions = solver.solve((self.t0, self.t0 + 3*self.dt), self.dt)
         for (interval, fields) in solutions:
-            (v_, vs) = fields
-        a = vs.vector().norm("l2")
-
-        # Reset
-        v_.vector()[:] = 0.0
-
-        print
+            (v_, vur) = fields
+            (v, u, r) = vur.split(deepcopy=True)
+            a = v.vector().norm("l2")
 
         # Create solver and solve using iterative means
         params = BidomainSolver.default_parameters()
-
         params["linear_solver_type"] = "iterative"
         params["use_avg_u_constraint"] = False
         params["default_timestep"] = self.dt
@@ -161,12 +149,13 @@ class TestBidomainSolver(unittest.TestCase):
                                 params=params)
         solutions = solver.solve((self.t0, self.t0 + 3*self.dt), self.dt)
         for (interval, fields) in solutions:
-            (v_, vs) = fields
-        b = vs.vector().norm("l2")
+            (v_, vu) = fields
+            (v, u) = vu.split(deepcopy=True)
+            b = v.vector().norm("l2")
 
-        print a
-        print b
-        self.assertAlmostEqual(a, b, places=2)
+        print "lu gives ", a
+        print "krylov (gmres, jacobi) gives ", b
+        self.assertAlmostEqual(a, b, places=3)
 
 
 if __name__ == "__main__":

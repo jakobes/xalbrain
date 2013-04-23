@@ -307,7 +307,9 @@ class BidomainSolver(BasicBidomainSolver):
 
         elif solver_type == "iterative":
 
-            solver = KrylovSolver("gmres", "amg")
+            alg = self.parameters["algorithm"]
+            prec = self.parameters["preconditioner"]
+            solver = KrylovSolver(alg, prec)
             solver.parameters.update(self.parameters["krylov_solver"])
             solver.set_operator(self._lhs_matrix)
 
@@ -343,6 +345,10 @@ class BidomainSolver(BasicBidomainSolver):
         # Set default solver type to be direct
         params.add("linear_solver_type", "direct")
         params.add("use_avg_u_constraint", True)
+
+        # Set some robust default iterative choices
+        params.add("preconditioner", "jacobi")
+        params.add("algorithm", "gmres")
 
         # Add default parameters from both LU and Krylov solvers
         params.add(LUSolver.default_parameters())
