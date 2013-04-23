@@ -53,13 +53,13 @@ testing or debugging purposes primarily.
 # Use and modify at will
 # Last changed: 2013-04-15
 
-__all__ = ["BasicSplittingSolver"]
+__all__ = ["BasicSplittingSolver", "SplittingSolver"]
 
 from dolfin import *
 from dolfin_adjoint import *
 from beatadjoint import CardiacModel
 from beatadjoint.cellsolver import BasicCardiacODESolver
-from beatadjoint.bidomainsolver import BasicBidomainSolver
+from beatadjoint.bidomainsolver import BasicBidomainSolver, BidomainSolver
 from beatadjoint.utils import join, state_space, end_of_time
 
 class BasicSplittingSolver:
@@ -173,7 +173,7 @@ class BasicSplittingSolver:
         """
 
         params = Parameters("BasicSplittingSolver")
-        params.add("enable_adjoint", True)
+        params.add("enable_adjoint", False)
         params.add("theta", 0.5)
 
         # Add default parameters from ODE solver, but update for V
@@ -303,23 +303,25 @@ class BasicSplittingSolver:
         # up to date, but otherwise we are done.
         if theta == 1.0:
             # Assumes that the v part of its vur and the s part of its
-            # vs are in the correct state, provides vs in its correct
-            # state
-            self._merge(self.vs)
+            # vs are in the correct state, provides input argument(in
+            # this case self.vs) in its correct state
+            self.merge(self.vs)
             return
 
         # Otherwise, we do another ode_step:
         begin("Corrective ODE step")
+
         # Assumes that the v part of its vur and the s part of its vs
-        # are in the correct state, provides vs_ in its correct state
-        self._merge(self.vs_)
+        # are in the correct state, provides input argument (in this
+        # case self.vs_) in its correct state
+        self.merge(self.vs_)
 
         # Assumes that its vs_ is in the correct state, provides vs in
         # the correct state
         self.ode_solver.step((t, t1))
         end()
 
-    def _merge(self, solution):
+    def merge(self, solution):
         begin("Merging")
         v = split(self.vur)[0]
         s = split(self.vs)[1]
@@ -347,7 +349,7 @@ class SplittingSolver(BasicSplittingSolver):
         """
 
         params = Parameters("SplittingSolver")
-        params.add("enable_adjoint", True)
+        params.add("enable_adjoint", False)
         params.add("theta", 0.5)
 
         # Add default parameters from ODE solver, but update for V
@@ -378,6 +380,6 @@ class SplittingSolver(BasicSplittingSolver):
         params = self.parameters["BidomainSolver"]
         solver = BidomainSolver(self._domain, M_i, M_e,
                                 I_s=None, I_a=applied_current,
-                                v_ = self.vs[0],
+                                v_=self.vs[0],
                                 params=params)
         return solver
