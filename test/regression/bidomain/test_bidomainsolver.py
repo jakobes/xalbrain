@@ -37,7 +37,7 @@ def main(N, dt, T, theta):
                          t=T - (1. - theta)*dt, degree=3)
 
     # Define initial condition(s)
-    (v_, vur) = solver.solution_fields()
+    (v_, vu) = solver.solution_fields()
 
     # Solve
     solutions = solver.solve((0, T), dt)
@@ -46,7 +46,7 @@ def main(N, dt, T, theta):
         continue
 
     # Compute errors
-    (v, u, r) = vur.split(deepcopy=True)
+    (v, u) = vu.split(deepcopy=True)
     v_error = errornorm(v_exact, v, "L2", degree_rise=2)
     u_error = errornorm(u_exact, u, "L2", degree_rise=2)
     return [v_error, u_error, mesh.hmin(), dt, T]
