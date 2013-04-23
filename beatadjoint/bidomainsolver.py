@@ -1,6 +1,6 @@
 """
-This solver solves the (pure) bidomain equations on the form: find the
-transmembrane potential :math:`v = v(x, t)` and the extracellular
+These solvers solve the (pure) bidomain equations on the form: find
+the transmembrane potential :math:`v = v(x, t)` and the extracellular
 potential :math:`u = u(x, t)` such that
 
 .. math::
