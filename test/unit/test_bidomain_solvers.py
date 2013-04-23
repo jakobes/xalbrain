@@ -99,12 +99,17 @@ class TestBidomainSolver(unittest.TestCase):
             (v_, vur) = fields
 
     def test_compare_with_basic_solve(self):
-        "Test that solver gives same results as basic bidomain solver."
+        """Test that solver with direct linear algebra gives same
+        results as basic bidomain solver."""
 
         # Create solver and solve
+        params = BidomainSolver.default_parameters()
+        params["linear_solver_type"] = "direct"
+        params["use_avg_u_constraint"] = True
+        params["default_timestep"] = self.dt
         solver = BidomainSolver(self.mesh, self.M_i, self.M_e,
                                 I_s=self.stimulus,
-                                I_a=self.applied_current)
+                                I_a=self.applied_current, params=params)
         solutions = solver.solve((self.t0, self.t0 + 2*self.dt), self.dt)
         for (interval, fields) in solutions:
             (v_, vur) = fields
@@ -128,9 +133,14 @@ class TestBidomainSolver(unittest.TestCase):
         "Test that direct and iterative solution give comparable results."
 
         # Create solver and solve
+        params = BidomainSolver.default_parameters()
+        params["linear_solver_type"] = "direct"
+        params["use_avg_u_constraint"] = True
+        params["default_timestep"] = self.dt
         solver = BidomainSolver(self.mesh, self.M_i, self.M_e,
                                 I_s=self.stimulus,
-                                I_a=self.applied_current)
+                                I_a=self.applied_current,
+                                params=params)
         solutions = solver.solve((self.t0, self.t0 + 3*self.dt), self.dt)
         for (interval, fields) in solutions:
             (v_, vur) = fields
@@ -139,8 +149,6 @@ class TestBidomainSolver(unittest.TestCase):
 
         # Create solver and solve using iterative means
         params = BidomainSolver.default_parameters()
-        params["linear_solver_type"] = "iterative"
-        params["use_avg_u_constraint"] = False
         params["default_timestep"] = self.dt
         params["krylov_solver"]["monitor_convergence"] = True
         solver = BidomainSolver(self.mesh, self.M_i, self.M_e,
@@ -156,7 +164,6 @@ class TestBidomainSolver(unittest.TestCase):
         print "lu gives ", a
         print "krylov gives ", b
         self.assertAlmostEqual(a, b, places=4)
-
 
 if __name__ == "__main__":
     print("")
