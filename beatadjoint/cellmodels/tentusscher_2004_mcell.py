@@ -61,6 +61,7 @@ NOT_IMPLEMENTED
         parameters.add("V_c", 0.016404)
         parameters.add("stim_amplitude", 52)
         parameters.add("stim_duration", 1)
+        parameters.add("stim_period", 1000)
         parameters.add("stim_start", 5)
         parameters.add("K_o", 5.4)
         return parameters
@@ -233,13 +234,15 @@ NOT_IMPLEMENTED
             # Derivative for state j
             (1.0/((1.0 + 15212.5932856544*ufl.exp(0.134589502018843*V))*(1.0 +\
             15212.5932856544*ufl.exp(0.134589502018843*V))) -\
-            j)*(ufl.conditional(ufl.lt(V, -40.0),\
+            j)*(ufl.conditional(ufl.lt(V, -40.0), (37.78 +\
+            V)*(-6.948e-6*ufl.exp(-0.04391*V) -\
+            25428.0*ufl.exp(0.2444*V))/(1.0 +\
+            50262745825.954*ufl.exp(0.311*V)), 0.0) +\
+            ufl.conditional(ufl.lt(V, -40.0),\
             0.02424*ufl.exp(-0.01052*V)/(1.0 +\
             0.00396086833990426*ufl.exp(-0.1378*V)),\
-            0.6*ufl.exp(0.057*V)/(1.0 + 0.0407622039783662*ufl.exp(-0.1*V)))\
-            + ufl.conditional(ufl.lt(V, -40.0), (37.78 +\
-            V)*(-6.948*ufl.exp(-0.04391*V) - 25428.0*ufl.exp(0.2444*V))/(1.0 +\
-            50262745825.954*ufl.exp(0.311*V)), 0.0)),
+            0.6*ufl.exp(0.057*V)/(1.0 +\
+            0.0407622039783662*ufl.exp(-0.1*V)))),
 
             # Derivative for state d
             (1.0/(1.0 + 0.513417119032592*ufl.exp(-0.133333333333333*V)) -\

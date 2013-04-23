@@ -75,13 +75,42 @@ class TestPointIntegralSolver(unittest.TestCase):
     def setUp(self):
         # Note that these should be (and are) identical to the ones
         # for the BasicSingleCellSolver
-        self.references = {NoCellModel: {BackwardEuler: 0.3,
-                                         CrankNicolson: 0.2,
-                                         ForwardEuler: 0.1},
+        self.references = {NoCellModel:
+                           {BackwardEuler: (0, 0.3),
+                            CrankNicolson: (0, 0.2),
+                            ForwardEuler: (0, 0.1),
+                            RK4 : (0, 0.2),
+                            ESDIRK3 : (0, 0.2),
+                            ESDIRK4 : (0, 0.2),
+                            },
+                           
                            FitzHughNagumoManual:
-                               {BackwardEuler: -84.70013280019053,
-                                CrankNicolson: -84.80005016079546,
-                                ForwardEuler:  -84.9}}
+                           {BackwardEuler: (0, -84.70013280019053),
+                            CrankNicolson: (0, -84.80005016079546),
+                            ForwardEuler:  (0, -84.9),
+                            RK4:  (0, -84.80004467770296),
+                            ESDIRK3:  (0, -84.80004468383603),
+                            ESDIRK4:  (0, -84.80004468281632),
+                            },
+                           
+                           Fitzhughnagumo:
+                           {BackwardEuler: (0, -84.69986709136005),
+                            CrankNicolson: (0, -84.79994981706433),
+                            ForwardEuler:  (0, -84.9),
+                            RK4:  (0, -84.79995530744164),
+                            ESDIRK3:  (0, -84.79995530333677),
+                            ESDIRK4:  (0, -84.79995530333677),
+                            },
+                           
+                           Tentusscher_2004_mcell:
+                           {BackwardEuler: (15, -85.8974552517),
+                            CrankNicolson: (15, -85.99685674422098),
+                            ForwardEuler:  (15, -86.09643254167213),
+                            RK4:  (15, "nan"),
+                            ESDIRK3:  (15, -85.9968179615449),
+                            ESDIRK4:  (15, -85.9968179605287),
+                            }
+                           }
 
     def _compare_against_reference(self, Model, Scheme, mesh):
 
@@ -105,8 +134,9 @@ class TestPointIntegralSolver(unittest.TestCase):
             rhs += inner(model.stimulus, w)*dP
 
         # Create scheme
+        # NOTE: No need to initialize time to 0. That is done in the
+        # NOTE: constructor of the Scheme
         scheme = Scheme(rhs, vs, time)
-        scheme.t().assign(0.0) # MER: Why is this needed, Johan?
 
         # Start with native initial conditions, step twice and compare
         # results to given reference
@@ -118,10 +148,11 @@ class TestPointIntegralSolver(unittest.TestCase):
         solver.step(next_dt)
 
         if Model in self.references and Scheme in self.references[Model]:
+            ind, ref_value = self.references[Model][Scheme]
             info("Value for %s, %s is %g"
-                 % (Model, Scheme, vs.vector()[0]))
-            self.assertAlmostEqual(vs.vector()[0],
-                                   self.references[Model][Scheme])
+                 % (Model, Scheme, vs.vector()[ind]))
+            if ref_value != "nan":
+                self.assertAlmostEqual(vs.vector()[ind], ref_value)
         else:
             info("Missing references for %s, %s: value is %g"
                  % (Model, Scheme, vs.vector()[0]))
@@ -130,10 +161,8 @@ class TestPointIntegralSolver(unittest.TestCase):
         mesh = UnitIntervalMesh(1)
         for Model in supported_cell_models:
             for Scheme in [BackwardEuler, ForwardEuler, CrankNicolson,
-                           RK4]:
+                           RK4, ESDIRK3, ESDIRK4]:
                 self._compare_against_reference(Model, Scheme, mesh)
-
-
 
 if __name__ == "__main__":
     print("")
