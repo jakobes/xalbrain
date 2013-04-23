@@ -288,11 +288,6 @@ class BidomainSolver(BasicBidomainSolver):
         self._lhs_matrix = assemble(self._lhs, annotate=True)
         self._rhs_vector = Vector(self._lhs_matrix.size(0))
 
-        # Preassemble preconditioner (will be updated if time-step
-        # changes)
-        debug("Preassembling preconditioner")
-        self._prec_matrix = assemble(self._prec, annotate=True)
-
         # Create linear solver (based on parameter choices)
         self._linear_solver, self._update_solver = self._create_linear_solver()
 
@@ -313,6 +308,12 @@ class BidomainSolver(BasicBidomainSolver):
 
         elif solver_type == "iterative":
 
+            # Preassemble preconditioner (will be updated if time-step
+            # changes)
+            debug("Preassembling preconditioner")
+            self._prec_matrix = assemble(self._prec, annotate=True)
+
+            # Initialize KrylovSolver with matrix and preconditioner
             alg = self.parameters["algorithm"]
             prec = self.parameters["preconditioner"]
             solver = KrylovSolver(alg, prec)
@@ -348,9 +349,9 @@ class BidomainSolver(BasicBidomainSolver):
         params.add("polynomial_degree", 1)
         params.add("default_timestep", 1.0)
 
-        # Set default solver type to be direct
-        params.add("linear_solver_type", "direct")
-        params.add("use_avg_u_constraint", True)
+        # Set default solver type to be iterative
+        params.add("linear_solver_type", "iterative")
+        params.add("use_avg_u_constraint", False)
 
         # Set default iterative solver choices (used if iterative
         # solver is invoked)
@@ -445,11 +446,9 @@ class BidomainSolver(BasicBidomainSolver):
         annotate = True
         t = t0 + theta*dt
 
-        # Update matrix and other variables as needed
+        # Update matrix and linear solvers etc as needed
         timestep_unchanged = (abs(dt - float(self._timestep)) < 1.e-12)
-        if not timestep_unchanged:
-            self._update_matrix(dt)
-        self._update_solver(timestep_unchanged)
+        self._update_solver(timestep_unchanged, dt)
 
         # Update applied current and stimulus (if applicable)
         if self._I_a:
@@ -464,28 +463,11 @@ class BidomainSolver(BasicBidomainSolver):
         self.linear_solver.solve(self.vur.vector(), self._rhs_vector,
                                  annotate=annotate)
 
-    def _update_matrix(self, dt):
-        "Helper function for updating things when timestep has changed."
-
-        debug("Timestep has changed, updating matrix etc and stored timestep")
-        annotate = True
-
-        # Update stored timestep
-        # FIXME: dolfin_adjoint still can't annotate constant assignment.
-        self._timestep.assign(Constant(dt))#, annotate=annotate)
-
-        # Reassemble matrix
-        assemble(self._lhs, tensor=self._lhs_matrix, annotate=annotate)
-
-        # Reassemble preconditioner
-        assemble(self._prec, tensor=self._prec_matrix, annotate=annotate)
-
-        # Update solvers
-        self.linear_solver.set_operator(self._lhs_matrix)
-
-    def _update_lu_solver(self, timestep_unchanged):
+    def _update_lu_solver(self, timestep_unchanged, dt):
         """Helper function for updating an LUSolver depending on
         whether timestep has changed."""
+
+        annotate = True
 
         # Update reuse of factorization parameter in accordance with
         # changes in timestep
@@ -496,9 +478,18 @@ class BidomainSolver(BasicBidomainSolver):
             debug("Timestep has changed, updating LU factorization")
             self.linear_solver.parameters["reuse_factorization"] = False
 
-    def _update_krylov_solver(self, timestep_unchanged):
+            # Update stored timestep
+            # FIXME: dolfin_adjoint still can't annotate constant assignment.
+            self._timestep.assign(Constant(dt))#, annotate=annotate)
+
+            # Reassemble matrix
+            assemble(self._lhs, tensor=self._lhs_matrix, annotate=annotate)
+
+    def _update_krylov_solver(self, timestep_unchanged, dt):
         """Helper function for updating a KrylovSolver depending on
         whether timestep has changed."""
+
+        annotate = True
 
         # Update reuse of preconditioner parameter in accordance with
         # changes in timestep
@@ -509,7 +500,18 @@ class BidomainSolver(BasicBidomainSolver):
             debug("Timestep has changed, updating preconditioner")
             self.linear_solver.parameters["preconditioner"]["reuse"] = False
 
+            # Update stored timestep
+            # FIXME: dolfin_adjoint still can't annotate constant assignment.
+            self._timestep.assign(Constant(dt))#, annotate=annotate)
+
+            # Reassemble matrix
+            assemble(self._lhs, tensor=self._lhs_matrix, annotate=annotate)
+
+            # Reassemble preconditioner
+            assemble(self._prec, tensor=self._prec_matrix, annotate=annotate)
+
         # Set nonzero initial guess if it indeed is nonzero
         if (self.vur.vector().norm("l2") > 1.e-12):
             debug("Initial guess is non-zero.")
             self.linear_solver.parameters["nonzero_initial_guess"] = True
+
