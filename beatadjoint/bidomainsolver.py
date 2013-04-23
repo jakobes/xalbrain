@@ -279,13 +279,19 @@ class BidomainSolver(BasicBidomainSolver):
 
         # Create variational forms
         self._timestep = Constant(self.parameters["default_timestep"])
-        (self._lhs, self._rhs) = self.variational_forms(self._timestep)
+        (self._lhs, self._rhs, self._prec) \
+            = self.variational_forms(self._timestep)
 
         # Preassemble left-hand side (will be updated if time-step
         # changes)
         debug("Preassembling bidomain matrix (and initializing vector)")
         self._lhs_matrix = assemble(self._lhs, annotate=True)
         self._rhs_vector = Vector(self._lhs_matrix.size(0))
+
+        # Preassemble preconditioner (will be updated if time-step
+        # changes)
+        debug("Preassembling preconditioner")
+        self._prec_matrix = assemble(self._prec, annotate=True)
 
         # Create linear solver (based on parameter choices)
         self._linear_solver, self._update_solver = self._create_linear_solver()
@@ -311,7 +317,7 @@ class BidomainSolver(BasicBidomainSolver):
             prec = self.parameters["preconditioner"]
             solver = KrylovSolver(alg, prec)
             solver.parameters.update(self.parameters["krylov_solver"])
-            solver.set_operator(self._lhs_matrix)
+            solver.set_operators(self._lhs_matrix, self._prec_matrix)
 
             # Set null space: v = 0, u = constant
             debug("Setting null space")
@@ -346,9 +352,10 @@ class BidomainSolver(BasicBidomainSolver):
         params.add("linear_solver_type", "direct")
         params.add("use_avg_u_constraint", True)
 
-        # Set some robust default iterative choices
-        params.add("preconditioner", "jacobi")
+        # Set default iterative solver choices (used if iterative
+        # solver is invoked)
         params.add("algorithm", "gmres")
+        params.add("preconditioner", "amg")
 
         # Add default parameters from both LU and Krylov solvers
         params.add(LUSolver.default_parameters())
@@ -371,11 +378,13 @@ class BidomainSolver(BasicBidomainSolver):
             The time step
 
         *Returns*
-          (lhs, rhs) (:py:class:`tuple` of :py:class:`ufl.Form`)
-        """
+          (lhs, rhs, prec) (:py:class:`tuple` of :py:class:`ufl.Form`)
 
-        # Extract theta parameter
+        """
+        # Extract theta parameter and conductivities
         theta = self.parameters["theta"]
+        M_i = self._M_i
+        M_e = self._M_e
 
         # Define variational formulation
         use_R = self.parameters["use_avg_u_constraint"]
@@ -389,10 +398,10 @@ class BidomainSolver(BasicBidomainSolver):
         # Set-up variational problem
         Dt_v_k_n = (v - self.v_)
         v_mid = theta*v + (1.0 - theta)*self.v_
-        theta_parabolic = (inner(self._M_i*grad(v_mid), grad(w))*dx
-                           + inner(self._M_i*grad(u), grad(w))*dx)
-        theta_elliptic = (inner(self._M_i*grad(v_mid), grad(q))*dx
-                          + inner((self._M_i + self._M_e)*grad(u), grad(q))*dx)
+        theta_parabolic = (inner(M_i*grad(v_mid), grad(w))*dx
+                           + inner(M_i*grad(u), grad(w))*dx)
+        theta_elliptic = (inner(M_i*grad(v_mid), grad(q))*dx
+                          + inner((M_i + M_e)*grad(u), grad(q))*dx)
 
         G = (Dt_v_k_n*w*dx + k_n*theta_parabolic + k_n*theta_elliptic)
 
@@ -409,8 +418,12 @@ class BidomainSolver(BasicBidomainSolver):
         if self._I_s:
             G -= k_n*self._I_s*w*dx
 
+        # Define preconditioner based on educated(?) guess by Marie
+        prec = (v*w + k_n/2.0*inner(M_i*grad(v), grad(w)))*dx  \
+            + (u*q + k_n/2.0*inner((M_i + M_e)*grad(u), grad(q)))*dx
+
         (a, L) = system(G)
-        return (a, L)
+        return (a, L, prec)
 
     def step(self, interval):
         """
@@ -452,9 +465,9 @@ class BidomainSolver(BasicBidomainSolver):
                                  annotate=annotate)
 
     def _update_matrix(self, dt):
-        "Helper function for updating the matrix when timestep has changed."
+        "Helper function for updating things when timestep has changed."
 
-        debug("Timestep has changed, updating matrix and stored timestep")
+        debug("Timestep has changed, updating matrix etc and stored timestep")
         annotate = True
 
         # Update stored timestep
@@ -463,6 +476,9 @@ class BidomainSolver(BasicBidomainSolver):
 
         # Reassemble matrix
         assemble(self._lhs, tensor=self._lhs_matrix, annotate=annotate)
+
+        # Reassemble preconditioner
+        assemble(self._prec, tensor=self._prec_matrix, annotate=annotate)
 
         # Update solvers
         self.linear_solver.set_operator(self._lhs_matrix)
