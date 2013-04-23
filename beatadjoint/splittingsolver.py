@@ -60,7 +60,7 @@ from dolfin_adjoint import *
 from beatadjoint import CardiacModel
 from beatadjoint.cellsolver import BasicCardiacODESolver
 from beatadjoint.bidomainsolver import BasicBidomainSolver, BidomainSolver
-from beatadjoint.utils import join, state_space, end_of_time
+from beatadjoint.utils import state_space, end_of_time, Projecter
 
 class BasicSplittingSolver:
     """
@@ -335,6 +335,12 @@ class BasicSplittingSolver:
 
 class SplittingSolver(BasicSplittingSolver):
 
+    def __init__(self, model, params=None):
+        BasicSplittingSolver.__init__(self, model, params)
+
+        # Set-up projection solver (for optimised merging) of fields
+        self.vs_projecter = Projecter(self.VS, solver_type="iterative")
+
     @staticmethod
     def default_parameters():
         """Initialize and return a set of default parameters for the
@@ -383,3 +389,10 @@ class SplittingSolver(BasicSplittingSolver):
                                 v_=self.vs[0],
                                 params=params)
         return solver
+
+    def merge(self, solution):
+        begin("Merging using custom projecter")
+        v = split(self.vur)[0]
+        s = split(self.vs)[1]
+        self.vs_projecter(as_vector((v, s)), solution)
+        end()
