@@ -165,6 +165,7 @@ def main():
         (vs_, vs, vu) = fields
 
         # Store xml
+        begin("Storing solutions...")
         vsfile = File("%s/vs_%d.xml.gz" % (directory, timestep_counter))
         vsfile << vs
         ufile = File("%s/vu_%d.xml.gz" % (directory, timestep_counter))
@@ -178,6 +179,7 @@ def main():
         v_pvd << v
         s_pvd << s
         u_pvd << u
+        end()
 
         timestep_counter += 1
 
