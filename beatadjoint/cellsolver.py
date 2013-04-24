@@ -155,7 +155,6 @@ class BasicCardiacODESolver(object):
 
         # Step through time steps until at end time
         while (True) :
-            #info_blue("Solving on t = (%g, %g)" % (t0, t1))
             self.step((t0, t1))
 
             # Yield solutions
@@ -180,8 +179,6 @@ class BasicCardiacODESolver(object):
           interval (:py:class:`tuple`)
             The time interval (t0, t1) for the step
         """
-
-        info_green("Solving on t = (%g, %g)" % interval)
 
         # Extract time domain
         (t0, t1) = interval

@@ -106,7 +106,7 @@ class BasicBidomainSolver(object):
         if v_ is None:
             self.v_ = Function(V)
         else:
-            info_red("Experimental: v_ shipped from elsewhere.")
+            debug("Experimental: v_ shipped from elsewhere.")
             self.v_ = v_
         self.vur = Function(self.VUR)
 
@@ -175,7 +175,7 @@ class BasicBidomainSolver(object):
             if isinstance(self.v_, Function):
                 self.v_.assign(project(self.vur[0], self.v_.function_space()))
             else:
-                info_red("Assuming that v_ is updated elsewhere. Experimental.")
+                debug("Assuming that v_ is updated elsewhere. Experimental.")
             t0 = t1
             t1 = t0 + dt
 
