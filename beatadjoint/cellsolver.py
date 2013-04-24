@@ -100,6 +100,11 @@ class BasicCardiacODESolver(object):
         params.add("V_polynomial_family", "DG")
         params.add("S_polynomial_degree", 0)
         params.add("S_polynomial_family", "DG")
+
+        # Use iterative solver as default.
+        params.add(NonlinearVariationalSolver.default_parameters())
+        params["nonlinear_variational_solver"]["linear_solver"] = "iterative"
+
         return params
 
     def solution_fields(self):
@@ -215,6 +220,8 @@ class BasicCardiacODESolver(object):
         # Solve system
         pde = NonlinearVariationalProblem(G, self.vs, J=derivative(G, self.vs))
         solver = NonlinearVariationalSolver(pde)
+        solver_params = self.parameters["nonlinear_variational_solver"]
+        solver.parameters.update(solver_params)
         solver.solve()
 
 class BasicSingleCellSolver(BasicCardiacODESolver):
