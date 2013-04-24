@@ -8,6 +8,7 @@ __all__ = ["TestBasicSingleCellSolver",
 
 import unittest
 from dolfin import *
+from dolfin_adjoint import *
 from beatadjoint import *
 from beatadjoint.utils import state_space
 
@@ -131,7 +132,7 @@ class TestPointIntegralSolver(unittest.TestCase):
             info("Missing references for %s, %s: value is %g"
                  % (Model, Scheme, vs.vector()[0]))
 
-    def _test_point_integral_solver(self):
+    def test_point_integral_solver(self):
         mesh = UnitIntervalMesh(1)
         for Model in supported_cell_models:
             for Scheme in [BackwardEuler, ForwardEuler, CrankNicolson,
@@ -142,15 +143,10 @@ class TestPointIntegralSolver(unittest.TestCase):
 class TestBasicSingleCellSolverAdjoint(unittest.TestCase):
     "Test adjoint functionality for the basic single cell solver."
 
-    def _run(self, theta, model, ics):
-        # Initialize solver
-        params = BasicSingleCellSolver.default_parameters()
-        params["theta"] = theta
-        solver = BasicSingleCellSolver(model, params=params)
-
+    def _run(self, solver, model, ics):
         # Assign initial conditions
         (vs_, vs) = solver.solution_fields()
-        vs_.assign(ics, annotate=True)
+        vs_.assign(ics)
 
         # Solve for a couple of steps
         dt = 0.01
@@ -162,18 +158,59 @@ class TestBasicSingleCellSolverAdjoint(unittest.TestCase):
     def test_replay(self):
         "Test that replay reports success for basic single cell solver"
         # Initialize cell model
+
         for theta in (1.0, 0.1, 0.5):
             for Model in (FitzHughNagumoManual, Tentusscher_2004_mcell):
                 adj_reset()
                 model = Model()
                 ics = model.initial_conditions()
                 info_green("Running %s with %g" % (model, theta))
-                vs = self._run(0.5, model, ics)
+
+                # Initialize solver
+                params = BasicSingleCellSolver.default_parameters()
+                params["theta"] = theta
+                solver = BasicSingleCellSolver(model, params=params)
+
+                vs = self._run(solver, model, ics)
 
                 info_green("Replaying")
                 success = replay_dolfin(tol=0.0, stop=True)
                 self.assertEqual(success, True)
 
+    def _test_compute_gradient(self):
+        "Run taylor test for cell solver gradient."
+
+        adj_reset()
+
+        model = FitzHughNagumoManual()
+
+        theta = 0.5
+        params = BasicSingleCellSolver.default_parameters()
+        params["theta"] = theta
+        solver = BasicSingleCellSolver(model, params=params)
+
+        # Get initial conditions (no need to annotate)
+        ics = project(model.initial_conditions(), solver.VS, annotate=False)
+
+        # Run forward model
+        vs = self._run(solver, model, ics)
+
+        # Define functional and compute gradient etc
+        form = lambda w: inner(w, w)*dx
+        J = Functional(form(vs)*dt[FINISH_TIME])
+        dJdics = compute_gradient(J, InitialConditionParameter(ics))
+
+        #Jics = assemble(form(vs))
+        #parameters["adjoint"]["stop_annotating"] = True
+        # def Jhat(ics):
+        #     theta = 0.5
+        #     params = BasicSingleCellSolver.default_parameters()
+        #     params["theta"] = theta
+        #     solver = BasicSingleCellSolver(model, params=params)
+        #     vs = self._run(solver, model, ics)
+        #     return assemble(form(vs))
+        # conv_rate = taylor_test(Jhat, InitialConditionParameter(ics),
+        #                         Jics, dJdics)
 if __name__ == "__main__":
     print("")
     print("Testing cell solvers")
