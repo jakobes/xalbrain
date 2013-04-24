@@ -3,7 +3,7 @@ Unit tests for various types of solvers for cardiac cell models.
 """
 
 __author__ = "Marie E. Rognes (meg@simula.no), 2013"
-__all__ = ["TestBasicSingleBasicSingleCellSolver",
+__all__ = ["TestBasicSingleCellSolver",
            "TestPointIntegralSolver"]
 
 import unittest
@@ -11,7 +11,7 @@ from dolfin import *
 from beatadjoint import *
 from beatadjoint.utils import state_space
 
-class TestBasicSingleBasicSingleCellSolver(unittest.TestCase):
+class TestBasicSingleCellSolver(unittest.TestCase):
     "Test functionality for the basic single cell solver."
 
     def setUp(self):
@@ -45,32 +45,6 @@ class TestBasicSingleBasicSingleCellSolver(unittest.TestCase):
         self.assertAlmostEqual(t1, 2*dt)
         return vs.vector()
 
-    def _compare_solve_step(self, Model, theta=None):
-        "Set-up model and compare result to precomputed reference if available."
-        model = Model()
-        model.stimulus = Expression("1000*t", t=0.0)
-        vec_solve = self._run_solve(model, theta)
-        if Model in self.references and theta in self.references[Model]:
-            self.assertAlmostEqual(vec_solve[0],
-                                   self.references[Model][theta])
-        else:
-            info("Missing references for %r, %r" % (Model, theta))
-
-    def test_default_basic_single_cell_solver(self):
-        "Test basic single cell solver."
-        for Model in supported_cell_models:
-            self._compare_solve_step(Model)
-
-    def test_default_basic_single_cell_solver_be(self):
-        "Test basic single cell solver with Backward Euler."
-        for Model in supported_cell_models:
-            self._compare_solve_step(Model, theta=1.0)
-
-    def test_default_basic_single_cell_solver_fe(self):
-        "Test basic single cell solver with Forward Euler."
-        for Model in supported_cell_models:
-            self._compare_solve_step(Model, theta=0.0)
-
 class TestPointIntegralSolver(unittest.TestCase):
     def setUp(self):
         # Note that these should be (and are) identical to the ones
@@ -83,7 +57,7 @@ class TestPointIntegralSolver(unittest.TestCase):
                             ESDIRK3 : (0, 0.2),
                             ESDIRK4 : (0, 0.2),
                             },
-                           
+
                            FitzHughNagumoManual:
                            {BackwardEuler: (0, -84.70013280019053),
                             CrankNicolson: (0, -84.80005016079546),
@@ -92,7 +66,7 @@ class TestPointIntegralSolver(unittest.TestCase):
                             ESDIRK3:  (0, -84.80004468383603),
                             ESDIRK4:  (0, -84.80004468281632),
                             },
-                           
+
                            Fitzhughnagumo:
                            {BackwardEuler: (0, -84.69986709136005),
                             CrankNicolson: (0, -84.79994981706433),
@@ -101,7 +75,7 @@ class TestPointIntegralSolver(unittest.TestCase):
                             ESDIRK3:  (0, -84.79995530333677),
                             ESDIRK4:  (0, -84.79995530333677),
                             },
-                           
+
                            Tentusscher_2004_mcell:
                            {BackwardEuler: (15, -85.8974552517),
                             CrankNicolson: (15, -85.99685674422098),
@@ -157,12 +131,48 @@ class TestPointIntegralSolver(unittest.TestCase):
             info("Missing references for %s, %s: value is %g"
                  % (Model, Scheme, vs.vector()[0]))
 
-    def test_point_integral_solver(self):
+    def _test_point_integral_solver(self):
         mesh = UnitIntervalMesh(1)
         for Model in supported_cell_models:
             for Scheme in [BackwardEuler, ForwardEuler, CrankNicolson,
                            RK4, ESDIRK3, ESDIRK4]:
                 self._compare_against_reference(Model, Scheme, mesh)
+
+
+class TestBasicSingleCellSolverAdjoint(unittest.TestCase):
+    "Test adjoint functionality for the basic single cell solver."
+
+    def _run(self, theta, model, ics):
+        # Initialize solver
+        params = BasicSingleCellSolver.default_parameters()
+        params["theta"] = theta
+        solver = BasicSingleCellSolver(model, params=params)
+
+        # Assign initial conditions
+        (vs_, vs) = solver.solution_fields()
+        vs_.assign(ics, annotate=True)
+
+        # Solve for a couple of steps
+        dt = 0.01
+        solutions = solver.solve((0.0, 2.0*dt), dt)
+        for ((t0, t1), vs) in solutions:
+            pass
+        return vs
+
+    def test_replay(self):
+        "Test that replay reports success for basic single cell solver"
+        # Initialize cell model
+        for theta in (1.0, 0.1, 0.5):
+            for Model in (FitzHughNagumoManual, Tentusscher_2004_mcell):
+                adj_reset()
+                model = Model()
+                ics = model.initial_conditions()
+                info_green("Running %s with %g" % (model, theta))
+                vs = self._run(0.5, model, ics)
+
+                info_green("Replaying")
+                success = replay_dolfin(tol=0.0, stop=True)
+                self.assertEqual(success, True)
 
 if __name__ == "__main__":
     print("")
