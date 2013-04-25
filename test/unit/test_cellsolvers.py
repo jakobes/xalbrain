@@ -38,12 +38,13 @@ class TestBasicSingleCellSolver(unittest.TestCase):
         vs_.assign(model.initial_conditions())
 
         # Solve for a couple of steps
-        solutions = solver.solve(interval, dt)
+        T = 2*dt
+        solutions = solver.solve(interval, T)
         for ((t0, t1), vs) in solutions:
             pass
 
         # Check that we are at the end time
-        self.assertAlmostEqual(t1, 2*dt)
+        self.assertAlmostEqual(t1, T)
         return vs.vector()
 
 class TestPointIntegralSolver(unittest.TestCase):
@@ -132,7 +133,7 @@ class TestPointIntegralSolver(unittest.TestCase):
             info("Missing references for %s, %s: value is %g"
                  % (Model, Scheme, vs.vector()[0]))
 
-    def test_point_integral_solver(self):
+    def _test_point_integral_solver(self):
         mesh = UnitIntervalMesh(1)
         for Model in supported_cell_models:
             for Scheme in [BackwardEuler, ForwardEuler, CrankNicolson,
@@ -150,67 +151,121 @@ class TestBasicSingleCellSolverAdjoint(unittest.TestCase):
 
         # Solve for a couple of steps
         dt = 0.01
-        solutions = solver.solve((0.0, 2.0*dt), dt)
+        solutions = solver.solve((0.0, 2*dt), dt)
         for ((t0, t1), vs) in solutions:
             pass
-        return vs
 
-    def test_replay(self):
+    def _test_replay(self):
         "Test that replay reports success for basic single cell solver"
         # Initialize cell model
 
-        for theta in (1.0, 0.1, 0.5):
+        for theta in (1.0, 0.0, 0.5):
             for Model in (FitzHughNagumoManual, Tentusscher_2004_mcell):
                 adj_reset()
                 model = Model()
-                ics = model.initial_conditions()
-                info_green("Running %s with %g" % (model, theta))
 
                 # Initialize solver
                 params = BasicSingleCellSolver.default_parameters()
                 params["theta"] = theta
                 solver = BasicSingleCellSolver(model, params=params)
 
-                vs = self._run(solver, model, ics)
+                info_green("Running %s with %g" % (model, theta))
+
+                ics = Function(project(model.initial_conditions(), solver.VS),
+                               name="ics")
+                self._run(solver, model, ics)
 
                 info_green("Replaying")
                 success = replay_dolfin(tol=0.0, stop=True)
                 self.assertEqual(success, True)
 
-    def _test_compute_gradient(self):
-        "Run taylor test for cell solver gradient."
+    def test_compute_adjoint(self):
+        "Test that we can compute the adjoint for some given functional"
 
-        adj_reset()
+        for theta in (0.5,):# 0.5, 1.0):
+            for Model in (FitzHughNagumoManual, Tentusscher_2004_mcell):
+                adj_reset()
+                model = Model()
 
-        model = FitzHughNagumoManual()
+                params = BasicSingleCellSolver.default_parameters()
+                params["theta"] = theta
+                solver = BasicSingleCellSolver(model, params=params)
 
-        theta = 0.5
-        params = BasicSingleCellSolver.default_parameters()
-        params["theta"] = theta
-        solver = BasicSingleCellSolver(model, params=params)
+                # Get initial conditions (Projection of expressions
+                # don't get annotated, which is fine, because there is
+                # no need.)
+                ics = project(model.initial_conditions(), solver.VS)
 
-        # Get initial conditions (no need to annotate)
-        ics = project(model.initial_conditions(), solver.VS, annotate=False)
+                # Run forward model
+                info_green("Running forward %s with theta %g" % (model, theta))
+                self._run(solver, model, ics)
 
-        # Run forward model
-        vs = self._run(solver, model, ics)
+                (vs_, vs) = solver.solution_fields()
 
-        # Define functional and compute gradient etc
-        form = lambda w: inner(w, w)*dx
-        J = Functional(form(vs)*dt[FINISH_TIME])
-        dJdics = compute_gradient(J, InitialConditionParameter(ics))
+                adj_html("forward.html", "forward")
+                adj_html("adjoint.html", "adjoint")
 
-        #Jics = assemble(form(vs))
-        #parameters["adjoint"]["stop_annotating"] = True
-        # def Jhat(ics):
-        #     theta = 0.5
-        #     params = BasicSingleCellSolver.default_parameters()
-        #     params["theta"] = theta
-        #     solver = BasicSingleCellSolver(model, params=params)
-        #     vs = self._run(solver, model, ics)
-        #     return assemble(form(vs))
-        # conv_rate = taylor_test(Jhat, InitialConditionParameter(ics),
-        #                         Jics, dJdics)
+                # Define functional and compute gradient etc
+                J = Functional(inner(vs, vs)*dx*dt[FINISH_TIME])
+
+                # Compute adjoint
+                info_green("Computing adjoint")
+                z = compute_adjoint(J)
+                for (bar, foo) in z:
+                    if bar is not None:
+                        print "z.name = ", foo.name
+                        print "z.value = ", bar.vector().array()
+                    else:
+                        info_red("bar is None...")
+                return
+
+    # def _test_compute_gradient(self):
+    #     "Test that we can compute the gradient for some given functional"
+
+    #     for theta in (0.0, 0.5, 1.0):
+    #         for Model in (FitzHughNagumoManual, Tentusscher_2004_mcell):
+    #             adj_reset()
+    #             model = Model()
+
+    #             params = BasicSingleCellSolver.default_parameters()
+    #             params["theta"] = theta
+    #             solver = BasicSingleCellSolver(model, params=params)
+
+    #             # Get initial conditions (Expression projection not
+    #             # annotated, and there is no need to annotate.)
+    #             ics = Function(project(model.initial_conditions(), solver.VS),
+    #                            name="ics")
+
+    #             # Run forward model
+    #             info_green("Running forward %s with theta %g" % (model, theta))
+    #             vs = self._run(solver, model, ics)
+
+    #             # Define functional and compute gradient etc
+    #             J = Functional(inner(vs, vs)*dx*dt[FINISH_TIME])
+
+    #             adj_html("forward.html", "forward")
+    #             adj_html("adjoint.html", "adjoint")
+
+    #             # Compute gradient
+    #             info_green("Computing gradient")
+    #             dJdics = compute_gradient(J, InitialConditionParameter(ics))
+    #             print dJdics
+
+    #             exit()
+
+
+
+    #     #Jics = assemble(form(vs))
+    #     #parameters["adjoint"]["stop_annotating"] = True
+    #     # def Jhat(ics):
+    #     #     theta = 0.5
+    #     #     params = BasicSingleCellSolver.default_parameters()
+    #     #     params["theta"] = theta
+    #     #     solver = BasicSingleCellSolver(model, params=params)
+    #     #     vs = self._run(solver, model, ics)
+    #     #     return assemble(form(vs))
+    #     # conv_rate = taylor_test(Jhat, InitialConditionParameter(ics),
+    #     #                         Jics, dJdics)
 if __name__ == "__main__":
     print("")
     print("Testing cell solvers")
