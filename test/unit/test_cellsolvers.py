@@ -133,7 +133,7 @@ class TestPointIntegralSolver(unittest.TestCase):
             info("Missing references for %s, %s: value is %g"
                  % (Model, Scheme, vs.vector()[0]))
 
-    def _test_point_integral_solver(self):
+    def test_point_integral_solver(self):
         mesh = UnitIntervalMesh(1)
         for Model in supported_cell_models:
             for Scheme in [BackwardEuler, ForwardEuler, CrankNicolson,
@@ -155,7 +155,7 @@ class TestBasicSingleCellSolverAdjoint(unittest.TestCase):
         for ((t0, t1), vs) in solutions:
             pass
 
-    def _test_replay(self):
+    def test_replay(self):
         "Test that replay reports success for basic single cell solver"
         # Initialize cell model
 
@@ -219,7 +219,7 @@ class TestBasicSingleCellSolverAdjoint(unittest.TestCase):
                         info_red("bar is None...")
                 return
 
-    # def _test_compute_gradient(self):
+    # def test_compute_gradient(self):
     #     "Test that we can compute the gradient for some given functional"
 
     #     for theta in (0.0, 0.5, 1.0):
