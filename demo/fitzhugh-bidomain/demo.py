@@ -89,6 +89,8 @@ def setup_cardiac_model(application_parameters):
     mesh.coordinates()[:] /= 10.0   # Scale mesh from millimeter to centimeter
     mesh.coordinates()[:] /= 4.0    # Scale mesh as indicated by Johan/Molly
 
+    time = Constant(0.0)
+
     # Setup conductivities
     (M_i, M_e) = setup_conductivities(mesh, application_parameters)
 
@@ -104,10 +106,10 @@ def setup_cardiac_model(application_parameters):
     amp = application_parameters["stimulus_amplitude"]
     pulse.amplitude = amp #
     pulse.duration = 10.0 # ms
-    pulse.t = 0.0         # ms
+    pulse.t = time        # ms
 
     # Initialize cardiac model with the above input
-    heart = CardiacModel(mesh, M_i, M_e, cell_model, stimulus=pulse)
+    heart = CardiacModel(mesh, time, M_i, M_e, cell_model, stimulus=pulse)
     return heart
 
 def main():

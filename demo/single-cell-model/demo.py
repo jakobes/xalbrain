@@ -23,10 +23,10 @@ parameters["form_compiler"]["cpp_optimize_flags"] = flags
 
 class Stimulus(Expression):
     "Some self-defined stimulus."
-    def __init__(self, t=0.0):
+    def __init__(self, t):
         self.t = t
     def eval(self, value, x):
-        if self.t >= 2 and self.t <= 11:
+        if float(self.t) >= 2 and float(self.t) <= 11:
             v_amp = 125
             value[0] = 0.05*v_amp
         else:
@@ -35,16 +35,17 @@ def main():
     "Solve a single cell model on some time frame."
 
     # Initialize model and assign stimulus
-    #model = FitzHughNagumoManual()
+    model = FitzHughNagumoManual()
     #model = Fitzhughnagumo()
-    model = Tentusscher_2004_mcell()
-    model.stimulus = Stimulus()
+    #model = Tentusscher_2004_mcell()
+    time = Constant(0.0)
+    model.stimulus = Stimulus(time)
 
     # Initialize solver
     params = BasicSingleCellSolver.default_parameters()
     params["theta"] = 0.5
     params["nonlinear_variational_solver"]["linear_solver"] = "lu"
-    solver = BasicSingleCellSolver(model, params)
+    solver = BasicSingleCellSolver(model, time, params)
 
     # Assign initial conditions
     (vs_, vs) = solver.solution_fields()
