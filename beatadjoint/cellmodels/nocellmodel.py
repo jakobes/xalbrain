@@ -17,10 +17,10 @@ class NoCellModel(CardiacCellModel):
     def __init__(self, parameters=None):
         CardiacCellModel.__init__(self, parameters)
 
-    def I(self, v, s):
+    def I(self, v, s, time=None):
         return 0
 
-    def F(self, v, s):
+    def F(self, v, s, time=None):
         return -s
 
     def num_states(self):

@@ -67,11 +67,11 @@ class CardiacCellModel:
         "Return the current parameters."
         return self._parameters
 
-    def F(self, v, s):
+    def F(self, v, s, time=None):
         "Return right-hand side for state variable evolution."
         error("Must define F = F(v, s)")
 
-    def I(self, v, s):
+    def I(self, v, s, time=None):
         "Return the ionic current."
         error("Must define I = I(v, s)")
 
