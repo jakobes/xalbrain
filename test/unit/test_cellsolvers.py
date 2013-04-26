@@ -47,6 +47,32 @@ class TestBasicSingleCellSolver(unittest.TestCase):
         self.assertAlmostEqual(t1, T)
         return vs.vector()
 
+    def _compare_solve_step(self, Model, theta=None):
+        "Set-up model and compare result to precomputed reference if available."
+        model = Model()
+        model.stimulus = Expression("1000*t", t=0.0)
+        vec_solve = self._run_solve(model, theta)
+        if Model in self.references and theta in self.references[Model]:
+            self.assertAlmostEqual(vec_solve[0],
+                                   self.references[Model][theta])
+        else:
+            info("Missing references for %r, %r" % (Model, theta))
+
+    def test_default_basic_single_cell_solver(self):
+        "Test basic single cell solver."
+        for Model in supported_cell_models:
+            self._compare_solve_step(Model)
+
+    def test_default_basic_single_cell_solver_be(self):
+        "Test basic single cell solver with Backward Euler."
+        for Model in supported_cell_models:
+            self._compare_solve_step(Model, theta=1.0)
+
+    def test_default_basic_single_cell_solver_fe(self):
+        "Test basic single cell solver with Forward Euler."
+        for Model in supported_cell_models:
+            self._compare_solve_step(Model, theta=0.0)
+
 class TestPointIntegralSolver(unittest.TestCase):
     def setUp(self):
         # Note that these should be (and are) identical to the ones
