@@ -1,8 +1,9 @@
 """
 This module contains splitting solvers for CardiacModel objects. In
-particular, the class
+particular, the classes
 
   * BasicSplittingSolver
+  * SplittingSolver
 
 These solvers solve the bidomain equations on the form: find the
 transmembrane potential :math:`v = v(x, t)`, the extracellular
@@ -113,6 +114,7 @@ class BasicSplittingSolver:
 
         # Extract solution domain
         self._domain = self._model.domain
+        self._time = self._model.time
 
         # Create ODE solver and extract solution fields
         self.ode_solver = self._create_ode_solver()
@@ -135,9 +137,10 @@ class BasicSplittingSolver:
 
         # Extract ode solver parameters
         params = self.parameters["BasicCardiacODESolver"]
-        solver = BasicCardiacODESolver(self._domain, cell_model.num_states(),
+        solver = BasicCardiacODESolver(self._domain, self._time,
+                                       cell_model.num_states(),
                                        cell_model.F, cell_model.I,
-                                       I_s = stimulus, params=params)
+                                       I_s=stimulus, params=params)
         return solver
 
     def _create_pde_solver(self):
@@ -153,10 +156,9 @@ class BasicSplittingSolver:
 
         # Extract ode solver parameters
         params = self.parameters["BasicBidomainSolver"]
-        solver = BasicBidomainSolver(self._domain, M_i, M_e,
+        solver = BasicBidomainSolver(self._domain, self._time, M_i, M_e,
                                      I_s=None, I_a=applied_current,
-                                     v_ = self.vs[0],
-                                     params=params)
+                                     v_=self.vs[0], params=params)
         return solver
 
     @staticmethod
@@ -391,7 +393,7 @@ class SplittingSolver(BasicSplittingSolver):
 
         # Extract ode solver parameters
         params = self.parameters["BidomainSolver"]
-        solver = BidomainSolver(self._domain, M_i, M_e,
+        solver = BidomainSolver(self._domain, self._time, M_i, M_e,
                                 I_s=None, I_a=applied_current,
                                 v_=self.vs[0],
                                 params=params)

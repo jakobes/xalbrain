@@ -20,18 +20,21 @@ class BasicSingleCellSolverTestCase(unittest.TestCase):
         2006."""
 
         class Stimulus(Expression):
-            def __init__(self, t=0.0):
+            def __init__(self, t):
                 self.t = t
             def eval(self, value, x):
-                if self.t >= 50 and self.t < 60:
+                if float(self.t) >= 50 and float(self.t) < 60:
                     v_amp = 125
                     value[0] = 0.05*v_amp
                 else:
                     value[0] = 0.0
 
         cell = FitzHughNagumoManual()
-        cell.stimulus = Stimulus()
-        solver = BasicSingleCellSolver(cell)
+        time = Constant(0.0)
+        cell.stimulus = Stimulus(time)
+        print "Is this true: ", isinstance(time, Constant)
+        print "%r" % time
+        solver = BasicSingleCellSolver(cell, time)
 
         # Setup initial condition
         (vs_, vs) = solver.solution_fields()
@@ -56,8 +59,8 @@ class BasicSingleCellSolverTestCase(unittest.TestCase):
             s_values += [vs.vector()[1]]
 
         # Regression test
-        v_max_reference = 2.6877888776829597e+01
-        s_max_reference = 6.8659498561853880e+01
+        v_max_reference = 2.6883308148064152e+01
+        s_max_reference = 6.8660144687023219e+01
         tolerance = 1.e-14
         print "max(v_values) %.16e" % max(v_values)
         print "max(s_values) %.16e" % max(s_values)
@@ -128,7 +131,7 @@ class BasicSingleCellSolverTestCase(unittest.TestCase):
                 parameters.add("ist", 0.0)
                 return parameters
 
-            def I(self, v, w):
+            def I(self, v, w, time=None):
                 k = self._parameters["k"]
                 Vrest = self._parameters["Vrest"]
                 Vthreshold = self._parameters["Vthreshold"]
@@ -137,7 +140,7 @@ class BasicSingleCellSolverTestCase(unittest.TestCase):
                 i =  -k*(v-Vrest)*(w+(v-Vthreshold)*(v-Vpeak))-ist;
                 return -i
 
-            def F(self, v, w):
+            def F(self, v, w, time=None):
                 l = self._parameters["l"]
                 b = self._parameters["b"]
                 Vrest = self._parameters["Vrest"]
@@ -150,7 +153,7 @@ class BasicSingleCellSolverTestCase(unittest.TestCase):
                 return "Modified FitzHugh-Nagumo cardiac cell model"
 
         def _run(cell):
-            solver = BasicSingleCellSolver(cell)
+            solver = BasicSingleCellSolver(cell, None)
 
             # Setup initial condition
             (vs_, vs) = solver.solution_fields()

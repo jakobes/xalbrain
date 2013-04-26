@@ -290,22 +290,22 @@ class BasicSingleCellSolver(BasicCardiacODESolver):
     *Arguments*
       model (:py:class:`~beatadjoint.cellmodels.cardiaccellmodel.CardiacCellModel`)
         A cardiac cell model
-      time (:py:class:`~dolfin.Constant`, optional)
+      time (:py:class:`~dolfin.Constant` or None)
         A constant holding the current time.
       params (:py:class:`dolfin.Parameters`, optional)
         Solver parameters
 
     """
 
-    def __init__(self, model, time=None, params=None):
+    def __init__(self, model, time, params=None):
         "Create solver from given cell model and optional parameters."
 
         assert isinstance(model, CardiacCellModel), \
-            "Expecting CardiacCellModel as first argument to BasicSingleCellSolver"
-        assert isinstance(time, Constant) or time is None, \
-            "Expecting time to be a Constant instance (or None)."
+            "Expecting CardiacCellModel as first argument to BasicSingleCellSolver, not %r" % model
+        #assert (isinstance(time, Constant) or time is None), \
+        #    "Expecting time to be a Constant instance (or None), not %r" % time
         assert isinstance(params, Parameters) or params is None, \
-            "Expecting params to be a Parameters instance (or None)"
+            "Expecting params to be a Parameters instance (or None), not %r" % params
 
         # Store model
         self._model = model

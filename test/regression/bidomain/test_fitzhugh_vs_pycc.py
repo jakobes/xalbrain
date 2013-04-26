@@ -56,8 +56,9 @@ def setup_model():
 
     # Define mesh
     domain = UnitSquareMesh(100, 100)
+    time = Constant(0.0)
 
-    heart = CardiacModel(domain, M_i, M_e, cell)
+    heart = CardiacModel(domain, time, M_i, M_e, cell)
     return heart
 
 if __name__ == "__main__":
@@ -98,7 +99,7 @@ if __name__ == "__main__":
     norm_u = norm(u)
     plot(u, title="Final u", interactive=True)
     print "norm_u = %.16f" % norm_u
-    reference =  11.2482303059560245
+    reference =  11.2487499749304991
     diff = abs(reference - norm_u)
     tol = 1.e-11
-    assert (diff < tol), "Mismatch: %r" % diff
+    assert (diff < tol), "Mismatch in norm of u: %r" % diff

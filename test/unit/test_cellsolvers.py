@@ -32,7 +32,7 @@ class TestBasicSingleCellSolver(unittest.TestCase):
         params = BasicSingleCellSolver.default_parameters()
         if theta is not None:
             params["theta"] = theta
-        solver = BasicSingleCellSolver(model, time=time, params=params)
+        solver = BasicSingleCellSolver(model, time, params=params)
 
         # Assign initial conditions
         (vs_, vs) = solver.solution_fields()
@@ -195,7 +195,7 @@ class TestBasicSingleCellSolverAdjoint(unittest.TestCase):
                 # Initialize solver
                 params = BasicSingleCellSolver.default_parameters()
                 params["theta"] = theta
-                solver = BasicSingleCellSolver(model, params=params)
+                solver = BasicSingleCellSolver(model, None, params=params)
 
                 info_green("Running %s with %g" % (model, theta))
 
@@ -217,7 +217,7 @@ class TestBasicSingleCellSolverAdjoint(unittest.TestCase):
 
                 params = BasicSingleCellSolver.default_parameters()
                 params["theta"] = theta
-                solver = BasicSingleCellSolver(model, params=params)
+                solver = BasicSingleCellSolver(model, None, params=params)
 
                 # Get initial conditions (Projection of expressions
                 # don't get annotated, which is fine, because there is
@@ -256,7 +256,7 @@ class TestBasicSingleCellSolverAdjoint(unittest.TestCase):
 
                 params = BasicSingleCellSolver.default_parameters()
                 params["theta"] = theta
-                solver = BasicSingleCellSolver(model, params=params)
+                solver = BasicSingleCellSolver(model, None, params=params)
 
                 # Get initial conditions (Projection of expressions
                 # don't get annotated, which is fine, because there is
@@ -292,7 +292,7 @@ class TestBasicSingleCellSolverAdjoint(unittest.TestCase):
 
                 params = BasicSingleCellSolver.default_parameters()
                 params["theta"] = theta
-                solver = BasicSingleCellSolver(model, params=params)
+                solver = BasicSingleCellSolver(model, None, params=params)
 
                 # Get initial conditions (Projection of expressions
                 # don't get annotated, which is fine, because there is

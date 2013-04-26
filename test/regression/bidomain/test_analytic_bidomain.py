@@ -15,16 +15,17 @@ def main(N, dt, T, theta):
     set_log_level(WARNING)
 
     mesh = UnitSquareMesh(N, N)
+    time = Constant(0.0)
 
     # Create cardiac cell model
     cell_model = NoCellModel()
 
     # Create stimulus
     ac_str = "cos(t)*cos(2*pi*x[0])*cos(2*pi*x[1]) + 4*pow(pi, 2)*cos(2*pi*x[0])*cos(2*pi*x[1])*sin(t)"
-    stimulus = Expression(ac_str, t=0, degree=3)
+    stimulus = Expression(ac_str, t=time, degree=3)
 
     # Create cardiac model
-    heart = CardiacModel(mesh, 1.0, 1.0, cell_model, stimulus=stimulus)
+    heart = CardiacModel(mesh, time, 1.0, 1.0, cell_model, stimulus=stimulus)
 
     # Set-up solver
     ps = BasicSplittingSolver.default_parameters()
