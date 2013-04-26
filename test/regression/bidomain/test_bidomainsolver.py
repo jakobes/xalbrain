@@ -15,10 +15,11 @@ from beatadjoint.utils import convergence_rate
 def main(N, dt, T, theta):
     # Create domain
     mesh = UnitSquareMesh(N, N)
+    time = Constant(0.0)
 
     # Create stimulus
     ac_str = "cos(t)*cos(2*pi*x[0])*cos(2*pi*x[1]) + 4*pow(pi, 2)*cos(2*pi*x[0])*cos(2*pi*x[1])*sin(t)"
-    stimulus = Expression(ac_str, t=0, degree=5)
+    stimulus = Expression(ac_str, t=time, degree=5)
 
     # Create conductivity "tensors"
     M_i = 1.0
@@ -27,7 +28,7 @@ def main(N, dt, T, theta):
     # Set-up solver
     params = BidomainSolver.default_parameters()
     params["theta"] = theta
-    solver = BidomainSolver(mesh, M_i, M_e, I_s=stimulus, params=params)
+    solver = BidomainSolver(mesh, time, M_i, M_e, I_s=stimulus, params=params)
 
     # Define exact solution (Note: v is returned at end of time
     # interval(s), u is computed at somewhere in the time interval

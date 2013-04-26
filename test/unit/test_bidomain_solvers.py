@@ -14,12 +14,13 @@ class TestBasicBidomainSolver(unittest.TestCase):
 
     def setUp(self):
         self.mesh = UnitCubeMesh(5, 5, 5)
+        self.time = Constant(0.0)
 
         # Create stimulus
         self.stimulus = Expression("2.0")
 
         # Create ac
-        self.applied_current = Expression("t", t=0)
+        self.applied_current = Expression("t", t=self.time)
 
         # Create conductivity "tensors"
         self.M_i = 1.0
@@ -34,7 +35,8 @@ class TestBasicBidomainSolver(unittest.TestCase):
         Solver = BasicBidomainSolver
 
         # Create solver
-        solver = Solver(self.mesh, self.M_i, self.M_e, I_s=self.stimulus,
+        solver = Solver(self.mesh, self.time,
+                        self.M_i, self.M_e, I_s=self.stimulus,
                         I_a=self.applied_current)
 
         # Solve
@@ -46,7 +48,8 @@ class TestBasicBidomainSolver(unittest.TestCase):
         "Test that solve gives same results as single step"
 
         Solver = BasicBidomainSolver
-        solver = Solver(self.mesh, self.M_i, self.M_e, I_s=self.stimulus,
+        solver = Solver(self.mesh, self.time,
+                        self.M_i, self.M_e, I_s=self.stimulus,
                         I_a=self.applied_current)
 
         (v_, vs) = solver.solution_fields()
@@ -73,12 +76,13 @@ class TestBidomainSolver(unittest.TestCase):
     def setUp(self):
         N = 5
         self.mesh = UnitCubeMesh(N, N, N)
+        self.time = Constant(0.0)
 
         # Create stimulus
         self.stimulus = Expression("2.0")
 
         # Create ac
-        self.applied_current = Expression("t", t=0)
+        self.applied_current = Expression("t", t=self.time)
 
         # Create conductivity "tensors"
         self.M_i = 1.0
@@ -91,7 +95,8 @@ class TestBidomainSolver(unittest.TestCase):
         "Test that solver runs."
 
         # Create solver and solve
-        solver = BidomainSolver(self.mesh, self.M_i, self.M_e,
+        solver = BidomainSolver(self.mesh, self.time,
+                                self.M_i, self.M_e,
                                 I_s=self.stimulus,
                                 I_a=self.applied_current)
         solutions = solver.solve((self.t0, self.t0 + 2*self.dt), self.dt)
@@ -107,7 +112,8 @@ class TestBidomainSolver(unittest.TestCase):
         params["linear_solver_type"] = "direct"
         params["use_avg_u_constraint"] = True
         params["default_timestep"] = self.dt
-        solver = BidomainSolver(self.mesh, self.M_i, self.M_e,
+        solver = BidomainSolver(self.mesh, self.time,
+                                self.M_i, self.M_e,
                                 I_s=self.stimulus,
                                 I_a=self.applied_current, params=params)
         solutions = solver.solve((self.t0, self.t0 + 2*self.dt), self.dt)
@@ -116,7 +122,8 @@ class TestBidomainSolver(unittest.TestCase):
         bidomain_result = vur.vector().norm("l2")
 
         # Create other solver and solve
-        solver = BasicBidomainSolver(self.mesh, self.M_i, self.M_e,
+        solver = BasicBidomainSolver(self.mesh, self.time,
+                                     self.M_i, self.M_e,
                                      I_s=self.stimulus,
                                      I_a=self.applied_current)
         solutions = solver.solve((self.t0, self.t0 + 2*self.dt), self.dt)
@@ -137,7 +144,8 @@ class TestBidomainSolver(unittest.TestCase):
         params["linear_solver_type"] = "direct"
         params["use_avg_u_constraint"] = True
         params["default_timestep"] = self.dt
-        solver = BidomainSolver(self.mesh, self.M_i, self.M_e,
+        solver = BidomainSolver(self.mesh, self.time,
+                                self.M_i, self.M_e,
                                 I_s=self.stimulus,
                                 I_a=self.applied_current,
                                 params=params)
@@ -151,7 +159,8 @@ class TestBidomainSolver(unittest.TestCase):
         params = BidomainSolver.default_parameters()
         params["default_timestep"] = self.dt
         params["krylov_solver"]["monitor_convergence"] = True
-        solver = BidomainSolver(self.mesh, self.M_i, self.M_e,
+        solver = BidomainSolver(self.mesh, self.time,
+                                self.M_i, self.M_e,
                                 I_s=self.stimulus,
                                 I_a=self.applied_current,
                                 params=params)

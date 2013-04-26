@@ -55,6 +55,10 @@ class BasicBidomainSolver(object):
       domain (:py:class:`dolfin.Mesh`)
         The spatial domain (mesh)
 
+      time (:py:class:`dolfin.Constant` or None)
+        A constant holding the current time. If None is given, time is
+        created for you, initialized to zero.
+
       M_i (:py:class:`ufl.Expr`)
         The intracellular conductivity tensor (as an UFL expression)
 
@@ -75,8 +79,16 @@ class BasicBidomainSolver(object):
         Solver parameters
 
       """
-    def __init__(self, domain, M_i, M_e, I_s=None, I_a=None, v_=None,
+    def __init__(self, domain, time, M_i, M_e, I_s=None, I_a=None, v_=None,
                  params=None):
+
+        # Check some input
+        assert isinstance(domain, Mesh), \
+            "Expecting domain to be a Mesh instance, not %r" % domain
+        assert isinstance(time, Constant) or time is None, \
+            "Expecting time to be a Constant instance (or None)."
+        assert isinstance(params, Parameters) or params is None, \
+            "Expecting params to be a Parameters instance (or None)"
 
         # Store input
         self._domain = domain
@@ -84,6 +96,12 @@ class BasicBidomainSolver(object):
         self._M_e = M_e
         self._I_s = I_s
         self._I_a = I_a
+
+        # Create time if not given, otherwise use given time
+        if time is None:
+            self._time = Constant(0.0)
+        else:
+            self._time = time
 
         # Initialize and update parameters if given
         self.parameters = self.default_parameters()
@@ -109,6 +127,11 @@ class BasicBidomainSolver(object):
             debug("Experimental: v_ shipped from elsewhere.")
             self.v_ = v_
         self.vur = Function(self.VUR)
+
+    @property
+    def time(self):
+        "The internal time of the solver."
+        return self._time
 
     def solution_fields(self):
         """
@@ -212,6 +235,10 @@ class BasicBidomainSolver(object):
         Dt_v = (v - self.v_)/k_n
         v_mid = theta*v + (1.0 - theta)*self.v_
 
+        # Set time
+        t = t0 + theta*(t1 - t0)
+        self.time.assign(t)
+
         theta_parabolic = (inner(M_i*grad(v_mid), grad(w))*dx
                            + inner(M_i*grad(u), grad(w))*dx)
         theta_elliptic = (inner(M_i*grad(v_mid), grad(q))*dx
@@ -223,19 +250,13 @@ class BasicBidomainSolver(object):
 
         # Add applied current as source in elliptic equation if
         # applicable
-        I_a = self._I_a
-        if I_a:
-            t = t0 + theta*(t1 - t0)
-            I_a.t = t
-            G -= I_a*q*dx
+        if self._I_a:
+            G -= self._I_a*q*dx
 
         # Add applied stimulus as source in parabolic equation if
         # applicable
-        I_s = self._I_s
-        if I_s:
-            t = t0 + theta*(t1 - t0)
-            I_s.t = t
-            G -= I_s*w*dx
+        if self._I_s:
+            G -= self._I_s*w*dx
 
         # Define variational problem
         a, L = system(G)
@@ -269,11 +290,11 @@ class BasicBidomainSolver(object):
 class BidomainSolver(BasicBidomainSolver):
     __doc__ = BasicBidomainSolver.__doc__
 
-    def __init__(self, domain, M_i, M_e, I_s=None, I_a=None, v_=None,
+    def __init__(self, domain, time, M_i, M_e, I_s=None, I_a=None, v_=None,
                  params=None):
 
         # Call super-class
-        BasicBidomainSolver.__init__(self, domain, M_i, M_e,
+        BasicBidomainSolver.__init__(self, domain, time, M_i, M_e,
                                      I_s=I_s, I_a=I_a, v_=v_,
                                      params=params)
 
@@ -445,16 +466,11 @@ class BidomainSolver(BasicBidomainSolver):
         theta = self.parameters["theta"]
         annotate = True
         t = t0 + theta*dt
+        self.time.assign(t)
 
         # Update matrix and linear solvers etc as needed
         timestep_unchanged = (abs(dt - float(self._timestep)) < 1.e-12)
         self._update_solver(timestep_unchanged, dt)
-
-        # Update applied current and stimulus (if applicable)
-        if self._I_a:
-            self._I_a.t = t
-        if self._I_s:
-            self._I_s.t = t
 
         # Assemble right-hand-side
         assemble(self._rhs, tensor=self._rhs_vector, annotate=annotate)

@@ -15,11 +15,14 @@ class TestSplittingSolver(unittest.TestCase):
     def setUp(self):
         self.mesh = UnitCubeMesh(5, 5, 5)
 
+        # Create time
+        self.time = Constant(0.0)
+
         # Create stimulus
         self.stimulus = Expression("2.0")
 
         # Create ac
-        self.applied_current = Expression("t", t=0)
+        self.applied_current = Expression("t", t=self.time)
 
         # Create conductivity "tensors"
         self.M_i = 1.0
@@ -27,7 +30,8 @@ class TestSplittingSolver(unittest.TestCase):
 
         self.cell_model = NoCellModel()
 
-        self.cardiac_model = CardiacModel(self.mesh, self.M_i, self.M_e,
+        self.cardiac_model = CardiacModel(self.mesh, self.time,
+                                          self.M_i, self.M_e,
                                           self.cell_model,
                                           self.stimulus,
                                           self.applied_current)

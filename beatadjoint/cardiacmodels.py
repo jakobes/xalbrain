@@ -6,7 +6,7 @@ scenarios.
 
 # Copyright (C) 2012 Marie E. Rognes (meg@simula.no)
 # Use and modify at will
-# Last changed: 2013-04-23
+# Last changed: 2013-04-26
 
 __all__ = ["CardiacModel"]
 
@@ -35,6 +35,8 @@ class CardiacModel(object):
     *Arguments*
       domain (:py:class:`dolfin.Mesh`)
         the computational domain in space
+      time (:py:class:`dolfin.Constant` or None )
+        A constant holding the current time.
       M_i (:py:class:`ufl.Expr`)
         the intra-cellular conductivity as an ufl Expression
       M_e (:py:class:`ufl.Expr`)
@@ -47,12 +49,19 @@ class CardiacModel(object):
         an applied current as an ufl Expression
 
     """
-    def __init__(self, domain, M_i, M_e, cell_model, stimulus=None,
+    def __init__(self, domain, time, M_i, M_e, cell_model, stimulus=None,
                  applied_current=None):
         "Create CardiacModel from given input."
 
+        # Check some input
+        assert isinstance(domain, Mesh), \
+            "Expecting domain to be a Mesh instance, not %r" % domain
+        assert isinstance(time, Constant) or time is None, \
+            "Expecting time to be a Constant instance (or None)."
+
         # Store attributes
         self._domain = domain
+        self._time = time
         self._intracellular_conductivity = M_i
         self._extracellular_conductivity = M_e
         self._cell_model = cell_model
@@ -88,6 +97,11 @@ class CardiacModel(object):
     def extracellular_conductivity(self):
         "The intracellular conductivity (:py:class:`ufl.Expr`)."
         return self._extracellular_conductivity
+
+    @property
+    def time(self):
+        "The current time (:py:class:`dolfin.Constant` or None)."
+        return self._time
 
     @property
     def domain(self):
