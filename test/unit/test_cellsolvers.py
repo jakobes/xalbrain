@@ -25,7 +25,8 @@ class TestBasicSingleCellSolver(unittest.TestCase):
     def _run_solve(self, model, theta=None):
         "Run two time steps for the given model with the given theta solver."
         dt = 0.001
-        interval = (0.0, 2*dt)
+        T = 2*dt
+        interval = (0.0, T)
 
         # Initialize solver
         params = BasicSingleCellSolver.default_parameters()
@@ -38,8 +39,7 @@ class TestBasicSingleCellSolver(unittest.TestCase):
         vs_.assign(model.initial_conditions())
 
         # Solve for a couple of steps
-        T = 2*dt
-        solutions = solver.solve(interval, T)
+        solutions = solver.solve(interval, dt)
         for ((t0, t1), vs) in solutions:
             pass
 
