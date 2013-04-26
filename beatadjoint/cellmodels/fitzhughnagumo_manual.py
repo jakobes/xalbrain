@@ -36,7 +36,7 @@ class FitzHughNagumoManual(CardiacCellModel):
         parameters.add("v_peak", 40.)
         return parameters
 
-    def I(self, v, s):
+    def I(self, v, s, time=None):
         "Return the ionic current."
         # Extract parameters
         c_1 = self._parameters["c_1"]
@@ -51,7 +51,7 @@ class FitzHughNagumoManual(CardiacCellModel):
              - c_2/(v_amp)*(v - v_rest)*s)
         return - i
 
-    def F(self, v, s):
+    def F(self, v, s, time=None):
         "Return right-hand side for state variable evolution."
 
         # Extract parameters

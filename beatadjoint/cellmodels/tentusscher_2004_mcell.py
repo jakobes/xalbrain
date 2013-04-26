@@ -12,7 +12,7 @@ from beatadjoint.cellmodels import CardiacCellModel
 
 class Tentusscher_2004_mcell(CardiacCellModel):
     """
-NOT_IMPLEMENTED    
+NOT_IMPLEMENTED
     """
     def __init__(self, parameters=None):
         CardiacCellModel.__init__(self, parameters)
@@ -66,7 +66,7 @@ NOT_IMPLEMENTED
         parameters.add("K_o", 5.4)
         return parameters
 
-    def I(self, v, s):
+    def I(self, v, s, time=None):
         """
         Transmembrane current
         """
@@ -137,10 +137,10 @@ NOT_IMPLEMENTED
             Ca_i*ufl.exp(2.0*F*V/(R*T)))*V*d*f*fCa*g_CaL/((-1.0 +\
             ufl.exp(2.0*F*V/(R*T)))*R*T)
 
-        
+
         return current
 
-    def F(self, v, s):
+    def F(self, v, s, time=None):
         """
         Right hand side for ODE system
         """

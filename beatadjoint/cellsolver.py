@@ -43,6 +43,10 @@ class BasicCardiacODESolver(object):
       domain (:py:class:`dolfin.Mesh`)
         The spatial domain (mesh)
 
+      time (:py:class:`dolfin.Constant` or None)
+        A constant holding the current time. If None is given, time is
+        created for you, initialized to zero.
+
       num_states (int)
         The number of state variables (length of s)
 
@@ -55,19 +59,29 @@ class BasicCardiacODESolver(object):
         of the variable v
 
       I_s (:py:class:`dolfin.Expression`, optional)
-        A (typically time-dependent) external stimulus
+        A typically time-dependent external stimulus. NB: it is
+        assumed that the time dependence of I_s is encoded via the
+        'time' Constant.
 
       params (:py:class:`dolfin.Parameters`, optional)
         Solver parameters
 
     """
-    def __init__(self, domain, num_states, F, I_ion, I_s=None, params=None):
+    def __init__(self, domain, time, num_states, F, I_ion,
+                 I_s=None, params=None):
+
         # Store input
         self._domain = domain
         self._num_states = num_states
         self._F = F
         self._I_ion = I_ion
         self._I_s = I_s
+
+        # Create time if not given, otherwise use given time
+        if time is None:
+            self._time = Constant(0.0)
+        else:
+            self._time = time
 
         # Initialize and update parameters if given
         self.parameters = self.default_parameters()
@@ -86,6 +100,11 @@ class BasicCardiacODESolver(object):
         # Initialize solution fields
         self.vs_ = Function(self.VS, name="vs_")
         self.vs = Function(self.VS, name="vs")
+
+    @property
+    def time(self):
+        "The internal time of the solver."
+        return self._time
 
     @staticmethod
     def default_parameters():
@@ -146,9 +165,7 @@ class BasicCardiacODESolver(object):
 
         """
 
-        # FIXME: Add check that T >= T0 + dt
-
-        # Initial set-up
+        # Initial time set-up
         (T0, T) = interval
 
         # Solve on entire interval if no interval is given.
@@ -157,6 +174,10 @@ class BasicCardiacODESolver(object):
 
         t0 = T0
         t1 = T0 + dt
+
+        # Check that we are not at end of time already.
+        if end_of_time(T, None, t0, dt):
+            info_red("Given end time %g is less than given increment %g", T, dt)
 
         # Step through time steps until at end time
         while (True) :
@@ -203,18 +224,27 @@ class BasicCardiacODESolver(object):
 
         theta = self.parameters["theta"]
 
-        # Note sign for I_theta
-        F_theta = theta*self._F(v, s) + (1 - theta)*self._F(v_, s_)
-        I_theta = - (theta*self._I_ion(v, s)
-                     + (1 - theta)*self._I_ion(v_, s_))
+        # Set time (propagates to time-dependent variables defined via
+        # self.time)
+        t = t0 + theta*(t1 - t0)
+        self.time.assign(t)
 
-        # Add stimulus (I_s) if applicable
+        v_mid = theta*v + (1.0 - theta)*v_
+        s_mid = theta*s + (1.0 - theta)*s_
+
+        # Note sign for I_theta
+        F_theta = self._F(v_mid, s_mid, time=self.time)
+        I_theta = - self._I_ion(v_mid, s_mid, time=self.time)
+        ## Note that if we only keep one time, then we cannot really use
+        ## the formulation below.
+        #F_theta = theta*self._F(v, s) + (1 - theta)*self._F(v_, s_)
+        #I_theta = - (theta*self._I_ion(v, s) + (1 - theta)*self._I_ion(v_, s_))
+
+        # Add stimulus (I_s) if applicable.
         if self._I_s:
-            t = t0 + theta*(t1 - t0)
-            self._I_s.t = t
             I_theta += self._I_s
 
-        # Set-up system
+        # Set-up system of equations
         G = (Dt_v - I_theta)*w*dx + inner(Dt_s - F_theta, r)*dx
 
         # Solve system
@@ -260,17 +290,22 @@ class BasicSingleCellSolver(BasicCardiacODESolver):
     *Arguments*
       model (:py:class:`~beatadjoint.cellmodels.cardiaccellmodel.CardiacCellModel`)
         A cardiac cell model
-
+      time (:py:class:`~dolfin.Constant`, optional)
+        A constant holding the current time.
       params (:py:class:`dolfin.Parameters`, optional)
         Solver parameters
 
     """
 
-    def __init__(self, model, params=None):
+    def __init__(self, model, time=None, params=None):
         "Create solver from given cell model and optional parameters."
 
         assert isinstance(model, CardiacCellModel), \
             "Expecting CardiacCellModel as first argument to BasicSingleCellSolver"
+        assert isinstance(time, Constant) or time is None, \
+            "Expecting time to be a Constant instance (or None)."
+        assert isinstance(params, Parameters) or params is None, \
+            "Expecting params to be a Parameters instance (or None)"
 
         # Store model
         self._model = model
@@ -282,6 +317,7 @@ class BasicSingleCellSolver(BasicCardiacODESolver):
         # super-class.
         BasicCardiacODESolver.__init__(self,
                                        domain,
+                                       time,
                                        model.num_states(),
                                        model.F,
                                        model.I,

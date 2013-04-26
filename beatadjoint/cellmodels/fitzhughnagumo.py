@@ -12,7 +12,7 @@ from beatadjoint.cellmodels import CardiacCellModel
 
 class Fitzhughnagumo(CardiacCellModel):
     """
-NOT_IMPLEMENTED    
+NOT_IMPLEMENTED
     """
     def __init__(self, parameters=None):
         CardiacCellModel.__init__(self, parameters)
@@ -28,7 +28,7 @@ NOT_IMPLEMENTED
         parameters.add("v_rest", -85.0)
         return parameters
 
-    def I(self, v, s):
+    def I(self, v, s, time=None):
         """
         Transmembrane current
         """
@@ -49,10 +49,10 @@ NOT_IMPLEMENTED
             v_rest)*c_1/((v_peak - v_rest)*(v_peak - v_rest)) - (v -\
             v_rest)*c_2*s/(v_peak - v_rest)
 
-        
+
         return current
 
-    def F(self, v, s):
+    def F(self, v, s, time=None):
         """
         Right hand side for ODE system
         """
