@@ -31,6 +31,6 @@ public:
   }
   double amplitude;
   double duration;
-  double t;
+  Constant t;
 };"""
 
