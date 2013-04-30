@@ -62,7 +62,7 @@ NOT_IMPLEMENTED
         parameters.add("stim_amplitude", 52)
         parameters.add("stim_duration", 1)
         parameters.add("stim_period", 1000)
-        parameters.add("stim_start", 5)
+        parameters.add("stim_start", 1)
         parameters.add("K_o", 5.4)
         return parameters
 
