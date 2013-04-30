@@ -1,0 +1,229 @@
+#!/usr/bin/env python
+
+import numpy as np
+import os
+
+from gotran.codegeneration.oderepresentation import ODERepresentation, \
+     _default_params
+from gotran.codegeneration.codegenerator import CodeGenerator
+from modelparameters.codegeneration import pythoncode
+from gotran.model import load_ode
+
+
+class UFLCodeGenerator(CodeGenerator):
+    # Class attributes
+    to_code = lambda a,b,c : pythoncode(b,c, namespace="ufl")
+
+    def dy_body(self):
+        """
+        Generate body lines of code for evaluating state derivatives
+        """
+
+        from modelparameters.codegeneration import pythoncode
+
+        ode = self.oderepr.ode
+
+        assert(not ode.is_dae)
+
+        # Start building body
+        body_lines = ["# Imports", "import ufl", "import dolfin"]
+        body_lines.append("")
+        body_lines.append("# Assign states")
+        body_lines.append("assert(isinstance(states, dolfin.Function))")
+        body_lines.append("assert(states.function_space().depth() == 1)")
+        body_lines.append("assert(states.function_space().num_sub_spaces() == {0})".format(ode.num_states))
+
+        if self.oderepr.optimization.use_state_names:
+            body_lines.append(", ".join(state.name for i, state in \
+                            enumerate(ode.states)) + " = dolfin.split(states)")
+        
+        # Add parameters code if not numerals
+        if not self.oderepr.optimization.parameter_numerals:
+            body_lines.append("")
+            body_lines.append("# Assign parameters")
+            body_lines.append("assert(isinstance(parameters, (dolfin.Function, dolfin.Constant)))")
+            body_lines.append("if isinstance(parameters, dolfin.Function):")
+            if_closure = []
+            if_closure.append("assert(parameters.function_space().depth() == 1)")
+            if_closure.append("assert(parameters.function_space().num_sub_spaces() == {0})".format(ode.num_parameters))
+            body_lines.append(if_closure)
+            body_lines.append("else:")
+            body_lines.append(["assert(parameters.value_size() == {0})".format(ode.num_parameters)])
+
+            if self.oderepr.optimization.use_parameter_names:
+                body_lines.append(", ".join(param.name for i, param in \
+                        enumerate(ode.parameters)) + " = dolfin.split(parameters)")
+
+        # Iterate over any body needed to define the dy
+        for expr, name in self.oderepr.iter_dy_body():
+            if name == "COMMENT":
+                body_lines.append("")
+                body_lines.append("# " + expr)
+            else:
+                body_lines.append(self.to_code(expr, name))
+
+        # Init dy
+        body_lines.append("")
+        body_lines.append("# Init test function")
+        body_lines.append("_v = dolfin.TestFunction(states.function_space())")
+        
+        # Add dy[i] lines
+        for ind, (state, (derivative, expr)) in enumerate(\
+            zip(ode.states, self.oderepr.iter_derivative_expr())):
+            assert(state.sym == derivative[0].sym)
+            if ind == 0:
+                body_lines.append("")
+                body_lines.append("# Derivative for state {0}".format(state))
+                body_lines.append("dy = ({0})*_v[0]".format(self.to_code(expr, None)))
+            else:
+                body_lines.append("")
+                body_lines.append("# Derivative for state {0}".format(state))
+                body_lines.append("dy += ({0})*_v[{1}]".format(self.to_code(expr, None), ind))
+
+        # Return body lines 
+        return body_lines
+        
+    def init_states_code(self):
+        """
+        Generate code for setting initial condition
+        """
+
+        # Start building body
+        body_lines = ["# Imports", "import dolfin",\
+                      "from modelparameters.utils import Range", \
+                      "", "# Init values"]
+        body_lines.append("# {0}".format(", ".join("{0}={1}".format(\
+            state.name, state.init) for state in \
+                      self.oderepr.ode.states)))
+        body_lines.append("init_values = [{0}]"\
+                          .format(", ".join("{0}".format(\
+                state.init if np.isscalar(state.init) else state.init[0])\
+                            for state in self.oderepr.ode.states)))
+        body_lines.append("")
+        
+        range_check = "lambda value : value {minop} {minvalue} and "\
+                      "value {maxop} {maxvalue}"
+        body_lines.append("# State indices and limit checker")
+
+        body_lines.append("state_ind = dict({0})".format(\
+            ", ".join("{0}=({1}, {2})".format(\
+                state.param.name, i, repr(state.param._range))\
+                for i, state in enumerate(self.oderepr.ode.states))))
+        body_lines.append("")
+
+        body_lines.append("for state_name, value in values.items():")
+        body_lines.append(\
+            ["if state_name not in state_ind:",
+             ["raise ValueError(\"{{0}} is not a state.\".format(state_name))"],
+             # FIXME: Outcommented because of bug in indent_and_split_lines
+             # ["raise ValueError(\"{{0}} is not a state in the {0} ODE\"."\
+             #"format(state_name))".format(self.oderepr.name)],
+             "ind, range = state_ind[state_name]",
+             "if value not in range:",
+             ["raise ValueError(\"While setting \'{0}\' {1}\".format("\
+              "state_name, range.format_not_in(value)))"],
+             "", "# Assign value",
+             "init_values[ind] = value"])
+            
+        body_lines.append("init_values = dolfin.Constant(tuple(init_values))")
+        body_lines.append("")
+        
+        # Add function prototype
+        init_function = self.wrap_body_with_function_prototype(\
+            body_lines, "init_values", "**values", "init_values", \
+            "Init values")
+        
+        return "\n".join(self.indent_and_split_lines(init_function))
+
+    def init_param_code(self):
+        """
+        Generate code for setting parameters
+        """
+
+        # Start building body
+        body_lines = ["# Imports", "import dolfin",\
+                      "from modelparameters.utils import Range", \
+                      "", "# Param values"]
+        body_lines.append("# {0}".format(", ".join("{0}={1}".format(\
+            param.name, param.init) for param in \
+                      self.oderepr.ode.parameters)))
+        body_lines.append("param_values = [{0}]"\
+                          .format(", ".join("{0}".format(param.init) \
+                    for param in self.oderepr.ode.parameters)))
+        body_lines.append("")
+        
+        range_check = "lambda value : value {minop} {minvalue} and "\
+                      "value {maxop} {maxvalue}"
+        body_lines.append("# Parameter indices and limit checker")
+
+        body_lines.append("param_ind = dict({0})".format(\
+            ", ".join("{0}=({1}, {2})".format(\
+                state.param.name, i, repr(state.param._range))\
+                for i, state in enumerate(\
+                          self.oderepr.ode.parameters))))
+        body_lines.append("")
+
+        body_lines.append("for param_name, value in values.items():")
+        body_lines.append(\
+            ["if param_name not in param_ind:",
+             ["raise ValueError(\"{{0}} is not a param\".format(param_name))"],
+             # ["raise ValueError(\"{{0}} is not a param in the {0} ODE\"."\
+             #  "format(param_name))".format(self.oderepr.name)],
+             "ind, range = param_ind[param_name]",
+             "if value not in range:",
+             ["raise ValueError(\"While setting \'{0}\' {1}\".format("\
+              "param_name, range.format_not_in(value)))"],
+             "", "# Assign value",
+             "param_values[ind] = value"])
+            
+        body_lines.append("param_values = dolfin.Constant(tuple(param_values))")
+        body_lines.append("")
+        
+        # Add function prototype
+        function = self.wrap_body_with_function_prototype(\
+            body_lines, "default_parameters", \
+            "**values", "param_values", "Parameter values")
+        
+        return "\n".join(self.indent_and_split_lines(function))
+
+def main(filename, params):
+    """
+    Create ufl code from a gotran model
+    """
+
+    # Load Gotran model
+    ode = load_ode(filename)
+
+    # Create an ODE representation
+    oderepr = ODERepresentation(ode, **params.copy(True))
+
+    # Create a ufl based model code generator
+    ufl_gen = UFLCodeGenerator(oderepr)
+
+    f = open(filename.replace(".ode", "")+".py", "w")
+    f.write(ufl_gen.init_states_code() + "\n\n")
+    f.write(ufl_gen.init_param_code() + "\n\n")
+    f.write(ufl_gen.dy_code(params.rhs_args) + "\n\n")
+
+if __name__ == "__main__":
+    import sys
+    from modelparameters.parameterdict import ParameterDict, OptionParam, Param
+    
+    params = _default_params()
+    params = ParameterDict(\
+        rhs_args = OptionParam("stp", ["tsp", "stp", "spt"], \
+                description="Argument order of the generated rhs function. "\
+                               "s=states, p=parameters, t=time"),
+        sympy_contraction = Param(True, description="If True sympy contraction"\
+                                  " will be used, turning (V-3)/2 into V/2-3/2"),\
+        **params)
+    params.parse_args(usage="usage: %prog FILE [options]")#sys.argv[2:])
+    
+    if len(sys.argv) < 2:
+        raise RuntimeError("Expected a single gotran file argument")
+
+    if not os.path.isfile(sys.argv[1]):
+        raise IOError("Expected the argument to be a file")
+	 
+    file_name = sys.argv[1]
+    main(file_name, params)
