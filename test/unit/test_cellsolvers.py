@@ -133,13 +133,11 @@ class TestPointIntegralSolver(unittest.TestCase):
         vs = Function(VS)
         (v, s) = split(vs)
         (w, q) = TestFunctions(VS)
-        rhs = (inner(model.F(v, s), q) - inner(model.I(v, s), w))*dP
+        rhs = (inner(model.F(v, s, time), q) - inner(model.I(v, s, time), w))*dP
         if model.stimulus:
             rhs += inner(model.stimulus, w)*dP
 
         # Create scheme
-        # NOTE: No need to initialize time to 0. That is done in the
-        # NOTE: constructor of the Scheme
         scheme = Scheme(rhs, vs, time)
 
         # Start with native initial conditions, step twice and compare

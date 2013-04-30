@@ -40,7 +40,7 @@ class {ModelName}(CardiacCellModel):
 {default_parameters}
         return parameters
 
-    def I(self, v, s):
+    def I(self, v, s, time=None):
         \"\"\"
         Transmembrane current
         \"\"\"
@@ -48,7 +48,7 @@ class {ModelName}(CardiacCellModel):
         
         return current
 
-    def F(self, v, s):
+    def F(self, v, s, time=None):
         \"\"\"
         Right hand side for ODE system
         \"\"\"
