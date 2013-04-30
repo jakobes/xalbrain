@@ -122,11 +122,11 @@ class BasicBidomainSolver(object):
 
         # Set-up solution fields:
         if v_ is None:
-            self.v_ = Function(V)
+            self.v_ = Function(V, name="v_")
         else:
             debug("Experimental: v_ shipped from elsewhere.")
             self.v_ = v_
-        self.vur = Function(self.VUR)
+        self.vur = Function(self.VUR, name="vur")
 
     @property
     def time(self):
@@ -196,7 +196,8 @@ class BasicBidomainSolver(object):
             # If not: update members and move to next time
             # Subfunction assignment would be good here.
             if isinstance(self.v_, Function):
-                self.v_.assign(project(self.vur[0], self.v_.function_space()))
+                v_tmp = project(self.vur[0], self.v_.function_space())
+                self.v_.assign(v_tmp)
             else:
                 debug("Assuming that v_ is updated elsewhere. Experimental.")
             t0 = t1
