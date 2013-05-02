@@ -19,8 +19,16 @@ def main(filename, params):
     # Create a Beat Cell model code generator
     cell_gen = CellModelGenerator(oderepr, params.membrane_potential)
 
-    basename = params.output if params.output else filename.replace(".ode", "")
-    f = open(basename + ".py", "w")
+    output = params.output
+
+    if output:
+        if not(len(output)>3 and output[-3:] == ".py"):
+            output += ".py"
+    else:
+        output = filename.replace(".ode", "")+".py"
+
+    f = open(output, "w")
+    
     f.write(cell_gen.generate())
 
 if __name__ == "__main__":

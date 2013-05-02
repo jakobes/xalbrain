@@ -200,7 +200,16 @@ def main(filename, params):
     # Create a ufl based model code generator
     ufl_gen = UFLCodeGenerator(oderepr)
 
-    f = open(filename.replace(".ode", "")+".py", "w")
+    output = params.output
+
+    if output:
+        if not(len(output)>3 and output[-3:] == ".py"):
+            output += ".py"
+    else:
+        output = filename.replace(".ode", "")+".py"
+
+    f = open(output, "w")
+    f.write("from __future__ import division\n\n")
     f.write(ufl_gen.init_states_code() + "\n\n")
     f.write(ufl_gen.init_param_code() + "\n\n")
     f.write(ufl_gen.dy_code(params.rhs_args) + "\n\n")
@@ -216,6 +225,7 @@ if __name__ == "__main__":
                                "s=states, p=parameters, t=time"),
         sympy_contraction = Param(True, description="If True sympy contraction"\
                                   " will be used, turning (V-3)/2 into V/2-3/2"),\
+        output = Param("", description="Specify output file name"),\
         **params)
     params.parse_args(usage="usage: %prog FILE [options]")#sys.argv[2:])
     
