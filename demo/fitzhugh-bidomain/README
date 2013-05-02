@@ -1,0 +1,15 @@
+
+This is a fairly realistic demo illustrating how to use adjoint-beat
+for a non-trivial simulation involving real meshes of the left and
+right ventricle, stimulation data based on mesh functions etc. The run
+time is fairly long, so for demo purposes, just try the following.
+
+First, run the script 'preprocess_conductivities.py' to generate
+conductivities from the other data::
+
+  python preprocess_conductivities.py
+
+Next, run the demo with a low end time to see if things seem to be
+running.
+
+  python demo.py --T 1.0
