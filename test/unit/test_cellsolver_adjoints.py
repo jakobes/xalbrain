@@ -11,6 +11,11 @@ from dolfin import *
 from dolfin_adjoint import *
 from beatadjoint import *
 
+# TODO: Check with these parameters!
+#parameters["form_compiler"]["cpp_optimize"] = True
+#flags = "-O3 -ffast-math -march=native"
+#parameters["form_compiler"]["cpp_optimize_flags"] = flags
+
 class TestBasicSingleCellSolverAdjoint(unittest.TestCase):
     "Test adjoint functionality for the basic single cell solver."
 
@@ -21,7 +26,8 @@ class TestBasicSingleCellSolverAdjoint(unittest.TestCase):
 
         # Solve for a couple of steps
         dt = 0.01
-        solutions = solver.solve((0.0, 2*dt), dt)
+        T = 2*dt
+        solutions = solver.solve((0.0, T), dt)
         for ((t0, t1), vs) in solutions:
             pass
 
@@ -52,7 +58,7 @@ class TestBasicSingleCellSolverAdjoint(unittest.TestCase):
     def test_compute_adjoint(self):
         "Test that we can compute the adjoint for some given functional"
 
-        for theta in (0.5,):# 0.0, 1.0):
+        for theta in (0.0, 0.5, 1.0):
             for Model in (FitzHughNagumoManual, Tentusscher_2004_mcell):
                 adj_reset()
                 model = Model()
@@ -91,7 +97,7 @@ class TestBasicSingleCellSolverAdjoint(unittest.TestCase):
     def test_compute_gradient(self):
         "Test that we can compute the gradient for some given functional"
 
-        for theta in (0.5, 0.0, 1.0):
+        for theta in (0.0, 0.5, 1.0):
             for Model in (FitzHughNagumoManual, Tentusscher_2004_mcell):
                 adj_reset()
                 model = Model()
@@ -124,10 +130,10 @@ class TestBasicSingleCellSolverAdjoint(unittest.TestCase):
                 print dJdics.vector().array()
 
     def test_taylor_remainder(self):
-        "."
-
+        "Run Taylor remainder tests for selection of models and solvers."
         for theta in (0.0, 0.5, 1.0):
-            for Model in (FitzHughNagumoManual, Tentusscher_2004_mcell):
+            for Model in (FitzHughNagumoManual, Fitzhughnagumo,
+                          Tentusscher_2004_mcell):
 
                 adj_reset()
                 model = Model()
@@ -170,11 +176,15 @@ class TestBasicSingleCellSolverAdjoint(unittest.TestCase):
                     return assemble(form(vs))
 
                 # Run taylor test
+                if isinstance(model, Tentusscher_2004_mcell):
+                    seed=1.e-4
+                else:
+                    seed=None
                 conv_rate = taylor_test(Jhat, InitialConditionParameter(vs_),
-                                        Jics, dJdics)
+                                        Jics, dJdics, seed=seed)
 
                 # Check that minimal rate is greater than some given number
-                self.assertGreater(conv_rate, 1.98)
+                self.assertGreater(conv_rate, 1.8)
 
 if __name__ == "__main__":
     print("")
