@@ -61,17 +61,17 @@ class TestBasicSingleCellSolver(unittest.TestCase):
         else:
             info("Missing references for %r, %r" % (Model, theta))
 
-    def xtest_default_basic_single_cell_solver(self):
+    def test_default_basic_single_cell_solver(self):
         "Test basic single cell solver."
         for Model in supported_cell_models:
             self._compare_solve_step(Model)
 
-    def xtest_default_basic_single_cell_solver_be(self):
+    def test_default_basic_single_cell_solver_be(self):
         "Test basic single cell solver with Backward Euler."
         for Model in supported_cell_models:
             self._compare_solve_step(Model, theta=1.0)
 
-    def xtest_default_basic_single_cell_solver_fe(self):
+    def test_default_basic_single_cell_solver_fe(self):
         "Test basic single cell solver with Forward Euler."
         for Model in supported_cell_models:
             self._compare_solve_step(Model, theta=0.0)
@@ -108,12 +108,12 @@ class TestPointIntegralSolver(unittest.TestCase):
                             },
 
                            Tentusscher_2004_mcell:
-                           {BackwardEuler: (15, -85.88998025328269),
-                            CrankNicolson: (15, -85.98955508667491),
-                            ForwardEuler:  (15, -86.089303968089),
+                           {BackwardEuler: (15, -85.89745525156506),
+                            CrankNicolson: (15, -85.99685674414921),
+                            ForwardEuler:  (15, -86.09643254164848),
                             RK4:  (15, "nan"),
-                            ESDIRK3:  (15, -85.98951790002069),
-                            ESDIRK4:  (15, -85.98951789900272),
+                            ESDIRK3:  (15, -85.99681796148224),
+                            ESDIRK4:  (15, -85.99681796046603),
                             }
                            }
         
@@ -237,7 +237,7 @@ class TestPointIntegralSolver(unittest.TestCase):
         #    Vm_reference-output[:-offset])/Vm_reference)**2))/len(Vm_reference)
 
 
-    def xtest_long_run_tentusscher(self):
+    def test_long_run_tentusscher(self):
         mesh = UnitIntervalMesh(1)
         for Scheme, dt_org, abs_tol, rel_tol in [(BackwardEuler, 0.05, 0, 0),
                                                  (CrankNicolson, 0.1, 0, 1),
