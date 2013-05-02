@@ -61,7 +61,7 @@ NOT_IMPLEMENTED
         parameters.add("R", 8314.472)
         parameters.add("T", 310)
         parameters.add("V_c", 0.016404)
-        parameters.add("stim_amplitude", 52)
+        parameters.add("stim_amplitude", 0)
         parameters.add("stim_duration", 1)
         parameters.add("stim_period", 1000)
         parameters.add("stim_start", 1)

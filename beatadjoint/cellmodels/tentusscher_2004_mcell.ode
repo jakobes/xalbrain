@@ -154,7 +154,7 @@ parameters("Membrane",
            V_c = 0.016404,
            stim_start = 1,
            stim_duration = 1,
-           stim_amplitude = 52,
+           stim_amplitude = 0, # 52,
            stim_period = 1000)
 
 parameters("Potassium dynamics",
