@@ -72,7 +72,7 @@ class TestSplittingSolver(unittest.TestCase):
         print "c, d = ", a, b
 
         # Compare results
-        self.assertAlmostEqual(a, b, places=6)
+        self.assertAlmostEqual(a, b, places=5)
         self.assertAlmostEqual(c, d, places=6)
 
     def test_basic_and_optimised_splitting_solver2(self):
