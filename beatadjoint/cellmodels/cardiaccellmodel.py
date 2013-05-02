@@ -53,7 +53,8 @@ class CardiacCellModel:
             self._parameters.update(params)
         self.stimulus = None
 
-    def default_parameters(self):
+    @staticmethod
+    def default_parameters():
         "Set-up and return default parameters."
         params = Parameters("CardiacCellModel")
         return params
