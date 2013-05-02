@@ -53,7 +53,7 @@ class TestBasicSingleCellSolver(unittest.TestCase):
         model = Model()
         time = Constant(0.0)
         model.stimulus = Expression("1000*t", t=time)
-        info_green("Testing %s" % model)
+        info_green("\nTesting %s" % model)
         vec_solve = self._run_solve(model, time, theta)
         if Model in self.references and theta in self.references[Model]:
             self.assertAlmostEqual(vec_solve[0],
@@ -108,23 +108,24 @@ class TestPointIntegralSolver(unittest.TestCase):
                             },
 
                            Tentusscher_2004_mcell:
-                           {BackwardEuler: (15, -85.8974552517),
-                            CrankNicolson: (15, -85.99685674422098),
-                            ForwardEuler:  (15, -86.09643254167213),
+                           {BackwardEuler: (15, -85.88998025328269),
+                            CrankNicolson: (15, -85.98955508667491),
+                            ForwardEuler:  (15, -86.089303968089),
                             RK4:  (15, "nan"),
-                            ESDIRK3:  (15, -85.9968179615449),
-                            ESDIRK4:  (15, -85.9968179605287),
+                            ESDIRK3:  (15, -85.98951790002069),
+                            ESDIRK4:  (15, -85.98951789900272),
                             }
                            }
         
-    def _setup_solver(self, Model, Scheme, mesh):
+    def _setup_solver(self, Model, Scheme, mesh, time, stim=None, params=None):
         # Create model instance
-        model = Model()
-        info_green("Testing %s" % str(model))
+        model = Model(params)
 
         # Initialize time and stimulus (note t=time construction!)
-        time = Constant(0.0)
-        model.stimulus = Expression("1000*t", t=time)
+        if stim is None:
+            model.stimulus = Expression("1000*t", t=time)
+        else:
+            model.stimulus = stim
 
         # Create rhs form by combining cell model info with function space
         V = FunctionSpace(mesh, "CG", 1)
@@ -140,6 +141,8 @@ class TestPointIntegralSolver(unittest.TestCase):
         # Create scheme
         scheme = Scheme(rhs, vs, time)
 
+        info_green("\nTesting %s with %s scheme" % (model, scheme))
+        
         # Start with native initial conditions, step twice and compare
         # results to given reference
         vs.assign(model.initial_conditions())
@@ -150,7 +153,8 @@ class TestPointIntegralSolver(unittest.TestCase):
 
     def _compare_against_reference(self, Model, Scheme, mesh):
 
-        solver = self._setup_solver(Model, Scheme, mesh)
+        time = Constant(0.0)
+        solver = self._setup_solver(Model, Scheme, mesh, time)
 
         next_dt = 0.01
         solver.step(next_dt)
@@ -168,67 +172,80 @@ class TestPointIntegralSolver(unittest.TestCase):
             info("Missing references for %s, %s: value is %g"
                  % (Model, Scheme, vs.vector()[0]))
 
-    def xtest_point_integral_solver(self):
+    def test_point_integral_solver(self):
         mesh = UnitIntervalMesh(1)
         for Model in supported_cell_models:
             for Scheme in [BackwardEuler, ForwardEuler, CrankNicolson,
                            RK4, ESDIRK3, ESDIRK4]:
                 self._compare_against_reference(Model, Scheme, mesh)
 
-    def test_long_run_tentusscher(self):
-        mesh = UnitIntervalMesh(1)
+    def _long_run_compare(self, mesh, Model, Scheme, dt_org, abs_tol, rel_tol):
         tstop = 10
-        ind_V = 15
-        dt_org = 0.025
+        ind_V = 0
         dt_ref = 0.1
         time_ref = np.linspace(0, tstop, int(tstop/dt_ref)+1)
         Vm_reference = np.fromfile("Vm_reference.npy")
-        Model = Tentusscher_2004_mcell
+        params = Model.default_parameters()
 
-        for Scheme in [BackwardEuler, CrankNicolson, ESDIRK3, ESDIRK4]:
-            
-            # Initiate solver, with model and Scheme
-            solver = self._setup_solver(Model, Scheme, mesh)
-            solver.parameters.newton_solver.maximum_iterations = 30
-            solver.parameters.newton_solver.iterations_to_retabulate_jacobian = 5
+        time = Constant(0.0)
+        stim = Expression("(time >= stim_start) && (time < stim_start + stim_duration)"\
+                          " ? stim_amplitude : 0.0 ", time=time, stim_amplitude=52.0, \
+                          stim_start=1.0, stim_duration=1.0)
+        params.stim_amplitude = 0
 
-            scheme = solver.scheme()
-            vs = scheme.solution()
-            vertex_to_dof_map = vs.function_space().dofmap().vertex_to_dof_map(mesh)
-            scheme.t().assign(0.0)
+        # Initiate solver, with model and Scheme
+        solver = self._setup_solver(Model, Scheme, mesh, time, stim, params)
+        solver.parameters.newton_solver.maximum_iterations = 30
+        solver.parameters.newton_solver.iterations_to_retabulate_jacobian = 5
+
+        scheme = solver.scheme()
+        vs = scheme.solution()
+        vertex_to_dof_map = vs.function_space().dofmap().vertex_to_dof_map(mesh)
+        scheme.t().assign(0.0)
         
-            vs_array = vs.vector().array()
+        vs_array = vs.vector().array()
+        vs_array[vertex_to_dof_map] = vs.vector().array()
+        output = [vs_array[ind_V]]
+        time_output = [0.0]
+        dt = dt_org
+
+        # Time step
+        next_dt = max(min(tstop-float(scheme.t()), dt), 0.0)
+        while next_dt > 0.0:
+        
+            # Step solver
+            solver.step(next_dt)
+
+            # Collect plt output data
             vs_array[vertex_to_dof_map] = vs.vector().array()
-            output = [vs_array[ind_V]]
-            time_output = [0.0]
+            output.append(vs_array[ind_V])
+            time_output.append(float(scheme.t()))
 
-            dt = dt_org/2 if isinstance(scheme, BackwardEuler) else dt_org
-
-            # Time step
+            # Next time step
             next_dt = max(min(tstop-float(scheme.t()), dt), 0.0)
-            while next_dt > 0.0:
-        
-                # Step solver
-                solver.step(next_dt)
 
-                # Collect plt output data
-                vs_array[vertex_to_dof_map] = vs.vector().array()
-                output.append(vs_array[ind_V])
-                time_output.append(float(scheme.t()))
+        output = np.array(output)
 
-                # Next time step
-                next_dt = max(min(tstop-float(scheme.t()), dt), 0.0)
+        # Compare solution from CellML run using opencell
+        self.assertAlmostEqual(output[-1], Vm_reference[-1], abs_tol)
+        offset = len(output)-len(Vm_reference)
+        self.assertAlmostEqual(np.sqrt(np.sum(((\
+            Vm_reference-output[:-offset])/Vm_reference)**2))/len(Vm_reference), 0.0, rel_tol)
+        #print "V[-1] = ", output[-1]
+        #print "V_ref[-1] = ", Vm_reference[-1]
+        #print "|(V-V_ref)/V_ref| = ", np.sqrt(np.sum(((\
+        #    Vm_reference-output[:-offset])/Vm_reference)**2))/len(Vm_reference)
 
-            output = np.array(output)
 
-            # Compare solution from CellML run using opencell
-            print scheme
-            print "V[-1] = ", output[-1]
-            print "V_ref[-1] = ", Vm_reference[-1]
-            if not isinstance(scheme, BackwardEuler):
-                offset = len(output)-len(Vm_reference)
-                print "|(V-V_ref)/V_ref| = ", np.sqrt(np.sum(((\
-                    Vm_reference-output[:-offset])/Vm_reference)**2))/len(Vm_reference)
+    def xtest_long_run_tentusscher(self):
+        mesh = UnitIntervalMesh(1)
+        for Scheme, dt_org, abs_tol, rel_tol in [(BackwardEuler, 0.05, 0, 0),
+                                                 (CrankNicolson, 0.1, 0, 1),
+                                                 (ESDIRK3, 0.1, 0, 2),
+                                                 (ESDIRK4, 0.1, 0, 2)]:
+            
+            self._long_run_compare(mesh, Tentusscher_2004_mcell, Scheme, \
+                                   dt_org, abs_tol, rel_tol)
 
 if __name__ == "__main__":
     print("")

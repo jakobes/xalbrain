@@ -16,6 +16,8 @@ def pretty_print(msg):
     print(msg)
     print(blocks)
 
+curdir = os.path.abspath(os.path.curdir)
+
 # Parse command-line arguments for test_directories
 test_directories = default_test_directories
 if len(sys.argv) > 1:
@@ -41,8 +43,9 @@ for test in test_directories:
 
         for pyfile in pyfiles:
             pretty_print("Running: %s" % os.path.join(subdir, pyfile))
-            absfile = os.path.join(subdir, pyfile)
-            fail, output = instant.get_status_output(command % absfile)
+            os.chdir(subdir)
+            fail, output = instant.get_status_output(command % pyfile)
+            os.chdir(curdir)
 
             if fail:
                 failed.append(pyfile)
