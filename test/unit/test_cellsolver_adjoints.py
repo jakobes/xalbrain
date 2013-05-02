@@ -127,7 +127,7 @@ class TestBasicSingleCellSolverAdjoint(unittest.TestCase):
         "."
 
         for theta in (0.0, 0.5, 1.0):
-            for Model in (FitzHughNagumoManual, ):#Tentusscher_2004_mcell):
+            for Model in (FitzHughNagumoManual, Tentusscher_2004_mcell):
 
                 adj_reset()
                 model = Model()
