@@ -207,10 +207,10 @@ tau_m = one*alpha_m*beta_m
 
 component("Fast sodium current h gate")
 h_inf = one/(one + exp((V + 71.55)/7.43))**two
+#alpha_h = Conditional(Lt(V, -40), 0.057*exp(-((V + 80))/6.8), 0)
+#beta_h = Conditional(Lt(V, -40), 2.7*exp(0.079*V) + 310000*exp(0.3485*V), 0.77/(0.13*(one + exp((V + 10.66)/-11.1))))
 alpha_h = ContinuousConditional(Lt(V, -40), 0.057*exp(-((V + 80))/6.8), 0)
 beta_h = ContinuousConditional(Lt(V, -40), 2.7*exp(0.079*V) + 310000*exp(0.3485*V), 0.77/(0.13*(one + exp((V + 10.66)/-11.1))))
-#alpha_h = ContinuousConditional(Lt(V, -40), 0.057*exp(-((V + 80))/6.8), 0, 0.1)
-#beta_h = ContinuousConditional(Lt(V, -40), 2.7*exp(0.079*V) + 310000*exp(0.3485*V), 0.77/(0.13*(one + exp((V + 10.66)/-11.1))), 0.1)
 tau_h = one/(alpha_h + beta_h)
 
 component("Fast sodium current j gate")
