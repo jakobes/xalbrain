@@ -14,70 +14,91 @@ from beatadjoint.cellmodels import CardiacCellModel
 
 class Tentusscher_2004_mcell(CardiacCellModel):
     """
-NOT_IMPLEMENTED    
+NOT_IMPLEMENTED
     """
-    def __init__(self, parameters=None):
-        CardiacCellModel.__init__(self, parameters)
+    def __init__(self, params=None, init_conditions=None):
+        """
+        Create cardiac cell model
+
+        *Arguments*
+         params (dict, :py:class:`dolfin.Mesh`, optional)
+           optional model parameters
+         init_conditions (dict, :py:class:`dolfin.Mesh`, optional)
+           optional initial conditions
+        """
+        CardiacCellModel.__init__(self, params, init_conditions)
 
     @staticmethod
     def default_parameters():
-        parameters = Parameters("Tentusscher_2004_mcell")
-        parameters.add("P_kna", 0.03)
-        parameters.add("g_K1", 5.405)
-        parameters.add("g_Kr", 0.096)
-        parameters.add("g_Ks", 0.062)
-        parameters.add("g_Na", 14.838)
-        parameters.add("g_bna", 0.00029)
-        parameters.add("g_CaL", 0.000175)
-        parameters.add("g_bca", 0.000592)
-        parameters.add("g_to", 0.294)
-        parameters.add("K_mNa", 40)
-        parameters.add("K_mk", 1)
-        parameters.add("P_NaK", 1.362)
-        parameters.add("K_NaCa", 1000)
-        parameters.add("K_sat", 0.1)
-        parameters.add("Km_Ca", 1.38)
-        parameters.add("Km_Nai", 87.5)
-        parameters.add("alpha", 2.5)
-        parameters.add("gamma", 0.35)
-        parameters.add("K_pCa", 0.0005)
-        parameters.add("g_pCa", 0.825)
-        parameters.add("g_pK", 0.0146)
-        parameters.add("Buf_c", 0.15)
-        parameters.add("Buf_sr", 10)
-        parameters.add("Ca_o", 2)
-        parameters.add("K_buf_c", 0.001)
-        parameters.add("K_buf_sr", 0.3)
-        parameters.add("K_up", 0.00025)
-        parameters.add("V_leak", 8e-05)
-        parameters.add("V_sr", 0.001094)
-        parameters.add("Vmax_up", 0.000425)
-        parameters.add("a_rel", 0.016464)
-        parameters.add("b_rel", 0.25)
-        parameters.add("c_rel", 0.008232)
-        parameters.add("tau_g", 2)
-        parameters.add("Na_o", 140)
-        parameters.add("Cm", 0.185)
-        parameters.add("F", 96485.3415)
-        parameters.add("R", 8314.472)
-        parameters.add("T", 310)
-        parameters.add("V_c", 0.016404)
-        parameters.add("stim_amplitude", 0)
-        parameters.add("stim_duration", 1)
-        parameters.add("stim_period", 1000)
-        parameters.add("stim_start", 1)
-        parameters.add("K_o", 5.4)
-        return parameters
+        "Set-up and return default parameters."
+        params = OrderedDict([("P_kna", 0.03),
+                              ("g_K1", 5.405),
+                              ("g_Kr", 0.096),
+                              ("g_Ks", 0.062),
+                              ("g_Na", 14.838),
+                              ("g_bna", 0.00029),
+                              ("g_CaL", 0.000175),
+                              ("g_bca", 0.000592),
+                              ("g_to", 0.294),
+                              ("K_mNa", 40),
+                              ("K_mk", 1),
+                              ("P_NaK", 1.362),
+                              ("K_NaCa", 1000),
+                              ("K_sat", 0.1),
+                              ("Km_Ca", 1.38),
+                              ("Km_Nai", 87.5),
+                              ("alpha", 2.5),
+                              ("gamma", 0.35),
+                              ("K_pCa", 0.0005),
+                              ("g_pCa", 0.825),
+                              ("g_pK", 0.0146),
+                              ("Buf_c", 0.15),
+                              ("Buf_sr", 10),
+                              ("Ca_o", 2),
+                              ("K_buf_c", 0.001),
+                              ("K_buf_sr", 0.3),
+                              ("K_up", 0.00025),
+                              ("V_leak", 8e-05),
+                              ("V_sr", 0.001094),
+                              ("Vmax_up", 0.000425),
+                              ("a_rel", 0.016464),
+                              ("b_rel", 0.25),
+                              ("c_rel", 0.008232),
+                              ("tau_g", 2),
+                              ("Na_o", 140),
+                              ("Cm", 0.185),
+                              ("F", 96485.3415),
+                              ("R", 8314.472),
+                              ("T", 310),
+                              ("V_c", 0.016404),
+                              ("stim_amplitude", 0),
+                              ("stim_duration", 1),
+                              ("stim_period", 1000),
+                              ("stim_start", 1),
+                              ("K_o", 5.4)])
+        return params
 
     @staticmethod
     def default_initial_conditions():
-        ic = OrderedDict([("V", -86.2), ("Xr1", 0), ("Xr2", 1), ("Xs", 0),\
-            ("m", 0), ("h", 0.75), ("j", 0.75), ("d", 0), ("f", 1), ("fCa",\
-            1), ("s", 1), ("r", 0), ("Ca_SR", 0.2), ("Ca_i", 0.0002), ("g",\
-            1), ("Na_i", 11.6), ("K_i", 138.3)])
-
+        "Set-up and return default initial conditions."
+        ic = OrderedDict([("V", -86.2),
+                          ("Xr1", 0),
+                          ("Xr2", 1),
+                          ("Xs", 0),
+                          ("m", 0),
+                          ("h", 0.75),
+                          ("j", 0.75),
+                          ("d", 0),
+                          ("f", 1),
+                          ("fCa", 1),
+                          ("s", 1),
+                          ("r", 0),
+                          ("Ca_SR", 0.2),
+                          ("Ca_i", 0.0002),
+                          ("g", 1),
+                          ("Na_i", 11.6),
+                          ("K_i", 138.3)])
         return ic
-        
 
     def I(self, v, s, time=None):
         """
@@ -155,7 +176,6 @@ NOT_IMPLEMENTED
             ufl.exp(-5.0*stim_start + 5.0*time)))*stim_amplitude/(1.0 +\
             ufl.exp(-5.0*stim_start + 5.0*time - 5.0*stim_duration))
 
-        
         return current
 
     def F(self, v, s, time=None):

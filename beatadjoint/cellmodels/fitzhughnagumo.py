@@ -14,29 +14,38 @@ from beatadjoint.cellmodels import CardiacCellModel
 
 class Fitzhughnagumo(CardiacCellModel):
     """
-NOT_IMPLEMENTED    
+NOT_IMPLEMENTED
     """
-    def __init__(self, parameters=None):
-        CardiacCellModel.__init__(self, parameters)
+    def __init__(self, params=None, init_conditions=None):
+        """
+        Create cardiac cell model
+
+        *Arguments*
+         params (dict, :py:class:`dolfin.Mesh`, optional)
+           optional model parameters
+         init_conditions (dict, :py:class:`dolfin.Mesh`, optional)
+           optional initial conditions
+        """
+        CardiacCellModel.__init__(self, params, init_conditions)
 
     @staticmethod
     def default_parameters():
-        parameters = Parameters("Fitzhughnagumo")
-        parameters.add("a", 0.13)
-        parameters.add("b", 0.013)
-        parameters.add("c_1", 0.26)
-        parameters.add("c_2", 0.1)
-        parameters.add("c_3", 1.0)
-        parameters.add("v_peak", 40.0)
-        parameters.add("v_rest", -85.0)
-        return parameters
+        "Set-up and return default parameters."
+        params = OrderedDict([("a", 0.13),
+                              ("b", 0.013),
+                              ("c_1", 0.26),
+                              ("c_2", 0.1),
+                              ("c_3", 1.0),
+                              ("v_peak", 40.0),
+                              ("v_rest", -85.0)])
+        return params
 
     @staticmethod
     def default_initial_conditions():
-        ic = OrderedDict([("v", -85.0), ("s", 0.0)])
-
+        "Set-up and return default initial conditions."
+        ic = OrderedDict([("v", -85.0),
+                          ("s", 0.0)])
         return ic
-        
 
     def I(self, v, s, time=None):
         """
@@ -60,7 +69,6 @@ NOT_IMPLEMENTED
             v_rest)*(-(v_peak - v_rest)*a + v - v_rest)*c_1/((v_peak -\
             v_rest)*(v_peak - v_rest))
 
-        
         return current
 
     def F(self, v, s, time=None):

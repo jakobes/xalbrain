@@ -1,6 +1,7 @@
 """
 Unit tests for various types of solvers for cardiac cell models.
 """
+from __future__ import division
 
 __author__ = "Marie E. Rognes (meg@simula.no), 2013"
 __all__ = ["TestBasicSingleCellSolver",
@@ -61,17 +62,17 @@ class TestBasicSingleCellSolver(unittest.TestCase):
         else:
             info("Missing references for %r, %r" % (Model, theta))
 
-    def test_default_basic_single_cell_solver(self):
+    def xtest_default_basic_single_cell_solver(self):
         "Test basic single cell solver."
         for Model in supported_cell_models:
             self._compare_solve_step(Model)
 
-    def test_default_basic_single_cell_solver_be(self):
+    def xtest_default_basic_single_cell_solver_be(self):
         "Test basic single cell solver with Backward Euler."
         for Model in supported_cell_models:
             self._compare_solve_step(Model, theta=1.0)
 
-    def test_default_basic_single_cell_solver_fe(self):
+    def xtest_default_basic_single_cell_solver_fe(self):
         "Test basic single cell solver with Forward Euler."
         for Model in supported_cell_models:
             self._compare_solve_step(Model, theta=0.0)
@@ -119,7 +120,7 @@ class TestPointIntegralSolver(unittest.TestCase):
         
     def _setup_solver(self, Model, Scheme, mesh, time, stim=None, params=None):
         # Create model instance
-        model = Model(params)
+        model = Model(params=params)
 
         # Initialize time and stimulus (note t=time construction!)
         if stim is None:
@@ -172,10 +173,36 @@ class TestPointIntegralSolver(unittest.TestCase):
             info("Missing references for %s, %s: value is %g"
                  % (Model, Scheme, vs.vector()[0]))
 
+        # Use Constant Parameters
+        params = Model.default_parameters()
+        if params:
+            for param_name in params.keys():
+                value = params[param_name]
+                params[param_name] = Constant(value)
+
+            time.assign(0.0)
+            solver = self._setup_solver(Model, Scheme, mesh, time, params=params)
+
+            solver.step(next_dt)
+            solver.step(next_dt)
+
+            vs = solver.scheme().solution()
+
+            if Model in self.references and Scheme in self.references[Model]:
+                ind, ref_value = self.references[Model][Scheme]
+                info("Value for %s, %s is %g"
+                     % (Model, Scheme, vs.vector()[ind]))
+                if ref_value != "nan":
+                    self.assertAlmostEqual(vs.vector()[ind], ref_value)
+            else:
+                info("Missing references for %s, %s: value is %g"
+                     % (Model, Scheme, vs.vector()[0]))
+
+
     def test_point_integral_solver(self):
         mesh = UnitIntervalMesh(1)
         for Model in supported_cell_models:
-            for Scheme in [BackwardEuler, ForwardEuler, CrankNicolson,
+            for Scheme in [ForwardEuler, BackwardEuler, CrankNicolson,
                            RK4, ESDIRK3, ESDIRK4]:
                 self._compare_against_reference(Model, Scheme, mesh)
 
@@ -237,7 +264,7 @@ class TestPointIntegralSolver(unittest.TestCase):
         #    Vm_reference-output[:-offset])/Vm_reference)**2))/len(Vm_reference)
 
 
-    def test_long_run_tentusscher(self):
+    def xtest_long_run_tentusscher(self):
         mesh = UnitIntervalMesh(1)
         for Scheme, dt_org, abs_tol, rel_tol in [(BackwardEuler, 0.05, 0, 0),
                                                  (CrankNicolson, 0.1, 0, 1),
