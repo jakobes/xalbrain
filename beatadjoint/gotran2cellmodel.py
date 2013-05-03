@@ -32,30 +32,37 @@ from beatadjoint.cellmodels import CardiacCellModel
 
 class {ModelName}(CardiacCellModel):
     \"\"\"
-{CLASSDOC}    
+{CLASSDOC}
     \"\"\"
-    def __init__(self, parameters=None):
-        CardiacCellModel.__init__(self, parameters)
+    def __init__(self, params=None, init_conditions=None):
+        \"\"\"
+        Create cardiac cell model
+
+        *Arguments*
+         params (dict, :py:class:`dolfin.Mesh`, optional)
+           optional model parameters
+         init_conditions (dict, :py:class:`dolfin.Mesh`, optional)
+           optional initial conditions
+        \"\"\"
+        CardiacCellModel.__init__(self, params, init_conditions)
 
     @staticmethod
     def default_parameters():
-        parameters = Parameters("{ModelName}")
+        \"Set-up and return default parameters.\"
 {default_parameters}
-        return parameters
+        return params
 
     @staticmethod
     def default_initial_conditions():
+        \"Set-up and return default initial conditions.\"
 {initial_conditions}
-
         return ic
-        
 
     def I(self, v, s, time=None):
         \"\"\"
         Transmembrane current
         \"\"\"
 {I_body}
-        
         return current
 
     def F(self, v, s, time=None):
@@ -260,10 +267,21 @@ class CellModelGenerator(CodeGenerator):
         """
         Generate code for the default parameter bod
         """
-
         ode = self.oderepr.ode
-        body_lines = ["parameters.add(\"{0}\", {1})".format(param.name, param.init) \
-                      for param in ode.parameters]
+        if ode.num_parameters>0:
+
+            params = ode.parameters[:]
+
+            param = params.pop(0)
+            
+            body_lines = ["params = OrderedDict([(\"{}\", {}),".format(\
+                param.name, param.init)]
+            body_lines.extend("                      (\"{}\", {}),".format(\
+                param.name, param.init) for param in params)
+            body_lines[-1] = body_lines[-1][0:-1]+"])"
+        else:
+            body_lines = ["params = OrderedDict()"]
+            
         return "\n".join(self.indent_and_split_lines(body_lines, 2))
         
     def initial_conditions_body(self):
@@ -277,9 +295,10 @@ class CellModelGenerator(CodeGenerator):
         v_init = ode.get_object(self.V_name).init
         s_init, s_names = zip(*[(state.init, state.name) for state in ode.states \
                                 if state.name != self.V_name])
-        state_init = ", ".join("(\"{}\", {})".format(name, value) for name, value in \
-                               zip(s_names, s_init))
-        body_lines = ["ic = OrderedDict([(\"{}\", {}), {}])".format(\
-            self.V_name, v_init, state_init)]
+        body_lines = ["ic = OrderedDict([(\"{}\", {}),".format(\
+            self.V_name, v_init)]
+        body_lines.extend("                  (\"{}\", {}),".format(name, value) \
+                          for name, value in zip(s_names, s_init))
+        body_lines[-1] = body_lines[-1][0:-1]+"])"
 
         return "\n".join(self.indent_and_split_lines(body_lines, 2))

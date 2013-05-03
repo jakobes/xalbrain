@@ -133,6 +133,8 @@ class TestCellModelFormCompilationCorrectness(unittest.TestCase):
         for Model in supported_cell_models:
             model = Model()
 
+            tolerance = 1.e-12
+
             # Run with no particular optimizations
             vs = _point_integral_step(model)
             non_opt_result = vs.vector().array()
@@ -144,15 +146,35 @@ class TestCellModelFormCompilationCorrectness(unittest.TestCase):
             vs = _point_integral_step(model)
             opt_result = vs.vector().array()
 
+            # Compare results
+            c = non_opt_result - opt_result
+            c_inf = numpy.linalg.norm(c, numpy.inf)
+            print "|c|_inf = ", numpy.linalg.norm(c, numpy.inf)
+            assert (c_inf < tolerance), "Mismatch in compiled results."
+
             # Reset parameters by turning off optimizations
-            parameters["form_compiler"]["cpp_optimize"] = False
+            parameters["form_compiler"]["cpp_optimize"] = True
             parameters["form_compiler"]["cpp_optimize_flags"] = "-O2"
+
+            vs = _point_integral_step(model)
+            opt_result = vs.vector().array()
 
             # Compare results
             c = non_opt_result - opt_result
             c_inf = numpy.linalg.norm(c, numpy.inf)
             print "|c|_inf = ", numpy.linalg.norm(c, numpy.inf)
-            tolerance = 1.e-12
+            assert (c_inf < tolerance), "Mismatch in compiled results."
+
+            # Reset parameters by turning off optimizations
+            parameters["form_compiler"]["representation"] = "uflacs"
+            
+            vs = _point_integral_step(model)
+            opt_result = vs.vector().array()
+
+            # Compare results
+            c = non_opt_result - opt_result
+            c_inf = numpy.linalg.norm(c, numpy.inf)
+            print "|c|_inf = ", numpy.linalg.norm(c, numpy.inf)
             assert (c_inf < tolerance), "Mismatch in compiled results."
 
 if __name__ == "__main__":

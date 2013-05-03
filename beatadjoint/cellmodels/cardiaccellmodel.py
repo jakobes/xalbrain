@@ -1,7 +1,7 @@
 """This module contains a base class for cardiac cell models."""
+from __future__ import division
 
 __author__ = "Marie E. Rognes (meg@simula.no), 2012--2013"
-
 __all__ = ["CardiacCellModel"]
 
 from dolfin import Parameters, Expression, error, GenericFunction
@@ -57,21 +57,21 @@ class CardiacCellModel:
          init_conditions (dict, :py:class:`dolfin.Mesh`, optional)
            optional initial conditions
         """
-        self._parameters = self.default_parameters().to_dict()
+        self._parameters = self.default_parameters()
         self._initial_conditions = self.default_initial_conditions()
 
         params = params or {}
         init_conditions = init_conditions or OrderedDict()
 
         if params:
-            assert isinstance(params, (dict, Parameters)), \
+            assert isinstance(params, dict), \
                    "expected a dict or a Parameters, as the params argument"
             if isinstance(params, Parameters):
                 params = params.to_dict()
             self.set_parameters(**params)
             
         if init_conditions:
-            assert isinstance(init_conditions, (dict, Parameters)), \
+            assert isinstance(init_conditions, dict), \
                    "expected a dict or a Parameters, as the init_condition argument"
             if isinstance(init_conditions, Parameters):
                 init_conditions = init_conditions.to_dict()
@@ -82,14 +82,12 @@ class CardiacCellModel:
     @staticmethod
     def default_parameters():
         "Set-up and return default parameters."
-        params = Parameters("CardiacCellModelParameters")
-        return params
+        return OrderedDict()
 
     @staticmethod
     def default_initial_conditions():
         "Set-up and return default initial conditions."
-        initial_conditions = OrderedDict()
-        return initial_conditions
+        return OrderedDict()
 
     def set_parameters(self, **params):
         "Update parameters in model"
@@ -99,10 +97,11 @@ class CardiacCellModel:
             if not isinstance(param_value, (float, int, GenericFunction)):
                 error("'%s' is not a scalar or a GenericFunction" % param_name)
             if isinstance(param_value, GenericFunction) and \
-               not param_value.value_size() != 1:
+               param_value.value_size() != 1:
                 error("expected the value_size of '%s' to be 1" % param_name)
+
             self._parameters[param_name] = param_value
-        
+
     def set_initial_conditions(self, **init):
         "Update initial_conditions in model"
         for init_name, init_value in init.items():
@@ -111,7 +110,7 @@ class CardiacCellModel:
             if not isinstance(init_value, (float, int, GenericFunction)):
                 error("'%s' is not a scalar or a GenericFunction" % init_name)
             if isinstance(init_value, GenericFunction) and \
-               not init_value.value_size() != 1:
+               init_value.value_size() != 1:
                 error("expected the value_size of '%s' to be 1" % init_name)
             self._initial_conditions[init_name] = init_value
         
