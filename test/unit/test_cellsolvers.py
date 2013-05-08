@@ -62,18 +62,24 @@ class TestBasicSingleCellSolver(unittest.TestCase):
         else:
             info("Missing references for %r, %r" % (Model, theta))
 
-    def xtest_default_basic_single_cell_solver(self):
+    def test_default_basic_single_cell_solver(self):
         "Test basic single cell solver."
+        if MPI.num_processes() > 1:
+            return
         for Model in supported_cell_models:
             self._compare_solve_step(Model)
 
-    def xtest_default_basic_single_cell_solver_be(self):
+    def test_default_basic_single_cell_solver_be(self):
         "Test basic single cell solver with Backward Euler."
+        if MPI.num_processes() > 1:
+            return
         for Model in supported_cell_models:
             self._compare_solve_step(Model, theta=1.0)
 
-    def xtest_default_basic_single_cell_solver_fe(self):
+    def test_default_basic_single_cell_solver_fe(self):
         "Test basic single cell solver with Forward Euler."
+        if MPI.num_processes() > 1:
+            return
         for Model in supported_cell_models:
             self._compare_solve_step(Model, theta=0.0)
 
@@ -200,6 +206,8 @@ class TestPointIntegralSolver(unittest.TestCase):
 
 
     def test_point_integral_solver(self):
+        if MPI.num_processes() > 1:
+            return
         mesh = UnitIntervalMesh(1)
         for Model in supported_cell_models:
             for Scheme in [ForwardEuler, BackwardEuler, CrankNicolson,
@@ -230,7 +238,8 @@ class TestPointIntegralSolver(unittest.TestCase):
         vertex_to_dof_map = vs.function_space().dofmap().vertex_to_dof_map(mesh)
         scheme.t().assign(0.0)
         
-        vs_array = vs.vector().array()
+        vs_array = np.zeros(mesh.num_vertices()*\
+                            vs.function_space().dofmap().num_entity_dofs(0))
         vs_array[vertex_to_dof_map] = vs.vector().array()
         output = [vs_array[ind_V]]
         time_output = [0.0]
@@ -264,8 +273,8 @@ class TestPointIntegralSolver(unittest.TestCase):
         #    Vm_reference-output[:-offset])/Vm_reference)**2))/len(Vm_reference)
 
 
-    def xtest_long_run_tentusscher(self):
-        mesh = UnitIntervalMesh(1)
+    def test_long_run_tentusscher(self):
+        mesh = UnitIntervalMesh(5)
         for Scheme, dt_org, abs_tol, rel_tol in [(BackwardEuler, 0.05, 0, 0),
                                                  (CrankNicolson, 0.1, 0, 1),
                                                  (ESDIRK3, 0.1, 0, 2),
