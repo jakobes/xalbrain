@@ -191,8 +191,7 @@ class BasicCardiacODESolver(object):
                 break
 
             # If not: update members and move to next time
-            if self.vs_:
-                self.vs_.assign(self.vs)
+            self.vs_.assign(self.vs)
             t0 = t1
             t1 = t0 + dt
 
@@ -334,7 +333,7 @@ class CardiacODESolver(object):
         self.VS = V*S
 
         # Initialize solution field
-        self.vs_ = None
+        self.vs_ = Function(self.VS, name="vs_")
         self.vs = Function(self.VS, name="vs")
 
         # Initialize scheme
@@ -392,7 +391,7 @@ class CardiacODESolver(object):
         *Returns*
           current vs (:py:class:`dolfin.Function`)
         """
-        return self.vs
+        return (self.vs_, self.vs)
 
     def step(self, interval):
         """
