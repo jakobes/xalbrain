@@ -201,7 +201,7 @@ class CellModelGenerator(CodeGenerator):
         body_lines.append("time = time if time else Constant(0.0)")
         body_lines.append("# Assign states")
         if self.V_name != "v":
-            body_lines.append("V = v")
+            body_lines.append("{0} = v".format(self.V_name))
         #body_lines.append("states = split(s)")
         states = [state.name for state in ode.states \
                  if state.name != self.V_name]
