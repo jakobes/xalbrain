@@ -339,17 +339,18 @@ class CardiacODESolver(object):
 
         # Initialize scheme
         (v, s) = split(self.vs)
-        (w, q) = TestFunction(self.VS)
+        (w, q) = TestFunctions(self.VS)
         self._rhs = (inner(self._F(v, s, self._time), q)
-                     - inner(self._I_s, q)
-                     - inner(self._I(v, s, self._time), w))*dP
+                     + inner(self._I_s, w)
+                     - inner(self._I_ion(v, s, self._time), w))*dP
 
         name = self.parameters["scheme"]
         Scheme = self._name_to_scheme(name)
-        self._scheme = Scheme(rhs, self.vs, self._time)
+        self._scheme = Scheme(self._rhs, self.vs, self._time)
 
-        # Initialize solver
-        self._solver = PointIntegralSolver(self._scheme)
+        # Initialize solver and update its parameters
+        self._pi_solver = PointIntegralSolver(self._scheme)
+        self._pi_solver.parameters.update(self.parameters["PointIntegralSolver"])
 
     def _name_to_scheme(self, name):
         """Return scheme class with given name
@@ -373,7 +374,10 @@ class CardiacODESolver(object):
         params = Parameters("CardiacODESolver")
         params.add("scheme", "RK4")
 
-        params.add(MultiStageScheme.default_parameters())
+        # Hack for inconsistency in PointIntegralSolver
+        point_integral_params = Parameters("PointIntegralSolver")
+        point_integral_params.add(NewtonSolver.default_parameters())
+        params.add(point_integral_params)
 
         return params
 
@@ -403,7 +407,7 @@ class CardiacODESolver(object):
 
         (t0, t1) = interval
         dt = t1 - t0
-        self.solver.step(dt)
+        self._pi_solver.step(dt)
 
 class BasicSingleCellSolver(BasicCardiacODESolver):
     """A basic, non-optimised solver for systems of ODEs typically

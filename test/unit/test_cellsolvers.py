@@ -5,7 +5,7 @@ from __future__ import division
 
 __author__ = "Marie E. Rognes (meg@simula.no), 2013"
 __all__ = ["TestBasicSingleCellSolver",
-           "TestPointIntegralSolver"]
+           "TestCardiacODESolver"]
 
 import unittest
 import numpy as np
@@ -83,78 +83,71 @@ class TestBasicSingleCellSolver(unittest.TestCase):
         for Model in supported_cell_models:
             self._compare_solve_step(Model, theta=0.0)
 
-class TestPointIntegralSolver(unittest.TestCase):
+class TestCardiacODESolver(unittest.TestCase):
     def setUp(self):
         # Note that these should be (and are) identical to the ones
         # for the BasicSingleCellSolver
         self.references = {NoCellModel:
-                           {BackwardEuler: (0, 0.3),
-                            CrankNicolson: (0, 0.2),
-                            ForwardEuler: (0, 0.1),
-                            RK4 : (0, 0.2),
-                            ESDIRK3 : (0, 0.2),
-                            ESDIRK4 : (0, 0.2),
+                           {"BackwardEuler": (0, 0.3),
+                            "CrankNicolson": (0, 0.2),
+                            "ForwardEuler": (0, 0.1),
+                            "RK4": (0, 0.2),
+                            "ESDIRK3": (0, 0.2),
+                            "ESDIRK4": (0, 0.2),
                             },
 
                            FitzHughNagumoManual:
-                           {BackwardEuler: (0, -84.70013280019053),
-                            CrankNicolson: (0, -84.80005016079546),
-                            ForwardEuler:  (0, -84.9),
-                            RK4:  (0, -84.80004467770296),
-                            ESDIRK3:  (0, -84.80004468383603),
-                            ESDIRK4:  (0, -84.80004468281632),
+                           {"BackwardEuler": (0, -84.70013280019053),
+                            "CrankNicolson": (0, -84.80005016079546),
+                            "ForwardEuler": (0, -84.9),
+                            "RK4": (0, -84.80004467770296),
+                            "ESDIRK3": (0, -84.80004468383603),
+                            "ESDIRK4": (0, -84.80004468281632),
                             },
 
                            Fitzhughnagumo:
-                           {BackwardEuler: (0, -84.69986709136005),
-                            CrankNicolson: (0, -84.79994981706433),
-                            ForwardEuler:  (0, -84.9),
-                            RK4:  (0, -84.79995530744164),
-                            ESDIRK3:  (0, -84.79995530333677),
-                            ESDIRK4:  (0, -84.79995530333677),
+                           {"BackwardEuler": (0, -84.69986709136005),
+                            "CrankNicolson": (0, -84.79994981706433),
+                            "ForwardEuler":  (0, -84.9),
+                            "RK4":  (0, -84.79995530744164),
+                            "ESDIRK3":  (0, -84.79995530333677),
+                            "ESDIRK4":  (0, -84.79995530333677),
                             },
 
                            Tentusscher_2004_mcell:
-                           {BackwardEuler: (15, -85.89745525156506),
-                            CrankNicolson: (15, -85.99685674414921),
-                            ForwardEuler:  (15, -86.09643254164848),
-                            RK4:  (15, "nan"),
-                            ESDIRK3:  (15, -85.99681796148224),
-                            ESDIRK4:  (15, -85.99681796046603),
+                           {"BackwardEuler": (15, -85.89745525156506),
+                            "CrankNicolson": (15, -85.99685674414921),
+                            "ForwardEuler":  (15, -86.09643254164848),
+                            "RK4":  (15, "nan"),
+                            "ESDIRK3":  (15, -85.99681796148224),
+                            "ESDIRK4":  (15, -85.99681796046603),
                             }
                            }
-        
+
     def _setup_solver(self, Model, Scheme, mesh, time, stim=None, params=None):
         # Create model instance
         model = Model(params=params)
 
         # Initialize time and stimulus (note t=time construction!)
         if stim is None:
-            model.stimulus = Expression("1000*t", t=time)
-        else:
-            model.stimulus = stim
+            stim = Expression("1000*t", t=time)
 
-        # Create rhs form by combining cell model info with function space
-        V = FunctionSpace(mesh, "CG", 1)
-        S = state_space(mesh, model.num_states())
-        VS = V*S
-        vs = Function(VS)
-        (v, s) = split(vs)
-        (w, q) = TestFunctions(VS)
-        rhs = (inner(model.F(v, s, time), q) - inner(model.I(v, s, time), w))*dP
-        if model.stimulus:
-            rhs += inner(model.stimulus, w)*dP
+        # Initialize solver
+        params = CardiacODESolver.default_parameters()
+        params["scheme"] = Scheme
+        solver = CardiacODESolver(mesh, time, model.num_states(),
+                                  model.F, model.I, I_s=stim, params=params)
 
         # Create scheme
-        scheme = Scheme(rhs, vs, time)
+        #scheme = Scheme(rhs, vs, time)
 
-        info_green("\nTesting %s with %s scheme" % (model, scheme))
-        
-        # Start with native initial conditions, step twice and compare
-        # results to given reference
+        info_green("\nTesting %s with %s scheme" % (model, Scheme))
+
+        # Start with native initial conditions
+        vs = solver.solution_fields()
         vs.assign(model.initial_conditions())
-        solver = PointIntegralSolver(scheme)
-        solver.parameters.newton_solver.report = False
+        #solver = PointIntegralSolver(scheme)
+        #solver.parameters.newton_solver.report = False
 
         return solver
 
@@ -164,10 +157,10 @@ class TestPointIntegralSolver(unittest.TestCase):
         solver = self._setup_solver(Model, Scheme, mesh, time)
 
         next_dt = 0.01
-        solver.step(next_dt)
-        solver.step(next_dt)
+        solver.step((0.0, next_dt))
+        solver.step((next_dt, 2*next_dt))
 
-        vs = solver.scheme().solution()
+        vs = solver.solution_fields()
 
         if Model in self.references and Scheme in self.references[Model]:
             ind, ref_value = self.references[Model][Scheme]
@@ -189,10 +182,10 @@ class TestPointIntegralSolver(unittest.TestCase):
             time.assign(0.0)
             solver = self._setup_solver(Model, Scheme, mesh, time, params=params)
 
-            solver.step(next_dt)
-            solver.step(next_dt)
+            solver.step((0.0, next_dt))
+            solver.step((next_dt, 2*next_dt))
 
-            vs = solver.scheme().solution()
+            vs = solver._scheme.solution()
 
             if Model in self.references and Scheme in self.references[Model]:
                 ind, ref_value = self.references[Model][Scheme]
@@ -204,14 +197,13 @@ class TestPointIntegralSolver(unittest.TestCase):
                 info("Missing references for %s, %s: value is %g"
                      % (Model, Scheme, vs.vector()[0]))
 
-
-    def test_point_integral_solver(self):
+    def test_cardiac_ode_solver(self):
         if MPI.num_processes() > 1:
             return
         mesh = UnitIntervalMesh(1)
         for Model in supported_cell_models:
-            for Scheme in [ForwardEuler, BackwardEuler, CrankNicolson,
-                           RK4, ESDIRK3, ESDIRK4]:
+            for Scheme in ["ForwardEuler", "BackwardEuler", "CrankNicolson",
+                           "RK4", "ESDIRK3", "ESDIRK4"]:
                 self._compare_against_reference(Model, Scheme, mesh)
 
     def _long_run_compare(self, mesh, Model, Scheme, dt_org, abs_tol, rel_tol):
@@ -230,14 +222,16 @@ class TestPointIntegralSolver(unittest.TestCase):
 
         # Initiate solver, with model and Scheme
         solver = self._setup_solver(Model, Scheme, mesh, time, stim, params)
-        solver.parameters.newton_solver.maximum_iterations = 30
-        solver.parameters.newton_solver.iterations_to_retabulate_jacobian = 5
 
-        scheme = solver.scheme()
-        vs = scheme.solution()
+        solver._pi_solver.parameters.newton_solver.maximum_iterations = 30
+        # FIXME
+        solver._pi_solver.parameters.newton_solver.iterations_to_retabulate_jacobian = 5
+
+        scheme = solver._scheme
+        vs = solver.solution_fields()
         vertex_to_dof_map = vs.function_space().dofmap().vertex_to_dof_map(mesh)
         scheme.t().assign(0.0)
-        
+
         vs_array = np.zeros(mesh.num_vertices()*\
                             vs.function_space().dofmap().num_entity_dofs(0))
         vs_array[vertex_to_dof_map] = vs.vector().array()
@@ -247,10 +241,11 @@ class TestPointIntegralSolver(unittest.TestCase):
 
         # Time step
         next_dt = max(min(tstop-float(scheme.t()), dt), 0.0)
+        t0 = 0.0
         while next_dt > 0.0:
-        
+
             # Step solver
-            solver.step(next_dt)
+            solver.step((t0, t0 + next_dt))
 
             # Collect plt output data
             vs_array[vertex_to_dof_map] = vs.vector().array()
@@ -258,6 +253,7 @@ class TestPointIntegralSolver(unittest.TestCase):
             time_output.append(float(scheme.t()))
 
             # Next time step
+            t0 += next_dt
             next_dt = max(min(tstop-float(scheme.t()), dt), 0.0)
 
         output = np.array(output)
@@ -265,21 +261,16 @@ class TestPointIntegralSolver(unittest.TestCase):
         # Compare solution from CellML run using opencell
         self.assertAlmostEqual(output[-1], Vm_reference[-1], abs_tol)
         offset = len(output)-len(Vm_reference)
-        self.assertAlmostEqual(np.sqrt(np.sum(((\
-            Vm_reference-output[:-offset])/Vm_reference)**2))/len(Vm_reference), 0.0, rel_tol)
-        #print "V[-1] = ", output[-1]
-        #print "V_ref[-1] = ", Vm_reference[-1]
-        #print "|(V-V_ref)/V_ref| = ", np.sqrt(np.sum(((\
-        #    Vm_reference-output[:-offset])/Vm_reference)**2))/len(Vm_reference)
-
+        value = np.sqrt(np.sum(((Vm_reference-output[:-offset])/Vm_reference)**2))/len(Vm_reference)
+        self.assertAlmostEqual(value, 0.0, rel_tol)
 
     def test_long_run_tentusscher(self):
         mesh = UnitIntervalMesh(5)
-        for Scheme, dt_org, abs_tol, rel_tol in [(BackwardEuler, 0.05, 0, 0),
-                                                 (CrankNicolson, 0.1, 0, 1),
-                                                 (ESDIRK3, 0.1, 0, 2),
-                                                 (ESDIRK4, 0.1, 0, 2)]:
-            
+        for Scheme, dt_org, abs_tol, rel_tol in [("BackwardEuler", 0.05, 0, 0),
+                                                 ("CrankNicolson", 0.1, 0, 1),
+                                                 ("ESDIRK3", 0.1, 0, 2),
+                                                 ("ESDIRK4", 0.1, 0, 2)]:
+
             self._long_run_compare(mesh, Tentusscher_2004_mcell, Scheme, \
                                    dt_org, abs_tol, rel_tol)
 
