@@ -59,7 +59,7 @@ __all__ = ["BasicSplittingSolver", "SplittingSolver"]
 from dolfin import *
 from dolfin_adjoint import *
 from beatadjoint import CardiacModel
-from beatadjoint.cellsolver import BasicCardiacODESolver
+from beatadjoint.cellsolver import BasicCardiacODESolver, CardiacODESolver
 from beatadjoint.bidomainsolver import BasicBidomainSolver, BidomainSolver
 from beatadjoint.utils import state_space, end_of_time, Projecter
 
@@ -369,9 +369,8 @@ class SplittingSolver(BasicSplittingSolver):
 
         # Add default parameters from ODE solver, but update for V
         # space
-        ode_solver_params = BasicCardiacODESolver.default_parameters()
-        ode_solver_params["V_polynomial_degree"] = 1
-        ode_solver_params["V_polynomial_family"] = "CG"
+        ode_solver_params = CardiacODESolver.default_parameters()
+        ode_solver_params["scheme"] = "CN2"
         params.add(ode_solver_params)
 
         pde_solver_params = BidomainSolver.default_parameters()
@@ -379,6 +378,24 @@ class SplittingSolver(BasicSplittingSolver):
         params.add(pde_solver_params)
 
         return params
+
+    def _create_ode_solver(self):
+        """Helper function to initialize a suitable ODE solver from
+        the cardiac model."""
+
+        # Extract cardiac cell model from cardiac model
+        cell_model = self._model.cell_model
+
+        # Extract stimulus from the cardiac model(!)
+        stimulus = self._model.stimulus
+
+        # Extract ode solver parameters
+        params = self.parameters["CardiacODESolver"]
+        solver = CardiacODESolver(self._domain, self._time,
+                                  cell_model.num_states(),
+                                  cell_model.F, cell_model.I,
+                                  I_s=stimulus, params=params)
+        return solver
 
     def _create_pde_solver(self):
         """Helper function to initialize a suitable PDE solver from
