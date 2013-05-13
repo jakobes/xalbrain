@@ -2,7 +2,9 @@
 
 __author__ = "Marie E. Rognes (meg@simula.no), 2012--2013"
 
-__all__ = ["BasicSingleCellSolver", "BasicCardiacODESolver"]
+__all__ = ["BasicSingleCellSolver",
+           "BasicCardiacODESolver",
+           "CardiacODESolver"]
 
 from dolfin import *
 from dolfin_adjoint import *
@@ -21,9 +23,7 @@ class BasicCardiacODESolver(object):
       s_t = F(v, s)
 
     where :math:`I_{ion}` and :math:`F` are given non-linear
-    functions, :math:`I_s` is some prescribed stimulus. If :math:`I_s`
-    depends on time, it is assumed that :math:`I_s` is a
-    :py:class:`dolfin.Expression` with parameter 't'.
+    functions, :math:`I_s` is some prescribed stimulus.
 
     Here, this nonlinear ODE system is solved via a theta-scheme.  By
     default theta=0.5, which corresponds to a Crank-Nicolson
@@ -191,7 +191,8 @@ class BasicCardiacODESolver(object):
                 break
 
             # If not: update members and move to next time
-            self.vs_.assign(self.vs)
+            if self.vs_:
+                self.vs_.assign(self.vs)
             t0 = t1
             t1 = t0 + dt
 
@@ -253,6 +254,156 @@ class BasicCardiacODESolver(object):
         solver_params = self.parameters["nonlinear_variational_solver"]
         solver.parameters.update(solver_params)
         solver.solve()
+
+class CardiacODESolver(object):
+    """An optimised solver for systems of ODEs typically
+    encountered in cardiac applications of the form: find a scalar
+    field :math:`v = v(x, t)` and a vector field :math:`s = s(x, t)`
+
+    .. math::
+
+      v_t = - I_{ion}(v, s) + I_s
+
+      s_t = F(v, s)
+
+    where :math:`I_{ion}` and :math:`F` are given non-linear
+    functions, :math:`I_s` is some prescribed stimulus.
+
+    .. note::
+
+       For the sake of simplicity and consistency with other solver
+       objects, this solver operates on its solution fields (as state
+       variables) directly internally. More precisely, solve (and
+       step) calls will act by updating the internal solution
+       fields. It implies that initial conditions can be set (and are
+       intended to be set) by modifying the solution fields prior to
+       simulation.
+
+    *Arguments*
+      domain (:py:class:`dolfin.Mesh`)
+        The spatial domain (mesh)
+
+      time (:py:class:`dolfin.Constant` or None)
+        A constant holding the current time. If None is given, time is
+        created for you, initialized to zero.
+
+      num_states (int)
+        The number of state variables (length of s)
+
+      F (:py:func:`lambda`)
+        A (non-)linear lambda vector function describing the evolution
+        of the state variables (s)
+
+      I_ion (:py:func:`lambda`)
+        A (non-)linear lambda scalar function describing the evolution
+        of the variable v
+
+      I_s (:py:class:`dolfin.Expression`, optional)
+        A typically time-dependent external stimulus. NB: it is
+        assumed that the time dependence of I_s is encoded via the
+        'time' Constant.
+
+      params (:py:class:`dolfin.Parameters`, optional)
+        Solver parameters
+
+    """
+    def __init__(self, domain, time, num_states, F, I_ion,
+                 I_s=None, params=None):
+
+        # Store input
+        self._domain = domain
+        self._num_states = num_states
+        self._F = F
+        self._I_ion = I_ion
+        self._I_s = I_s
+
+        # Create time if not given, otherwise use given time
+        if time is None:
+            self._time = Constant(0.0)
+        else:
+            self._time = time
+
+        # Initialize and update parameters if given
+        self.parameters = self.default_parameters()
+        if params is not None:
+            self.parameters.update(params)
+
+        # Create (mixed) function space for potential + states
+        V = FunctionSpace(self._domain, "CG", 1)
+        S = state_space(self._domain, self._num_states)
+        self.VS = V*S
+
+        # Initialize solution field
+        self.vs_ = None
+        self.vs = Function(self.VS, name="vs")
+
+        # Initialize scheme
+        (v, s) = split(self.vs)
+        (w, q) = TestFunction(self.VS)
+        self._rhs = (inner(self._F(v, s, self._time), q)
+                     - inner(self._I_s, q)
+                     - inner(self._I(v, s, self._time), w))*dP
+
+        name = self.parameters["scheme"]
+        Scheme = self._name_to_scheme(name)
+        self._scheme = Scheme(rhs, self.vs, self._time)
+
+        # Initialize solver
+        self._solver = PointIntegralSolver(self._scheme)
+
+    def _name_to_scheme(self, name):
+        """Return scheme class with given name
+
+        *Arguments*
+          name (string)
+
+        *Returns*
+          the Scheme (:py:class:`dolfin.MultiStageScheme`)
+
+        """
+        return eval(name)
+
+    @staticmethod
+    def default_parameters():
+        """Initialize and return a set of default parameters
+
+        *Returns*
+          A set of parameters (:py:class:`dolfin.Parameters`)
+        """
+        params = Parameters("CardiacODESolver")
+        params.add("scheme", "RK4")
+
+        params.add(MultiStageScheme.default_parameters())
+
+        return params
+
+    def solution_fields(self):
+        """
+        Return current solution object.
+
+        Modifying this will modify the solution object of the solver
+        and thus provides a way for setting initial conditions for
+        instance.
+
+        *Returns*
+          current vs (:py:class:`dolfin.Function`)
+        """
+        return self.vs
+
+    def step(self, interval):
+        """
+        Solve on the given time step (t0, t1).
+
+        End users are recommended to use solve instead.
+
+        *Arguments*
+          interval (:py:class:`tuple`)
+            The time interval (t0, t1) for the step
+        """
+
+        (t0, t1) = interval
+        dt = t1 - t0
+        self.solver.step(dt)
 
 class BasicSingleCellSolver(BasicCardiacODESolver):
     """A basic, non-optimised solver for systems of ODEs typically
