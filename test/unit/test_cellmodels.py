@@ -131,7 +131,7 @@ class TestCellModelFormCompilationCorrectness(unittest.TestCase):
         # For each model: compare result with and without aggressive
         # optimizations
         for Model in supported_cell_models:
-            parameters["form_compiler"]["representation"] = "ffc"
+            parameters["form_compiler"]["representation"] = "quadrature"
             model = Model()
 
             tolerance = 1.e-12
@@ -166,14 +166,13 @@ class TestCellModelFormCompilationCorrectness(unittest.TestCase):
             print "|c|_inf = ", numpy.linalg.norm(c, numpy.inf)
             assert (c_inf < tolerance), "Mismatch in compiled results."
 
-
             try:
                 parameters["form_compiler"]["representation"] = "uflacs"
                 vs = _point_integral_step(model)
             except:
-                # If uflacs is not installed 
+                # If uflacs is not installed
                 continue
-            
+
             opt_result = vs.vector().array()
 
             # Compare results
