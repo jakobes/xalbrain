@@ -44,8 +44,6 @@ class TestBasicBidomainSolverAdjoint(unittest.TestCase):
 
         # Create solver
         params = Solver.default_parameters()
-        params["linear_variational_solver"]["linear_solver"] = "lu"
-
         solver = Solver(case.mesh, case.time, case.M_i, case.M_e,
                         I_s=case.stimulus,
                         I_a=case.applied_current,
@@ -76,7 +74,6 @@ class TestBidomainSolverAdjoint(unittest.TestCase):
 
         # Create solver
         params = Solver.default_parameters()
-        params["linear_solver_type"] = "direct"
         solver = Solver(case.mesh, case.time, case.M_i, case.M_e,
                         I_s=case.stimulus,
                         I_a=case.applied_current, params=params)
