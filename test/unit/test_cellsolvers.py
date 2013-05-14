@@ -144,7 +144,7 @@ class TestCardiacODESolver(unittest.TestCase):
         info_green("\nTesting %s with %s scheme" % (model, Scheme))
 
         # Start with native initial conditions
-        vs = solver.solution_fields()
+        (vs_, vs) = solver.solution_fields()
         vs.assign(model.initial_conditions())
         #solver = PointIntegralSolver(scheme)
         #solver.parameters.newton_solver.report = False
@@ -160,7 +160,7 @@ class TestCardiacODESolver(unittest.TestCase):
         solver.step((0.0, next_dt))
         solver.step((next_dt, 2*next_dt))
 
-        vs = solver.solution_fields()
+        (vs_, vs) = solver.solution_fields()
 
         if Model in self.references and Scheme in self.references[Model]:
             ind, ref_value = self.references[Model][Scheme]
@@ -228,7 +228,7 @@ class TestCardiacODESolver(unittest.TestCase):
         solver._pi_solver.parameters.newton_solver.iterations_to_retabulate_jacobian = 5
 
         scheme = solver._scheme
-        vs = solver.solution_fields()
+        (vs_, vs) = solver.solution_fields()
         vertex_to_dof_map = vs.function_space().dofmap().vertex_to_dof_map(mesh)
         scheme.t().assign(0.0)
 
