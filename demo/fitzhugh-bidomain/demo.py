@@ -15,13 +15,10 @@ def setup_application_parameters():
     application_parameters.add("T", 420.0)      # End time  (ms)
     application_parameters.add("timestep", 1.0) # Time step (ms)
     application_parameters.add("directory", "default-results")
-    application_parameters.add("backend", "PETSc")
     application_parameters.add("stimulus_amplitude", 30.0)
     application_parameters.add("healthy", False)
     application_parameters.parse()
     info(application_parameters, True)
-    # Update backend from application parameters
-    parameters["linear_algebra_backend"] = application_parameters["backend"]
     return application_parameters
 
 def setup_general_parameters():
@@ -98,7 +95,7 @@ def setup_cardiac_model(application_parameters):
     cell_model = setup_cell_model()
 
     # Define some simulation protocol (use cpp expression for speed)
-    stimulation_cells = MeshFunction("uint", mesh,
+    stimulation_cells = MeshFunction("size_t", mesh,
                                      "data/stimulation_cells.xml.gz")
     from stimulation import cpp_stimulus
     pulse = Expression(cpp_stimulus)
@@ -133,6 +130,8 @@ def main():
     # sake of efficiency in the bidomain solver
     begin("Setting up splitting solver")
     params = SplittingSolver.default_parameters()
+    params["theta"] = 1.0
+    params["BidomainSolver"]["linear_solver_type"] = "direct"
     params["BidomainSolver"]["default_timestep"] = k_n
     solver = SplittingSolver(heart, params=params)
     end()
@@ -141,7 +140,8 @@ def main():
     (vs_, vs, vu) = solver.solution_fields()
 
     # Extract and assign initial condition
-    vs_.assign(heart.cell_model.initial_conditions(), solver.VS)
+    #vs_.assign(heart.cell_model.initial_conditions(), solver.VS)
+    vs.assign(heart.cell_model.initial_conditions(), solver.VS)
 
     # Store application parameters (arbitrary whether this works in
     # parallel!)
@@ -168,10 +168,10 @@ def main():
 
         # Store xml
         begin("Storing solutions...")
-        vsfile = File("%s/vs_%d.xml.gz" % (directory, timestep_counter))
-        vsfile << vs
-        ufile = File("%s/vu_%d.xml.gz" % (directory, timestep_counter))
-        ufile << vu
+        #vsfile = File("%s/vs_%d.xml.gz" % (directory, timestep_counter))
+        #vsfile << vs
+        #ufile = File("%s/vu_%d.xml.gz" % (directory, timestep_counter))
+        #ufile << vu
 
         # Extract subfields
         u = vu.split()[1]
@@ -179,8 +179,8 @@ def main():
 
         # Store pvd of subfields
         v_pvd << v
-        s_pvd << s
-        u_pvd << u
+        #s_pvd << s
+        #u_pvd << u
         end()
 
         timestep_counter += 1
