@@ -131,7 +131,6 @@ def main():
     begin("Setting up splitting solver")
     params = SplittingSolver.default_parameters()
     params["theta"] = 1.0
-    params["CardiacODESolver"]["scheme"] = "BackwardEuler"
     params["BidomainSolver"]["linear_solver_type"] = "direct"
     params["BidomainSolver"]["default_timestep"] = k_n
     solver = SplittingSolver(heart, params=params)
