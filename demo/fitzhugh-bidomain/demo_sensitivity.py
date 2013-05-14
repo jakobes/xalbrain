@@ -61,4 +61,4 @@ def main(replay=False):
     print "Time for computing gradient: %g" % (stop - start)
 
 if __name__ == "__main__":
-    main()
+    main(replay=False)
