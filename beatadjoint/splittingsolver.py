@@ -428,5 +428,6 @@ class SplittingSolver(BasicSplittingSolver):
         begin("Merging using custom projecter")
         v = split(self.vur)[0]
         s = split(self.vs)[1]
-        self.vs_projecter(as_vector((v, s)), solution)
+        self.vs_projecter(as_vector((v, s)), self.vs) # HACK
+
         end()
