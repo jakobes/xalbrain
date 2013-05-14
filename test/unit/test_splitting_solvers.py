@@ -69,13 +69,13 @@ class TestSplittingSolver(unittest.TestCase):
         d = vur.vector().norm("l2")
 
         print "a, b = ", a, b
-        print "c, d = ", a, b
+        print "c, d = ", c, d
 
         # Compare results
         self.assertAlmostEqual(a, b, places=5)
         self.assertAlmostEqual(c, d, places=6)
 
-    def test_basic_and_optimised_splitting_solver2(self):
+    def _test_basic_and_optimised_splitting_solver2(self):
         "Check that optimised inexact splitting solver yield similar results."
 
         # Create basic solver
