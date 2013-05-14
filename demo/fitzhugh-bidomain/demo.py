@@ -42,16 +42,20 @@ def setup_conductivities(mesh, application_parameters):
     V = FunctionSpace(mesh, "CG", 1)
     if (application_parameters["healthy"] == True):
         info_blue("Using healthy conductivities")
-        g_el_field = Function(V, "data/healthy_g_el_field.xml.gz")
-        g_et_field = Function(V, "data/healthy_g_et_field.xml.gz")
-        g_il_field = Function(V, "data/healthy_g_il_field.xml.gz")
-        g_it_field = Function(V, "data/healthy_g_it_field.xml.gz")
+        g_el_field = Function(V, "data/healthy_g_el_field.xml.gz",
+                              name="g_el")
+        g_et_field = Function(V, "data/healthy_g_et_field.xml.gz",
+                              name="g_et")
+        g_il_field = Function(V, "data/healthy_g_il_field.xml.gz",
+                              name="g_il")
+        g_it_field = Function(V, "data/healthy_g_it_field.xml.gz",
+                              name="g_it")
     else:
         info_blue("Using unhealthy conductivities")
-        g_el_field = Function(V, "data/g_el_field.xml.gz")
-        g_et_field = Function(V, "data/g_et_field.xml.gz")
-        g_il_field = Function(V, "data/g_il_field.xml.gz")
-        g_it_field = Function(V, "data/g_it_field.xml.gz")
+        g_el_field = Function(V, "data/g_el_field.xml.gz", name="g_el")
+        g_et_field = Function(V, "data/g_et_field.xml.gz", name="g_et")
+        g_il_field = Function(V, "data/g_il_field.xml.gz", name="g_il")
+        g_it_field = Function(V, "data/g_it_field.xml.gz", name="g_it")
 
     # Construct conductivity tensors from directions and conductivity
     # values relative to that coordinate system
@@ -63,7 +67,9 @@ def setup_conductivities(mesh, application_parameters):
     M_e = A*M_e_star*A.T
     M_i = A*M_i_star*A.T
 
-    return (M_i, M_e)
+    gs = (g_il_field, g_it_field, g_el_field, g_et_field)
+
+    return (M_i, M_e, gs)
 
 def setup_cell_model():
 
@@ -89,7 +95,7 @@ def setup_cardiac_model(application_parameters):
     time = Constant(0.0)
 
     # Setup conductivities
-    (M_i, M_e) = setup_conductivities(mesh, application_parameters)
+    (M_i, M_e, gs) = setup_conductivities(mesh, application_parameters)
 
     # Setup cell model
     cell_model = setup_cell_model()
@@ -107,9 +113,9 @@ def setup_cardiac_model(application_parameters):
 
     # Initialize cardiac model with the above input
     heart = CardiacModel(mesh, time, M_i, M_e, cell_model, stimulus=pulse)
-    return heart
+    return (heart, gs)
 
-def main():
+def main(store_solutions=True):
 
     set_log_level(PROGRESS)
 
@@ -119,7 +125,7 @@ def main():
     end()
 
     begin("Setting up cardiac model")
-    heart = setup_cardiac_model(application_parameters)
+    (heart, gs) = setup_cardiac_model(application_parameters)
     end()
 
     # Extract time and time-step
@@ -140,8 +146,8 @@ def main():
     (vs_, vs, vu) = solver.solution_fields()
 
     # Extract and assign initial condition
-    #vs_.assign(heart.cell_model.initial_conditions(), solver.VS)
-    vs.assign(heart.cell_model.initial_conditions(), solver.VS)
+    vs_.assign(heart.cell_model.initial_conditions(), solver.VS)
+    #vs.assign(heart.cell_model.initial_conditions(), solver.VS)
 
     # Store application parameters (arbitrary whether this works in
     # parallel!)
@@ -167,21 +173,22 @@ def main():
         (vs_, vs, vu) = fields
 
         # Store xml
-        begin("Storing solutions...")
-        vsfile = File("%s/vs_%d.xml.gz" % (directory, timestep_counter))
-        vsfile << vs
-        ufile = File("%s/vu_%d.xml.gz" % (directory, timestep_counter))
-        ufile << vu
+        if store_solutions:
+            begin("Storing solutions...")
+            vsfile = File("%s/vs_%d.xml.gz" % (directory, timestep_counter))
+            vsfile << vs
+            ufile = File("%s/vu_%d.xml.gz" % (directory, timestep_counter))
+            ufile << vu
 
-        # Extract subfields
-        u = vu.split()[1]
-        (v, s) = vs.split()
+            # Extract subfields
+            u = vu.split()[1]
+            (v, s) = vs.split()
 
-        # Store pvd of subfields
-        v_pvd << v
-        #s_pvd << s
-        #u_pvd << u
-        end()
+            # Store pvd of subfields
+            v_pvd << v
+            # s_pvd << s
+            # u_pvd << u
+            end()
 
         timestep_counter += 1
 
@@ -190,6 +197,8 @@ def main():
     end()
 
     list_timings()
+
+    return (gs, solver)
 
 if __name__ == "__main__":
     main()
