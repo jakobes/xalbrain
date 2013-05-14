@@ -175,7 +175,7 @@ class BasicSplittingSolver:
         """
 
         params = Parameters("BasicSplittingSolver")
-        params.add("enable_adjoint", False)
+        params.add("enable_adjoint", True)
         params.add("theta", 0.5)
 
         # Add default parameters from ODE solver, but update for V
@@ -254,7 +254,7 @@ class BasicSplittingSolver:
                 break
 
             # If not, update members
-            self.vs_.assign(self.vs, annotate=annotate)
+            self.vs_.assign(self.vs)
 
             # Move to next time
             if annotate:
@@ -279,7 +279,6 @@ class BasicSplittingSolver:
 
         # Extract some parameters for readability
         theta = self.parameters["theta"]
-        #annotate = self.parameters["enable_adjoint"]
 
         # Extract time domain
         (t0, t1) = interval
@@ -364,13 +363,18 @@ class SplittingSolver(BasicSplittingSolver):
         """
 
         params = Parameters("SplittingSolver")
-        params.add("enable_adjoint", False)
+        params.add("enable_adjoint", True)
         params.add("theta", 0.5)
 
         # Add default parameters from ODE solver, but update for V
         # space
-        ode_solver_params = CardiacODESolver.default_parameters()
-        ode_solver_params["scheme"] = "CN2"
+        ode_solver_params = BasicCardiacODESolver.default_parameters()
+        ode_solver_params["V_polynomial_degree"] = 1
+        ode_solver_params["V_polynomial_family"] = "CG"
+        ode_solver_params["S_polynomial_degree"] = 1
+        ode_solver_params["S_polynomial_family"] = "CG"
+        #ode_solver_params = CardiacODESolver.default_parameters()
+        #ode_solver_params["scheme"] = "CN2"
         params.add(ode_solver_params)
 
         pde_solver_params = BidomainSolver.default_parameters()
@@ -379,7 +383,7 @@ class SplittingSolver(BasicSplittingSolver):
 
         return params
 
-    def _create_ode_solver(self):
+    def __create_ode_solver(self):
         """Helper function to initialize a suitable ODE solver from
         the cardiac model."""
 
@@ -416,7 +420,7 @@ class SplittingSolver(BasicSplittingSolver):
                                 params=params)
         return solver
 
-    def merge(self, solution):
+    def _merge(self, solution):
         """
         Combine solutions from the PDE solve and the ODE solve to form
         a single mixed function.
@@ -425,9 +429,12 @@ class SplittingSolver(BasicSplittingSolver):
           solution (:py:class:`dolfin.Function`)
             Function holding the combined result
         """
+        # Disabled for now (does not pass replay)
+
         begin("Merging using custom projecter")
         v = split(self.vur)[0]
         s = split(self.vs)[1]
-        self.vs_projecter(as_vector((v, s)), self.vs) # HACK
+        self.vs_projecter(as_vector((v, s)), solution)
+        #self.vs_projecter(as_vector((v, s)), self.vs) # HACK
 
         end()
