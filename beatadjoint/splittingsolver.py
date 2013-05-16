@@ -347,7 +347,8 @@ class SplittingSolver(BasicSplittingSolver):
         BasicSplittingSolver.__init__(self, model, params)
 
         # Set-up projection solver (for optimised merging) of fields
-        self.vs_projecter = Projecter(self.VS, solver_type="iterative")
+        self.vs_projecter = Projecter(self.VS,
+                                      params=self.parameters["Projecter"])
 
     @staticmethod
     def default_parameters():
@@ -366,24 +367,21 @@ class SplittingSolver(BasicSplittingSolver):
         params.add("enable_adjoint", True)
         params.add("theta", 0.5)
 
-        # Add default parameters from ODE solver, but update for V
-        # space
-        ode_solver_params = BasicCardiacODESolver.default_parameters()
-        ode_solver_params["V_polynomial_degree"] = 1
-        ode_solver_params["V_polynomial_family"] = "CG"
-        ode_solver_params["S_polynomial_degree"] = 1
-        ode_solver_params["S_polynomial_family"] = "CG"
-        #ode_solver_params = CardiacODESolver.default_parameters()
-        #ode_solver_params["scheme"] = "CN2"
+        # Add default parameters from ODE solver
+        ode_solver_params = CardiacODESolver.default_parameters()
+        ode_solver_params["scheme"] = "CN2"
         params.add(ode_solver_params)
 
         pde_solver_params = BidomainSolver.default_parameters()
         pde_solver_params["polynomial_degree"] = 1
         params.add(pde_solver_params)
 
+        projecter_params = Projecter.default_parameters()
+        params.add(projecter_params)
+
         return params
 
-    def __create_ode_solver(self):
+    def _create_ode_solver(self):
         """Helper function to initialize a suitable ODE solver from
         the cardiac model."""
 
@@ -420,7 +418,7 @@ class SplittingSolver(BasicSplittingSolver):
                                 params=params)
         return solver
 
-    def _merge(self, solution):
+    def merge(self, solution):
         """
         Combine solutions from the PDE solve and the ODE solve to form
         a single mixed function.
@@ -435,6 +433,5 @@ class SplittingSolver(BasicSplittingSolver):
         v = split(self.vur)[0]
         s = split(self.vs)[1]
         self.vs_projecter(as_vector((v, s)), solution)
-        #self.vs_projecter(as_vector((v, s)), self.vs) # HACK
 
         end()

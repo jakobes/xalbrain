@@ -345,7 +345,7 @@ class CardiacODESolver(object):
         # Add stimuli current if not None
         if self._I_s is not None:
             self._rhs += inner(self._I_s, w)*dP
-            
+
         name = self.parameters["scheme"]
         Scheme = self._name_to_scheme(name)
         self._scheme = Scheme(self._rhs, self.vs, self._time)
@@ -406,6 +406,9 @@ class CardiacODESolver(object):
           interval (:py:class:`tuple`)
             The time interval (t0, t1) for the step
         """
+        # NB: The point integral solver operates on vs directly, map
+        # initial condition in vs_ to vs:
+        self.vs.assign(self.vs_)
 
         (t0, t1) = interval
         dt = t1 - t0

@@ -73,7 +73,12 @@ class Projecter(object):
       my_project(f, u)
     """
 
-    def __init__(self, V, solver_type="iterative"):
+    def __init__(self, V, params=None):
+        # Set parameters
+        self.parameters = self.default_parameters()
+        if params is not None:
+            self.parameters.update(params)
+
         # Set-up mass matrix for L^2 projection
         self.V = V
         self.u = dolfin.TrialFunction(self.V)
@@ -82,7 +87,10 @@ class Projecter(object):
         self.M = dolfin_adjoint.assemble(self.m)
         self.b = dolfin.Vector(V.dim())
 
-        if solver_type == "direct":
+        solver_type = self.parameters["linear_solver_type"]
+        assert(solver_type == "lu" or solver_type == "cg"),  \
+            "Expecting 'linear_solver_type' to be 'lu' or 'cg'"
+        if solver_type == "lu":
             dolfin.debug("Setting up direct solver for projecter")
             # Customize LU solver (reuse everything)
             solver = dolfin.LUSolver(self.M)
@@ -91,12 +99,18 @@ class Projecter(object):
         else:
             dolfin.debug("Setting up iterative solver for projecter")
             # Customize Krylov solver (reuse everything)
-            solver = dolfin.KrylovSolver("cg", "amg")
+            solver = dolfin.KrylovSolver("cg", "ilu")
             solver.set_operator(self.M)
             solver.parameters["preconditioner"]["reuse"] = True
             solver.parameters["preconditioner"]["same_nonzero_pattern"] = True
             # solver.parameters["nonzero_initial_guess"] = True
         self.solver = solver
+
+    @staticmethod
+    def default_parameters():
+        parameters = dolfin.Parameters("Projecter")
+        parameters.add("linear_solver_type", "cg")
+        return parameters
 
     def __call__(self, f, u):
         """
@@ -110,7 +124,6 @@ class Projecter(object):
           u (:py:class:`dolfin.Function`)
             The result of the projection
         """
-
         L = dolfin.inner(f, self.v)*dolfin.dx
         dolfin.assemble(L, tensor=self.b)
         self.solver.solve(u.vector(), self.b)
