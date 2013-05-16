@@ -62,21 +62,21 @@ class TestBasicSingleCellSolver(unittest.TestCase):
         else:
             info("Missing references for %r, %r" % (Model, theta))
 
-    def _test_default_basic_single_cell_solver(self):
+    def test_default_basic_single_cell_solver(self):
         "Test basic single cell solver."
         if MPI.num_processes() > 1:
             return
         for Model in supported_cell_models:
             self._compare_solve_step(Model)
 
-    def _test_default_basic_single_cell_solver_be(self):
+    def test_default_basic_single_cell_solver_be(self):
         "Test basic single cell solver with Backward Euler."
         if MPI.num_processes() > 1:
             return
         for Model in supported_cell_models:
             self._compare_solve_step(Model, theta=1.0)
 
-    def _test_default_basic_single_cell_solver_fe(self):
+    def test_default_basic_single_cell_solver_fe(self):
         "Test basic single cell solver with Forward Euler."
         if MPI.num_processes() > 1:
             return
@@ -144,6 +144,7 @@ class TestCardiacODESolver(unittest.TestCase):
         # Start with native initial conditions
         (vs_, vs) = solver.solution_fields()
         vs_.assign(model.initial_conditions())
+        vs.assign(vs_)
 
         return solver
 
@@ -208,6 +209,7 @@ class TestCardiacODESolver(unittest.TestCase):
                 self._compare_against_reference(Model, Scheme, mesh)
 
     def _long_run_compare(self, mesh, Model, Scheme, dt_org, abs_tol, rel_tol):
+
         tstop = 10
         ind_V = 0
         dt_ref = 0.1
@@ -222,14 +224,17 @@ class TestCardiacODESolver(unittest.TestCase):
         params.stim_amplitude = 0
 
         # Initiate solver, with model and Scheme
+        adj_reset()
         solver = self._setup_solver(Model, Scheme, mesh, time, stim, params)
 
         solver._pi_solver.parameters.newton_solver.maximum_iterations = 30
-        # FIXME
         solver._pi_solver.parameters.newton_solver.iterations_to_retabulate_jacobian = 5
 
         scheme = solver._scheme
         (vs_, vs) = solver.solution_fields()
+
+        vs.assign(vs_)
+
         vertex_to_dof_map = vs.function_space().dofmap().vertex_to_dof_map(mesh)
         scheme.t().assign(0.0)
 
@@ -243,10 +248,12 @@ class TestCardiacODESolver(unittest.TestCase):
         # Time step
         next_dt = max(min(tstop-float(scheme.t()), dt), 0.0)
         t0 = 0.0
+
         while next_dt > 0.0:
 
             # Step solver
             solver.step((t0, t0 + next_dt))
+            vs_.assign(vs)
 
             # Collect plt output data
             vs_array[vertex_to_dof_map] = vs.vector().array()
@@ -265,7 +272,7 @@ class TestCardiacODESolver(unittest.TestCase):
         value = np.sqrt(np.sum(((Vm_reference-output[:-offset])/Vm_reference)**2))/len(Vm_reference)
         self.assertAlmostEqual(value, 0.0, rel_tol)
 
-    def _test_long_run_tentusscher(self):
+    def test_long_run_tentusscher(self):
         mesh = UnitIntervalMesh(5)
         for Scheme, dt_org, abs_tol, rel_tol in [("BackwardEuler", 0.05, 0, 0),
                                                  ("CrankNicolson", 0.1, 0, 1),
