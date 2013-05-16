@@ -62,21 +62,21 @@ class TestBasicSingleCellSolver(unittest.TestCase):
         else:
             info("Missing references for %r, %r" % (Model, theta))
 
-    def test_default_basic_single_cell_solver(self):
+    def _test_default_basic_single_cell_solver(self):
         "Test basic single cell solver."
         if MPI.num_processes() > 1:
             return
         for Model in supported_cell_models:
             self._compare_solve_step(Model)
 
-    def test_default_basic_single_cell_solver_be(self):
+    def _test_default_basic_single_cell_solver_be(self):
         "Test basic single cell solver with Backward Euler."
         if MPI.num_processes() > 1:
             return
         for Model in supported_cell_models:
             self._compare_solve_step(Model, theta=1.0)
 
-    def test_default_basic_single_cell_solver_fe(self):
+    def _test_default_basic_single_cell_solver_fe(self):
         "Test basic single cell solver with Forward Euler."
         if MPI.num_processes() > 1:
             return
@@ -85,7 +85,7 @@ class TestBasicSingleCellSolver(unittest.TestCase):
 
 class TestCardiacODESolver(unittest.TestCase):
     def setUp(self):
-        # Note that these should be (and are) identical to the ones
+        # Note that these should be essentially identical to the ones
         # for the BasicSingleCellSolver
         self.references = {NoCellModel:
                            {"BackwardEuler": (0, 0.3),
@@ -139,28 +139,26 @@ class TestCardiacODESolver(unittest.TestCase):
                                   model.F, model.I, I_s=stim, params=params)
 
         # Create scheme
-        #scheme = Scheme(rhs, vs, time)
-
         info_green("\nTesting %s with %s scheme" % (model, Scheme))
 
         # Start with native initial conditions
         (vs_, vs) = solver.solution_fields()
-        vs.assign(model.initial_conditions())
-        #solver = PointIntegralSolver(scheme)
-        #solver.parameters.newton_solver.report = False
+        vs_.assign(model.initial_conditions())
 
         return solver
 
     def _compare_against_reference(self, Model, Scheme, mesh):
 
+        info_blue("Comparing against reference")
         time = Constant(0.0)
         solver = self._setup_solver(Model, Scheme, mesh, time)
 
+        (vs_, vs) = solver.solution_fields()
+
         next_dt = 0.01
         solver.step((0.0, next_dt))
+        vs_.assign(vs)
         solver.step((next_dt, 2*next_dt))
-
-        (vs_, vs) = solver.solution_fields()
 
         if Model in self.references and Scheme in self.references[Model]:
             ind, ref_value = self.references[Model][Scheme]
@@ -169,8 +167,8 @@ class TestCardiacODESolver(unittest.TestCase):
             if ref_value != "nan":
                 self.assertAlmostEqual(vs.vector()[ind], ref_value)
         else:
-            info("Missing references for %s, %s: value is %g"
-                 % (Model, Scheme, vs.vector()[0]))
+            info_red("Missing references for %s, %s: value is %g"
+                     % (Model, Scheme, vs.vector()[0]))
 
         # Use Constant Parameters
         params = Model.default_parameters()
@@ -182,7 +180,9 @@ class TestCardiacODESolver(unittest.TestCase):
             time.assign(0.0)
             solver = self._setup_solver(Model, Scheme, mesh, time, params=params)
 
+            (vs_, vs) = solver.solution_fields()
             solver.step((0.0, next_dt))
+            vs_.assign(vs)
             solver.step((next_dt, 2*next_dt))
 
             vs = solver._scheme.solution()
@@ -198,6 +198,7 @@ class TestCardiacODESolver(unittest.TestCase):
                      % (Model, Scheme, vs.vector()[0]))
 
     def test_cardiac_ode_solver(self):
+        "Testing cardiac ode solvers for many models and solvers"
         if MPI.num_processes() > 1:
             return
         mesh = UnitIntervalMesh(1)
@@ -264,7 +265,7 @@ class TestCardiacODESolver(unittest.TestCase):
         value = np.sqrt(np.sum(((Vm_reference-output[:-offset])/Vm_reference)**2))/len(Vm_reference)
         self.assertAlmostEqual(value, 0.0, rel_tol)
 
-    def test_long_run_tentusscher(self):
+    def _test_long_run_tentusscher(self):
         mesh = UnitIntervalMesh(5)
         for Scheme, dt_org, abs_tol, rel_tol in [("BackwardEuler", 0.05, 0, 0),
                                                  ("CrankNicolson", 0.1, 0, 1),
