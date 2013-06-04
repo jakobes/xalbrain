@@ -277,7 +277,8 @@ class CellModelGenerator(CodeGenerator):
             body_lines = ["params = OrderedDict([(\"{}\", {}),".format(\
                 param.name, param.init)]
             body_lines.extend("                      (\"{}\", {}),".format(\
-                param.name, param.init) for param in params)
+                param.name, param.init if isinstance(param.init, (float, int))\
+                                 else param.init[0]) for param in params)
             body_lines[-1] = body_lines[-1][0:-1]+"])"
         else:
             body_lines = ["params = OrderedDict()"]
@@ -293,7 +294,10 @@ class CellModelGenerator(CodeGenerator):
         
         # First get ic for v
         v_init = ode.get_object(self.V_name).init
-        s_init, s_names = zip(*[(state.init, state.name) for state in ode.states \
+        if not isinstance(v_init, (float, int)):
+            v_init = v_init[0]
+        s_init, s_names = zip(*[(state.init if isinstance(state.init, (float, int))\
+                                 else state.init[0], state.name) for state in ode.states \
                                 if state.name != self.V_name])
         body_lines = ["ic = OrderedDict([(\"{}\", {}),".format(\
             self.V_name, v_init)]
