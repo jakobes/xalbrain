@@ -344,9 +344,16 @@ class BidomainSolver(BasicBidomainSolver):
 
             # Set null space: v = 0, u = constant
             debug("Setting null space")
-            null_space = Vector(self.vur.vector())
-            self.VUR.sub(1).dofmap().set(null_space, 1.0)
-            solver.set_nullspace([null_space])
+            null_vector = Vector(self.vur.vector())
+            self.VUR.sub(1).dofmap().set(null_vector, 1.0)
+            null_vector *= 1.0/null_vector.norm("l2")
+
+            null_space = VectorSpaceBasis([null_vector])
+            solver.set_nullspace(null_space)
+
+            # We happen to know that the transpose nullspace is the
+            # same (easy to prove from matrix structure)
+            solver.set_transpose_nullspace(null_space)
 
             update_routine = self._update_krylov_solver
         else:
