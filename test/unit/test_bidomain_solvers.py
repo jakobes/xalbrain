@@ -20,7 +20,7 @@ class TestBasicBidomainSolver(unittest.TestCase):
         self.stimulus = Expression("2.0")
 
         # Create ac
-        self.applied_current = Expression("t", t=self.time)
+        self.applied_current = Expression("sin(2*pi*x[0])*t", t=self.time)
 
         # Create conductivity "tensors"
         self.M_i = 1.0
@@ -82,7 +82,7 @@ class TestBidomainSolver(unittest.TestCase):
         self.stimulus = Expression("2.0")
 
         # Create ac
-        self.applied_current = Expression("t", t=self.time)
+        self.applied_current = Expression("sin(2*pi*x[0])*t", t=self.time)
 
         # Create conductivity "tensors"
         self.M_i = 1.0

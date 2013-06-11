@@ -20,7 +20,7 @@ class TestCase(object):
         self.stimulus = Expression("2.0")
 
         # Create applied current
-        self.applied_current = Expression("t", t=self.time)
+        self.applied_current = Expression("sin(2*pi*x[0])*t", t=self.time)
 
         # Create conductivity "tensors"
         self.M_i = 1.0
@@ -68,7 +68,7 @@ class TestBidomainSolverAdjoint(unittest.TestCase):
         self.case = TestCase()
 
     def test_replay(self):
-        "Test that replay of basic bidomain solver reports success."
+        "Test that replay of bidomain solver reports success."
         Solver = BidomainSolver
         case = self.case
 
@@ -86,7 +86,7 @@ class TestBidomainSolverAdjoint(unittest.TestCase):
 
         # Check replay
         info_green("Running replay")
-        success = replay_dolfin(stop=True, tol=0.0)
+        success = replay_dolfin(stop=True, tol=1.e-14)
         self.assertEqual(success, True)
 
 

@@ -480,6 +480,13 @@ class BidomainSolver(BasicBidomainSolver):
         timestep_unchanged = (abs(dt - float(self._timestep)) < 1.e-12)
         self._update_solver(timestep_unchanged, dt)
 
+        # Check that applied current has average value zero
+        if self._I_a:
+            consistency = assemble(self._I_a*dx, mesh=self._domain)
+            tolerance = 1.e-14
+            assert (abs(consistency) < tolerance), \
+                "Inconsistency in system: \int I_a = %g != 0" % consistency
+
         # Assemble right-hand-side
         assemble(self._rhs, tensor=self._rhs_vector, annotate=annotate)
 
@@ -525,14 +532,14 @@ class BidomainSolver(BasicBidomainSolver):
             self.linear_solver.parameters["preconditioner"]["reuse"] = False
 
             # Update stored timestep
-            # FIXME: dolfin_adjoint still can't annotate constant assignment.
-            self._timestep.assign(Constant(dt))#, annotate=annotate)
+            self._timestep.assign(Constant(dt))
 
             # Reassemble matrix
             assemble(self._lhs, tensor=self._lhs_matrix, annotate=annotate)
 
             # Reassemble preconditioner
             assemble(self._prec, tensor=self._prec_matrix, annotate=annotate)
+
 
         # Set nonzero initial guess if it indeed is nonzero
         if (self.vur.vector().norm("l2") > 1.e-12):
