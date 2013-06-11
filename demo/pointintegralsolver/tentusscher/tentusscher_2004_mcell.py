@@ -1,3 +1,5 @@
+from __future__ import division
+
 def init_values(**values):
     """
     Init values
@@ -51,12 +53,12 @@ def default_parameters(**values):
     # V_sr=0.001094, Vmax_up=0.000425, a_rel=0.016464, b_rel=0.25,
     # c_rel=0.008232, tau_g=2, Na_o=140, Cm=0.185, F=96485.3415,
     # R=8314.472, T=310, V_c=0.016404, stim_amplitude=52,
-    # stim_duration=1, stim_period=1000, stim_start=5, K_o=5.4
+    # stim_duration=1, stim_period=1000, stim_start=1, K_o=5.4
     param_values = [0.03, 5.405, 0.096, 0.062, 14.838, 0.00029, 0.000175,\
         0.000592, 0.294, 40, 1, 1.362, 1000, 0.1, 1.38, 87.5, 2.5, 0.35,\
         0.0005, 0.825, 0.0146, 0.15, 10, 2, 0.001, 0.3, 0.00025, 8e-05,\
         0.001094, 0.000425, 0.016464, 0.25, 0.008232, 2, 140, 0.185,\
-        96485.3415, 8314.472, 310, 0.016404, 52, 1, 1000, 5, 5.4]
+        96485.3415, 8314.472, 310, 0.016404, 52, 1, 1000, 1, 5.4]
 
     # Parameter indices and limit checker
     param_ind = dict(P_kna=(0, Range()), g_K1=(1, Range()), g_Kr=(2,\
@@ -92,7 +94,7 @@ def default_parameters(**values):
 
 def rhs(states, time, parameters, dy=None):
     """
-    Calculate right hand side
+    Compute right hand side
     """
     # Imports
     import ufl
@@ -122,19 +124,19 @@ def rhs(states, time, parameters, dy=None):
     # Reversal potentials
     E_Na = R*T*ufl.ln(Na_o/Na_i)/F
     E_K = R*T*ufl.ln(K_o/K_i)/F
-    E_Ks = R*T*ufl.ln((Na_o*P_kna + K_o)/(P_kna*Na_i + K_i))/F
+    E_Ks = R*T*ufl.ln((Na_o*P_kna + K_o)/(Na_i*P_kna + K_i))/F
     E_Ca = 0.5*R*T*ufl.ln(Ca_o/Ca_i)/F
 
     # Inward rectifier potassium current
     alpha_K1 = 0.1/(1.0 + 6.14421235332821e-6*ufl.exp(0.06*V - 0.06*E_K))
-    beta_K1 = (0.367879441171442*ufl.exp(-0.1*E_K + 0.1*V) +\
-        3.06060402008027*ufl.exp(0.0002*V - 0.0002*E_K))/(1.0 +\
-        ufl.exp(0.5*E_K - 0.5*V))
+    beta_K1 = (3.06060402008027*ufl.exp(0.0002*V - 0.0002*E_K) +\
+        0.367879441171442*ufl.exp(0.1*V - 0.1*E_K))/(1.0 + ufl.exp(0.5*E_K -\
+        0.5*V))
     xK1_inf = alpha_K1/(alpha_K1 + beta_K1)
     i_K1 = 0.430331482911935*ufl.sqrt(K_o)*(-E_K + V)*g_K1*xK1_inf
 
     # Rapid time dependent potassium current
-    i_Kr = 0.430331482911935*ufl.sqrt(K_o)*(-E_K + V)*g_Kr*Xr1*Xr2
+    i_Kr = 0.430331482911935*ufl.sqrt(K_o)*(-E_K + V)*Xr1*Xr2*g_Kr
 
     # Rapid time dependent potassium current xr1 gate
     xr1_inf = 1.0/(1.0 + 0.0243728440732796*ufl.exp(-0.142857142857143*V))
@@ -175,25 +177,29 @@ def rhs(states, time, parameters, dy=None):
         15212.5932856544*ufl.exp(0.134589502018843*V)))
     alpha_h = 4.43126792958051e-7*ufl.exp(-0.147058823529412*V)/(1.0 +\
         2.3538526683702e+17*ufl.exp(1.0*V))
-    beta_h = 0.77*(1.0 - 1.0/(1.0 +\
+    beta_h = (310000.0*ufl.exp(0.3485*V) + 2.7*ufl.exp(0.079*V))/(1.0 +\
+        2.3538526683702e+17*ufl.exp(1.0*V)) + 0.77*(1.0 - 1.0/(1.0 +\
         2.3538526683702e+17*ufl.exp(1.0*V)))/(0.13 +\
-        0.0497581410839387*ufl.exp(-0.0900900900900901*V)) +\
-        (2.7*ufl.exp(0.079*V) + 310000.0*ufl.exp(0.3485*V))/(1.0 +\
-        2.3538526683702e+17*ufl.exp(1.0*V))
+        0.0497581410839387*ufl.exp(-0.0900900900900901*V))
     tau_h = 1.0/(alpha_h + beta_h)
 
     # Fast sodium current j gate
     j_inf = 1.0/((1.0 + 15212.5932856544*ufl.exp(0.134589502018843*V))*(1.0 +\
         15212.5932856544*ufl.exp(0.134589502018843*V)))
-    alpha_j = (37.78 + V)*(-25428.0*ufl.exp(0.2444*V) -\
-        6.948e-6*ufl.exp(-0.04391*V))/((1.0 +\
+    beta_j = ufl.conditional(ufl.lt(V, -40.0),\
+        0.02424*ufl.exp(-0.01052*V)/(1.0 +\
+        0.00396086833990426*ufl.exp(-0.1378*V)), 0.6*ufl.exp(0.057*V)/(1.0 +\
+        0.0407622039783662*ufl.exp(-0.1*V)))
+    alpha_j = (37.78 + V)*(-6.948e-6*ufl.exp(-0.04391*V) -\
+        25428.0*ufl.exp(0.2444*V))/((1.0 +\
         2.3538526683702e+17*ufl.exp(1.0*V))*(1.0 +\
         50262745825.954*ufl.exp(0.311*V)))
-    beta_j = 0.02424*ufl.exp(-0.01052*V)/((1.0 +\
-        2.3538526683702e+17*ufl.exp(1.0*V))*(1.0 +\
-        0.00396086833990426*ufl.exp(-0.1378*V))) + 0.6*(1.0 - 1.0/(1.0 +\
+    beta_j = 0.6*(1.0 - 1.0/(1.0 +\
         2.3538526683702e+17*ufl.exp(1.0*V)))*ufl.exp(0.057*V)/(1.0 +\
-        0.0407622039783662*ufl.exp(-0.1*V))
+        0.0407622039783662*ufl.exp(-0.1*V)) +\
+        0.02424*ufl.exp(-0.01052*V)/((1.0 +\
+        2.3538526683702e+17*ufl.exp(1.0*V))*(1.0 +\
+        0.00396086833990426*ufl.exp(-0.1378*V)))
     tau_j = 1.0/(alpha_j + beta_j)
 
     # Sodium background current
@@ -201,7 +207,7 @@ def rhs(states, time, parameters, dy=None):
 
     # L type ca current
     i_CaL = 4.0*(F*F)*(-0.341*Ca_o +\
-        Ca_i*ufl.exp(2.0*F*V/(R*T)))*g_CaL*V*d*f*fCa/((-1.0 +\
+        Ca_i*ufl.exp(2.0*F*V/(R*T)))*V*d*f*fCa*g_CaL/((-1.0 +\
         ufl.exp(2.0*F*V/(R*T)))*R*T)
 
     # L type ca current d gate
@@ -214,8 +220,8 @@ def rhs(states, time, parameters, dy=None):
 
     # L type ca current f gate
     f_inf = 1.0/(1.0 + 17.4117080633276*ufl.exp(0.142857142857143*V))
-    tau_f = 80.0 + 1125.0*ufl.exp(-0.00416666666666667*((27.0 + V)*(27.0 +\
-        V))) + 165.0/(1.0 + ufl.exp(5/2 - V/10.0))
+    tau_f = 80.0 + 165.0/(1.0 + ufl.exp(5/2 - V/10.0)) +\
+        1125.0*ufl.exp(-0.00416666666666667*((27.0 + V)*(27.0 + V)))
 
     # L type ca current fca gate
     alpha_fCa = 1.0/(1.0 + 8.03402376701711e+27*ufl.elem_pow(Ca_i, 8.0))
@@ -234,49 +240,48 @@ def rhs(states, time, parameters, dy=None):
 
     # Transient outward current s gate
     s_inf = 1.0/(1.0 + ufl.exp(4.0 + V/5.0))
-    tau_s = 3.0 + 5.0/(1.0 + ufl.exp(-4.0 + V/5.0)) +\
-        85.0*ufl.exp(-0.003125*((45.0 + V)*(45.0 + V)))
+    tau_s = 3.0 + 85.0*ufl.exp(-0.003125*((45.0 + V)*(45.0 + V))) + 5.0/(1.0 +\
+        ufl.exp(-4.0 + V/5.0))
 
     # Transient outward current r gate
     r_inf = 1.0/(1.0 + 28.0316248945261*ufl.exp(-0.166666666666667*V))
     tau_r = 0.8 + 9.5*ufl.exp(-0.000555555555555556*((40.0 + V)*(40.0 + V)))
 
     # Sodium potassium pump current
-    i_NaK = K_o*P_NaK*Na_i/((K_mk + K_o)*(Na_i + K_mNa)*(1.0 +\
-        0.1245*ufl.exp(-0.1*F*V/(R*T)) + 0.0353*ufl.exp(-F*V/(R*T))))
+    i_NaK = K_o*Na_i*P_NaK/((K_mk + K_o)*(Na_i + K_mNa)*(1.0 +\
+        0.0353*ufl.exp(-F*V/(R*T)) + 0.1245*ufl.exp(-0.1*F*V/(R*T))))
 
     # Sodium calcium exchanger current
     i_NaCa = (-(Na_o*Na_o*Na_o)*Ca_i*alpha*ufl.exp((-1.0 + gamma)*F*V/(R*T))\
-        + (Na_i*Na_i*Na_i)*Ca_o*ufl.exp(F*gamma*V/(R*T)))*K_NaCa/((1.0 +\
+        + (Na_i*Na_i*Na_i)*Ca_o*ufl.exp(F*V*gamma/(R*T)))*K_NaCa/((1.0 +\
         K_sat*ufl.exp((-1.0 + gamma)*F*V/(R*T)))*((Na_o*Na_o*Na_o) +\
         (Km_Nai*Km_Nai*Km_Nai))*(Km_Ca + Ca_o))
 
     # Calcium pump current
-    i_p_Ca = Ca_i*g_pCa/(Ca_i + K_pCa)
+    i_p_Ca = Ca_i*g_pCa/(K_pCa + Ca_i)
 
     # Potassium pump current
     i_p_K = (-E_K + V)*g_pK/(1.0 +\
         65.4052157419383*ufl.exp(-0.167224080267559*V))
 
     # Calcium dynamics
-    i_rel = (c_rel + (Ca_SR*Ca_SR)*a_rel/((Ca_SR*Ca_SR) + (b_rel*b_rel)))*d*g
+    i_rel = ((Ca_SR*Ca_SR)*a_rel/((Ca_SR*Ca_SR) + (b_rel*b_rel)) + c_rel)*d*g
     i_up = Vmax_up/(1.0 + (K_up*K_up)/(Ca_i*Ca_i))
-    i_leak = (Ca_SR - Ca_i)*V_leak
+    i_leak = (-Ca_i + Ca_SR)*V_leak
     g_inf = (1.0 - 1.0/(1.0 + 0.0301973834223185*ufl.exp(10000.0*Ca_i)))/(1.0 +\
         1.97201988740492e+55*ufl.elem_pow(Ca_i, 16.0)) + 1.0/((1.0 +\
         0.0301973834223185*ufl.exp(10000.0*Ca_i))*(1.0 +\
         5.43991024148102e+20*ufl.elem_pow(Ca_i, 6.0)))
     d_g = (-g + g_inf)/tau_g
-    Ca_i_bufc = 1.0/(1.0 + Buf_c*K_buf_c/((Ca_i + K_buf_c)*(Ca_i + K_buf_c)))
+    Ca_i_bufc = 1.0/(1.0 + Buf_c*K_buf_c/((K_buf_c + Ca_i)*(K_buf_c + Ca_i)))
     Ca_sr_bufsr = 1.0/(1.0 + Buf_sr*K_buf_sr/((K_buf_sr + Ca_SR)*(K_buf_sr +\
         Ca_SR)))
 
     # Sodium dynamics
 
     # Membrane
-    i_Stim = -(1.0 - 1.0/(1.0 + ufl.exp(-5.0*stim_start +\
-        5.0*time)))*stim_amplitude/(1.0 + ufl.exp(-5.0*stim_start + 5.0*time\
-        - 5.0*stim_duration))
+    i_Stim = ufl.conditional(ufl.And(ufl.ge(time, stim_start), ufl.le(time,\
+        stim_start + stim_duration)), -stim_amplitude, 0.0)
 
     # Potassium dynamics
 
@@ -295,7 +300,7 @@ def rhs(states, time, parameters, dy=None):
     dy += ((-Xs + xs_inf)/tau_xs)*_v[2]
 
     # Derivative for state m
-    dy += ((m_inf - m)/tau_m)*_v[3]
+    dy += ((-m + m_inf)/tau_m)*_v[3]
 
     # Derivative for state h
     dy += ((-h + h_inf)/tau_h)*_v[4]
@@ -304,7 +309,7 @@ def rhs(states, time, parameters, dy=None):
     dy += ((j_inf - j)/tau_j)*_v[5]
 
     # Derivative for state d
-    dy += ((-d + d_inf)/tau_d)*_v[6]
+    dy += ((d_inf - d)/tau_d)*_v[6]
 
     # Derivative for state f
     dy += ((-f + f_inf)/tau_f)*_v[7]
@@ -314,7 +319,7 @@ def rhs(states, time, parameters, dy=None):
         10.0*fCa_inf))))*d_fCa)*_v[8]
 
     # Derivative for state s
-    dy += ((s_inf - s)/tau_s)*_v[9]
+    dy += ((-s + s_inf)/tau_s)*_v[9]
 
     # Derivative for state r
     dy += ((-r + r_inf)/tau_r)*_v[10]
@@ -327,8 +332,8 @@ def rhs(states, time, parameters, dy=None):
         i_leak + i_rel)*Ca_i_bufc)*_v[12]
 
     # Derivative for state g
-    dy += ((1.0 - 1.0/((1.0 + ufl.exp(60.0 + V))*(1.0 + ufl.exp(10.0*g_inf -\
-        10.0*g))))*d_g)*_v[13]
+    dy += ((1.0 - 1.0/((1.0 + ufl.exp(60.0 + V))*(1.0 + ufl.exp(-10.0*g +\
+        10.0*g_inf))))*d_g)*_v[13]
 
     # Derivative for state Na_i
     dy += ((-3.0*i_NaK - 3.0*i_NaCa - i_Na - i_b_Na)*Cm/(F*V_c))*_v[14]
