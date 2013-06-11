@@ -352,7 +352,7 @@ class CardiacODESolver(object):
 
         # Initialize solver and update its parameters
         self._pi_solver = PointIntegralSolver(self._scheme)
-        self._pi_solver.parameters.update(self.parameters["PointIntegralSolver"])
+        self._pi_solver.parameters.update(self.parameters["point_integral_solver"])
 
     def _name_to_scheme(self, name):
         """Return scheme class with given name
@@ -374,12 +374,8 @@ class CardiacODESolver(object):
           A set of parameters (:py:class:`dolfin.Parameters`)
         """
         params = Parameters("CardiacODESolver")
-        params.add("scheme", "RK4")
-
-        # Hack for inconsistency in PointIntegralSolver
-        point_integral_params = Parameters("PointIntegralSolver")
-        point_integral_params.add(NewtonSolver.default_parameters())
-        params.add(point_integral_params)
+        params.add("scheme", "BackwardEuler")
+        params.add(PointIntegralSolver.default_parameters())
 
         return params
 
@@ -396,7 +392,7 @@ class CardiacODESolver(object):
         """
         return (self.vs_, self.vs)
 
-    def step(self, interval):
+    def step(self, interval, annotate=True):
         """
         Solve on the given time step (t0, t1).
 
@@ -412,7 +408,7 @@ class CardiacODESolver(object):
 
         (t0, t1) = interval
         dt = t1 - t0
-        self._pi_solver.step(dt)
+        self._pi_solver.step(dt, annotate)
 
 class BasicSingleCellSolver(BasicCardiacODESolver):
     """A basic, non-optimised solver for systems of ODEs typically
