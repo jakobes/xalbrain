@@ -88,39 +88,39 @@ class TestCardiacODESolver(unittest.TestCase):
         # Note that these should be essentially identical to the ones
         # for the BasicSingleCellSolver
         self.references = {NoCellModel:
-                           {"BackwardEuler": (0, 0.3),
-                            "CrankNicolson": (0, 0.2),
+                           {"BackwardEuler": (0, 0.1),
+                            "CrankNicolson": (0, 0.1),
                             "ForwardEuler": (0, 0.1),
-                            "RK4": (0, 0.2),
-                            "ESDIRK3": (0, 0.2),
-                            "ESDIRK4": (0, 0.2),
+                            "RK4": (0, 0.1),
+                            "ESDIRK3": (0, 0.1),
+                            "ESDIRK4": (0, 0.1),
                             },
-
+                           
                            FitzHughNagumoManual:
-                           {"BackwardEuler": (0, -84.70013280019053),
-                            "CrankNicolson": (0, -84.80005016079546),
+                           {"BackwardEuler": (0, -84.9000335539531),
+                            "CrankNicolson": (0, -84.90001677976962),
                             "ForwardEuler": (0, -84.9),
-                            "RK4": (0, -84.80004467770296),
-                            "ESDIRK3": (0, -84.80004468383603),
-                            "ESDIRK4": (0, -84.80004468281632),
+                            "RK4": (0, -84.90001681981872),
+                            "ESDIRK3": (0, -84.90001669192749),
+                            "ESDIRK4": (0, -84.90001686886713),
                             },
-
+                           
                            Fitzhughnagumo:
-                           {"BackwardEuler": (0, -84.69986709136005),
-                            "CrankNicolson": (0, -84.79994981706433),
+                           {"BackwardEuler": (0, -84.89996642367208),
+                            "CrankNicolson": (0, -84.89998321463709),
                             "ForwardEuler":  (0, -84.9),
-                            "RK4":  (0, -84.79995530744164),
-                            "ESDIRK3":  (0, -84.79995530333677),
-                            "ESDIRK4":  (0, -84.79995530333677),
+                            "RK4":  (0, -84.89998317642593),
+                            "ESDIRK3":  (0, -84.89998330451238),
+                            "ESDIRK4":  (0, -84.899983127352),
                             },
 
                            Tentusscher_2004_mcell:
-                           {"BackwardEuler": (15, -85.89745525156506),
-                            "CrankNicolson": (15, -85.99685674414921),
+                           {"BackwardEuler": (15, -86.09674554619612),
+                            "CrankNicolson": (15, -86.09660688782645),
                             "ForwardEuler":  (15, -86.09643254164848),
                             "RK4":  (15, "nan"),
-                            "ESDIRK3":  (15, -85.99681796148224),
-                            "ESDIRK4":  (15, -85.99681796046603),
+                            "ESDIRK3":  (15, -86.0966070638699),
+                            "ESDIRK4":  (15, -86.0966134866734),
                             }
                            }
 
@@ -227,9 +227,6 @@ class TestCardiacODESolver(unittest.TestCase):
         adj_reset()
         solver = self._setup_solver(Model, Scheme, mesh, time, stim, params)
 
-        solver._pi_solver.parameters.newton_solver.maximum_iterations = 30
-        solver._pi_solver.parameters.newton_solver.iterations_to_retabulate_jacobian = 5
-
         scheme = solver._scheme
         (vs_, vs) = solver.solution_fields()
 
@@ -272,7 +269,7 @@ class TestCardiacODESolver(unittest.TestCase):
         value = np.sqrt(np.sum(((Vm_reference-output[:-offset])/Vm_reference)**2))/len(Vm_reference)
         self.assertAlmostEqual(value, 0.0, rel_tol)
 
-    def test_long_run_tentusscher(self):
+    def xtest_long_run_tentusscher(self):
         mesh = UnitIntervalMesh(5)
         for Scheme, dt_org, abs_tol, rel_tol in [("BackwardEuler", 0.05, 0, 0),
                                                  ("CrankNicolson", 0.1, 0, 1),
