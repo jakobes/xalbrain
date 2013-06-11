@@ -388,7 +388,7 @@ class CardiacODESolver(object):
         instance.
 
         *Returns*
-          current vs (:py:class:`dolfin.Function`)
+          (previous vs_, current vs) (:py:class:`dolfin.Function`)
         """
         return (self.vs_, self.vs)
 
@@ -409,6 +409,62 @@ class CardiacODESolver(object):
         (t0, t1) = interval
         dt = t1 - t0
         self._pi_solver.step(dt, annotate)
+
+
+    def solve(self, interval, dt=None):
+        """
+        Solve the problem given by the model on a given time interval
+        (t0, t1) with a given timestep dt and return generator for a
+        tuple of the interval and the current vs solution.
+
+        *Arguments*
+          interval (:py:class:`tuple`)
+            The time interval for the solve given by (t0, t1)
+          dt (int, optional)
+            The timestep for the solve. Defaults to length of interval
+
+        *Returns*
+          (timestep, current vs) via (:py:class:`genexpr`)
+
+        *Example of usage*::
+
+          # Create generator
+          solutions = solver.solve((0.0, 1.0), 0.1)
+
+          # Iterate over generator (computes solutions as you go)
+          for (interval, vs) in solutions:
+            # do something with the solutions
+
+        """
+
+        # Initial time set-up
+        (T0, T) = interval
+
+        # Solve on entire interval if no interval is given.
+        if dt is None:
+            dt = (T - T0)
+        t0 = T0
+        t1 = T0 + dt
+
+        # Check that we are not at end of time already.
+        if end_of_time(T, None, t0, dt):
+            info_red("Given end time %g is less than given increment %g", T, dt)
+
+        # Step through time steps until at end time
+        while (True) :
+            self.step((t0, t1))
+
+            # Yield solutions
+            yield (t0, t1), self.vs
+
+            # Break if this is the last step
+            if end_of_time(T, t0, t1, dt):
+                break
+
+            # If not: update members and move to next time
+            self.vs_.assign(self.vs)
+            t0 = t1
+            t1 = t0 + dt
 
 class BasicSingleCellSolver(BasicCardiacODESolver):
     """A basic, non-optimised solver for systems of ODEs typically
