@@ -12,7 +12,7 @@ parameters.form_compiler.optimize=False
 parameters.form_compiler.quadrature_degree = 2
 parameters["form_compiler"]["cpp_optimize"] = True
 
-opt = False
+opt = True
 
 if opt:
     parameters["form_compiler"]["cpp_optimize_flags"] = "-O3 -ffast-math -march=native"
@@ -25,19 +25,19 @@ time = Constant(0.0)
 
 tstop = 10
 ind_V = 15
-dt_org = 0.025
+dt_org = 0.1
 dt_output = 5.0
 Vm_reference = np.fromfile("Vm_reference.npy")
 dt_ref = 0.1
 time_ref = np.linspace(0,tstop, int(tstop/dt_ref)+1)
 
-for Scheme in [#BackwardEuler, 
-               CN2,
+for Scheme in [BackwardEuler, 
+               #CN2,
                #ExplicitMidPoint,
                #RK4,
                #ForwardEuler, 
-               ESDIRK3,
-               ESDIRK4,
+               #ESDIRK3,
+               #ESDIRK4,
                ]:
 
     plt.clf()
@@ -45,7 +45,7 @@ for Scheme in [#BackwardEuler,
     # Init solution Function
     u = Function(V)
     u.interpolate(state_init)
-    u_array = u.vector().array()
+    u_array = np.zeros(mesh.num_vertices()*V.dofmap().num_entity_dofs(0), dtype=np.float_)
     u_array[vertex_to_dof_map] = u.vector().array()
 
     # Get form
@@ -69,9 +69,7 @@ for Scheme in [#BackwardEuler,
     plt.legend(["CellML reference", "gotran generated ufl model ({0})".format(\
         scheme)], "lower right")
 
-    solver.parameters.newton_solver.report = True
-    solver.parameters.newton_solver.maximum_iterations = 30
-    solver.parameters.newton_solver.iterations_to_retabulate_jacobian = 5
+    solver.parameters.newton_solver.report = False
     
     dt = dt_org/2 if isinstance(scheme, BackwardEuler) else dt_org
 
