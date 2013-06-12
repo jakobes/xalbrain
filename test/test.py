@@ -48,7 +48,7 @@ for test in test_directories:
             os.chdir(curdir)
 
             if fail:
-                failed.append(pyfile)
+                failed.append(os.path.join(subdir, pyfile))
                 print "failed"
                 print output
             else:
