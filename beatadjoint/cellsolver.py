@@ -410,7 +410,6 @@ class CardiacODESolver(object):
         dt = t1 - t0
         self._pi_solver.step(dt, annotate)
 
-
     def solve(self, interval, dt=None):
         """
         Solve the problem given by the model on a given time interval
