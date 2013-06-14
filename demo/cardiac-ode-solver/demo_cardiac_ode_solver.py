@@ -1,5 +1,4 @@
 """
-FIXME
 """
 
 __author__ = "Marie E. Rognes (meg@simula.no), 2013"
@@ -10,33 +9,38 @@ from beatadjoint import *
 parameters["form_compiler"]["cpp_optimize"] = True
 flags = "-O3 -ffast-math -march=native"
 parameters["form_compiler"]["cpp_optimize_flags"] = flags
+parameters["form_compiler"]["quadrature_degree"] = 3
+
+# Choose your favorite solver here
+# FIXME: Replace this by CardiacODESolver when it works.
+Solver = BasicCardiacODESolver
 
 def forward():
     info_green("Running forward model")
 
     # Set-up domain in space and time
-    N = 100
+    N = 10
     mesh = UnitSquareMesh(N, N)
     time = Constant(0.0)
 
     # Choose your favorite cell model and extract some info
-    model = FitzHughNagumoManual()
+    model = Tentusscher_2004_mcell()
+    #model = FitzHughNagumoManual()
     num_states = model.num_states()
     F = model.F
     I = model.I
 
     # Add some forces
-    stimulus = Expression("t", t=time)
+    stimulus = Expression("100*t", t=time)
 
-    # Choose your favorite solver
-    params = CardiacODESolver.default_parameters()
-    params["scheme"] = "RK4"
-    solver = CardiacODESolver(mesh, time, num_states, F, I,
-                              I_s=stimulus, params=params)
+    params = Solver.default_parameters()
+    if Solver == CardiacODESolver:
+        params["scheme"] = "RK4"
+    solver = Solver(mesh, time, num_states, F, I, I_s=stimulus, params=params)
 
     # Set-up initial conditions
     (vs_, vs) = solver.solution_fields()
-    # vs_.assign(model.initial_conditions())
+    vs_.assign(model.initial_conditions())
 
     # Set-up other solution parameters
     dt = 0.2
@@ -66,6 +70,14 @@ def replay():
     else:
         info_green("Replay failed")
 
+def tangent_linear():
+    # FIXME
+    pass
+
+def adjoint():
+    # FIXME
+    pass
+
 if __name__ == "__main__":
 
     # Run forward model
@@ -73,3 +85,9 @@ if __name__ == "__main__":
 
     # Replay
     replay()
+
+    #
+    tangent_linear()
+
+    #
+    adjoint()
