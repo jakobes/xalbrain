@@ -119,7 +119,7 @@ class TestCardiacODESolver(unittest.TestCase):
                             "CrankNicolson": (15, -85.99685674414921),
                             "ForwardEuler":  (15, -86.09643254164848),
                             "RK4":  (15, "nan"),
-                            "ESDIRK3":  (15, -85.99681796148224),
+                            "ESDIRK3":  (15, -85.99681862337053),
                             "ESDIRK4":  (15, -85.99681796046603),
                             }
                            }
@@ -204,8 +204,6 @@ class TestCardiacODESolver(unittest.TestCase):
             return
         mesh = UnitIntervalMesh(1)
         for Model in supported_cell_models:
-            if Model in [Tentusscher_2004_mcell]:
-                continue
             for Scheme in ["ForwardEuler", "BackwardEuler", "CrankNicolson",
                            "RK4", "ESDIRK3", "ESDIRK4"]:
                 self._compare_against_reference(Model, Scheme, mesh)
@@ -227,6 +225,9 @@ class TestCardiacODESolver(unittest.TestCase):
         # Initiate solver, with model and Scheme
         adj_reset()
         solver = self._setup_solver(Model, Scheme, mesh, time, stim, params)
+        solver._pi_solver.parameters["newton_solver"]["absolute_tolerance"] = 1e-5
+        solver._pi_solver.parameters["newton_solver"]["maximum_iterations"] = 20
+        solver._pi_solver.parameters["newton_solver"]["max_relative_residual"] = 1e-2
 
         scheme = solver._scheme
         (vs_, vs) = solver.solution_fields()
@@ -262,21 +263,22 @@ class TestCardiacODESolver(unittest.TestCase):
             t0 += next_dt
             next_dt = max(min(tstop-float(scheme.t()), dt), 0.0)
 
+        # Compare solution from CellML run using opencell
+        self.assertAlmostEqual(output[-1], Vm_reference[-1], abs_tol)
+
         output = np.array(output)
         time_output = np.array(time_output)
         output = np.interp(time_ref, time_output, output)
 
-        # Compare solution from CellML run using opencell
-        self.assertAlmostEqual(output[-1], Vm_reference[-1], abs_tol)
         value = np.sqrt(np.sum(((Vm_reference-output)/Vm_reference)**2))/len(Vm_reference)
         self.assertAlmostEqual(value, 0.0, rel_tol)
 
     def test_long_run_tentusscher(self):
         mesh = UnitIntervalMesh(5)
-        for Scheme, dt_org, abs_tol, rel_tol in [("BackwardEuler", 0.125, 0, 1),
-                                                 ("CrankNicolson", 0.05, 0, 1),
-                                                 ("ESDIRK3", 0.1, 0, 1),
-                                                 ("ESDIRK4", 0.1, 0, 1)]:
+        for Scheme, dt_org, abs_tol, rel_tol in [("BackwardEuler", 0.05, 1, 1),
+                                                 ("CrankNicolson", 0.025, 0, 1),
+                                                 ("ESDIRK3", 0.05, 0, 1),
+                                                 ("ESDIRK4", 0.05, 0, 1)]:
 
             self._long_run_compare(mesh, Tentusscher_2004_mcell, Scheme, \
                                    dt_org, abs_tol, rel_tol)
