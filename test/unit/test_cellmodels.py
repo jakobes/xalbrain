@@ -122,9 +122,8 @@ class TestCellModelFormCompilationCorrectness(unittest.TestCase):
 
             # Create and step solver
             solver = PointIntegralSolver(scheme)
-            solver.parameters.newton_solver.maximum_iterations = 15
-            #solver.parameters.newton_solver.report = False
-            dt = 0.05
+            solver.parameters["newton_solver"]["absolute_tolerance"] = 1e-6
+            dt = 0.025
             solver.step(dt)
             return vs
 
