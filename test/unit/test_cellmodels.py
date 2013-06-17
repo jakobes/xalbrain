@@ -113,6 +113,7 @@ class TestCellModelFormCompilationCorrectness(unittest.TestCase):
         parameters["form_compiler"]["quadrature_degree"] = 2
 
         def _point_integral_step(model, Solver=BackwardEuler):
+            info_blue("Stepping %s" % model)
             (vs, form) = _setup_rhs_form(model)
 
             # Set-up scheme
@@ -123,7 +124,8 @@ class TestCellModelFormCompilationCorrectness(unittest.TestCase):
             # Create and step solver
             solver = PointIntegralSolver(scheme)
             solver.parameters["newton_solver"]["absolute_tolerance"] = 1e-6
-            dt = 0.025
+            solver.parameters["newton_solver"]["report"] = False
+            dt = 0.1
             solver.step(dt)
             return vs
 
