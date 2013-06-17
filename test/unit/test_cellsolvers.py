@@ -226,8 +226,7 @@ class TestCardiacODESolver(unittest.TestCase):
         adj_reset()
         solver = self._setup_solver(Model, Scheme, mesh, time, stim, params)
         solver._pi_solver.parameters["newton_solver"]["absolute_tolerance"] = 1e-5
-        solver._pi_solver.parameters["newton_solver"]["maximum_iterations"] = 20
-        solver._pi_solver.parameters["newton_solver"]["max_relative_residual"] = 1e-2
+        solver._pi_solver.parameters["newton_solver"]["report"] = False
 
         scheme = solver._scheme
         (vs_, vs) = solver.solution_fields()
@@ -275,10 +274,10 @@ class TestCardiacODESolver(unittest.TestCase):
 
     def test_long_run_tentusscher(self):
         mesh = UnitIntervalMesh(5)
-        for Scheme, dt_org, abs_tol, rel_tol in [("BackwardEuler", 0.05, 1, 1),
-                                                 ("CrankNicolson", 0.025, 0, 1),
-                                                 ("ESDIRK3", 0.05, 0, 1),
-                                                 ("ESDIRK4", 0.05, 0, 1)]:
+        for Scheme, dt_org, abs_tol, rel_tol in [("BackwardEuler", 0.1, 1, 1),
+                                                 ("CrankNicolson", 0.1, 0, 1),
+                                                 ("ESDIRK3", 0.1, 0, 1),
+                                                 ("ESDIRK4", 0.1, 0, 1)]:
 
             self._long_run_compare(mesh, Tentusscher_2004_mcell, Scheme, \
                                    dt_org, abs_tol, rel_tol)
