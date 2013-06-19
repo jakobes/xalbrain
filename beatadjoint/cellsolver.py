@@ -392,7 +392,7 @@ class CardiacODESolver(object):
         """
         return (self.vs_, self.vs)
 
-    def step(self, interval, annotate=True):
+    def step(self, interval):
         """
         Solve on the given time step (t0, t1).
 
@@ -408,7 +408,7 @@ class CardiacODESolver(object):
 
         (t0, t1) = interval
         dt = t1 - t0
-        self._pi_solver.step(dt, annotate)
+        self._pi_solver.step(dt)
 
     def solve(self, interval, dt=None):
         """
