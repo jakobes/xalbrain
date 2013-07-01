@@ -111,7 +111,7 @@ class BasicSplittingSolver:
         self.parameters = self.default_parameters()
         if params is not None:
             self.parameters.update(params)
-
+        
         # Extract solution domain
         self._domain = self._model.domain
         self._time = self._model.time
@@ -124,6 +124,11 @@ class BasicSplittingSolver:
         # Create PDE solver and extract solution fields
         self.pde_solver = self._create_pde_solver()
         (self.v_, self.vur) = self.pde_solver.solution_fields()
+
+        # If not enable adjoint
+        if not self.parameters.enable_adjoint:
+            parameters.adjoint.record_all = False
+            parameters.adjoint.stop_annotating = False
 
     def _create_ode_solver(self):
         """Helper function to initialize a suitable ODE solver from
@@ -156,6 +161,11 @@ class BasicSplittingSolver:
 
         # Extract ode solver parameters
         params = self.parameters["BasicBidomainSolver"]
+
+        # Propagate enable_adjoint to Bidomain solver
+        if params.has_key("enable_adjoint"):
+            params["enable_adjoint"] = self.parameters["enable_adjoint"]
+
         solver = BasicBidomainSolver(self._domain, self._time, M_i, M_e,
                                      I_s=None, I_a=applied_current,
                                      v_=self.vs[0], params=params)
@@ -333,11 +343,17 @@ class BasicSplittingSolver:
         begin("Merging")
         v = split(self.vur)[0]
         s = split(self.vs)[1]
+
+        if len(s.shape())==1:
+            proj = as_vector([v]+[s[i] for i in range(s.shape()[0])])
+        else:
+            proj = as_vector((v, s))
+
         VS = self.vs.function_space()
         p = TrialFunction(VS)
         q = TestFunction(VS)
         a = inner(p, q)*dx
-        L = inner(as_vector((v, s)), q)*dx # FIXME: Shape mismatch?
+        L = inner(proj, q)*dx # FIXME: Shape mismatch?
         solve(a == L, solution, solver_parameters={"linear_solver": "cg"})
         end()
 
@@ -366,6 +382,7 @@ class SplittingSolver(BasicSplittingSolver):
         params = Parameters("SplittingSolver")
         params.add("enable_adjoint", True)
         params.add("theta", 0.5)
+        params.add("apply_stimulus_current_to_pde", False)
 
         # Add default parameters from ODE solver
         ode_solver_params = CardiacODESolver.default_parameters()
@@ -389,7 +406,10 @@ class SplittingSolver(BasicSplittingSolver):
         cell_model = self._model.cell_model
 
         # Extract stimulus from the cardiac model(!)
-        stimulus = self._model.stimulus
+        if self.parameters.apply_stimulus_current_to_pde:
+            stimulus = None
+        else:
+            stimulus = self._model.stimulus
 
         # Extract ode solver parameters
         params = self.parameters["CardiacODESolver"]
@@ -406,14 +426,24 @@ class SplittingSolver(BasicSplittingSolver):
         # Extract applied current from the cardiac model (stimulus
         # invoked in the ODE step)
         applied_current = self._model.applied_current
+        # Extract stimulus from the cardiac model(!)
+        if self.parameters.apply_stimulus_current_to_pde:
+            stimulus = self._model.stimulus
+        else:
+            stimulus = None
 
         # Extract conductivities from the cardiac model
         (M_i, M_e) = self._model.conductivities()
 
         # Extract ode solver parameters
         params = self.parameters["BidomainSolver"]
+
+        # Propagate enable_adjoint to Bidomain solver
+        if params.has_key("enable_adjoint"):
+            params["enable_adjoint"] = self.parameters["enable_adjoint"]
+
         solver = BidomainSolver(self._domain, self._time, M_i, M_e,
-                                I_s=None, I_a=applied_current,
+                                I_s=stimulus, I_a=applied_current,
                                 v_=self.vs[0],
                                 params=params)
         return solver
@@ -432,6 +462,11 @@ class SplittingSolver(BasicSplittingSolver):
         begin("Merging using custom projecter")
         v = split(self.vur)[0]
         s = split(self.vs)[1]
-        self.vs_projecter(as_vector((v, s)), solution)
+        # FIXME: We should not need to do a projection. A sub function assign would
+        # FIXME: be sufficient.
+        if len(s.shape())==1:
+            self.vs_projecter(as_vector([v]+[s[i] for i in range(s.shape()[0])]), solution)
+        else:
+            self.vs_projecter(as_vector((v, s)), solution)
 
         end()
