@@ -307,7 +307,8 @@ class BidomainSolver(BasicBidomainSolver):
         # Preassemble left-hand side (will be updated if time-step
         # changes)
         debug("Preassembling bidomain matrix (and initializing vector)")
-        self._lhs_matrix = assemble(self._lhs, annotate=True)
+        annotate = self.parameters["enable_adjoint"]
+        self._lhs_matrix = assemble(self._lhs, annotate=annotate)
         self._rhs_vector = Vector(self._lhs_matrix.size(0))
 
         # Create linear solver (based on parameter choices)
@@ -323,6 +324,8 @@ class BidomainSolver(BasicBidomainSolver):
         "Helper function for creating linear solver based on parameters."
         solver_type = self.parameters["linear_solver_type"]
 
+        annotate = self.parameters["enable_adjoint"]
+
         if solver_type == "direct":
             solver = LUSolver(self._lhs_matrix)
             solver.parameters.update(self.parameters["lu_solver"])
@@ -333,7 +336,7 @@ class BidomainSolver(BasicBidomainSolver):
             # Preassemble preconditioner (will be updated if time-step
             # changes)
             debug("Preassembling preconditioner")
-            self._prec_matrix = assemble(self._prec, annotate=True)
+            self._prec_matrix = assemble(self._prec, annotate=annotate)
 
             # Initialize KrylovSolver with matrix and preconditioner
             alg = self.parameters["algorithm"]
@@ -374,6 +377,7 @@ class BidomainSolver(BasicBidomainSolver):
         """
 
         params = Parameters("BidomainSolver")
+        params.add("enable_adjoint", True)
         params.add("theta", 0.5)
         params.add("polynomial_degree", 1)
         params.add("default_timestep", 1.0)
@@ -472,7 +476,7 @@ class BidomainSolver(BasicBidomainSolver):
         (t0, t1) = interval
         dt = t1 - t0
         theta = self.parameters["theta"]
-        annotate = True
+        annotate = self.parameters["enable_adjoint"]
         t = t0 + theta*dt
         self.time.assign(t)
 
@@ -498,7 +502,7 @@ class BidomainSolver(BasicBidomainSolver):
         """Helper function for updating an LUSolver depending on
         whether timestep has changed."""
 
-        annotate = True
+        annotate = self.parameters["enable_adjoint"]
 
         # Update reuse of factorization parameter in accordance with
         # changes in timestep
@@ -520,7 +524,7 @@ class BidomainSolver(BasicBidomainSolver):
         """Helper function for updating a KrylovSolver depending on
         whether timestep has changed."""
 
-        annotate = True
+        annotate = self.parameters["enable_adjoint"]
 
         # Update reuse of preconditioner parameter in accordance with
         # changes in timestep
