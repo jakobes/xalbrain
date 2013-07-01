@@ -11,7 +11,11 @@ parameters(a=0.13,
            c_2=0.1,
            c_3=1.0,
            v_rest=-85.0,
-           v_peak=40.)
+           v_peak=40.,
+           stim_start = 1,
+           stim_duration = 1,
+           stim_amplitude = 0, # 50
+           stim_period = 1000)
 
 # Intermediates
 v_amp = v_peak - v_rest
@@ -20,6 +24,8 @@ v_th = v_rest + a*v_amp
 I = (c_1/(v_amp**2)*(v - v_rest)*(v - v_th)*(v_peak - v)
      - c_2/(v_amp)*(v - v_rest)*s)
 
+i_Stim = stim_amplitude*ContinuousConditional(Ge(time, stim_start), 1, 0, 0.2)*ContinuousConditional(Le(time, stim_start + stim_duration), 1, 0, 0.2)
+
 # Time derivatives
-dv_dt = -I
+dv_dt = I + i_Stim
 ds_dt = b*(v - v_rest - c_3*s)

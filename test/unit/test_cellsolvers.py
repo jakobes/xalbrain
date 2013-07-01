@@ -106,12 +106,12 @@ class TestCardiacODESolver(unittest.TestCase):
                             },
                            
                            Fitzhughnagumo:
-                           {"BackwardEuler": (0, -84.69986709136005),
-                            "CrankNicolson": (0, -84.79994981706433),
+                           {"BackwardEuler": (0, -84.70013280019053),
+                            "CrankNicolson": (0, -84.8000501607955),
                             "ForwardEuler":  (0, -84.9),
-                            "RK4":  (0, -84.79995530744164),
-                            "ESDIRK3":  (0, -84.79995539379574),
-                            "ESDIRK4":  (0, -84.79995530333677),
+                            "RK4":  (0, -84.80004467770296),
+                            "ESDIRK3":  (0, -84.80004467770296),
+                            "ESDIRK4":  (0, -84.80004468281632),
                             },
 
                            Tentusscher_2004_mcell:
@@ -225,7 +225,7 @@ class TestCardiacODESolver(unittest.TestCase):
         # Initiate solver, with model and Scheme
         adj_reset()
         solver = self._setup_solver(Model, Scheme, mesh, time, stim, params)
-        solver._pi_solver.parameters["newton_solver"]["absolute_tolerance"] = 1e-5
+        solver._pi_solver.parameters["newton_solver"]["absolute_tolerance"] = 1e-6
         solver._pi_solver.parameters["newton_solver"]["report"] = False
 
         scheme = solver._scheme
