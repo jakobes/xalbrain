@@ -31,7 +31,7 @@ class TestBasicSingleCellSolverAdjoint(unittest.TestCase):
         for ((t0, t1), vs) in solutions:
             pass
 
-    def xtest_replay(self):
+    def test_replay(self):
         "Test that replay reports success for basic single cell solver"
         # Initialize cell model
 
@@ -55,7 +55,7 @@ class TestBasicSingleCellSolverAdjoint(unittest.TestCase):
                 success = replay_dolfin(tol=0.0, stop=True)
                 self.assertEqual(success, True)
 
-    def xtest_compute_adjoint(self):
+    def test_compute_adjoint(self):
         "Test that we can compute the adjoint for some given functional"
 
         for theta in (0.0, 0.5, 1.0):
@@ -94,7 +94,7 @@ class TestBasicSingleCellSolverAdjoint(unittest.TestCase):
                         msg = "Adjoint solution for _vs is None (#fail)."
                         assert (value is not None), msg
 
-    def xtest_compute_gradient(self):
+    def test_compute_gradient(self):
         "Test that we can compute the gradient for some given functional"
 
         for theta in (0.0, 0.5, 1.0):
@@ -129,12 +129,12 @@ class TestBasicSingleCellSolverAdjoint(unittest.TestCase):
                 assert (dJdics is not None), "Gradient is None (#fail)."
                 print dJdics.vector().array()
 
-    def xtest_taylor_remainder(self):
+    def test_taylor_remainder(self):
         "Run Taylor remainder tests for selection of models and solvers."
         for theta in (0.0, 0.5, 1.0):
             for Model in (FitzHughNagumoManual, Fitzhughnagumo,
                           Tentusscher_2004_mcell):
-
+                
                 adj_reset()
                 model = Model()
 

@@ -19,10 +19,16 @@ class TestBasicSingleCellSolver(unittest.TestCase):
 
     def setUp(self):
         "Set-up references when existing."
-        self.references = {NoCellModel: {1.0: 0.3, None: 0.2, 0.0: 0.1},
-                           FitzHughNagumoManual: {1.0:  -84.70013280019053,
-                                                  None: -84.8000503072239979,
-                                                  0.0:  -84.9}}
+        self.references = {NoCellModel: {1.0: (0, 0.3),
+                                         None: (0, 0.2),
+                                         0.0: (0, 0.1)},
+                           FitzHughNagumoManual: {1.0:  (0, -84.70013280019053),
+                                                  None: (0, -84.8000503072239979),
+                                                  0.0:  (0, -84.9)},
+                           Tentusscher_2004_mcell: {1.0: (15, -85.89745525156506),
+                                                    None: (15, -85.99686000794499),
+                                                    0.0:  (15, -86.09643254164848),}
+                           }
 
     def _run_solve(self, model, time, theta=None):
         "Run two time steps for the given model with the given theta solver."
@@ -53,12 +59,12 @@ class TestBasicSingleCellSolver(unittest.TestCase):
         "Set-up model and compare result to precomputed reference if available."
         model = Model()
         time = Constant(0.0)
-        model.stimulus = Expression("1000*t", t=time)
+        model.stimulus = {0:Expression("1000*t", t=time)}
         info_green("\nTesting %s" % model)
         vec_solve = self._run_solve(model, time, theta)
         if Model in self.references and theta in self.references[Model]:
-            self.assertAlmostEqual(vec_solve[0],
-                                   self.references[Model][theta])
+            ind, ref_value = self.references[Model][theta]
+            self.assertAlmostEqual(vec_solve[ind], ref_value)
         else:
             info("Missing references for %r, %r" % (Model, theta))
 
@@ -130,7 +136,7 @@ class TestCardiacODESolver(unittest.TestCase):
 
         # Initialize time and stimulus (note t=time construction!)
         if stim is None:
-            stim = Expression("1000*t", t=time)
+            stim = {0:Expression("1000*t", t=time)}
 
         # Initialize solver
         params = CardiacODESolver.default_parameters()
@@ -218,9 +224,9 @@ class TestCardiacODESolver(unittest.TestCase):
         params = Model.default_parameters()
 
         time = Constant(0.0)
-        stim = Expression("(time >= stim_start) && (time < stim_start + stim_duration)"\
-                          " ? stim_amplitude : 0.0 ", time=time, stim_amplitude=52.0, \
-                          stim_start=1.0, stim_duration=1.0)
+        stim = {0:Expression("(time >= stim_start) && (time < stim_start + stim_duration)"\
+                             " ? stim_amplitude : 0.0 ", time=time, stim_amplitude=52.0, \
+                             stim_start=1.0, stim_duration=1.0)}
 
         # Initiate solver, with model and Scheme
         adj_reset()

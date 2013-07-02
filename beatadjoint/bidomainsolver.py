@@ -65,8 +65,12 @@ class BasicBidomainSolver(object):
       M_e (:py:class:`ufl.Expr`)
         The extracellular conductivity tensor (as an UFL expression)
 
-      I_s (:py:class:`dolfin.Expression`, optional)
-        A (typically time-dependent) external stimulus
+      I_s (:py:class:`dict`, optional)
+        A typically time-dependent external stimulus given as a dict,
+        with domain markers as the key and a
+        :py:class:`dolfin.Expression` as values. NB: it is assumed
+        that the time dependence of I_s is encoded via the 'time'
+        Constant. 
 
       I_a (:py:class:`dolfin.Expression`, optional)
         A (typically time-dependent) external applied current
@@ -94,9 +98,17 @@ class BasicBidomainSolver(object):
         self._domain = domain
         self._M_i = M_i
         self._M_e = M_e
-        self._I_s = I_s
+        self._I_s = I_s or {}
         self._I_a = I_a
 
+        # Check for stored mesh domains
+        self._sub_domains = {}
+        dim = domain.topology().dim()
+        for domain_dim in [0, dim]:
+            if domain.domains().num_marked(domain_dim):
+                self._sub_domains[domain_dim] = MeshFunction(\
+                    "size_t", domain, dim, domain.domains())
+        
         # Create time if not given, otherwise use given time
         if time is None:
             self._time = Constant(0.0)
@@ -120,6 +132,8 @@ class BasicBidomainSolver(object):
         else:
             self.VUR = MixedFunctionSpace((V, U))
 
+        self.V = V
+        
         # Set-up solution fields:
         if v_ is None:
             self.v_ = Function(V, name="v_")
@@ -216,6 +230,11 @@ class BasicBidomainSolver(object):
           self.vur in correct state at t1.
         """
 
+        dim = self._domain.topology().dim()
+        dxx = dx
+        if dim in self._sub_domains:
+            dxx = dxx[self._sub_domains[dim]]
+
         # Extract interval and thus time-step
         (t0, t1) = interval
         k_n = Constant(t1 - t0)
@@ -240,24 +259,29 @@ class BasicBidomainSolver(object):
         t = t0 + theta*(t1 - t0)
         self.time.assign(t)
 
-        theta_parabolic = (inner(M_i*grad(v_mid), grad(w))*dx
-                           + inner(M_i*grad(u), grad(w))*dx)
-        theta_elliptic = (inner(M_i*grad(v_mid), grad(q))*dx
-                          + inner((M_i + M_e)*grad(u), grad(q))*dx)
-        G = Dt_v*w*dx + theta_parabolic + theta_elliptic
+        theta_parabolic = (inner(M_i*grad(v_mid), grad(w))*dxx()
+                           + inner(M_i*grad(u), grad(w))*dxx())
+        theta_elliptic = (inner(M_i*grad(v_mid), grad(q))*dxx()
+                          + inner((M_i + M_e)*grad(u), grad(q))*dxx())
+        G = Dt_v*w*dxx() + theta_parabolic + theta_elliptic
 
         if use_R:
-            G += (lamda*u + l*q)*dx
+            G += (lamda*u + l*q)*dxx()
 
         # Add applied current as source in elliptic equation if
         # applicable
         if self._I_a:
-            G -= self._I_a*q*dx
+            G -= self._I_a*q*dxx()
 
         # Add applied stimulus as source in parabolic equation if
         # applicable
-        if self._I_s:
-            G -= self._I_s*w*dx
+        # FIXME: domain == 0 the whole domain. Any better way to indicate a stimulus
+        # FIXME: for the whole domain?
+        for domain, I in self._I_s.items():
+            if domain == 0:
+                G -= I*w*dxx()
+            else:
+                G -= I*w*dxx(domain)
 
         # Define variational problem
         a, L = system(G)
@@ -310,6 +334,7 @@ class BidomainSolver(BasicBidomainSolver):
         annotate = self.parameters["enable_adjoint"]
         self._lhs_matrix = assemble(self._lhs, annotate=annotate)
         self._rhs_vector = Vector(self._lhs_matrix.size(0))
+        self._lhs_matrix.resize(self._rhs_vector, 0)
 
         # Create linear solver (based on parameter choices)
         self._linear_solver, self._update_solver = self._create_linear_solver()
@@ -415,6 +440,13 @@ class BidomainSolver(BasicBidomainSolver):
           (lhs, rhs, prec) (:py:class:`tuple` of :py:class:`ufl.Form`)
 
         """
+
+        # Check for cell domains
+        dim = self._domain.topology().dim()
+        dxx = dx
+        if dim in self._sub_domains:
+            dxx = dxx[self._sub_domains[dim]]
+
         # Extract theta parameter and conductivities
         theta = self.parameters["theta"]
         M_i = self._M_i
@@ -432,29 +464,34 @@ class BidomainSolver(BasicBidomainSolver):
         # Set-up variational problem
         Dt_v_k_n = (v - self.v_)
         v_mid = theta*v + (1.0 - theta)*self.v_
-        theta_parabolic = (inner(M_i*grad(v_mid), grad(w))*dx
-                           + inner(M_i*grad(u), grad(w))*dx)
-        theta_elliptic = (inner(M_i*grad(v_mid), grad(q))*dx
-                          + inner((M_i + M_e)*grad(u), grad(q))*dx)
+        theta_parabolic = (inner(M_i*grad(v_mid), grad(w))*dxx()
+                           + inner(M_i*grad(u), grad(w))*dxx())
+        theta_elliptic = (inner(M_i*grad(v_mid), grad(q))*dxx()
+                          + inner((M_i + M_e)*grad(u), grad(q))*dxx())
 
-        G = (Dt_v_k_n*w*dx + k_n*theta_parabolic + k_n*theta_elliptic)
+        G = (Dt_v_k_n*w*dxx() + k_n*theta_parabolic + k_n*theta_elliptic)
 
         if use_R:
-            G += k_n*(lamda*u + l*q)*dx
+            G += k_n*(lamda*u + l*q)*dxx()
 
         # Add applied current as source in elliptic equation if
         # applicable
         if self._I_a:
-            G -= k_n*self._I_a*q*dx
+            G -= k_n*self._I_a*q*dxx()
 
         # Add applied stimulus as source in parabolic equation if
         # applicable
-        if self._I_s:
-            G -= k_n*self._I_s*w*dx
+        # FIXME: domain == 0 the whole domain. Any better way to indicate a stimulus
+        # FIXME: for the whole domain?
+        for domain, I in self._I_s.items():
+            if domain == 0:
+                G -= k_n*I*w*dxx()
+            else:
+                G -= k_n*I*w*dxx(domain)
 
         # Define preconditioner based on educated(?) guess by Marie
-        prec = (v*w + k_n/2.0*inner(M_i*grad(v), grad(w)))*dx  \
-            + (u*q + k_n/2.0*inner((M_i + M_e)*grad(u), grad(q)))*dx
+        prec = (v*w + k_n/2.0*inner(M_i*grad(v), grad(w)))*dxx()  \
+            + (u*q + k_n/2.0*inner((M_i + M_e)*grad(u), grad(q)))*dxx()
 
         (a, L) = system(G)
         return (a, L, prec)
@@ -471,6 +508,8 @@ class BidomainSolver(BasicBidomainSolver):
           Assuming that v\_ is in the correct state for t0, gives
           self.vur in correct state at t1.
         """
+
+        timer = Timer("PDE Step")
 
         # Extract interval and thus time-step
         (t0, t1) = interval
@@ -492,7 +531,7 @@ class BidomainSolver(BasicBidomainSolver):
                 "Inconsistency in system: \int I_a = %g != 0" % consistency
 
         # Assemble right-hand-side
-        assemble(self._rhs, tensor=self._rhs_vector, annotate=annotate)
+        assemble(self._rhs, tensor=self._rhs_vector, reset_sparsity=False, annotate=annotate)
 
         # Solve problem
         self.linear_solver.solve(self.vur.vector(), self._rhs_vector,
