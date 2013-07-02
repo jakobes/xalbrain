@@ -43,8 +43,12 @@ class CardiacModel(object):
         the extra-cellular conductivity as an ufl Expression
       cell_model (:py:class:`~beatadjoint.cellmodels.cardiaccellmodel.CardiacCellModel`)
         a cell model
-      stimulus (:py:class:`ufl.Expr`, optional)
-        a stimulus as an ufl Expression
+      stimulus (:py:class:`dict`, optional)
+        A typically time-dependent external stimulus given as a dict,
+        with domain markers as the key and a
+        :py:class:`dolfin.Expression` as values. NB: it is assumed
+        that the time dependence of I_s is encoded via the 'time'
+        Constant. 
       applied_current (:py:class:`ufl.Expr`, optional)
         an applied current as an ufl Expression
 

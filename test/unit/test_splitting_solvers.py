@@ -21,7 +21,8 @@ class TestSplittingSolver(unittest.TestCase):
         self.time = Constant(0.0)
 
         # Create stimulus
-        self.stimulus = Expression("2.0*t", t=self.time)
+        # NOTE: 0 domain is the whole domain
+        self.stimulus = {0:Expression("2.0*t", t=self.time)}
 
         # Create ac
         self.applied_current = Expression("sin(2*pi*x[0])*t", t=self.time)

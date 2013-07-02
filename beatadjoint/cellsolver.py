@@ -58,10 +58,12 @@ class BasicCardiacODESolver(object):
         A (non-)linear lambda scalar function describing the evolution
         of the variable v
 
-      I_s (:py:class:`dolfin.Expression`, optional)
-        A typically time-dependent external stimulus. NB: it is
-        assumed that the time dependence of I_s is encoded via the
-        'time' Constant.
+      I_s (:py:class:`dict`, optional)
+        A typically time-dependent external stimulus given as a dict,
+        with domain markers as the key and a
+        :py:class:`dolfin.Expression` as values. NB: it is assumed
+        that the time dependence of I_s is encoded via the 'time'
+        Constant. 
 
       params (:py:class:`dolfin.Parameters`, optional)
         Solver parameters
@@ -75,7 +77,18 @@ class BasicCardiacODESolver(object):
         self._num_states = num_states
         self._F = F
         self._I_ion = I_ion
-        self._I_s = I_s
+        self._I_s = I_s or {}
+
+        assert isinstance(self._I_s, dict), "expects a dict with domain markers as "\
+               "keys and stimulus expressions as values"
+
+        # Check for stored mesh domains
+        self._sub_domains = {}
+        dim = domain.topology().dim()
+        for domain_dim in [0, dim]:
+            if domain.domains().num_marked(domain_dim):
+                self._sub_domains[domain_dim] = MeshFunction(\
+                    "size_t", domain, dim, domain.domains())
 
         # Create time if not given, otherwise use given time
         if time is None:
@@ -206,6 +219,12 @@ class BasicCardiacODESolver(object):
             The time interval (t0, t1) for the step
         """
 
+        # Check for cell domains
+        dim = self._domain.topology().dim()
+        dxx = dx
+        if dim in self._sub_domains:
+            dxx = dxx[self._sub_domains[dim]]
+
         # Extract time domain
         (t0, t1) = interval
         k_n = Constant(t1 - t0)
@@ -240,12 +259,17 @@ class BasicCardiacODESolver(object):
         #F_theta = theta*self._F(v, s) + (1 - theta)*self._F(v_, s_)
         #I_theta = - (theta*self._I_ion(v, s) + (1 - theta)*self._I_ion(v_, s_))
 
-        # Add stimulus (I_s) if applicable.
-        if self._I_s:
-            I_theta += self._I_s
-
         # Set-up system of equations
         G = (Dt_v - I_theta)*w*dx + inner(Dt_s - F_theta, r)*dx
+
+        # Add stimulus (I_s) if applicable.
+        # FIXME: domain == 0 the whole domain. Any better way to indicate a stimulus
+        # FIXME: for the whole domain?
+        for domain, I in self._I_s.items():
+            if domain == 0:
+                G -= I*w*dxx()
+            else:
+                G -= I*w*dxx(domain)
 
         # Solve system
         pde = NonlinearVariationalProblem(G, self.vs, J=derivative(G, self.vs))
@@ -314,7 +338,7 @@ class CardiacODESolver(object):
         self._num_states = num_states
         self._F = F
         self._I_ion = I_ion
-        self._I_s = I_s
+        self._I_s = I_s or {}
 
         # Create time if not given, otherwise use given time
         if time is None:
@@ -342,9 +366,11 @@ class CardiacODESolver(object):
         self._rhs = (inner(self._F(v, s, self._time), q)
                      - inner(self._I_ion(v, s, self._time), w))*dP
 
-        # Add stimuli current if not None
-        if self._I_s is not None:
-            self._rhs += inner(self._I_s, w)*dP
+        # Add stimuli current
+        assert len(self._I_s) in [0,1], "Domains are not supported for "\
+               "PointIntegralSolver so we only accept one domain"
+        for I in self._I_s.values():
+            self._rhs += inner(I, w)*dP
 
         name = self.parameters["scheme"]
         Scheme = self._name_to_scheme(name)
@@ -404,6 +430,8 @@ class CardiacODESolver(object):
         """
         # NB: The point integral solver operates on vs directly, map
         # initial condition in vs_ to vs:
+        
+        # FIXME: Shaky peformance in parallel?
         self.vs.assign(self.vs_)
 
         (t0, t1) = interval
@@ -435,7 +463,7 @@ class CardiacODESolver(object):
             # do something with the solutions
 
         """
-
+        
         # Initial time set-up
         (T0, T) = interval
 

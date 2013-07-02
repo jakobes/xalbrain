@@ -17,7 +17,7 @@ class TestCase(object):
         self.time = Constant(0.0)
 
         # Create stimulus
-        self.stimulus = Expression("2.0")
+        self.stimulus = {0:Expression("2.0")}
 
         # Create applied current
         self.applied_current = Expression("sin(2*pi*x[0])*t", t=self.time)

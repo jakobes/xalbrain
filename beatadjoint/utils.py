@@ -83,7 +83,7 @@ class Projecter(object):
         self.V = V
         self.u = dolfin.TrialFunction(self.V)
         self.v = dolfin.TestFunction(self.V)
-        self.m = dolfin.inner(self.u, self.v)*dolfin.dx
+        self.m = dolfin.inner(self.u, self.v)*dolfin.dx()
         self.M = dolfin_adjoint.assemble(self.m)
         self.b = dolfin.Vector(V.dim())
 
@@ -124,7 +124,7 @@ class Projecter(object):
           u (:py:class:`dolfin.Function`)
             The result of the projection
         """
-        L = dolfin.inner(f, self.v)*dolfin.dx
-        dolfin.assemble(L, tensor=self.b)
+        L = dolfin.inner(f, self.v)*dolfin.dx()
+        dolfin.assemble(L, tensor=self.b, reset_sparsity=False)
         self.solver.solve(u.vector(), self.b)
 

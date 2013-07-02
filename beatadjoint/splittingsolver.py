@@ -57,6 +57,7 @@ testing or debugging purposes primarily.
 __all__ = ["BasicSplittingSolver", "SplittingSolver"]
 
 from dolfin import *
+import dolfin
 from dolfin_adjoint import *
 from beatadjoint import CardiacModel
 from beatadjoint.cellsolver import BasicCardiacODESolver, CardiacODESolver
@@ -138,7 +139,10 @@ class BasicSplittingSolver:
         cell_model = self._model.cell_model
 
         # Extract stimulus from the cardiac model(!)
-        stimulus = self._model.stimulus
+        if self.parameters.apply_stimulus_current_to_pde:
+            stimulus = None
+        else:
+            stimulus = self._model.stimulus
 
         # Extract ode solver parameters
         params = self.parameters["BasicCardiacODESolver"]
@@ -156,6 +160,12 @@ class BasicSplittingSolver:
         # invoked in the ODE step)
         applied_current = self._model.applied_current
 
+        # Extract stimulus from the cardiac model(!)
+        if self.parameters.apply_stimulus_current_to_pde:
+            stimulus = self._model.stimulus
+        else:
+            stimulus = None
+
         # Extract conductivities from the cardiac model
         (M_i, M_e) = self._model.conductivities()
 
@@ -167,7 +177,7 @@ class BasicSplittingSolver:
             params["enable_adjoint"] = self.parameters["enable_adjoint"]
 
         solver = BasicBidomainSolver(self._domain, self._time, M_i, M_e,
-                                     I_s=None, I_a=applied_current,
+                                     I_s=stimulus, I_a=applied_current,
                                      v_=self.vs[0], params=params)
         return solver
 
@@ -187,6 +197,7 @@ class BasicSplittingSolver:
         params = Parameters("BasicSplittingSolver")
         params.add("enable_adjoint", True)
         params.add("theta", 0.5)
+        params.add("apply_stimulus_current_to_pde", False)
 
         # Add default parameters from ODE solver, but update for V
         # space
@@ -263,8 +274,14 @@ class BasicSplittingSolver:
                     adj_inc_timestep(time=t1, finished=True)
                 break
 
-            # If not, update members
+            
+            # FIXME: This eventually breaks in parallel!?
             self.vs_.assign(self.vs)
+
+            # FIXME: This works in parallel...
+            #self.vs_.vector()._assign(self.vs.vector())
+            
+            # If not, update members
 
             # Move to next time
             if annotate:
@@ -352,8 +369,8 @@ class BasicSplittingSolver:
         VS = self.vs.function_space()
         p = TrialFunction(VS)
         q = TestFunction(VS)
-        a = inner(p, q)*dx
-        L = inner(proj, q)*dx # FIXME: Shape mismatch?
+        a = inner(p, q)*dx()
+        L = inner(proj, q)*dx() # FIXME: Shape mismatch?
         solve(a == L, solution, solver_parameters={"linear_solver": "cg"})
         end()
 
