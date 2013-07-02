@@ -31,7 +31,7 @@ class BasicSingleCellSolverTestCase(unittest.TestCase):
 
         cell = FitzHughNagumoManual()
         time = Constant(0.0)
-        cell.stimulus = Stimulus(time)
+        cell.stimulus = {0:Stimulus(time)}
         print "Is this true: ", isinstance(time, Constant)
         print "%r" % time
         solver = BasicSingleCellSolver(cell, time)

@@ -31,7 +31,7 @@ def forward():
     I = model.I
 
     # Add some forces
-    stimulus = Expression("100*t", t=time)
+    stimulus = {0:Expression("100*t", t=time)}
 
     params = Solver.default_parameters()
     if Solver == CardiacODESolver:

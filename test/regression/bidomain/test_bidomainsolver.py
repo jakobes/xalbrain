@@ -19,7 +19,7 @@ def main(N, dt, T, theta):
 
     # Create stimulus
     ac_str = "cos(t)*cos(2*pi*x[0])*cos(2*pi*x[1]) + 4*pow(pi, 2)*cos(2*pi*x[0])*cos(2*pi*x[1])*sin(t)"
-    stimulus = Expression(ac_str, t=time, degree=5)
+    stimulus = {0:Expression(ac_str, t=time, degree=5)}
 
     # Create conductivity "tensors"
     M_i = 1.0
