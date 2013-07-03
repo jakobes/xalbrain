@@ -37,13 +37,15 @@ class TestBasicBidomainSolverAdjoint(unittest.TestCase):
         adj_reset()
         self.case = TestCase()
 
-    def test_replay(self):
+    def _run_replay(self, solver_type):
         "Test that replay of basic bidomain solver reports success."
         Solver = BasicBidomainSolver
         case = self.case
 
         # Create solver
         params = Solver.default_parameters()
+        params.linear_variational_solver.linear_solver = \
+                        "gmres" if solver_type == "iterative" else "lu"
         solver = Solver(case.mesh, case.time, case.M_i, case.M_e,
                         I_s=case.stimulus,
                         I_a=case.applied_current,
@@ -60,6 +62,12 @@ class TestBasicBidomainSolverAdjoint(unittest.TestCase):
         success = replay_dolfin(stop=True, tol=0.0)
         self.assertEqual(success, True)
 
+    def test_replay_iterative(self):
+        self._run_replay("iterative")
+
+    def test_replay_direct(self):
+        self._run_replay("direct")
+
 class TestBidomainSolverAdjoint(unittest.TestCase):
     "Test adjoint functionality for the bidomain solver."
 
@@ -67,13 +75,15 @@ class TestBidomainSolverAdjoint(unittest.TestCase):
         adj_reset()
         self.case = TestCase()
 
-    def test_replay(self):
+    def _run_replay(self, solver_type):
         "Test that replay of bidomain solver reports success."
         Solver = BidomainSolver
         case = self.case
 
         # Create solver
         params = Solver.default_parameters()
+        params.linear_solver_type = solver_type
+        
         solver = Solver(case.mesh, case.time, case.M_i, case.M_e,
                         I_s=case.stimulus,
                         I_a=case.applied_current, params=params)
@@ -89,6 +99,11 @@ class TestBidomainSolverAdjoint(unittest.TestCase):
         success = replay_dolfin(stop=True, tol=1.e-14)
         self.assertEqual(success, True)
 
+    def test_replay_iterative(self):
+        self._run_replay("iterative")
+
+    def test_replay_direct(self):
+        self._run_replay("direct")
 
 if __name__ == "__main__":
     print("")
