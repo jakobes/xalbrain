@@ -82,7 +82,7 @@ class TestBasicSingleCellSolverAdjoint(unittest.TestCase):
                 adj_html("adjoint.html", "adjoint")
 
                 # Define functional and compute gradient etc
-                J = Functional(inner(vs, vs)*dx*dt[FINISH_TIME])
+                J = Functional(inner(vs_, vs_)*dx*dt[FINISH_TIME])
 
                 # Compute adjoint
                 info_green("Computing adjoint")
@@ -91,7 +91,7 @@ class TestBasicSingleCellSolverAdjoint(unittest.TestCase):
                 # Check that no vs_ adjoint is None (== 0.0!)
                 for (value, var) in z:
                     if var.name == "vs_":
-                        msg = "Adjoint solution for _vs is None (#fail)."
+                        msg = "Adjoint solution for vs_ is None (#fail)."
                         assert (value is not None), msg
 
     def test_compute_gradient(self):
@@ -180,6 +180,7 @@ class TestBasicSingleCellSolverAdjoint(unittest.TestCase):
                     seed=1.e-4
                 else:
                     seed=None
+                
                 conv_rate = taylor_test(Jhat, InitialConditionParameter(vs_),
                                         Jics, dJdics, seed=seed)
 
@@ -212,12 +213,14 @@ class TestCardiacODESolverAdjoint(unittest.TestCase):
         solver._pi_solver.scheme().t().assign(0)
         (vs_, vs) = solver.solution_fields()
         vs_.assign(ics)
-
+        
         # Solve for a couple of steps
-        dt = 0.05
-        T = 40*dt
+        dt = 0.01
+        T = 4*dt
+        dt = [(0.0, dt), (dt*3,dt/2)]
         solver._pi_solver.parameters.reset_stage_solutions = True
         solver._pi_solver.parameters.newton_solver.reset_each_step = True
+        solver._pi_solver.parameters.newton_solver.report = False
         solutions = solver.solve((0.0, T), dt)
         for ((t0, t1), vs) in solutions:
             pass
@@ -240,8 +243,7 @@ class TestCardiacODESolverAdjoint(unittest.TestCase):
                 model = Model(params=params)
 
                 solver = self._setup_solver(model, Scheme, mesh)
-                ics = Function(project(model.initial_conditions(), solver.VS),
-                               name="ics")
+                ics = project(model.initial_conditions(), solver.VS)
                 
                 info_green("Running forward %s with %s" % (model, Scheme))
                 self._run(solver, ics)
@@ -252,38 +254,30 @@ class TestCardiacODESolverAdjoint(unittest.TestCase):
                 success = replay_dolfin(tol=0, stop=True)
                 self.assertTrue(success)
 
-    def xtest_compute_taylor_reminder(self):
+    def test_compute_taylor_reminder(self):
         "Test that we can compute the gradient for some given functional"
         if MPI.num_processes() > 1:
             return
         mesh = UnitIntervalMesh(1)
         for Model in supported_cell_models:
-            for Scheme in ["ForwardEuler", "BackwardEuler", "CrankNicolson",
-                           "RK4", "ESDIRK3", "ESDIRK4"]:
+            for Scheme in ["BackwardEuler", "CrankNicolson", "ESDIRK3", "ESDIRK4",
+                           "ForwardEuler", "RK4"]:
+
+                if Model in [Tentusscher_2004_mcell]:
+                    continue
+                
                 if Model in [Tentusscher_2004_mcell] and Scheme in \
                    ["ForwardEuler", "RK4"]:
                     continue
 
-                #adj_reset()
-
-                # FIXME: Above triggers an assert in libadjoint:
-                # Traceback (most recent call last):
-                #   File "test_cellsolver_adjoints.py", line 235, in test_replay
-                #     adj_reset()
-                #   File "/home/hake/local/lib/python2.7/site-packages/dolfin_adjoint/adjglobals.py", line 82, in adj_reset
-                #     adjointer.reset()
-                #   File "/home/hake/local/lib/python2.7/site-packages/libadjoint/libadjoint.py", line 910, in reset
-                #     assert len(references_taken) == 0
-                # AssertionError
-                
+                adj_reset()
 
                 # Initiate solver, with model and Scheme
                 params = Model.default_parameters()
                 model = Model(params=params)
 
                 solver = self._setup_solver(model, Scheme, mesh)
-                ics = Function(project(model.initial_conditions(), solver.VS),
-                               name="ics")
+                ics = Function(project(model.initial_conditions(), solver.VS), name="ics")
                 
                 info_green("Running forward %s with %s" % (model, Scheme))
                 self._run(solver, ics)
@@ -300,7 +294,7 @@ class TestCardiacODESolverAdjoint(unittest.TestCase):
                 Jics = assemble(form(vs))
 
                 # Seed for taylor test
-                seed = 1.e-4 if isinstance(Model, Tentusscher_2004_mcell) else None
+                seed = 1.e-1 if isinstance(Model, Tentusscher_2004_mcell) else 1e-1
 
                 # Set-up runner
                 def Jhat(ics):
@@ -311,26 +305,26 @@ class TestCardiacODESolverAdjoint(unittest.TestCase):
                 # Stop annotating
                 parameters["adjoint"]["stop_annotating"] = True
 
-                # Compute gradient with respect to vs_. 
+                # Compute gradient with respect to vs. 
                 info_green("Computing gradient")
-                m = InitialConditionParameter(vs_)
+                m = InitialConditionParameter(vs)
 
                 # Check TLM correctness
-                dJdics = compute_gradient_tlm(J, m, forget=False)
+                dJdics = compute_gradient_tlm(J, InitialConditionParameter(vs), forget=False)
                 assert (dJdics is not None), "Gradient is None (#fail)."
-                conv_rate_tlm = taylor_test(Jhat, m, Jics, dJdics, seed=seed)
+                conv_rate_tlm = taylor_test(Jhat, InitialConditionParameter(vs), Jics, dJdics, seed=seed)
 
                 # FIXME: outcommented because of failure
-                #self.assertGreater(conv_rate_tlm, 1.8)
+                self.assertGreater(conv_rate_tlm, 1.8)
 
                 # Check ADM correctness
-                dJdics = compute_gradient(J, m, forget=False)
+                dJdics = compute_gradient(J, InitialConditionParameter(vs), forget=False)
                 assert (dJdics is not None), "Gradient is None (#fail)."
-                conv_rate = taylor_test(Jhat, m, Jics, dJdics, seed=seed)
+                conv_rate = taylor_test(Jhat, InitialConditionParameter(vs), Jics, dJdics, seed=seed)
 
                 # Check that minimal rate is greater than some given number
                 # FIXME: outcommented because of failure
-                #self.assertGreater(conv_rate, 1.8)
+                self.assertGreater(conv_rate, 1.8)
 
 
 if __name__ == "__main__":

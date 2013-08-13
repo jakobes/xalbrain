@@ -40,6 +40,8 @@ class TestBasicSingleCellSolver(unittest.TestCase):
         params = BasicSingleCellSolver.default_parameters()
         if theta is not None:
             params["theta"] = theta
+
+        params["enable_adjoint"] = False
         solver = BasicSingleCellSolver(model, time, params=params)
 
         # Assign initial conditions
