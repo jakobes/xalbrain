@@ -38,9 +38,12 @@ class TestSplittingSolver(unittest.TestCase):
                                           self.stimulus,
                                           self.applied_current)
 
+        dt = 0.1
         self.t0 = 0.0
-        self.dt = 0.1
-        self.T = self.t0 + 5*self.dt
+        self.dt = [(0.0, dt), (dt*2, dt/2), (dt*4, dt)]
+        # Test using variable dt interval but using the same dt.
+
+        self.T = self.t0 + 5*dt
         self.ics = self.cell_model.initial_conditions()
 
 

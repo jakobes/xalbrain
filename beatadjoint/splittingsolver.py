@@ -62,7 +62,8 @@ from dolfin_adjoint import *
 from beatadjoint import CardiacModel
 from beatadjoint.cellsolver import BasicCardiacODESolver, CardiacODESolver
 from beatadjoint.bidomainsolver import BasicBidomainSolver, BidomainSolver
-from beatadjoint.utils import state_space, end_of_time, Projecter
+from beatadjoint.monodomainsolver import BasicMonodomainSolver, MonodomainSolver
+from beatadjoint.utils import state_space, TimeStepper, Projecter
 
 class BasicSplittingSolver:
     """
@@ -169,16 +170,24 @@ class BasicSplittingSolver:
         # Extract conductivities from the cardiac model
         (M_i, M_e) = self._model.conductivities()
 
-        # Extract ode solver parameters
-        params = self.parameters["BasicBidomainSolver"]
-
+        if self.parameters["pde_solver"] == "bidomain":
+            PDESolver = BasicBidomainSolver
+            params = self.parameters["BasicBidomainSolver"]
+            args = (self._domain, self._time, M_i, M_e)
+            kwargs = dict(I_s=stimulus, I_a=applied_current,
+                          v_=self.vs[0], params=params)
+        else:
+            PDESolver = BasicMonodomainSolver
+            params = self.parameters["BasicMonodomainSolver"]
+            args = (self._domain, self._time, M_i,)
+            kwargs = dict(I_s=stimulus, v_=self.vs[0], params=params)
+        
         # Propagate enable_adjoint to Bidomain solver
         if params.has_key("enable_adjoint"):
             params["enable_adjoint"] = self.parameters["enable_adjoint"]
 
-        solver = BasicBidomainSolver(self._domain, self._time, M_i, M_e,
-                                     I_s=stimulus, I_a=applied_current,
-                                     v_=self.vs[0], params=params)
+        solver = PDESolver(*args, **kwargs)
+
         return solver
 
     @staticmethod
@@ -198,6 +207,7 @@ class BasicSplittingSolver:
         params.add("enable_adjoint", True)
         params.add("theta", 0.5)
         params.add("apply_stimulus_current_to_pde", False)
+        params.add("pde_solver", "bidomain", ["bidomain", "monodomain"])
 
         # Add default parameters from ODE solver, but update for V
         # space
@@ -207,6 +217,10 @@ class BasicSplittingSolver:
         params.add(ode_solver_params)
 
         pde_solver_params = BasicBidomainSolver.default_parameters()
+        pde_solver_params["polynomial_degree"] = 1
+        params.add(pde_solver_params)
+
+        pde_solver_params = BasicMonodomainSolver.default_parameters()
         pde_solver_params["polynomial_degree"] = 1
         params.add(pde_solver_params)
 
@@ -234,8 +248,10 @@ class BasicSplittingSolver:
         *Arguments*
           interval (:py:class:`tuple`)
             The time interval for the solve given by (t0, t1)
-          dt (int)
-            The timestep for the solve
+          dt (int, list of tuples of floats)
+            The timestep for the solve. A list of tuples of floats can
+            also be passed. Each tuple should contain two floats where the
+            first includes the start time and the second the dt.
 
         *Returns*
           (timestep, solution_fields) via (:py:class:`genexpr`)
@@ -243,24 +259,20 @@ class BasicSplittingSolver:
         *Example of usage*::
 
           # Create generator
-          solutions = solver.solve((0.0, 1.0), 0.1)
+          dts = [(0., 0.1), (1.0, 0.05), (2.0, 0.1)]
+          solutions = solver.solve((0.0, 1.0), dts)
 
           # Iterate over generator (computes solutions as you go)
           for ((t0, t1), (vs_, vs, vur)) in solutions:
             # do something with the solutions
 
         """
-        # Initial set-up
-        (T0, T) = interval
-        t0 = T0
-        t1 = T0 + dt
-        annotate = self.parameters["enable_adjoint"]
 
-        # Step through time steps until at end time.
-        if annotate:
-            adj_start_timestep(t0)
+        # Create timestepper 
+        time_stepper = TimeStepper(interval, dt, \
+                                   annotate=self.parameters["enable_adjoint"])
 
-        while (True):
+        for t0, t1 in time_stepper:
 
             info_blue("Solving on t = (%g, %g)" % (t0, t1))
             self.step((t0, t1))
@@ -268,26 +280,8 @@ class BasicSplittingSolver:
             # Yield solutions
             yield (t0, t1), self.solution_fields()
 
-            # Break if this is the last step
-            if end_of_time(T, t0, t1, dt):
-                if annotate:
-                    adj_inc_timestep(time=t1, finished=True)
-                break
-
-            
             # FIXME: This eventually breaks in parallel!?
             self.vs_.assign(self.vs)
-
-            # FIXME: This works in parallel...
-            #self.vs_.vector()._assign(self.vs.vector())
-            
-            # If not, update members
-
-            # Move to next time
-            if annotate:
-                adj_inc_timestep(time=t1)
-            t0 = t1
-            t1 = t0 + dt
 
     def step(self, interval):
         """
@@ -358,7 +352,12 @@ class BasicSplittingSolver:
             Function holding the combined result
         """
         begin("Merging")
-        v = split(self.vur)[0]
+
+        if self.parameters["pde_solver"] == "bidomain":
+            v = split(self.vur)[0]
+        else:
+            v = self.vur
+        
         s = split(self.vs)[1]
 
         if len(s.shape())==1:
@@ -400,6 +399,7 @@ class SplittingSolver(BasicSplittingSolver):
         params.add("enable_adjoint", True)
         params.add("theta", 0.5)
         params.add("apply_stimulus_current_to_pde", False)
+        params.add("pde_solver", "bidomain", ["bidomain", "monodomain"])
 
         # Add default parameters from ODE solver
         ode_solver_params = CardiacODESolver.default_parameters()
@@ -407,6 +407,10 @@ class SplittingSolver(BasicSplittingSolver):
         params.add(ode_solver_params)
 
         pde_solver_params = BidomainSolver.default_parameters()
+        pde_solver_params["polynomial_degree"] = 1
+        params.add(pde_solver_params)
+
+        pde_solver_params = MonodomainSolver.default_parameters()
         pde_solver_params["polynomial_degree"] = 1
         params.add(pde_solver_params)
 
@@ -443,6 +447,7 @@ class SplittingSolver(BasicSplittingSolver):
         # Extract applied current from the cardiac model (stimulus
         # invoked in the ODE step)
         applied_current = self._model.applied_current
+
         # Extract stimulus from the cardiac model(!)
         if self.parameters.apply_stimulus_current_to_pde:
             stimulus = self._model.stimulus
@@ -452,17 +457,24 @@ class SplittingSolver(BasicSplittingSolver):
         # Extract conductivities from the cardiac model
         (M_i, M_e) = self._model.conductivities()
 
-        # Extract ode solver parameters
-        params = self.parameters["BidomainSolver"]
-
+        if self.parameters["pde_solver"] == "bidomain":
+            PDESolver = BidomainSolver
+            params = self.parameters["BidomainSolver"]
+            args = (self._domain, self._time, M_i, M_e)
+            kwargs = dict(I_s=stimulus, I_a=applied_current,
+                          v_=self.vs[0], params=params)
+        else:
+            PDESolver = MonodomainSolver
+            params = self.parameters["MonodomainSolver"]
+            args = (self._domain, self._time, M_i,)
+            kwargs = dict(I_s=stimulus, v_=self.vs[0], params=params)
+        
         # Propagate enable_adjoint to Bidomain solver
         if params.has_key("enable_adjoint"):
             params["enable_adjoint"] = self.parameters["enable_adjoint"]
 
-        solver = BidomainSolver(self._domain, self._time, M_i, M_e,
-                                I_s=stimulus, I_a=applied_current,
-                                v_=self.vs[0],
-                                params=params)
+        solver = PDESolver(*args, **kwargs)
+
         return solver
 
     def merge(self, solution):
@@ -477,7 +489,11 @@ class SplittingSolver(BasicSplittingSolver):
         # Disabled for now (does not pass replay)
 
         begin("Merging using custom projecter")
-        v = split(self.vur)[0]
+        if self.parameters["pde_solver"] == "bidomain":
+            v = split(self.vur)[0]
+        else:
+            v = self.vur
+        
         s = split(self.vs)[1]
         # FIXME: We should not need to do a projection. A sub function assign would
         # FIXME: be sufficient.

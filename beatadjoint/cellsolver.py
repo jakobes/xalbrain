@@ -9,7 +9,7 @@ __all__ = ["BasicSingleCellSolver",
 from dolfin import *
 from dolfin_adjoint import *
 from beatadjoint import CardiacCellModel
-from beatadjoint.utils import state_space, end_of_time
+from beatadjoint.utils import state_space, TimeStepper
 
 class BasicCardiacODESolver(object):
     """A basic, non-optimised solver for systems of ODEs typically
@@ -132,6 +132,7 @@ class BasicCardiacODESolver(object):
         params.add("V_polynomial_family", "DG")
         params.add("S_polynomial_degree", 0)
         params.add("S_polynomial_family", "DG")
+        params.add("enable_adjoint", True)
 
         # Use iterative solver as default.
         params.add(NonlinearVariationalSolver.default_parameters())
@@ -185,28 +186,20 @@ class BasicCardiacODESolver(object):
         if dt is None:
             dt = (T - T0)
 
-        t0 = T0
-        t1 = T0 + dt
+        # Create timestepper 
+        time_stepper = TimeStepper(interval, dt, \
+                                   annotate=self.parameters["enable_adjoint"])
 
-        # Check that we are not at end of time already.
-        if end_of_time(T, None, t0, dt):
-            info_red("Given end time %g is less than given increment %g", T, dt)
+        for t0, t1 in time_stepper:
 
-        # Step through time steps until at end time
-        while (True) :
+            info_blue("Solving on t = (%g, %g)" % (t0, t1))
             self.step((t0, t1))
 
             # Yield solutions
             yield (t0, t1), self.vs
 
-            # Break if this is the last step
-            if end_of_time(T, t0, t1, dt):
-                break
-
-            # If not: update members and move to next time
+            # FIXME: This eventually breaks in parallel!?
             self.vs_.assign(self.vs)
-            t0 = t1
-            t1 = t0 + dt
 
     def step(self, interval):
         """
@@ -218,6 +211,8 @@ class BasicCardiacODESolver(object):
           interval (:py:class:`tuple`)
             The time interval (t0, t1) for the step
         """
+
+        timer = Timer("ODE step")
 
         # Check for cell domains
         dim = self._domain.topology().dim()
@@ -402,6 +397,7 @@ class CardiacODESolver(object):
         params = Parameters("CardiacODESolver")
         params.add("scheme", "BackwardEuler")
         params.add(PointIntegralSolver.default_parameters())
+        params.add("enable_adjoint", True)
 
         return params
 
@@ -431,6 +427,8 @@ class CardiacODESolver(object):
         # NB: The point integral solver operates on vs directly, map
         # initial condition in vs_ to vs:
         
+        timer = Timer("ODE step")
+
         # FIXME: Shaky peformance in parallel?
         self.vs.assign(self.vs_)
 
@@ -470,28 +468,21 @@ class CardiacODESolver(object):
         # Solve on entire interval if no interval is given.
         if dt is None:
             dt = (T - T0)
-        t0 = T0
-        t1 = T0 + dt
 
-        # Check that we are not at end of time already.
-        if end_of_time(T, None, t0, dt):
-            info_red("Given end time %g is less than given increment %g", T, dt)
+        # Create timestepper 
+        time_stepper = TimeStepper(interval, dt, \
+                                   annotate=self.parameters["enable_adjoint"])
 
-        # Step through time steps until at end time
-        while (True) :
+        for t0, t1 in time_stepper:
+
+            info_blue("Solving on t = (%g, %g)" % (t0, t1))
             self.step((t0, t1))
 
             # Yield solutions
             yield (t0, t1), self.vs
 
-            # Break if this is the last step
-            if end_of_time(T, t0, t1, dt):
-                break
-
-            # If not: update members and move to next time
+            # FIXME: This eventually breaks in parallel!?
             self.vs_.assign(self.vs)
-            t0 = t1
-            t1 = t0 + dt
 
 class BasicSingleCellSolver(BasicCardiacODESolver):
     """A basic, non-optimised solver for systems of ODEs typically

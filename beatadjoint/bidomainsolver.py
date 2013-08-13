@@ -187,6 +187,8 @@ class BasicBidomainSolver(object):
             # do something with the solutions
         """
 
+        timer = Timer("PDE step")
+
         # Initial set-up
         # Solve on entire interval if no interval is given.
         (T0, T) = interval
@@ -229,6 +231,8 @@ class BasicBidomainSolver(object):
           Assuming that v\_ is in the correct state for t0, gives
           self.vur in correct state at t1.
         """
+
+        timer = Timer("PDE step")
 
         dim = self._domain.topology().dim()
         dxx = dx
@@ -509,7 +513,7 @@ class BidomainSolver(BasicBidomainSolver):
           self.vur in correct state at t1.
         """
 
-        timer = Timer("PDE Step")
+        timer = Timer("PDE step")
 
         # Extract interval and thus time-step
         (t0, t1) = interval
