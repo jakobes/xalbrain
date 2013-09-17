@@ -9,7 +9,7 @@ __author__ = "Marie E. Rognes (meg@simula.no), 2012--2013"
 __all__ = ["BasicSingleCellSolverTestCase"]
 
 import unittest
-from dolfin import *
+from beatadjoint.dolfinimport import *
 from beatadjoint import FitzHughNagumoManual, CardiacCellModel, BasicSingleCellSolver
 
 class BasicSingleCellSolverTestCase(unittest.TestCase):
@@ -28,6 +28,9 @@ class BasicSingleCellSolverTestCase(unittest.TestCase):
                     value[0] = 0.05*v_amp
                 else:
                     value[0] = 0.0
+
+        if dolfin_adjoint:
+            adj_reset()
 
         cell = FitzHughNagumoManual()
         time = Constant(0.0)
@@ -153,6 +156,9 @@ class BasicSingleCellSolverTestCase(unittest.TestCase):
                 return "Modified FitzHugh-Nagumo cardiac cell model"
 
         def _run(cell):
+            if dolfin_adjoint:
+                adj_reset()
+
             solver = BasicSingleCellSolver(cell, None)
 
             # Setup initial condition
