@@ -7,8 +7,7 @@ __all__ = ["TestBasicSingleCellSolverAdjoint"]
 
 
 import unittest
-from dolfin import *
-from dolfin_adjoint import *
+from beatadjoint.dolfinimport import *
 from beatadjoint import *
 
 # TODO: Check with these parameters!
@@ -329,6 +328,10 @@ class TestCardiacODESolverAdjoint(unittest.TestCase):
 
 if __name__ == "__main__":
     print("")
-    print("Testing adjoints of cell solvers")
-    print("--------------------------------")
-    unittest.main()
+    if dolfin_adjoint:
+        print("Testing adjoints of cell solvers")
+        print("------------------------------------")
+        unittest.main()
+    else:
+        print("Dolfin adjoint not present. Skipping this test")
+        print("-----------------------------------------------")

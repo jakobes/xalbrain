@@ -27,8 +27,7 @@ assumes pure homogeneous Neumann boundary conditions for :math:`v`.
 
 __all__ = ["BasicMonodomainSolver", "MonodomainSolver"]
 
-from dolfin import *
-from dolfin_adjoint import *
+from dolfinimport import *
 from beatadjoint.utils import end_of_time
 
 class BasicMonodomainSolver(object):

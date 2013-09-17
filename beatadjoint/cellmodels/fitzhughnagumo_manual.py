@@ -10,7 +10,7 @@ __author__ = "Marie E. Rognes (meg@simula.no), 2012--2013"
 __all__ = ["FitzHughNagumoManual"]
 
 from collections import OrderedDict
-from dolfin import Parameters, Expression
+from beatadjoint.dolfinimport import Parameters, Expression
 from beatadjoint.cellmodels import CardiacCellModel
 
 class FitzHughNagumoManual(CardiacCellModel):

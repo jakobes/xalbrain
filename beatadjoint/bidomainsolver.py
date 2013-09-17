@@ -33,8 +33,7 @@ for u.
 
 __all__ = ["BasicBidomainSolver", "BidomainSolver"]
 
-from dolfin import *
-from dolfin_adjoint import *
+from dolfinimport import *
 from beatadjoint.utils import end_of_time
 
 class BasicBidomainSolver(object):
@@ -335,8 +334,14 @@ class BidomainSolver(BasicBidomainSolver):
         # Preassemble left-hand side (will be updated if time-step
         # changes)
         debug("Preassembling bidomain matrix (and initializing vector)")
-        annotate = self.parameters["enable_adjoint"]
-        self._lhs_matrix = assemble(self._lhs, annotate=annotate)
+        if self.parameters["enable_adjoint"] and not dolfin_adjoint:
+            warning("'enable_adjoint' is set to True, but no "\
+                    "dolfin_adjoint installed.")
+
+        annotate_kwargs = {"annotate":self.parameters["enable_adjoint"]} \
+                          if dolfin_adjoint else {}
+        self._lhs_matrix = assemble(self._lhs, **annotate_kwargs)
+            
         self._rhs_vector = Vector(self._lhs_matrix.size(0))
         self._lhs_matrix.resize(self._rhs_vector, 0)
 
@@ -353,7 +358,8 @@ class BidomainSolver(BasicBidomainSolver):
         "Helper function for creating linear solver based on parameters."
         solver_type = self.parameters["linear_solver_type"]
 
-        annotate = self.parameters["enable_adjoint"]
+        annotate_kwargs = {"annotate":self.parameters["enable_adjoint"]} \
+                          if dolfin_adjoint else {}
 
         if solver_type == "direct":
             solver = LUSolver(self._lhs_matrix)
@@ -365,7 +371,7 @@ class BidomainSolver(BasicBidomainSolver):
             # Preassemble preconditioner (will be updated if time-step
             # changes)
             debug("Preassembling preconditioner")
-            self._prec_matrix = assemble(self._prec, annotate=annotate)
+            self._prec_matrix = assemble(self._prec, **annotate_kwargs)
 
             # Initialize KrylovSolver with matrix and preconditioner
             alg = self.parameters["algorithm"]
@@ -385,7 +391,8 @@ class BidomainSolver(BasicBidomainSolver):
 
             # We happen to know that the transpose nullspace is the
             # same (easy to prove from matrix structure)
-            solver.set_transpose_nullspace(null_space)
+            if hasattr(solver, "set_transpose_nullspace"):
+                solver.set_transpose_nullspace(null_space)
 
             update_routine = self._update_krylov_solver
         else:
@@ -519,7 +526,9 @@ class BidomainSolver(BasicBidomainSolver):
         (t0, t1) = interval
         dt = t1 - t0
         theta = self.parameters["theta"]
-        annotate = self.parameters["enable_adjoint"]
+        annotate_kwargs = {"annotate":self.parameters["enable_adjoint"]} \
+                          if dolfin_adjoint else {}
+
         t = t0 + theta*dt
         self.time.assign(t)
 
@@ -535,17 +544,19 @@ class BidomainSolver(BasicBidomainSolver):
                 "Inconsistency in system: \int I_a = %g != 0" % consistency
 
         # Assemble right-hand-side
-        assemble(self._rhs, tensor=self._rhs_vector, reset_sparsity=False, annotate=annotate)
+        assemble(self._rhs, tensor=self._rhs_vector, reset_sparsity=False, \
+                 **annotate_kwargs)
 
         # Solve problem
         self.linear_solver.solve(self.vur.vector(), self._rhs_vector,
-                                 annotate=annotate)
+                                 **annotate_kwargs)
 
     def _update_lu_solver(self, timestep_unchanged, dt):
         """Helper function for updating an LUSolver depending on
         whether timestep has changed."""
 
-        annotate = self.parameters["enable_adjoint"]
+        annotate_kwargs = {"annotate":self.parameters["enable_adjoint"]} \
+                          if dolfin_adjoint else {}
 
         # Update reuse of factorization parameter in accordance with
         # changes in timestep
@@ -561,13 +572,14 @@ class BidomainSolver(BasicBidomainSolver):
             self._timestep.assign(Constant(dt))#, annotate=annotate)
 
             # Reassemble matrix
-            assemble(self._lhs, tensor=self._lhs_matrix, annotate=annotate)
+            assemble(self._lhs, tensor=self._lhs_matrix, **annotate_kwargs)
 
     def _update_krylov_solver(self, timestep_unchanged, dt):
         """Helper function for updating a KrylovSolver depending on
         whether timestep has changed."""
 
-        annotate = self.parameters["enable_adjoint"]
+        annotate_kwargs = {"annotate":self.parameters["enable_adjoint"]} \
+                          if dolfin_adjoint else {}
 
         # Update reuse of preconditioner parameter in accordance with
         # changes in timestep
@@ -582,10 +594,10 @@ class BidomainSolver(BasicBidomainSolver):
             self._timestep.assign(Constant(dt))
 
             # Reassemble matrix
-            assemble(self._lhs, tensor=self._lhs_matrix, annotate=annotate)
+            assemble(self._lhs, tensor=self._lhs_matrix, **annotate_kwargs)
 
             # Reassemble preconditioner
-            assemble(self._prec, tensor=self._prec_matrix, annotate=annotate)
+            assemble(self._prec, tensor=self._prec_matrix, **annotate_kwargs)
 
 
         # Set nonzero initial guess if it indeed is nonzero

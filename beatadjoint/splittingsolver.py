@@ -56,9 +56,7 @@ testing or debugging purposes primarily.
 
 __all__ = ["BasicSplittingSolver", "SplittingSolver"]
 
-from dolfin import *
-import dolfin
-from dolfin_adjoint import *
+from dolfinimport import *
 from beatadjoint import CardiacModel
 from beatadjoint.cellsolver import BasicCardiacODESolver, CardiacODESolver
 from beatadjoint.bidomainsolver import BasicBidomainSolver, BidomainSolver
@@ -137,7 +135,7 @@ class BasicSplittingSolver:
         the cardiac model."""
 
         # Extract cardiac cell model from cardiac model
-        cell_model = self._model.cell_model
+        cell_model = self._model.cell_model()
 
         # Extract stimulus from the cardiac model(!)
         if self.parameters.apply_stimulus_current_to_pde:
@@ -424,7 +422,7 @@ class SplittingSolver(BasicSplittingSolver):
         the cardiac model."""
 
         # Extract cardiac cell model from cardiac model
-        cell_model = self._model.cell_model
+        cell_model = self._model.cell_model()
 
         # Extract stimulus from the cardiac model(!)
         if self.parameters.apply_stimulus_current_to_pde:

@@ -4,7 +4,7 @@ from __future__ import division
 __author__ = "Marie E. Rognes (meg@simula.no), 2012--2013"
 __all__ = ["CardiacCellModel"]
 
-from dolfin import Parameters, Expression, error, GenericFunction
+from beatadjoint.dolfinimport import Parameters, Expression, error, GenericFunction
 from collections import OrderedDict
 
 class CardiacCellModel:
