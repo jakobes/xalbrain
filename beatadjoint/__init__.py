@@ -21,6 +21,8 @@ from beatadjoint.cellsolver import BasicSingleCellSolver
 from beatadjoint.cellsolver import BasicCardiacODESolver, CardiacODESolver
 from beatadjoint.bidomainsolver import BasicBidomainSolver
 from beatadjoint.bidomainsolver import BidomainSolver
+from beatadjoint.monodomainsolver import BasicMonodomainSolver
+from beatadjoint.monodomainsolver import MonodomainSolver
 
 # Various utility functions, mainly for internal use
 import beatadjoint.utils
