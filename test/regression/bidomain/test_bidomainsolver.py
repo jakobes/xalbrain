@@ -6,9 +6,7 @@ verify the correctness of the BidomainSolver.
 __author__ = "Marie E. Rognes (meg@simula.no), 2013"
 __all__ = []
 
-from dolfin import *
-from dolfin_adjoint import *
-
+from beatadjoint.dolfinimport import *
 from beatadjoint import BidomainSolver
 from beatadjoint.utils import convergence_rate
 

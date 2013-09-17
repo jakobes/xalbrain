@@ -7,7 +7,7 @@ splitting solver.
 __author__ = "Marie E. Rognes (meg@simula.no), 2012--2013"
 __all__ = []
 
-from dolfin import *
+from beatadjoint.dolfinimport import *
 from beatadjoint import *
 from beatadjoint.utils import convergence_rate
 
