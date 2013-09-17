@@ -10,7 +10,6 @@ __all__ = ["TestBasicSingleCellSolver",
 import unittest
 import numpy as np
 from dolfin import *
-from dolfin_adjoint import *
 from beatadjoint import *
 from beatadjoint.utils import state_space
 
@@ -231,7 +230,9 @@ class TestCardiacODESolver(unittest.TestCase):
                              stim_start=1.0, stim_duration=1.0)}
 
         # Initiate solver, with model and Scheme
-        adj_reset()
+        if dolfin_adjoint:
+            adj_reset()
+
         solver = self._setup_solver(Model, Scheme, mesh, time, stim, params)
         solver._pi_solver.parameters["newton_solver"]["absolute_tolerance"] = 1e-6
         solver._pi_solver.parameters["newton_solver"]["report"] = False
@@ -241,12 +242,12 @@ class TestCardiacODESolver(unittest.TestCase):
 
         vs.assign(vs_)
 
-        vertex_to_dof_map = vs.function_space().dofmap().vertex_to_dof_map(mesh)
+        dof_to_vertex_map_values = dof_to_vertex_map(vs.function_space())
         scheme.t().assign(0.0)
 
         vs_array = np.zeros(mesh.num_vertices()*\
                             vs.function_space().dofmap().num_entity_dofs(0))
-        vs_array[vertex_to_dof_map] = vs.vector().array()
+        vs_array[dof_to_vertex_map_values] = vs.vector().array()
         output = [vs_array[ind_V]]
         time_output = [0.0]
         dt = dt_org
@@ -262,7 +263,7 @@ class TestCardiacODESolver(unittest.TestCase):
             vs_.assign(vs)
 
             # Collect plt output data
-            vs_array[vertex_to_dof_map] = vs.vector().array()
+            vs_array[dof_to_vertex_map_values] = vs.vector().array()
             output.append(vs_array[ind_V])
             time_output.append(float(scheme.t()))
 

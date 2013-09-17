@@ -68,7 +68,8 @@ class TestSplittingSolver(unittest.TestCase):
         c = vur.vector().norm("l2")
         self.assertAlmostEqual(interval[1], self.T)
 
-        adj_reset()
+        if dolfin_adjoint:
+            adj_reset()
 
         # Create optimised solver with direct solution algorithm
         params = SplittingSolver.default_parameters()

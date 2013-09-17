@@ -6,8 +6,7 @@ __all__ = ["BasicSingleCellSolver",
            "BasicCardiacODESolver",
            "CardiacODESolver"]
 
-from dolfin import *
-from dolfin_adjoint import *
+from dolfinimport import *
 from beatadjoint import CardiacCellModel
 from beatadjoint.utils import state_space, TimeStepper
 

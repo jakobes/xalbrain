@@ -7,9 +7,7 @@ from __future__ import division
 from collections import OrderedDict
 import ufl
 
-from dolfin import *
-from dolfin_adjoint import *
-
+from beatadjoint.dolfinimport import *
 from beatadjoint.cellmodels import CardiacCellModel
 
 class Fitzhughnagumo(CardiacCellModel):

@@ -8,6 +8,8 @@ To import the module, type::
 
 """
 
+import dolfinimport
+
 # Model imports
 from beatadjoint.cardiacmodels import CardiacModel
 from beatadjoint.cellmodels import *

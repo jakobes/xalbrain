@@ -4,8 +4,7 @@ for flexibly discretising ODEs in Dolfin.
 """
 
 import numpy
-from dolfin import *
-from dolfin_adjoint import *
+from dolfinimport import *
 import ufl
         
 class ButcherTable(object):

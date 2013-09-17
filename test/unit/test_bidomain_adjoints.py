@@ -7,8 +7,7 @@ __all__ = ["TestBasicBidomainSolverAdjoint",
            "TestBidomainSolverAdjoint"]
 
 import unittest
-from dolfin import *
-from dolfin_adjoint import *
+from beatadjoint.dolfinimport import *
 from beatadjoint import *
 
 class TestCase(object):
@@ -110,6 +109,11 @@ class TestBidomainSolverAdjoint(unittest.TestCase):
 
 if __name__ == "__main__":
     print("")
-    print("Testing adjoints of bidomain solvers")
-    print("------------------------------------")
-    unittest.main()
+    if dolfin_adjoint:
+        print("Testing adjoints of bidomain solvers")
+        print("------------------------------------")
+        unittest.main()
+    else:
+        print("Dolfin adjoint not present. Skipping this test")
+        print("-----------------------------------------------")
+        

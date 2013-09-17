@@ -6,8 +6,7 @@ __all__ = ["state_space", "end_of_time", "convergence_rate",
            "Projecter"]
 
 import math
-import dolfin
-import dolfin_adjoint
+from dolfinimport import dolfin, dolfin_adjoint
 
 def state_space(domain, d, family=None, k=1):
     """Return function space for the state variables.
@@ -110,7 +109,7 @@ class TimeStepper:
         #self.t1 = self.T0 + self.dt
 
         # Step through time steps until at end time.
-        if self.annotate:
+        if self.annotate and dolfin_adjoint:
             dolfin_adjoint.adj_start_timestep(self.T0)
 
     def __iter__(self):
@@ -128,12 +127,12 @@ class TimeStepper:
 
             # Break if this is the last step
             if abs(t1-self.T1) < dolfin.DOLFIN_EPS:
-                if self.annotate:
+                if self.annotate and dolfin_adjoint:
                     dolfin_adjoint.adj_inc_timestep(time=t1, finished=True)
                 break
             
             # Move to next time
-            if self.annotate:
+            if self.annotate and dolfin_adjoint:
                 dolfin_adjoint.adj_inc_timestep(time=t1)
             
             self.t0 = t1
@@ -196,7 +195,10 @@ class Projecter(object):
         self.u = dolfin.TrialFunction(self.V)
         self.v = dolfin.TestFunction(self.V)
         self.m = dolfin.inner(self.u, self.v)*dolfin.dx()
-        self.M = dolfin_adjoint.assemble(self.m)
+        if dolfin_adjoint:
+            self.M = dolfin_adjoint.assemble(self.m)
+        else:
+            self.M = dolfin.assemble(self.m)
         self.b = dolfin.Vector(V.dim())
 
         solver_type = self.parameters["linear_solver_type"]
