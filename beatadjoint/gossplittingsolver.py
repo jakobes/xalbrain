@@ -307,7 +307,6 @@ class GOSSplittingSolver:
 
         # Assumes that ode_solver is in the correct state
         self.ode_solver.step((t0, t), self.v)
-        ode_sol = self.v.vector().array()
         end()
 
         # Compute tentative potentials vu = (v, u)
@@ -315,7 +314,6 @@ class GOSSplittingSolver:
         # Assumes that its v is in the correct state, gives vur in
         # the current state
         self.pde_solver.step((t0, t1))
-        pde_sol = self.vur.vector().array()
         self.merge(self.v)
         end()
 
