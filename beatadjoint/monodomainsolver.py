@@ -459,7 +459,7 @@ class MonodomainSolver(BasicMonodomainSolver):
 
         # Solve problem
         self.linear_solver.solve(self.v.vector(), self._rhs_vector,
-                                 annotate=annotate)
+                                 **annotate_kwargs)
 
     def _update_lu_solver(self, timestep_unchanged, dt):
         """Helper function for updating an LUSolver depending on
