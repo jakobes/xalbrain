@@ -24,73 +24,6 @@ from beatadjoint.monodomainsolver import MonodomainSolver
 from beatadjoint.cardiacmodels import CardiacModel
 from beatadjoint.utils import TimeStepper, Projecter
 
-class BeatAdjointODESystemSolver(goss.ODESystemSolver):
-    def __init__(self, scheme, cell_models, v, cell_model_domains=None):
-        
-        # Store dolfin function with membrane potential solution
-        # For each step taken we need to copy values from v to self, and back
-        # again after step is taken
-        self.v = v
-
-        V = v.function_space()
-        assert(len(V.ufl_element().value_shape()) in [0,1])
-        assert(V.dofmap().num_entity_dofs(0)==1)
-        
-        self.dof_to_vertex_map = dof_to_vertex_map(V)
-        #num_nodes = V.mesh().num_vertices()
-        num_nodes = len(self.dof_to_vertex_map)
-        self.v_values = np.zeros(num_nodes, dtype=np.float_)
-        self.v_values[:] = 1.0
-        
-        # Init base class
-        goss.ODESystemSolver.__init__(self, num_nodes, scheme, cell_model)
-        self.reset_default()
-        
-    def step(self, interval):
-        """
-        Solve on the given time step (t0, t1).
-        
-        End users are recommended to use solve instead.
-        
-        *Arguments*
-          interval (:py:class:`tuple`)
-            The time interval (t0, t1) for the step
-        """
-
-        timer = Timer("ODE step")
-        (t0, t1) = interval
-        dt = t1 - t0
-        
-        # Update vertex based values
-        #self.v_values[self.dof_to_vertex_map] = self.v.vector().array()
-        # FIXME: Use get_local?
-        values = self.v.vector().array()
-
-        # Update solver with new membrane potential values
-        #self.set_field_states(self.v_values)
-        self.set_field_states(values)
-
-        # Step solver
-        self.forward(t0, dt)
-
-        # Fetch solution and put back into dolfin function
-        #self.get_field_states(self.v_values)
-        self.get_field_states(values)
-        
-        # Put solution back into DOLFIN Function
-        self.v.vector().set_local(values)
-
-    def set_initial_conditions(self, v):
-        # FIXME: What does this function do?
-        # Fetch solution and put back into dolfin function
-        value = self.v_values[0]
-        self.get_field_states(self.v_values)
-        value = self.v_values[0]
-        if (self.v_values==value).all():
-            v.vector()[:] = value
-            v.update()
-        else:
-            raise NotImplementedError("Can only initialize with ")
         
 class GOSSplittingSolver:
 
@@ -115,7 +48,6 @@ class GOSSplittingSolver:
         (self.v, self.vur) = self.pde_solver.solution_fields()
 
         # Create ODE solver and extract solution fields
-        # NOTE: ODE solver need self.v to be created
         self.ode_solver = self._create_ode_solver()
 
         if params and "enable_adjoint" in params and params["enable_adjoint"]:
