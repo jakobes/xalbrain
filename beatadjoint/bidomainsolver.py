@@ -435,7 +435,7 @@ class BidomainSolver(BasicBidomainSolver):
         params["lu_solver"]["same_nonzero_pattern"] = True
 
         # Customize default parameters for KrylovSolver
-        params["krylov_solver"]["preconditioner"]["same_nonzero_pattern"] = True
+        params["krylov_solver"]["preconditioner"]["structure"] = "same"
 
         return params
 
