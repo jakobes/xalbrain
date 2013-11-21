@@ -585,10 +585,11 @@ class BidomainSolver(BasicBidomainSolver):
         # changes in timestep
         if timestep_unchanged:
             debug("Timestep is unchanged, reusing preconditioner")
-            self.linear_solver.parameters["preconditioner"]["reuse"] = True
+            self.linear_solver.parameters["preconditioner"]["structure"] = "same"
         else:
             debug("Timestep has changed, updating preconditioner")
-            self.linear_solver.parameters["preconditioner"]["reuse"] = False
+            self.linear_solver.parameters["preconditioner"]["structure"] = \
+                                                        "same_nonzero_pattern"
 
             # Update stored timestep
             self._timestep.assign(Constant(dt))
