@@ -215,8 +215,7 @@ class Projecter(object):
             # Customize Krylov solver (reuse everything)
             solver = dolfin.KrylovSolver("cg", "ilu")
             solver.set_operator(self.M)
-            solver.parameters["preconditioner"]["reuse"] = True
-            solver.parameters["preconditioner"]["same_nonzero_pattern"] = True
+            solver.parameters["preconditioner"]["structure"] = "same"
             # solver.parameters["nonzero_initial_guess"] = True
         self.solver = solver
 
