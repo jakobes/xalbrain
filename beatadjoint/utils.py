@@ -199,7 +199,7 @@ class Projecter(object):
             self.M = dolfin_adjoint.assemble(self.m)
         else:
             self.M = dolfin.assemble(self.m)
-        self.b = dolfin.Vector(V.dim())
+        self.b = dolfin.Vector(V.mesh().mpi_comm(), V.dim())
 
         solver_type = self.parameters["linear_solver_type"]
         assert(solver_type == "lu" or solver_type == "cg"),  \

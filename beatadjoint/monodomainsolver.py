@@ -292,7 +292,7 @@ class MonodomainSolver(BasicMonodomainSolver):
         annotate_kwargs = {"annotate":self.parameters["enable_adjoint"]} \
                           if dolfin_adjoint else {}
         self._lhs_matrix = assemble(self._lhs, **annotate_kwargs)
-        self._rhs_vector = Vector(self._lhs_matrix.size(0))
+        self._rhs_vector = Vector(domain.mpi_comm(), self._lhs_matrix.size(0))
         self._lhs_matrix.resize(self._rhs_vector, 0)
 
         # Create linear solver (based on parameter choices)
@@ -312,7 +312,7 @@ class MonodomainSolver(BasicMonodomainSolver):
                           if dolfin_adjoint else {}
 
         if solver_type == "direct":
-            solver = LUSolver(self._lhs_matrix)
+            solver = LUSolver(self._lhs_matrix, self.parameters["lu_type"])
             solver.parameters.update(self.parameters["lu_solver"])
             update_routine = self._update_lu_solver
 
@@ -356,6 +356,7 @@ class MonodomainSolver(BasicMonodomainSolver):
 
         # Set default solver type to be iterative
         params.add("linear_solver_type", "iterative")
+        params.add("lu_type", "default")
 
         # Set default iterative solver choices (used if iterative
         # solver is invoked)
