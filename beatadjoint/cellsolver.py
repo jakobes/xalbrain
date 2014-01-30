@@ -135,7 +135,7 @@ class BasicCardiacODESolver(object):
 
         # Use iterative solver as default.
         params.add(NonlinearVariationalSolver.default_parameters())
-        params["nonlinear_variational_solver"]["linear_solver"] = "gmres"
+        params["nonlinear_variational_solver"]["newton_solver"]["linear_solver"] = "gmres"
 
         return params
 

@@ -24,9 +24,9 @@ class TestBasicSingleCellSolver(unittest.TestCase):
                            FitzHughNagumoManual: {1.0:  (0, -84.70013280019053),
                                                   None: (0, -84.8000503072239979),
                                                   0.0:  (0, -84.9)},
-                           Tentusscher_2004_mcell: {1.0: (15, -85.89745525156506),
-                                                    None: (15, -85.99686000794499),
-                                                    0.0:  (15, -86.09643254164848),}
+                           Tentusscher_2004_mcell: {1.0: (1, -85.89745525156506),
+                                                    None: (1, -85.99686000794499),
+                                                    0.0:  (1, -86.09643254164848),}
                            }
 
     def _run_solve(self, model, time, theta=None):
@@ -66,31 +66,33 @@ class TestBasicSingleCellSolver(unittest.TestCase):
         if Model in self.references and theta in self.references[Model]:
             ind, ref_value = self.references[Model][theta]
             self.assertAlmostEqual(vec_solve[ind], ref_value)
+            
         else:
             info("Missing references for %r, %r" % (Model, theta))
 
     def test_default_basic_single_cell_solver(self):
         "Test basic single cell solver."
-        if MPI.num_processes() > 1:
+        if MPI.size(mpi_comm_world()) > 1:
             return
         for Model in supported_cell_models:
             self._compare_solve_step(Model)
 
     def test_default_basic_single_cell_solver_be(self):
         "Test basic single cell solver with Backward Euler."
-        if MPI.num_processes() > 1:
+        if MPI.size(mpi_comm_world()) > 1:
             return
         for Model in supported_cell_models:
             self._compare_solve_step(Model, theta=1.0)
 
     def test_default_basic_single_cell_solver_fe(self):
         "Test basic single cell solver with Forward Euler."
-        if MPI.num_processes() > 1:
+        if MPI.size(mpi_comm_world()) > 1:
             return
         for Model in supported_cell_models:
             self._compare_solve_step(Model, theta=0.0)
 
 class TestCardiacODESolver(unittest.TestCase):
+
     def setUp(self):
         # Note that these should be essentially identical to the ones
         # for the BasicSingleCellSolver
@@ -122,12 +124,12 @@ class TestCardiacODESolver(unittest.TestCase):
                             },
 
                            Tentusscher_2004_mcell:
-                           {"BackwardEuler": (15, -85.89745525156506),
-                            "CrankNicolson": (15, -85.99685674414921),
-                            "ForwardEuler":  (15, -86.09643254164848),
-                            "RK4":  (15, "nan"),
-                            "ESDIRK3":  (15, -85.99681862337053),
-                            "ESDIRK4":  (15, -85.99681796046603),
+                           {"BackwardEuler": (1, -85.89745525156506),
+                            "CrankNicolson": (1, -85.99685674414921),
+                            "ForwardEuler":  (1, -86.09643254164848),
+                            "RK4":  (1, "nan"),
+                            "ESDIRK3":  (1, -85.99681862337053),
+                            "ESDIRK4":  (1, -85.99681796046603),
                             }
                            }
 
@@ -207,7 +209,7 @@ class TestCardiacODESolver(unittest.TestCase):
 
     def test_cardiac_ode_solver(self):
         "Testing cardiac ode solvers for many models and solvers"
-        if MPI.num_processes() > 1:
+        if MPI.size(mpi_comm_world()) > 1:
             return
         mesh = UnitIntervalMesh(1)
         for Model in supported_cell_models:
