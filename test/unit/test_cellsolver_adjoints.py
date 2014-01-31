@@ -18,7 +18,7 @@ from beatadjoint import *
 
 def basic_single_cell_closure(theta, Model):
 
-    def xtest_replay(self):
+    def test_replay(self):
         "Test that replay reports success for basic single cell solver"
         adj_reset()
         model = Model()
@@ -39,7 +39,7 @@ def basic_single_cell_closure(theta, Model):
         self.assertEqual(success, True)
         
 
-    def xtest_compute_adjoint(self):
+    def test_compute_adjoint(self):
         "Test that we can compute the adjoint for some given functional"
         adj_reset()
         model = Model()
@@ -75,7 +75,7 @@ def basic_single_cell_closure(theta, Model):
                 msg = "Adjoint solution for vs_ is None (#fail)."
                 assert (value is not None), msg
         
-    def xtest_compute_gradient(self):
+    def test_compute_gradient(self):
         "Test that we can compute the gradient for some given functional"
 
         adj_reset()
@@ -108,7 +108,7 @@ def basic_single_cell_closure(theta, Model):
         assert (dJdics is not None), "Gradient is None (#fail)."
         print dJdics.vector().array()
 
-    def xtest_taylor_remainder(self):
+    def test_taylor_remainder(self):
         "Run Taylor remainder tests for selection of models and solvers."
         adj_reset()
         model = Model()
@@ -188,7 +188,7 @@ for theta, theta_name in ((0.0, "00"), (0.5, "05"), (1.0, "10")):
 
 def single_cell_closure(Scheme, Model):
 
-    def xtest_replay(self):
+    def test_replay(self):
         mesh = UnitIntervalMesh(1)
         if Model in [Tentusscher_2004_mcell] and Scheme in \
            ["ForwardEuler", "RK4"]:
