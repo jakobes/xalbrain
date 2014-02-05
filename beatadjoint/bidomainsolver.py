@@ -69,7 +69,7 @@ class BasicBidomainSolver(object):
         with domain markers as the key and a
         :py:class:`dolfin.Expression` as values. NB: it is assumed
         that the time dependence of I_s is encoded via the 'time'
-        Constant. 
+        Constant.
 
       I_a (:py:class:`dolfin.Expression`, optional)
         A (typically time-dependent) external applied current
@@ -107,7 +107,7 @@ class BasicBidomainSolver(object):
             if domain.domains().num_marked(domain_dim):
                 self._sub_domains[domain_dim] = MeshFunction(\
                     "size_t", domain, dim, domain.domains())
-        
+
         # Create time if not given, otherwise use given time
         if time is None:
             self._time = Constant(0.0)
@@ -132,7 +132,7 @@ class BasicBidomainSolver(object):
             self.VUR = MixedFunctionSpace((V, U))
 
         self.V = V
-        
+
         # Set-up solution fields:
         if v_ is None:
             self.v_ = Function(V, name="v_")
@@ -341,9 +341,9 @@ class BidomainSolver(BasicBidomainSolver):
         annotate_kwargs = {"annotate":self.parameters["enable_adjoint"]} \
                           if dolfin_adjoint else {}
         self._lhs_matrix = assemble(self._lhs, **annotate_kwargs)
-            
+
         self._rhs_vector = Vector(domain.mpi_comm(), self._lhs_matrix.size(0))
-        self._lhs_matrix.resize(self._rhs_vector, 0)
+        self._lhs_matrix.init_vector(self._rhs_vector, 0)
 
         # Create linear solver (based on parameter choices)
         self._linear_solver, self._update_solver = self._create_linear_solver()
