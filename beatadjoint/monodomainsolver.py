@@ -60,7 +60,7 @@ class BasicMonodomainSolver(object):
         with domain markers as the key and a
         :py:class:`dolfin.Expression` as values. NB: it is assumed
         that the time dependence of I_s is encoded via the 'time'
-        Constant. 
+        Constant.
 
       v\_ (:py:class:`ufl.Expr`, optional)
         Initial condition for v. A new :py:class:`dolfin.Function`
@@ -93,7 +93,7 @@ class BasicMonodomainSolver(object):
             if domain.domains().num_marked(domain_dim):
                 self._sub_domains[domain_dim] = MeshFunction(\
                     "size_t", domain, dim, domain.domains())
-        
+
         # Create time if not given, otherwise use given time
         if time is None:
             self._time = Constant(0.0)
@@ -110,14 +110,14 @@ class BasicMonodomainSolver(object):
         V = FunctionSpace(self._domain, "CG", k)
 
         self.V = V
-        
+
         # Set-up solution fields:
         if v_ is None:
             self.v_ = Function(V, name="v_")
         else:
             debug("Experimental: v_ shipped from elsewhere.")
             self.v_ = v_
-        
+
         self.v = Function(self.V, name="v")
 
     @property
@@ -293,7 +293,7 @@ class MonodomainSolver(BasicMonodomainSolver):
                           if dolfin_adjoint else {}
         self._lhs_matrix = assemble(self._lhs, **annotate_kwargs)
         self._rhs_vector = Vector(domain.mpi_comm(), self._lhs_matrix.size(0))
-        self._lhs_matrix.resize(self._rhs_vector, 0)
+        self._lhs_matrix.init_vector(self._rhs_vector, 0)
 
         # Create linear solver (based on parameter choices)
         self._linear_solver, self._update_solver = self._create_linear_solver()
