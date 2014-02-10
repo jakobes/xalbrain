@@ -15,7 +15,7 @@ __all__ = []
 
 import math
 
-from beatadjoint.dolfinimport import *
+from beatadjoint import *
 
 parameters["reorder_dofs_serial"] = False
 parameters["form_compiler"]["cpp_optimize"] = True
