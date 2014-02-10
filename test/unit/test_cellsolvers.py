@@ -71,9 +71,22 @@ class TestCardiacODESolver(ParametrizedCardiacODESolver):
                             }
                            }
 
-    def _setup_solver(self, Model, Scheme, time, stim=None, params=None):
+    def compare_against_reference(self, sol):
+
+        try:
+            ind, ref_value = self.references[self.Model][self.Scheme]
+            info("Value for %s, %s is %g"
+                 % (self.Model, self.Scheme, sol[ind]))
+            if ref_value != "nan":
+                self.assertAlmostEqual(sol[ind], ref_value, 6)
+        except:
+            info("Missing references for %s, %s: value is %g"
+                 % (self.Model, self.Scheme, sol[0]))
+
+
+    def _setup_solver(self, time=0.0, stim=None, params=None):
         # Create model instance
-        model = Model(params=params)
+        model = self.Model(params=params)
 
         # Initialize time and stimulus (note t=time construction!)
         if stim is None:
@@ -82,12 +95,12 @@ class TestCardiacODESolver(ParametrizedCardiacODESolver):
         # Initialize solver
         mesh = UnitIntervalMesh(5)
         params = CardiacODESolver.default_parameters()
-        params["scheme"] = Scheme
+        params["scheme"] = self.Scheme
         solver = CardiacODESolver(mesh, time, model.num_states(),
                                   model.F, model.I, I_s=stim, params=params)
 
         # Create scheme
-        info_green("\nTesting %s with %s scheme" % (model, Scheme))
+        info_green("\nTesting %s with %s scheme" % (model, self.Scheme))
 
         # Start with native initial conditions
         (vs_, vs) = solver.solution_fields()
@@ -98,12 +111,8 @@ class TestCardiacODESolver(ParametrizedCardiacODESolver):
 
     @unittest.skipIf(MPI.size(mpi_comm_world()) > 1, "parallel not supported yet")
     def test_compare_against_reference(self):
-        Model = self.Model
-        Scheme = self.Scheme
 
-        time = Constant(0.0)
-        solver = self._setup_solver(Model, Scheme, time)
-
+        solver = self._setup_solver()
         (vs_, vs) = solver.solution_fields()
 
         next_dt = 0.01
@@ -111,47 +120,30 @@ class TestCardiacODESolver(ParametrizedCardiacODESolver):
         vs_.assign(vs)
         solver.step((next_dt, 2*next_dt))
 
-        if Model in self.references and Scheme in self.references[Model]:
-            ind, ref_value = self.references[Model][Scheme]
-            info("Value for %s, %s is %g"
-                 % (Model, Scheme, vs.vector()[ind]))
-            if ref_value != "nan":
-                self.assertAlmostEqual(vs.vector()[ind], ref_value, 6)
-        else:
-            self.skipTest("Missing references for %s, %s: value is %g"
-                         % (Model, Scheme, vs.vector()[0]))
+        self.compare_against_reference(vs.vector())
+
+    def _replace_with_constants(self, params):
+        for param_name in params.keys():
+            value = params[param_name]
+            params[param_name] = Constant(value)
 
     @unittest.skipIf(MPI.size(mpi_comm_world()) > 1, "parallel not supported yet")
     def test_compare_against_reference_constant(self):
-        Model = self.Model
-        Scheme = self.Scheme
 
-        time = Constant(0.0)
         next_dt = 0.01
 
-        # Use Constant Parameters
-        params = Model.default_parameters()
-        if params:
-            for param_name in params.keys():
-                value = params[param_name]
-                params[param_name] = Constant(value)
+        params = self.Model.default_parameters()
+        self._replace_with_constants(params)
 
-        solver = self._setup_solver(Model, Scheme, time, params=params)
+        solver = self._setup_solver(time=Constant(0), params=params)
 
         (vs_, vs) = solver.solution_fields()
         solver.step((0.0, next_dt))
         vs_.assign(vs)
         solver.step((next_dt, 2*next_dt))
 
-        if Model in self.references and Scheme in self.references[Model]:
-            ind, ref_value = self.references[Model][Scheme]
-            info("Value for %s, %s is %g"
-                 % (Model, Scheme, vs.vector()[ind]))
-            if ref_value != "nan":
-                self.assertAlmostEqual(vs.vector()[ind], ref_value, 6)
-        else:
-            info("Missing references for %s, %s: value is %g"
-                 % (Model, Scheme, vs.vector()[0]))
+        self.compare_against_reference(vs.vector())
+
 
 
 def suite():            
