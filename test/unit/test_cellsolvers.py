@@ -1,97 +1,36 @@
 """
 Unit tests for various types of solvers for cardiac cell models.
 """
-from __future__ import division
-
 __author__ = "Marie E. Rognes (meg@simula.no), 2013"
-__all__ = ["TestBasicSingleCellSolver",
-           "TestCardiacODESolver"]
 
 import unittest
-import numpy as np
 from dolfin import *
 from beatadjoint import *
-from beatadjoint.utils import state_space
 
-class TestBasicSingleCellSolver(unittest.TestCase):
-    "Test functionality for the basic single cell solver."
 
-    def setUp(self):
-        "Set-up references when existing."
-        self.references = {NoCellModel: {1.0: (0, 0.3),
-                                         None: (0, 0.2),
-                                         0.0: (0, 0.1)},
-                           FitzHughNagumoManual: {1.0:  (0, -84.70013280019053),
-                                                  None: (0, -84.8000503072239979),
-                                                  0.0:  (0, -84.9)},
-                           Tentusscher_2004_mcell: {1.0: (1, -85.89745525156506),
-                                                    None: (1, -85.99686000794499),
-                                                    0.0:  (1, -86.09643254164848),}
-                           }
+class ParametrizedCardiacODESolver(unittest.TestCase):
 
-    def _run_solve(self, model, time, theta=None):
-        "Run two time steps for the given model with the given theta solver."
-        dt = 0.01
-        T = 2*dt
-        interval = (0.0, T)
+    def __init__(self, methodName='runTest', Model=None, Scheme=None, mesh=None):
 
-        # Initialize solver
-        params = BasicSingleCellSolver.default_parameters()
-        if theta is not None:
-            params["theta"] = theta
+        super(ParametrizedCardiacODESolver, self).__init__(methodName)
+        self.Model = Model
+        self.Scheme = Scheme
+        self.mesh = mesh
 
-        params["enable_adjoint"] = False
-        solver = BasicSingleCellSolver(model, time, params=params)
+    @staticmethod
+    def parametrize(testcase_klass, Model, Scheme, mesh):
+        """ Create a suite containing all tests taken from the given
+            subclass, passing them the parameters
+        """
+        testloader = unittest.TestLoader()
+        testnames = testloader.getTestCaseNames(testcase_klass)
+        suite = unittest.TestSuite()
+        for name in testnames:
+            suite.addTest(testcase_klass(name, Model=Model, Scheme=Scheme, mesh=mesh))
+        return suite
 
-        # Assign initial conditions
-        (vs_, vs) = solver.solution_fields()
-        vs_.assign(model.initial_conditions())
 
-        # Solve for a couple of steps
-        solutions = solver.solve(interval, dt)
-        for ((t0, t1), vs) in solutions:
-            pass
-
-        # Check that we are at the end time
-        self.assertAlmostEqual(t1, T)
-        return vs.vector()
-
-    def _compare_solve_step(self, Model, theta=None):
-        "Set-up model and compare result to precomputed reference if available."
-        model = Model()
-        time = Constant(0.0)
-        model.stimulus = {0:Expression("1000*t", t=time)}
-        info_green("\nTesting %s" % model)
-        vec_solve = self._run_solve(model, time, theta)
-        if Model in self.references and theta in self.references[Model]:
-            ind, ref_value = self.references[Model][theta]
-            self.assertAlmostEqual(vec_solve[ind], ref_value)
-            
-        else:
-            info("Missing references for %r, %r" % (Model, theta))
-
-    def xtest_default_basic_single_cell_solver(self):
-        "Test basic single cell solver."
-        if MPI.size(mpi_comm_world()) > 1:
-            return
-        for Model in supported_cell_models:
-            self._compare_solve_step(Model)
-
-    def xtest_default_basic_single_cell_solver_be(self):
-        "Test basic single cell solver with Backward Euler."
-        if MPI.size(mpi_comm_world()) > 1:
-            return
-        for Model in supported_cell_models:
-            self._compare_solve_step(Model, theta=1.0)
-
-    def xtest_default_basic_single_cell_solver_fe(self):
-        "Test basic single cell solver with Forward Euler."
-        if MPI.size(mpi_comm_world()) > 1:
-            return
-        for Model in supported_cell_models:
-            self._compare_solve_step(Model, theta=0.0)
-
-class TestCardiacODESolver(unittest.TestCase):
+class TestCardiacODESolver(ParametrizedCardiacODESolver):
 
     def setUp(self):
         # Note that these should be essentially identical to the ones
@@ -157,9 +96,10 @@ class TestCardiacODESolver(unittest.TestCase):
 
         return solver
 
-def test_closure_ref_run(Model, Scheme, mesh):
-    
-    def compare_against_reference(self):
+    def test_compare_against_reference(self):
+        Model = self.Model
+        Scheme = self.Scheme
+        mesh = self.mesh
 
         # FIXME: We need to make this run in paralell. 
         if MPI.size(mesh.mpi_comm()) > 1:
@@ -213,105 +153,24 @@ def test_closure_ref_run(Model, Scheme, mesh):
             info("Missing references for %s, %s: value is %g"
                  % (Model, Scheme, vs.vector()[0]))
 
-    return compare_against_reference
 
-def test_closure_long_run(Scheme, dt_org, abs_tol, rel_tol):
+def suite():            
+    mesh = UnitIntervalMesh(5)
 
-    def long_run_compare(self):
+    suite = unittest.TestSuite()
+    for Model in supported_cell_models:
+        for Scheme in ["ForwardEuler", "BackwardEuler", "CrankNicolson",
+                       "RK4", "ESDIRK3", "ESDIRK4"]:
 
-        mesh = UnitIntervalMesh(5)
+            suite.addTest(ParametrizedCardiacODESolver.parametrize(TestCardiacODESolver, Model=Model, Scheme=Scheme, mesh=mesh))
 
-        # FIXME: We need to make this run in paralell. 
-        if MPI.size(mesh.mpi_comm()) > 1:
-            return
+    return suite
+    unittest.TextTestRunner().run(suite)
 
-        Model = Tentusscher_2004_mcell
-        tstop = 10
-        ind_V = 0
-        dt_ref = 0.1
-        time_ref = np.linspace(0, tstop, int(tstop/dt_ref)+1)
-        Vm_reference = np.fromfile("Vm_reference.npy")
-        params = Model.default_parameters()
-
-        time = Constant(0.0)
-        stim = {0:Expression("(time >= stim_start) && (time < stim_start + stim_duration)"\
-                             " ? stim_amplitude : 0.0 ", time=time, stim_amplitude=52.0, \
-                             stim_start=1.0, stim_duration=1.0)}
-
-        # Initiate solver, with model and Scheme
-        if dolfin_adjoint:
-            adj_reset()
-
-        solver = self._setup_solver(Model, Scheme, mesh, time, stim, params)
-        solver._pi_solver.parameters["newton_solver"]["absolute_tolerance"] = 1e-6
-        solver._pi_solver.parameters["newton_solver"]["report"] = False
-
-        scheme = solver._scheme
-        (vs_, vs) = solver.solution_fields()
-
-        vs.assign(vs_)
-
-        dof_to_vertex_map_values = dof_to_vertex_map(vs.function_space())
-        scheme.t().assign(0.0)
-
-        vs_array = np.zeros(mesh.num_vertices()*\
-                            vs.function_space().dofmap().num_entity_dofs(0))
-        vs_array[dof_to_vertex_map_values] = vs.vector().array()
-        output = [vs_array[ind_V]]
-        time_output = [0.0]
-        dt = dt_org
-
-        # Time step
-        next_dt = max(min(tstop-float(scheme.t()), dt), 0.0)
-        t0 = 0.0
-
-        while next_dt > 0.0:
-
-            # Step solver
-            solver.step((t0, t0 + next_dt))
-            vs_.assign(vs)
-
-            # Collect plt output data
-            vs_array[dof_to_vertex_map_values] = vs.vector().array()
-            output.append(vs_array[ind_V])
-            time_output.append(float(scheme.t()))
-
-            # Next time step
-            t0 += next_dt
-            next_dt = max(min(tstop-float(scheme.t()), dt), 0.0)
-
-        # Compare solution from CellML run using opencell
-        self.assertAlmostEqual(output[-1], Vm_reference[-1], abs_tol)
-
-        output = np.array(output)
-        time_output = np.array(time_output)
         
-        output = np.interp(time_ref, time_output, output)
-
-        value = np.sqrt(np.sum(((Vm_reference-output)/Vm_reference)**2))/len(Vm_reference)
-        self.assertAlmostEqual(value, 0.0, rel_tol)
-
-    return long_run_compare
-
-for Model in supported_cell_models:
-    for Scheme in ["ForwardEuler", "BackwardEuler", "CrankNicolson",
-                   "RK4", "ESDIRK3", "ESDIRK4"]:
-
-        mesh = UnitIntervalMesh(5)
-        func = test_closure_ref_run(Model, Scheme, mesh)
-        setattr(TestCardiacODESolver, "test_{0}_ref_run_{1}".format(Model, Scheme), func)
-
-for Scheme, dt_org, abs_tol, rel_tol in [("BackwardEuler", 0.1, 1, 1),
-                                         ("CrankNicolson", 0.1, 0, 1),
-                                         ("ESDIRK3", 0.1, 0, 1),
-                                         ("ESDIRK4", 0.1, 0, 1)]:
-
-    func = test_closure_long_run(Scheme, dt_org, abs_tol, rel_tol)
-    setattr(TestCardiacODESolver, "test_{0}_long_run_tentusscher".format(Scheme), func)
-
 
 if __name__ == "__main__":
     print("")
     print("Testing cell solvers")
     print("--------------------")
-    unittest.main()
+    unittest.TextTestRunner(verbosity=2).run(suite())
