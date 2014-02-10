@@ -526,7 +526,7 @@ class BasicSingleCellSolver(BasicCardiacODESolver):
 
     """
 
-    def __init__(self, model, time, params=None):
+    def __init__(self, model, time, domain=None, params=None):
         "Create solver from given cell model and optional parameters."
 
         assert isinstance(model, CardiacCellModel), \
@@ -540,7 +540,8 @@ class BasicSingleCellSolver(BasicCardiacODESolver):
         self._model = model
 
         # Define carefully chosen dummy domain
-        domain = UnitIntervalMesh(1)
+        if domain is None:
+          domain = UnitIntervalMesh(1)
 
         # Extract information from cardiac cell model and ship off to
         # super-class.
