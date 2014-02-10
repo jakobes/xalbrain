@@ -44,7 +44,7 @@ def main():
     # Initialize solver
     params = BasicSingleCellSolver.default_parameters()
     params["theta"] = 0.5
-    params["nonlinear_variational_solver"]["linear_solver"] = "lu"
+    params["nonlinear_variational_solver"]["newton_solver"]["linear_solver"] = "lu"
     solver = BasicSingleCellSolver(model, time, params)
 
     # Assign initial conditions
