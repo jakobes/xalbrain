@@ -10,15 +10,14 @@ from beatadjoint import *
 
 class ParametrizedCardiacODESolver(unittest.TestCase):
 
-    def __init__(self, methodName='runTest', Model=None, Scheme=None, mesh=None):
+    def __init__(self, methodName='runTest', Model=None, Scheme=None):
 
         super(ParametrizedCardiacODESolver, self).__init__(methodName)
         self.Model = Model
         self.Scheme = Scheme
-        self.mesh = mesh
 
     @staticmethod
-    def parametrize(testcase_klass, Model, Scheme, mesh):
+    def parametrize(testcase_klass, Model, Scheme):
         """ Create a suite containing all tests taken from the given
             subclass, passing them the parameters
         """
@@ -26,7 +25,7 @@ class ParametrizedCardiacODESolver(unittest.TestCase):
         testnames = testloader.getTestCaseNames(testcase_klass)
         suite = unittest.TestSuite()
         for name in testnames:
-            suite.addTest(testcase_klass(name, Model=Model, Scheme=Scheme, mesh=mesh))
+            suite.addTest(testcase_klass(name, Model=Model, Scheme=Scheme))
         return suite
 
 
@@ -72,7 +71,7 @@ class TestCardiacODESolver(ParametrizedCardiacODESolver):
                             }
                            }
 
-    def _setup_solver(self, Model, Scheme, mesh, time, stim=None, params=None):
+    def _setup_solver(self, Model, Scheme, time, stim=None, params=None):
         # Create model instance
         model = Model(params=params)
 
@@ -81,6 +80,7 @@ class TestCardiacODESolver(ParametrizedCardiacODESolver):
             stim = {0:Expression("1000*t", t=time)}
 
         # Initialize solver
+        mesh = UnitIntervalMesh(5)
         params = CardiacODESolver.default_parameters()
         params["scheme"] = Scheme
         solver = CardiacODESolver(mesh, time, model.num_states(),
@@ -96,18 +96,13 @@ class TestCardiacODESolver(ParametrizedCardiacODESolver):
 
         return solver
 
+    @unittest.skipIf(MPI.size(mpi_comm_world()) > 1, "parallel not supported yet")
     def test_compare_against_reference(self):
         Model = self.Model
         Scheme = self.Scheme
-        mesh = self.mesh
 
-        # FIXME: We need to make this run in paralell. 
-        if MPI.size(mesh.mpi_comm()) > 1:
-            return
-
-        info_blue("Comparing against reference")
         time = Constant(0.0)
-        solver = self._setup_solver(Model, Scheme, mesh, time)
+        solver = self._setup_solver(Model, Scheme, time)
 
         (vs_, vs) = solver.solution_fields()
 
@@ -123,8 +118,16 @@ class TestCardiacODESolver(ParametrizedCardiacODESolver):
             if ref_value != "nan":
                 self.assertAlmostEqual(vs.vector()[ind], ref_value, 6)
         else:
-            info_red("Missing references for %s, %s: value is %g"
-                     % (Model, Scheme, vs.vector()[0]))
+            self.skipTest("Missing references for %s, %s: value is %g"
+                         % (Model, Scheme, vs.vector()[0]))
+
+    @unittest.skipIf(MPI.size(mpi_comm_world()) > 1, "parallel not supported yet")
+    def test_compare_against_reference_constant(self):
+        Model = self.Model
+        Scheme = self.Scheme
+
+        time = Constant(0.0)
+        next_dt = 0.01
 
         # Use Constant Parameters
         params = Model.default_parameters()
@@ -133,15 +136,12 @@ class TestCardiacODESolver(ParametrizedCardiacODESolver):
                 value = params[param_name]
                 params[param_name] = Constant(value)
 
-        time.assign(0.0)
-        solver = self._setup_solver(Model, Scheme, mesh, time, params=params)
+        solver = self._setup_solver(Model, Scheme, time, params=params)
 
         (vs_, vs) = solver.solution_fields()
         solver.step((0.0, next_dt))
         vs_.assign(vs)
         solver.step((next_dt, 2*next_dt))
-
-        vs = solver._scheme.solution()
 
         if Model in self.references and Scheme in self.references[Model]:
             ind, ref_value = self.references[Model][Scheme]
@@ -155,14 +155,13 @@ class TestCardiacODESolver(ParametrizedCardiacODESolver):
 
 
 def suite():            
-    mesh = UnitIntervalMesh(5)
 
     suite = unittest.TestSuite()
     for Model in supported_cell_models:
         for Scheme in ["ForwardEuler", "BackwardEuler", "CrankNicolson",
                        "RK4", "ESDIRK3", "ESDIRK4"]:
 
-            suite.addTest(ParametrizedCardiacODESolver.parametrize(TestCardiacODESolver, Model=Model, Scheme=Scheme, mesh=mesh))
+            suite.addTest(ParametrizedCardiacODESolver.parametrize(TestCardiacODESolver, Model=Model, Scheme=Scheme))
 
     return suite
     unittest.TextTestRunner().run(suite)
