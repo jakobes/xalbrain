@@ -8,16 +8,16 @@ from dolfin import *
 from beatadjoint import *
 
 
-class ParametrizedCardiacODESolver(unittest.TestCase):
+class ParametrizedTest(unittest.TestCase):
+    """ Test class which can be parametrised with arbitrary keyword arguments. """
 
-    def __init__(self, methodName='runTest', Model=None, Scheme=None):
-
-        super(ParametrizedCardiacODESolver, self).__init__(methodName)
-        self.Model = Model
-        self.Scheme = Scheme
+    def __init__(self, methodName='runTest', **kwargs):
+        super(ParametrizedTest, self).__init__(methodName)
+        for k, v in kwargs.iteritems():
+            setattr(self, k, v)
 
     @staticmethod
-    def parametrize(testcase_klass, Model, Scheme):
+    def parametrize(testcase_klass, **kwargs):
         """ Create a suite containing all tests taken from the given
             subclass, passing them the parameters
         """
@@ -25,11 +25,12 @@ class ParametrizedCardiacODESolver(unittest.TestCase):
         testnames = testloader.getTestCaseNames(testcase_klass)
         suite = unittest.TestSuite()
         for name in testnames:
-            suite.addTest(testcase_klass(name, Model=Model, Scheme=Scheme))
+            suite.addTest(testcase_klass(name, **kwargs))
         return suite
 
 
-class TestCardiacODESolver(ParametrizedCardiacODESolver):
+class TestCardiacODESolver(ParametrizedTest):
+    """ Tests the cardiac ODE solver on different cell models. """
 
     def setUp(self):
         # Note that these should be essentially identical to the ones
@@ -72,7 +73,6 @@ class TestCardiacODESolver(ParametrizedCardiacODESolver):
                            }
 
     def compare_against_reference(self, sol):
-
         try:
             ind, ref_value = self.references[self.Model][self.Scheme]
             info("Value for %s, %s is %g"
@@ -83,6 +83,10 @@ class TestCardiacODESolver(ParametrizedCardiacODESolver):
             info("Missing references for %s, %s: value is %g"
                  % (self.Model, self.Scheme, sol[0]))
 
+    def _replace_with_constants(self, params):
+        for param_name in params.keys():
+            value = params[param_name]
+            params[param_name] = Constant(value)
 
     def _setup_solver(self, time=0.0, stim=None, params=None):
         # Create model instance
@@ -90,12 +94,13 @@ class TestCardiacODESolver(ParametrizedCardiacODESolver):
 
         # Initialize time and stimulus (note t=time construction!)
         if stim is None:
-            stim = {0:Expression("1000*t", t=time)}
+            stim = {0: Expression("1000*t", t=time)}
 
         # Initialize solver
         mesh = UnitIntervalMesh(5)
         params = CardiacODESolver.default_parameters()
         params["scheme"] = self.Scheme
+
         solver = CardiacODESolver(mesh, time, model.num_states(),
                                   model.F, model.I, I_s=stim, params=params)
 
@@ -122,22 +127,16 @@ class TestCardiacODESolver(ParametrizedCardiacODESolver):
 
         self.compare_against_reference(vs.vector())
 
-    def _replace_with_constants(self, params):
-        for param_name in params.keys():
-            value = params[param_name]
-            params[param_name] = Constant(value)
-
     @unittest.skipIf(MPI.size(mpi_comm_world()) > 1, "parallel not supported yet")
     def test_compare_against_reference_constant(self):
-
-        next_dt = 0.01
 
         params = self.Model.default_parameters()
         self._replace_with_constants(params)
 
         solver = self._setup_solver(time=Constant(0), params=params)
-
         (vs_, vs) = solver.solution_fields()
+
+        next_dt = 0.01
         solver.step((0.0, next_dt))
         vs_.assign(vs)
         solver.step((next_dt, 2*next_dt))
@@ -145,23 +144,20 @@ class TestCardiacODESolver(ParametrizedCardiacODESolver):
         self.compare_against_reference(vs.vector())
 
 
-
 def suite():            
+    ''' Generates a test suite that tests various combinations of cell models and timestepping schemes. '''
 
     suite = unittest.TestSuite()
     for Model in supported_cell_models:
         for Scheme in ["ForwardEuler", "BackwardEuler", "CrankNicolson",
                        "RK4", "ESDIRK3", "ESDIRK4"]:
 
-            suite.addTest(ParametrizedCardiacODESolver.parametrize(TestCardiacODESolver, Model=Model, Scheme=Scheme))
+            suite.addTest(ParametrizedTest.parametrize(TestCardiacODESolver, Model=Model, Scheme=Scheme))
 
     return suite
-    unittest.TextTestRunner().run(suite)
-
-        
 
 if __name__ == "__main__":
     print("")
     print("Testing cell solvers")
     print("--------------------")
-    unittest.TextTestRunner(verbosity=2).run(suite())
+    unittest.TextTestRunner().run(suite())
