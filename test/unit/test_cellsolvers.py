@@ -70,21 +70,21 @@ class TestBasicSingleCellSolver(unittest.TestCase):
         else:
             info("Missing references for %r, %r" % (Model, theta))
 
-    def test_default_basic_single_cell_solver(self):
+    def xtest_default_basic_single_cell_solver(self):
         "Test basic single cell solver."
         if MPI.size(mpi_comm_world()) > 1:
             return
         for Model in supported_cell_models:
             self._compare_solve_step(Model)
 
-    def test_default_basic_single_cell_solver_be(self):
+    def xtest_default_basic_single_cell_solver_be(self):
         "Test basic single cell solver with Backward Euler."
         if MPI.size(mpi_comm_world()) > 1:
             return
         for Model in supported_cell_models:
             self._compare_solve_step(Model, theta=1.0)
 
-    def test_default_basic_single_cell_solver_fe(self):
+    def xtest_default_basic_single_cell_solver_fe(self):
         "Test basic single cell solver with Forward Euler."
         if MPI.size(mpi_comm_world()) > 1:
             return
@@ -157,7 +157,13 @@ class TestCardiacODESolver(unittest.TestCase):
 
         return solver
 
-    def _compare_against_reference(self, Model, Scheme, mesh):
+def test_closure_ref_run(Model, Scheme, mesh):
+    
+    def compare_against_reference(self):
+
+        # FIXME: We need to make this run in paralell. 
+        if MPI.size(mesh.mpi_comm()) > 1:
+            return
 
         info_blue("Comparing against reference")
         time = Constant(0.0)
@@ -187,38 +193,39 @@ class TestCardiacODESolver(unittest.TestCase):
                 value = params[param_name]
                 params[param_name] = Constant(value)
 
-            time.assign(0.0)
-            solver = self._setup_solver(Model, Scheme, mesh, time, params=params)
+        time.assign(0.0)
+        solver = self._setup_solver(Model, Scheme, mesh, time, params=params)
 
-            (vs_, vs) = solver.solution_fields()
-            solver.step((0.0, next_dt))
-            vs_.assign(vs)
-            solver.step((next_dt, 2*next_dt))
+        (vs_, vs) = solver.solution_fields()
+        solver.step((0.0, next_dt))
+        vs_.assign(vs)
+        solver.step((next_dt, 2*next_dt))
 
-            vs = solver._scheme.solution()
+        vs = solver._scheme.solution()
 
-            if Model in self.references and Scheme in self.references[Model]:
-                ind, ref_value = self.references[Model][Scheme]
-                info("Value for %s, %s is %g"
-                     % (Model, Scheme, vs.vector()[ind]))
-                if ref_value != "nan":
-                    self.assertAlmostEqual(vs.vector()[ind], ref_value, 6)
-            else:
-                info("Missing references for %s, %s: value is %g"
-                     % (Model, Scheme, vs.vector()[0]))
+        if Model in self.references and Scheme in self.references[Model]:
+            ind, ref_value = self.references[Model][Scheme]
+            info("Value for %s, %s is %g"
+                 % (Model, Scheme, vs.vector()[ind]))
+            if ref_value != "nan":
+                self.assertAlmostEqual(vs.vector()[ind], ref_value, 6)
+        else:
+            info("Missing references for %s, %s: value is %g"
+                 % (Model, Scheme, vs.vector()[0]))
 
-    def test_cardiac_ode_solver(self):
-        "Testing cardiac ode solvers for many models and solvers"
-        if MPI.size(mpi_comm_world()) > 1:
+    return compare_against_reference
+
+def test_closure_long_run(Scheme, dt_org, abs_tol, rel_tol):
+
+    def long_run_compare(self):
+
+        mesh = UnitIntervalMesh(5)
+
+        # FIXME: We need to make this run in paralell. 
+        if MPI.size(mesh.mpi_comm()) > 1:
             return
-        mesh = UnitIntervalMesh(1)
-        for Model in supported_cell_models:
-            for Scheme in ["ForwardEuler", "BackwardEuler", "CrankNicolson",
-                           "RK4", "ESDIRK3", "ESDIRK4"]:
-                self._compare_against_reference(Model, Scheme, mesh)
 
-    def _long_run_compare(self, mesh, Model, Scheme, dt_org, abs_tol, rel_tol):
-
+        Model = Tentusscher_2004_mcell
         tstop = 10
         ind_V = 0
         dt_ref = 0.1
@@ -278,20 +285,30 @@ class TestCardiacODESolver(unittest.TestCase):
 
         output = np.array(output)
         time_output = np.array(time_output)
+        
         output = np.interp(time_ref, time_output, output)
 
         value = np.sqrt(np.sum(((Vm_reference-output)/Vm_reference)**2))/len(Vm_reference)
         self.assertAlmostEqual(value, 0.0, rel_tol)
 
-    def test_long_run_tentusscher(self):
-        mesh = UnitIntervalMesh(5)
-        for Scheme, dt_org, abs_tol, rel_tol in [("BackwardEuler", 0.1, 1, 1),
-                                                 ("CrankNicolson", 0.1, 0, 1),
-                                                 ("ESDIRK3", 0.1, 0, 1),
-                                                 ("ESDIRK4", 0.1, 0, 1)]:
+    return long_run_compare
 
-            self._long_run_compare(mesh, Tentusscher_2004_mcell, Scheme, \
-                                   dt_org, abs_tol, rel_tol)
+for Model in supported_cell_models:
+    for Scheme in ["ForwardEuler", "BackwardEuler", "CrankNicolson",
+                   "RK4", "ESDIRK3", "ESDIRK4"]:
+
+        mesh = UnitIntervalMesh(5)
+        func = test_closure_ref_run(Model, Scheme, mesh)
+        setattr(TestCardiacODESolver, "test_{0}_ref_run_{1}".format(Model, Scheme), func)
+
+for Scheme, dt_org, abs_tol, rel_tol in [("BackwardEuler", 0.1, 1, 1),
+                                         ("CrankNicolson", 0.1, 0, 1),
+                                         ("ESDIRK3", 0.1, 0, 1),
+                                         ("ESDIRK4", 0.1, 0, 1)]:
+
+    func = test_closure_long_run(Scheme, dt_org, abs_tol, rel_tol)
+    setattr(TestCardiacODESolver, "test_{0}_long_run_tentusscher".format(Scheme), func)
+
 
 if __name__ == "__main__":
     print("")
