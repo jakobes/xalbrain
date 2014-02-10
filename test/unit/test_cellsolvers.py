@@ -161,7 +161,6 @@ def suite():
     for Model in supported_cell_models:
         for Scheme in ["ForwardEuler", "BackwardEuler", "CrankNicolson",
                        "RK4", "ESDIRK3", "ESDIRK4"]:
-
             suite.addTest(ParametrizedTest.parametrize(TestCardiacODESolver, Model=Model, Scheme=Scheme))
 
     return suite
