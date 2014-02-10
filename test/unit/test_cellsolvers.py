@@ -30,7 +30,10 @@ class ParametrizedTest(unittest.TestCase):
 
 
 class TestCardiacODESolver(ParametrizedTest):
-    """ Tests the cardiac ODE solver on different cell models. """
+    """ Tests the cardiac ODE solver on different cell models. 
+        Note: This test has the attributes Model and Scheme 
+        parametrised.
+    """
 
     def setUp(self):
         # Note that these should be essentially identical to the ones
@@ -73,6 +76,7 @@ class TestCardiacODESolver(ParametrizedTest):
                            }
 
     def compare_against_reference(self, sol):
+        ''' Compare the model solution with the reference solution. '''
         try:
             ind, ref_value = self.references[self.Model][self.Scheme]
             info("Value for %s, %s is %g"
@@ -83,12 +87,14 @@ class TestCardiacODESolver(ParametrizedTest):
             info("Missing references for %s, %s: value is %g"
                  % (self.Model, self.Scheme, sol[0]))
 
-    def _replace_with_constants(self, params):
+    def replace_with_constants(self, params):
+        ''' Replace all float values in params by Constants. '''
         for param_name in params.keys():
             value = params[param_name]
             params[param_name] = Constant(value)
 
     def _setup_solver(self, time=0.0, stim=None, params=None):
+        ''' Generate a new solver object with the given start time, stimulus and parameters. '''
         # Create model instance
         model = self.Model(params=params)
 
@@ -116,6 +122,8 @@ class TestCardiacODESolver(ParametrizedTest):
 
     @unittest.skipIf(MPI.size(mpi_comm_world()) > 1, "parallel not supported yet")
     def test_compare_against_reference(self):
+        ''' Runs the given cell model with the numerical scheme 
+            and compares the result with the reference value. '''
 
         solver = self._setup_solver()
         (vs_, vs) = solver.solution_fields()
@@ -129,9 +137,11 @@ class TestCardiacODESolver(ParametrizedTest):
 
     @unittest.skipIf(MPI.size(mpi_comm_world()) > 1, "parallel not supported yet")
     def test_compare_against_reference_constant(self):
+        ''' Runs the given cell model with the numerical scheme 
+            and compares the result with the reference value. '''
 
         params = self.Model.default_parameters()
-        self._replace_with_constants(params)
+        self.replace_with_constants(params)
 
         solver = self._setup_solver(time=Constant(0), params=params)
         (vs_, vs) = solver.solution_fields()
