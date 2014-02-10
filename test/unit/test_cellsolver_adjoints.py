@@ -174,17 +174,17 @@ class TestBasicSingleCellSolverAdjoint(unittest.TestCase):
         vs_.assign(ics)
 
         # Solve for a couple of steps
-        dt = 0.001
+        dt = 0.01
         T = 2*dt
         solutions = solver.solve((0.0, T), dt)
         for ((t0, t1), vs) in solutions:
             pass
 
-for theta, theta_name in ((0.0, "00"), (0.5, "05"), (1.0, "10")):
-    for Model in (FitzHughNagumoManual, Tentusscher_2004_mcell):
-        for func in basic_single_cell_closure(theta, Model):
-            method_name = func.func_name+"_theta_"+theta_name+"_"+Model.__name__
-            setattr(TestBasicSingleCellSolverAdjoint, method_name, func)
+#for theta, theta_name in ((0.0, "00"), (0.5, "05"), (1.0, "10")):
+#    for Model in (FitzHughNagumoManual, Tentusscher_2004_mcell):
+#        for func in basic_single_cell_closure(theta, Model):
+#            method_name = func.func_name+"_theta_"+theta_name+"_"+Model.__name__
+#            setattr(TestBasicSingleCellSolverAdjoint, method_name, func)
 
 def single_cell_closure(Scheme, Model):
 
@@ -247,7 +247,7 @@ def single_cell_closure(Scheme, Model):
         Jics = assemble(form(vs))
 
         # Seed for taylor test
-        seed = 1.e-1 if isinstance(Model, Tentusscher_2004_mcell) else 1e-1
+        seed = 1.e-2 if isinstance(model, Tentusscher_2004_mcell) else 1e-1
 
         # Set-up runner
         def Jhat(ics):
@@ -385,7 +385,8 @@ class TestCardiacODESolverAdjoint(unittest.TestCase):
         dt = [(0.0, dt), (dt*3,dt/2)]
         solver._pi_solver.parameters.reset_stage_solutions = True
         solver._pi_solver.parameters.newton_solver.reset_each_step = True
-        solver._pi_solver.parameters.newton_solver.report = False
+        solver._pi_solver.parameters.newton_solver.absolute_tolerance = 1.0e-10
+        solver._pi_solver.parameters.newton_solver.recompute_jacobian_for_linear_problems = True
         solutions = solver.solve((0.0, T), dt)
         for ((t0, t1), vs) in solutions:
             pass
