@@ -5,11 +5,14 @@ Unit tests for various types of bidomain solver
 __author__ = "Marie E. Rognes (meg@simula.no), 2013"
 __all__ = [""]
 
-import unittest
-from dolfin import *
-from beatadjoint import *
+from testutils import assert_almost_equal, assert_equal
 
-class TestBasicBidomainSolver(unittest.TestCase):
+from dolfin import *
+from beatadjoint import BasicBidomainSolver, BasicMonodomainSolver, \
+        MonodomainSolver, BidomainSolver, \
+        Constant
+
+class TestBasicBidomainSolver(object):
     "Test functionality for the basic bidomain solver."
 
     def setUp(self):
@@ -31,6 +34,7 @@ class TestBasicBidomainSolver(unittest.TestCase):
 
     def test_basic_solve(self):
         "Test that solver runs."
+        self.setUp()
 
         Solver = BasicBidomainSolver
 
@@ -46,6 +50,7 @@ class TestBasicBidomainSolver(unittest.TestCase):
 
     def test_compare_solve_step(self):
         "Test that solve gives same results as single step"
+        self.setUp()
 
         Solver = BasicBidomainSolver
         solver = Solver(self.mesh, self.time,
@@ -69,10 +74,10 @@ class TestBasicBidomainSolver(unittest.TestCase):
         b = vs.vector().norm("l2")
 
         # Check that result from solve and step match.
-        self.assertEqual(a, b)
+        assert_equal(a, b)
 
 
-class TestBasicMonodomainSolver(unittest.TestCase):
+class TestBasicMonodomainSolver(object):
     "Test functionality for the basic monodomain solver."
 
     def setUp(self):
@@ -90,6 +95,7 @@ class TestBasicMonodomainSolver(unittest.TestCase):
 
     def test_basic_solve(self):
         "Test that solver runs."
+        self.setUp()
 
         Solver = BasicMonodomainSolver
 
@@ -104,6 +110,7 @@ class TestBasicMonodomainSolver(unittest.TestCase):
 
     def test_compare_solve_step(self):
         "Test that solve gives same results as single step"
+        self.setUp()
 
         Solver = BasicMonodomainSolver
         solver = Solver(self.mesh, self.time,
@@ -126,9 +133,9 @@ class TestBasicMonodomainSolver(unittest.TestCase):
         b = vs.vector().norm("l2")
 
         # Check that result from solve and step match.
-        self.assertEqual(a, b)
+        assert_equal(a, b)
 
-class TestBidomainSolver(unittest.TestCase):
+class TestBidomainSolver(object):
     def setUp(self):
         N = 5
         self.mesh = UnitCubeMesh(N, N, N)
@@ -149,6 +156,7 @@ class TestBidomainSolver(unittest.TestCase):
 
     def test_solve(self):
         "Test that solver runs."
+        self.setUp()
 
         # Create solver and solve
         solver = BidomainSolver(self.mesh, self.time,
@@ -162,6 +170,7 @@ class TestBidomainSolver(unittest.TestCase):
     def test_compare_with_basic_solve(self):
         """Test that solver with direct linear algebra gives same
         results as basic bidomain solver."""
+        self.setUp()
 
         # Create solver and solve
         params = BidomainSolver.default_parameters()
@@ -189,11 +198,12 @@ class TestBidomainSolver(unittest.TestCase):
 
         print bidomain_result
         print basic_bidomain_result
-        self.assertAlmostEqual(bidomain_result, basic_bidomain_result,
-                               places=13)
+        assert_almost_equal(bidomain_result, basic_bidomain_result,
+                               1e-13)
 
     def test_compare_direct_iterative(self):
         "Test that direct and iterative solution give comparable results."
+        self.setUp()
 
         # Create solver and solve
         params = BidomainSolver.default_parameters()
@@ -228,9 +238,9 @@ class TestBidomainSolver(unittest.TestCase):
 
         print "lu gives ", a
         print "krylov gives ", b
-        self.assertAlmostEqual(a, b, places=4)
+        assert_almost_equal(a, b, 1e-4)
 
-class TestMonodomainSolver(unittest.TestCase):
+class TestMonodomainSolver(object):
     def setUp(self):
         N = 5
         self.mesh = UnitCubeMesh(N, N, N)
@@ -247,6 +257,7 @@ class TestMonodomainSolver(unittest.TestCase):
 
     def test_solve(self):
         "Test that solver runs."
+        self.setUp()
 
         # Create solver and solve
         solver = MonodomainSolver(self.mesh, self.time,
@@ -258,6 +269,7 @@ class TestMonodomainSolver(unittest.TestCase):
     def test_compare_with_basic_solve(self):
         """Test that solver with direct linear algebra gives same
         results as basic monodomain solver."""
+        self.setUp()
 
         # Create solver and solve
         params = MonodomainSolver.default_parameters()
@@ -281,11 +293,12 @@ class TestMonodomainSolver(unittest.TestCase):
 
         print monodomain_result
         print basic_monodomain_result
-        self.assertAlmostEqual(monodomain_result, basic_monodomain_result,
-                               places=13)
+        assert_almost_equal(monodomain_result, basic_monodomain_result,
+                               1e-13)
 
     def test_compare_direct_iterative(self):
         "Test that direct and iterative solution give comparable results."
+        self.setUp()
 
         # Create solver and solve
         params = MonodomainSolver.default_parameters()
@@ -314,10 +327,4 @@ class TestMonodomainSolver(unittest.TestCase):
 
         print "lu gives ", a
         print "krylov gives ", b
-        self.assertAlmostEqual(a, b, places=4)
-
-if __name__ == "__main__":
-    print("")
-    print("Testing bi/mono-domain solvers")
-    print("------------------------------")
-    unittest.main()
+        assert_almost_equal(a, b, 1e-4)
