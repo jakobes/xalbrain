@@ -85,7 +85,7 @@ def test_analytic_bidomain():
     # Compute errors
     v_diff = abs(v_error - v_reference)
     u_diff = abs(u_error - u_reference)
-    tolerance = 1.e-10
+    tolerance = 1.e-9
     msg = "Maximal %s value does not match reference: diff is %.16e"
     print "v_error = %.16e" % v_error
     print "u_error = %.16e" % u_error
