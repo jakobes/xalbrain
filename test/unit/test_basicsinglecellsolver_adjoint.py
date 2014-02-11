@@ -5,19 +5,19 @@ Unit tests for various types of solvers for cardiac cell models.
 __author__ = "Marie E. Rognes (meg@simula.no), 2013"
 __all__ = ["TestBasicSingleCellSolverAdjoint"]
 
-from testutils import assert_equal, assert_true, assert_greater
+from testutils import assert_equal, assert_true, assert_greater, adjoint, slow
 
 import types
 from beatadjoint.dolfinimport import UnitIntervalMesh, info_green, \
         MPI, mpi_comm_world
 from beatadjoint import supported_cell_models, \
-        Tentusscher_2004_mcell, \
+        Tentusscher_2004_mcell, FitzHughNagumoManual, \
         BasicSingleCellSolver, \
         adj_reset, replay_dolfin, InitialConditionParameter, \
         Constant, Expression, Function, Functional, \
         project, inner, assemble, dx, dt, FINISH_TIME, \
         parameters, compute_gradient_tlm, compute_gradient, \
-        taylor_test
+        taylor_test, compute_adjoint
 
 parameters["form_compiler"]["cpp_optimize"] = True
 flags = "-O3 -ffast-math -march=native"
@@ -186,8 +186,8 @@ class TestBasicSingleCellSolverAdjoint(object):
         for ((t0, t1), vs) in solutions:
             pass
 
-#for theta, theta_name in ((0.0, "00"), (0.5, "05"), (1.0, "10")):
-#    for Model in (FitzHughNagumoManual, Tentusscher_2004_mcell):
-#        for func in basic_single_cell_closure(theta, Model):
-#            method_name = func.func_name+"_theta_"+theta_name+"_"+Model.__name__
-#            setattr(TestBasicSingleCellSolverAdjoint, method_name, func)
+for theta, theta_name in ((0.0, "00"), (0.5, "05"), (1.0, "10")):
+    for Model in (FitzHughNagumoManual, Tentusscher_2004_mcell):
+        for func in basic_single_cell_closure(theta, Model):
+            method_name = func.func_name+"_theta_"+theta_name+"_"+Model.__name__
+            setattr(TestBasicSingleCellSolverAdjoint, method_name, func)
