@@ -19,10 +19,9 @@ from beatadjoint import supported_cell_models, \
         parameters, compute_gradient_tlm, compute_gradient, \
         taylor_test
 
-# TODO: Check with these parameters!
-#parameters["form_compiler"]["cpp_optimize"] = True
-#flags = "-O3 -ffast-math -march=native"
-#parameters["form_compiler"]["cpp_optimize_flags"] = flags
+parameters["form_compiler"]["cpp_optimize"] = True
+flags = "-O3 -ffast-math -march=native"
+parameters["form_compiler"]["cpp_optimize_flags"] = flags
 
 def basic_single_cell_closure(theta, Model):
 
