@@ -6,7 +6,7 @@ __author__ = "Marie E. Rognes (meg@simula.no), 2013"
 __all__ = ["TestBasicBidomainSolverAdjoint",
            "TestBidomainSolverAdjoint"]
 
-from testutils import assert_equal
+from testutils import assert_equal, fast, adjoint
 
 from beatadjoint.dolfinimport import info_green
 from beatadjoint import BasicBidomainSolver, BidomainSolver, \
@@ -65,10 +65,14 @@ class TestBasicBidomainSolverAdjoint(object):
         success = replay_dolfin(stop=True, tol=0.0)
         assert_equal(success, True)
 
+    @adjoint
+    @fast
     def test_replay_iterative(self):
         self.setUp()
         self._run_replay("iterative")
 
+    @adjoint
+    @fast
     def test_replay_direct(self):
         self.setUp()
         self._run_replay("direct")
@@ -107,10 +111,14 @@ class TestBidomainSolverAdjoint(object):
         success = replay_dolfin(stop=True, tol=1.e-14)
         assert_equal(success, True)
 
+    @adjoint
+    @fast
     def test_replay_iterative(self):
         self.setUp()
         self._run_replay("iterative")
 
+    @adjoint
+    @fast
     def test_replay_direct(self):
         self.setUp()
         self._run_replay("direct")

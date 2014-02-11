@@ -7,7 +7,7 @@ __all__ = ["TestCardiacODESolver", "TestBasicSingleCellSolver"]
 
 import itertools
 import pytest
-from testutils import slow, assert_almost_equal, parametrize, cell_model
+from testutils import medium, assert_almost_equal, parametrize, cell_model
 
 from dolfin import info, info_red, info_green, \
         UnitIntervalMesh, MPI, mpi_comm_world
@@ -56,7 +56,7 @@ class TestBasicSingleCellSolver(object):
         assert_almost_equal(t1, T, 1e-10)
         return vs.vector()
 
-    @slow
+    @medium
     @parametrize(("theta"), [0., 0.5, 1.])
     def test_default_basic_single_cell_solver(self, cell_model, theta):
         "Test basic single cell solver."
