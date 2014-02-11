@@ -24,6 +24,12 @@ def assert_almost_equal(a, b, tolerance):
 def assert_equal(a, b):
     assert a == b
 
+def assert_true(a):
+    assert a == True
+
+def assert_greater(a, b):
+    assert a > b
+
 # Fixtures
 @pytest.fixture(params=supported_cell_models)
 def cell_model(request):
