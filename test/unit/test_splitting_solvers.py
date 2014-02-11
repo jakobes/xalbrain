@@ -3,15 +3,20 @@ Unit tests for various types of bidomain solver
 """
 
 __author__ = "Marie E. Rognes (meg@simula.no), 2013"
-__all__ = [""]
+__all__ = ["TestSplittingSolver"]
 
-import unittest
-from dolfin import *
-from beatadjoint import *
+from testutils import assert_almost_equal 
+
+from dolfin import info, set_log_level, WARNING
+from beatadjoint import CardiacModel, \
+        BasicSplittingSolver, SplittingSolver, BasicCardiacODESolver, \
+        FitzHughNagumoManual, \
+        Constant, Expression, UnitCubeMesh, \
+        dolfin_adjoint, adj_reset
 
 set_log_level(WARNING)
 
-class TestSplittingSolver(unittest.TestCase):
+class TestSplittingSolver(object):
     "Test functionality for the splitting solvers."
 
     def setUp(self):
@@ -50,6 +55,7 @@ class TestSplittingSolver(unittest.TestCase):
     def test_basic_and_optimised_splitting_solver_exact(self):
         """Test that basic and optimised splitting solvers yield
         very comparative results when configured identically."""
+        self.setUp()
 
         # Create basic solver
         params = BasicSplittingSolver.default_parameters()
@@ -66,7 +72,7 @@ class TestSplittingSolver(unittest.TestCase):
             (vs_, vs, vur) = fields
         a = vs.vector().norm("l2")
         c = vur.vector().norm("l2")
-        self.assertAlmostEqual(interval[1], self.T)
+        assert_almost_equal(interval[1], self.T, 1e-10)
 
         if dolfin_adjoint:
             adj_reset()
@@ -84,7 +90,7 @@ class TestSplittingSolver(unittest.TestCase):
         solutions = solver.solve((self.t0, self.T), self.dt)
         for (interval, fields) in solutions:
             (vs_, vs, vur) = fields
-        self.assertAlmostEqual(interval[1], self.T)
+        assert_almost_equal(interval[1], self.T, 1e-10)
         b = vs.vector().norm("l2")
         d = vur.vector().norm("l2")
 
@@ -95,12 +101,5 @@ class TestSplittingSolver(unittest.TestCase):
 
         # Compare results, discrepancy is in difference in ODE
         # solves.
-        self.assertAlmostEqual(a, b, delta=1.)
-        self.assertAlmostEqual(c, d, delta=1.)
-
-
-if __name__ == "__main__":
-    print("")
-    print("Testing splitting solvers")
-    print("------------------------")
-    unittest.main()
+        assert_almost_equal(a, b, tolerance=1.)
+        assert_almost_equal(c, d, tolerance=1.)
