@@ -8,12 +8,17 @@ check that maximal v/s values do not regress
 __author__ = "Marie E. Rognes (meg@simula.no), 2012--2013"
 __all__ = ["BasicSingleCellSolverTestCase"]
 
-import unittest
-from beatadjoint.dolfinimport import *
-from beatadjoint import FitzHughNagumoManual, CardiacCellModel, BasicSingleCellSolver
+import pytest
 
-class BasicSingleCellSolverTestCase(unittest.TestCase):
+from beatadjoint import Expression, Constant, Parameters, dolfin_adjoint
+from beatadjoint import FitzHughNagumoManual, CardiacCellModel
+from beatadjoint import BasicSingleCellSolver
 
+from testutils import regression
+
+class TestBasicSingleCellSolver:
+
+    @regression
     def test_fitzhugh_nagumo_manual(self):
         """Test that the manually written FitzHugh-Nagumo model gives
         comparable results to a given reference from Sundnes et al,
@@ -30,13 +35,12 @@ class BasicSingleCellSolverTestCase(unittest.TestCase):
                     value[0] = 0.0
 
         if dolfin_adjoint:
+            from dolfin_adjoint import adj_reset
             adj_reset()
 
         cell = FitzHughNagumoManual()
         time = Constant(0.0)
-        cell.stimulus = {0:Stimulus(time)}
-        print "Is this true: ", isinstance(time, Constant)
-        print "%r" % time
+        cell.stimulus = {0: Stimulus(time)}
         solver = BasicSingleCellSolver(cell, time)
 
         # Setup initial condition
@@ -81,6 +85,7 @@ class BasicSingleCellSolverTestCase(unittest.TestCase):
             pylab.plot(times, v_values, 'b*')
             pylab.plot(times, s_values, 'r-')
 
+    @regression
     def test_fitz_hugh_nagumo_modified(self):
 
         k = 0.00004
@@ -157,6 +162,7 @@ class BasicSingleCellSolverTestCase(unittest.TestCase):
 
         def _run(cell):
             if dolfin_adjoint:
+                from dolfin_adjoint import adj_reset
                 adj_reset()
 
             solver = BasicSingleCellSolver(cell, None)
@@ -209,11 +215,3 @@ class BasicSingleCellSolverTestCase(unittest.TestCase):
             pylab.plot(times_mod, v_values_mod, 'b*')
             pylab.plot(times_mod, s_values_mod, 'r-')
 
-
-
-if __name__ == "__main__":
-    print ""
-    print "Testing cell models and solvers"
-    print "-------------------------------"
-    unittest.main()
-    pylab.show()
