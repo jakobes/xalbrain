@@ -20,11 +20,13 @@ level directory to your PYTHONPATH:
 Verifying the installation:
 ---------------------------
 
+The tests are based on pytest (pytest.org).
+
 The installation can be verified by running the collection of tests
 located under test/:
 
   cd test
-  python test.py
+  py.test
 
 
 Dependencies:
@@ -64,5 +66,7 @@ beatadjoint depends in particular on the following software components
   This module is only required for running some of the tests (and this
   dependency will be removed).
 
+* [Optional] py.test (pytest.org)
 
+  This testing tools is used for, well: the tests
 
