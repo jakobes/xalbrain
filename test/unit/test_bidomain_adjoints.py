@@ -6,9 +6,13 @@ __author__ = "Marie E. Rognes (meg@simula.no), 2013"
 __all__ = ["TestBasicBidomainSolverAdjoint",
            "TestBidomainSolverAdjoint"]
 
-import unittest
-from beatadjoint.dolfinimport import *
-from beatadjoint import *
+from testutils import assert_equal
+
+from beatadjoint.dolfinimport import info_green
+from beatadjoint import BasicBidomainSolver, BidomainSolver, \
+        UnitCubeMesh, Constant, Expression, \
+        adj_reset, replay_dolfin
+
 
 class TestCase(object):
     def __init__(self):
@@ -29,7 +33,7 @@ class TestCase(object):
         self.dt = 0.1
         self.T = 5*self.dt
 
-class TestBasicBidomainSolverAdjoint(unittest.TestCase):
+class TestBasicBidomainSolverAdjoint(object):
     "Test adjoint functionality for the basic bidomain solver."
 
     def setUp(self):
@@ -59,15 +63,17 @@ class TestBasicBidomainSolverAdjoint(unittest.TestCase):
         # Check replay
         info_green("Running replay basic (%s)" % solver_type)
         success = replay_dolfin(stop=True, tol=0.0)
-        self.assertEqual(success, True)
+        assert_equal(success, True)
 
     def test_replay_iterative(self):
+        self.setUp()
         self._run_replay("iterative")
 
     def test_replay_direct(self):
+        self.setUp()
         self._run_replay("direct")
 
-class TestBidomainSolverAdjoint(unittest.TestCase):
+class TestBidomainSolverAdjoint(object):
     "Test adjoint functionality for the bidomain solver."
 
     def setUp(self):
@@ -99,21 +105,12 @@ class TestBidomainSolverAdjoint(unittest.TestCase):
             return 
         info_green("Running replay (%s)" % solver_type)
         success = replay_dolfin(stop=True, tol=1.e-14)
-        self.assertEqual(success, True)
+        assert_equal(success, True)
 
     def test_replay_iterative(self):
+        self.setUp()
         self._run_replay("iterative")
 
     def test_replay_direct(self):
+        self.setUp()
         self._run_replay("direct")
-
-if __name__ == "__main__":
-    print("")
-    if dolfin_adjoint:
-        print("Testing adjoints of bidomain solvers")
-        print("------------------------------------")
-        unittest.main()
-    else:
-        print("Dolfin adjoint not present. Skipping this test")
-        print("-----------------------------------------------")
-        
