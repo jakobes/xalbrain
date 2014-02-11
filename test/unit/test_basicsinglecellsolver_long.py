@@ -14,11 +14,11 @@ from beatadjoint import Expression, Constant, Parameters, dolfin_adjoint
 from beatadjoint import FitzHughNagumoManual, CardiacCellModel
 from beatadjoint import BasicSingleCellSolver
 
-from testutils import regression
+from testutils import slow
 
 class TestBasicSingleCellSolver:
 
-    @regression
+    @slow
     def test_fitzhugh_nagumo_manual(self):
         """Test that the manually written FitzHugh-Nagumo model gives
         comparable results to a given reference from Sundnes et al,
@@ -85,7 +85,7 @@ class TestBasicSingleCellSolver:
             pylab.plot(times, v_values, 'b*')
             pylab.plot(times, s_values, 'r-')
 
-    @regression
+    @slow
     def test_fitz_hugh_nagumo_modified(self):
 
         k = 0.00004

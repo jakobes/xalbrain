@@ -15,7 +15,7 @@ from beatadjoint import Constant, UnitSquareMesh
 from beatadjoint import Function, Expression, errornorm
 from beatadjoint.utils import convergence_rate
 
-from testutils import regression
+from testutils import slow
 
 def main(N, dt, T, theta):
 
@@ -59,7 +59,7 @@ def main(N, dt, T, theta):
 
     return (v_error, u_error, mesh.hmin(), dt, T)
 
-@regression
+@slow
 def test_analytic_bidomain():
     "Test errors for bidomain solver against reference."
 
@@ -92,7 +92,7 @@ def test_analytic_bidomain():
     assert (v_diff < tolerance), msg % ("v", v_diff)
     assert (u_diff < tolerance), msg % ("u", u_diff)
 
-@regression
+@slow
 def test_spatial_and_temporal_convergence():
     "Test convergence rates for bidomain solver."
     v_errors = []

@@ -19,7 +19,7 @@ from beatadjoint import Expression, parameters, FitzHughNagumoManual, as_tensor
 from beatadjoint import UnitSquareMesh, Constant, CardiacModel
 from beatadjoint import BasicSplittingSolver, project, norm
 
-from testutils import assert_almost_equal, regression
+from testutils import assert_almost_equal, slow
 
 parameters["reorder_dofs_serial"] = False
 parameters["form_compiler"]["cpp_optimize"] = True
@@ -64,7 +64,7 @@ def setup_model():
     heart = CardiacModel(domain, time, M_i, M_e, cell)
     return heart
 
-@regression
+@slow
 def test_fitzhugh():
 
     # Set-up cardiac model

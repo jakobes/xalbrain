@@ -10,8 +10,11 @@ from beatadjoint.utils import state_space
 
 # Marks
 fast = pytest.mark.fast
+medium = pytest.mark.medium
 slow = pytest.mark.slow
-regression = pytest.mark.regression
+
+adjoint = pytest.mark.adjoint
+
 parametrize = pytest.mark.parametrize
 
 def assert_almost_equal(a, b, tolerance):
