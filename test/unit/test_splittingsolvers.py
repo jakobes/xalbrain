@@ -5,7 +5,7 @@ Unit tests for various types of bidomain solver
 __author__ = "Marie E. Rognes (meg@simula.no), 2013"
 __all__ = ["TestSplittingSolver"]
 
-from testutils import assert_almost_equal 
+from testutils import assert_almost_equal, slow
 
 from dolfin import info, set_log_level, WARNING
 from beatadjoint import CardiacModel, \
@@ -52,6 +52,7 @@ class TestSplittingSolver(object):
         self.ics = self.cell_model.initial_conditions()
 
 
+    @slow
     def test_basic_and_optimised_splitting_solver_exact(self):
         """Test that basic and optimised splitting solvers yield
         very comparative results when configured identically."""

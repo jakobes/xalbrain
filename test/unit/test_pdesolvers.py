@@ -5,7 +5,7 @@ Unit tests for various types of bidomain solver
 __author__ = "Marie E. Rognes (meg@simula.no), 2013"
 __all__ = [""]
 
-from testutils import assert_almost_equal, assert_equal
+from testutils import assert_almost_equal, assert_equal, fast
 
 from dolfin import *
 from beatadjoint import BasicBidomainSolver, BasicMonodomainSolver, \
@@ -32,6 +32,7 @@ class TestBasicBidomainSolver(object):
         self.t0 = 0.0
         self.dt = 0.1
 
+    @fast
     def test_basic_solve(self):
         "Test that solver runs."
         self.setUp()
@@ -48,6 +49,7 @@ class TestBasicBidomainSolver(object):
         for (interval, fields) in solutions:
             (v_, vs) = fields
 
+    @fast
     def test_compare_solve_step(self):
         "Test that solve gives same results as single step"
         self.setUp()
@@ -93,6 +95,7 @@ class TestBasicMonodomainSolver(object):
         self.t0 = 0.0
         self.dt = 0.1
 
+    @fast
     def test_basic_solve(self):
         "Test that solver runs."
         self.setUp()
@@ -108,6 +111,7 @@ class TestBasicMonodomainSolver(object):
         for (interval, fields) in solutions:
             (v_, vs) = fields
 
+    @fast
     def test_compare_solve_step(self):
         "Test that solve gives same results as single step"
         self.setUp()
@@ -154,6 +158,7 @@ class TestBidomainSolver(object):
         self.t0 = 0.0
         self.dt = 0.1
 
+    @fast
     def test_solve(self):
         "Test that solver runs."
         self.setUp()
@@ -167,6 +172,7 @@ class TestBidomainSolver(object):
         for (interval, fields) in solutions:
             (v_, vur) = fields
 
+    @fast
     def test_compare_with_basic_solve(self):
         """Test that solver with direct linear algebra gives same
         results as basic bidomain solver."""
@@ -201,6 +207,7 @@ class TestBidomainSolver(object):
         assert_almost_equal(bidomain_result, basic_bidomain_result,
                                1e-13)
 
+    @fast
     def test_compare_direct_iterative(self):
         "Test that direct and iterative solution give comparable results."
         self.setUp()
@@ -255,6 +262,7 @@ class TestMonodomainSolver(object):
         self.t0 = 0.0
         self.dt = 0.1
 
+    @fast
     def test_solve(self):
         "Test that solver runs."
         self.setUp()
@@ -266,6 +274,7 @@ class TestMonodomainSolver(object):
         for (interval, fields) in solutions:
             (v_, vur) = fields
 
+    @fast
     def test_compare_with_basic_solve(self):
         """Test that solver with direct linear algebra gives same
         results as basic monodomain solver."""
@@ -296,6 +305,7 @@ class TestMonodomainSolver(object):
         assert_almost_equal(monodomain_result, basic_monodomain_result,
                                1e-13)
 
+    @fast
     def test_compare_direct_iterative(self):
         "Test that direct and iterative solution give comparable results."
         self.setUp()
