@@ -152,7 +152,7 @@ def basic_single_cell_closure(theta, Model):
 
         # Run taylor test
         if isinstance(model, Tentusscher_2004_mcell):
-            seed=1.e-4
+            seed=1.e-5
         else:
             seed=None
 
@@ -202,7 +202,7 @@ def single_cell_closure(Scheme, Model):
         solver = self._setup_solver(model, Scheme, mesh)
         ics = project(model.initial_conditions(), solver.VS)
 
-        info_green("Running forward %s with %s" % (model, Scheme))
+        info_green("Running forward %s with %s A" % (model, Scheme))
         self._run(solver, ics)
 
         info_green("Replaying")
@@ -232,7 +232,7 @@ def single_cell_closure(Scheme, Model):
         solver = self._setup_solver(model, Scheme, mesh)
         ics = Function(project(model.initial_conditions(), solver.VS), name="ics")
 
-        info_green("Running forward %s with %s" % (model, Scheme))
+        info_green("Running forward %s with %s B" % (model, Scheme))
         self._run(solver, ics)
 
         adj_html("forward.html", "forward")
@@ -247,7 +247,10 @@ def single_cell_closure(Scheme, Model):
         Jics = assemble(form(vs))
 
         # Seed for taylor test
-        seed = 1.e-2 if isinstance(model, Tentusscher_2004_mcell) else 1e-1
+        if isinstance(model, Tentusscher_2004_mcell):
+            seed=1.e-5
+        else:
+            seed=None
 
         # Set-up runner
         def Jhat(ics):
@@ -302,7 +305,7 @@ def single_cell_closure(Scheme, Model):
         solver = self._setup_solver(model, Scheme, mesh)
         ics = Function(project(model.initial_conditions(), solver.VS), name="ics")
 
-        info_green("Running forward %s with %s" % (model, Scheme))
+        info_green("Running forward %s with %s C" % (model, Scheme))
         self._run(solver, ics)
 
         adj_html("forward.html", "forward")
@@ -317,7 +320,10 @@ def single_cell_closure(Scheme, Model):
         Jics = assemble(form(vs))
 
         # Seed for taylor test
-        seed = 1.e-1 if isinstance(Model, Tentusscher_2004_mcell) else 1e-1
+        if isinstance(model, Tentusscher_2004_mcell):
+            seed=1.e-5
+        else:
+            seed=None
 
         # Set-up runner
         def Jhat(ics):
