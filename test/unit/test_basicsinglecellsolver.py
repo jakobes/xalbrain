@@ -1,217 +1,82 @@
 """
-Regression and correctness test for FitzHughNagumoManual model and pure
-BasicSingleCellSolver: compare (in eyenorm) time evolution with results from
-Section 2.4.1 p. 36 in Sundnes et al, 2006 (checked 2012-09-19), and
-check that maximal v/s values do not regress
+Unit tests for various types of solvers for cardiac cell models.
 """
+__author__ = "Marie E. Rognes (meg@simula.no), 2013"
+__all__ = ["TestCardiacODESolver", "TestBasicSingleCellSolver"]
 
-__author__ = "Marie E. Rognes (meg@simula.no), 2012--2013"
-__all__ = ["TestBasicSingleCellSolver"]
 
+import itertools
 import pytest
+from testutils import slow, assert_almost_equal, parametrize, cell_model
 
-from beatadjoint import Expression, Constant, Parameters, dolfin_adjoint
-from beatadjoint import FitzHughNagumoManual, CardiacCellModel
-from beatadjoint import BasicSingleCellSolver
+from dolfin import info, info_red, info_green, \
+        UnitIntervalMesh, MPI, mpi_comm_world
+from beatadjoint import supported_cell_models, \
+        CardiacODESolver, BasicSingleCellSolver, \
+        NoCellModel, FitzHughNagumoManual, Fitzhughnagumo, Tentusscher_2004_mcell, \
+        Constant, Expression
 
-from testutils import regression
+class TestBasicSingleCellSolver(object):
+    "Test functionality for the basic single cell solver."
 
-class TestBasicSingleCellSolver:
+    references = {NoCellModel: {1.0: (0, 0.3),
+                                 0.5: (0, 0.2),
+                                 0.0: (0, 0.1)},
+                   FitzHughNagumoManual: {1.0:  (0, -84.70013280019053),
+                                          0.5: (0, -84.8000503072239979),
+                                          0.0:  (0, -84.9)},
+                   Tentusscher_2004_mcell: {1.0: (1, -85.89745525156506),
+                                            0.5: (1, -85.99686000794499),
+                                            0.0:  (1, -86.09643254164848),}
+                   }
 
-    @regression
-    def test_fitzhugh_nagumo_manual(self):
-        """Test that the manually written FitzHugh-Nagumo model gives
-        comparable results to a given reference from Sundnes et al,
-        2006."""
+    def _run_solve(self, model, time, theta):
+        "Run two time steps for the given model with the given theta solver."
+        dt = 0.01
+        T = 2*dt
+        interval = (0.0, T)
 
-        class Stimulus(Expression):
-            def __init__(self, t):
-                self.t = t
-            def eval(self, value, x):
-                if float(self.t) >= 50 and float(self.t) < 60:
-                    v_amp = 125
-                    value[0] = 0.05*v_amp
-                else:
-                    value[0] = 0.0
+        # Initialize solver
+        params = BasicSingleCellSolver.default_parameters()
+        params["theta"] = theta
 
-        if dolfin_adjoint:
-            from dolfin_adjoint import adj_reset
-            adj_reset()
+        params["enable_adjoint"] = False
+        solver = BasicSingleCellSolver(model, time, params=params)
 
-        cell = FitzHughNagumoManual()
-        time = Constant(0.0)
-        cell.stimulus = {0: Stimulus(time)}
-        solver = BasicSingleCellSolver(cell, time)
-
-        # Setup initial condition
+        # Assign initial conditions
         (vs_, vs) = solver.solution_fields()
-        ic = cell.initial_conditions()
-        vs_.assign(ic)
+        vs_.assign(model.initial_conditions())
 
-        # Initial set-up
-        interval = (0, 400)
-        dt = 1.0
+        # Solve for a couple of steps
+        solutions = solver.solve(interval, dt)
+        for ((t0, t1), vs) in solutions:
+            pass
 
-        times = []
-        v_values = []
-        s_values = []
+        # Check that we are at the end time
+        assert_almost_equal(t1, T, 1e-10)
+        return vs.vector()
 
-        # Solve
-        solutions = solver.solve(interval, dt=dt)
-        for (timestep, vs) in solutions:
-            (t0, t1) = timestep
-            times += [(t0 + t1)/2]
+    @slow
+    @parametrize(("theta"), [0., 0.5, 1.])
+    def test_default_basic_single_cell_solver(self, cell_model, theta):
+        "Test basic single cell solver."
+        time = Constant(0.0)
+        model = cell_model
+        Model = cell_model.__class__
 
-            v_values += [vs.vector()[0]]
-            s_values += [vs.vector()[1]]
+        if Model == supported_cell_models[3] and theta > 0:
+            pytest.xfail("failing configuration (but should work)")
 
-        # Regression test
-        v_max_reference = 2.6883308148064152e+01
-        s_max_reference = 6.8660144687023219e+01
-        tolerance = 1.e-14
-        print "max(v_values) %.16e" % max(v_values)
-        print "max(s_values) %.16e" % max(s_values)
-        msg = "Maximal %s value does not match reference: diff is %.16e"
+        model.stimulus = {0:Expression("1000*t", t=time)}
 
-        v_diff = abs(max(v_values) - v_max_reference)
-        s_diff = abs(max(s_values) - s_max_reference)
-        assert (v_diff < tolerance), msg % ("v", v_diff)
-        assert (s_diff < tolerance), msg % ("s", s_diff)
+        info_green("\nTesting %s" % model)
+        vec_solve = self._run_solve(model, time, theta)
 
-        # Correctness test
-        import os
-        if int(os.environ.get("DOLFIN_NOPLOT", 0)) != 1:
-            import pylab
-            pylab.plot(times, v_values, 'b*')
-            pylab.plot(times, s_values, 'r-')
+        if Model == supported_cell_models[3] and theta == 0:
+            pytest.xfail("failing configuration (but should work)")
 
-    @regression
-    def test_fitz_hugh_nagumo_modified(self):
-
-        k = 0.00004
-        Vrest = -85.
-        Vthreshold = -70.
-        Vpeak = 40.
-        k = 0.00004
-        l = 0.63
-        b = 0.013
-
-        class FHN2(CardiacCellModel):
-            """ODE model:
-
-            parameters(Vrest,Vthreshold,Vpeak,k,l,b,ist)
-
-            input(u)
-            output(g)
-            default_states(v=-85, w=0)
-
-            Vrest = -85;
-            Vthreshold = -70;
-            Vpeak = 40;
-            k = 0.00004;
-            l = 0.63;
-            b = 0.013;
-            ist = 0.0
-
-            v = u[0]
-            w = u[1]
-
-            g[0] =  -k*(v-Vrest)*(w+(v-Vthreshold)*(v-Vpeak))-ist;
-            g[1] = l*(v-Vrest) - b*w;
-
-            [specified by G. T. Lines Sept 22 2012]
-
-            Note the minus sign convention here in the specification of
-            I (g[0]) !!
-            """
-
-            def __init__(self):
-                CardiacCellModel.__init__(self)
-
-            def default_parameters(self):
-                parameters = Parameters("FHN2")
-                parameters.add("Vrest", Vrest)
-                parameters.add("Vthreshold", Vthreshold)
-                parameters.add("Vpeak", Vpeak)
-                parameters.add("k", k)
-                parameters.add("l", l)
-                parameters.add("b", b)
-                parameters.add("ist", 0.0)
-                return parameters
-
-            def I(self, v, w, time=None):
-                k = self._parameters["k"]
-                Vrest = self._parameters["Vrest"]
-                Vthreshold = self._parameters["Vthreshold"]
-                Vpeak = self._parameters["Vpeak"]
-                ist = self._parameters["ist"]
-                i =  -k*(v-Vrest)*(w+(v-Vthreshold)*(v-Vpeak))-ist;
-                return -i
-
-            def F(self, v, w, time=None):
-                l = self._parameters["l"]
-                b = self._parameters["b"]
-                Vrest = self._parameters["Vrest"]
-                return l*(v-Vrest) - b*w;
-
-            def num_states(self):
-                return 1
-
-            def __str__(self):
-                return "Modified FitzHugh-Nagumo cardiac cell model"
-
-        def _run(cell):
-            if dolfin_adjoint:
-                from dolfin_adjoint import adj_reset
-                adj_reset()
-
-            solver = BasicSingleCellSolver(cell, None)
-
-            # Setup initial condition
-            (vs_, vs) = solver.solution_fields()
-            vs_.vector()[0] = 30. # Non-resting state
-            vs_.vector()[1] = 0.
-
-            T = 2
-            solutions = solver.solve((0, T), 0.25)
-            times = []
-            v_values = []
-            s_values = []
-            for ((t0, t1), vs) in solutions:
-                times += [0.5*(t0 + t1)]
-                v_values.append(vs.vector()[0])
-                s_values.append(vs.vector()[1])
-
-            return (v_values, s_values, times)
-
-        # Try the modified one
-        cell_mod = FHN2()
-        (v_values_mod, s_values_mod, times_mod) = _run(cell_mod)
-
-        # Compare with our standard FitzHugh (reparametrized)
-        v_amp = Vpeak - Vrest
-        cell_parameters = {"c_1": k*v_amp**2, "c_2": k*v_amp, "c_3": b/l,
-                           "a": (Vthreshold - Vrest)/v_amp, "b": l,
-                           "v_rest": Vrest, "v_peak": Vpeak}
-        cell = FitzHughNagumoManual(cell_parameters)
-        (v_values, s_values, times) = _run(cell)
-
-        msg = "Mismatch in %s value comparison, diff = %.16e"
-        v_diff = abs(v_values[-1] - v_values_mod[-1])
-        s_diff = abs(s_values[-1] - s_values_mod[-1])
-        assert (v_diff < 1.e-12), msg % v_diff
-        assert (s_diff < 1.e-12), msg % s_diff
-
-        # Look at some plots
-        import os
-        if int(os.environ.get("DOLFIN_NOPLOT", 0)) != 1:
-            import pylab
-            pylab.title("Standard FitzHugh-Nagumo")
-            pylab.plot(times, v_values, 'b*')
-            pylab.plot(times, s_values, 'r-')
-
-            pylab.figure()
-            pylab.title("Modified FitzHugh-Nagumo")
-            pylab.plot(times_mod, v_values_mod, 'b*')
-            pylab.plot(times_mod, s_values_mod, 'r-')
-
+        if Model in self.references and theta in self.references[Model]:
+            ind, ref_value = self.references[Model][theta]
+            assert_almost_equal(vec_solve[ind], ref_value, 1e-10)
+        else:
+            info_red("Missing references for %r, %r" % (Model, theta))
