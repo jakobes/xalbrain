@@ -10,12 +10,16 @@ The test was then shortened to T = 4.0, and the reference at that time
 computed and used as a reference here.
 """
 
-__author__ = "Marie E. Rognes (meg@simula.no), 2012--2013"
+__author__ = "Marie E. Rognes (meg@simula.no), 2012--2014"
 __all__ = []
 
 import math
 
-from beatadjoint import *
+from beatadjoint import Expression, parameters, FitzHughNagumoManual, as_tensor
+from beatadjoint import UnitSquareMesh, Constant, CardiacModel
+from beatadjoint import BasicSplittingSolver, project, norm
+
+from testutils import assert_almost_equal, regression
 
 parameters["reorder_dofs_serial"] = False
 parameters["form_compiler"]["cpp_optimize"] = True
@@ -60,7 +64,8 @@ def setup_model():
     heart = CardiacModel(domain, time, M_i, M_e, cell)
     return heart
 
-if __name__ == "__main__":
+@regression
+def test_fitzhugh():
 
     # Set-up cardiac model
     heart = setup_model()
@@ -87,18 +92,14 @@ if __name__ == "__main__":
     vs_.assign(vs0)
 
     # Solve
-    info_green("Solving primal")
-    total = Timer("XXX: Total solver time")
     solutions = solver.solve((0, T), dt)
     for (timestep, (vs_, vs, vur)) in solutions:
         continue
-    total.stop()
 
     u = project(vur[1], vur.function_space().sub(1).collapse())
     norm_u = norm(u)
-    plot(u, title="Final u", interactive=True)
-    print "norm_u = %.16f" % norm_u
     reference =  11.2487499749304991
-    diff = abs(reference - norm_u)
-    tol = 1.e-7
-    assert (diff < tol), "Mismatch in norm of u: %r" % diff
+    print "norm_u = ", norm_u
+    print "reference = ", reference
+
+    assert_almost_equal(reference, norm_u, 1.e-7)
