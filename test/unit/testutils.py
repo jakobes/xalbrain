@@ -21,6 +21,9 @@ def assert_almost_equal(a, b, tolerance):
         c_inf = numpy.linalg.norm(c, numpy.inf)
         assert c_inf < tolerance
 
+def assert_equal(a, b):
+    assert a == b
+
 # Fixtures
 @pytest.fixture(params=supported_cell_models)
 def cell_model(request):
