@@ -3,9 +3,9 @@ Unit tests for various types of solvers for cardiac cell models.
 """
 
 __author__ = "Marie E. Rognes (meg@simula.no), 2013"
-__all__ = ["TestBasicSingleCellSolverAdjoint"]
+__all__ = ["TestCardiacODESolverAdjoint"]
 
-from testutils import assert_equal, assert_true, assert_greater
+from testutils import assert_equal, assert_true, assert_greater, slow, adjoint
 
 import types
 from beatadjoint.dolfinimport import UnitIntervalMesh, info_green, \
