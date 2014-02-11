@@ -15,8 +15,11 @@ parametrize = pytest.mark.parametrize
 
 def assert_almost_equal(a, b, tolerance):
     c = a - b
-    c_inf = numpy.linalg.norm(c, numpy.inf)
-    assert (c_inf < tolerance)
+    if type(c) in (int, float):
+        assert abs(c) < tolerance
+    else:
+        c_inf = numpy.linalg.norm(c, numpy.inf)
+        assert c_inf < tolerance
 
 # Fixtures
 @pytest.fixture(params=supported_cell_models)
