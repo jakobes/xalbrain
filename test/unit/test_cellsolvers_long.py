@@ -1,58 +1,62 @@
 """
 Unit tests for various types of solvers for cardiac cell models.
 """
-from __future__ import division
 
 __author__ = "Marie E. Rognes (meg@simula.no), 2013"
 __all__ = ["TestCardiacODESolver"]
 
-import unittest
+from testutils import assert_almost_equal, adjoint, slow
 import numpy as np
-from dolfin import *
-from beatadjoint import *
-from beatadjoint.utils import state_space
 
-class TestCardiacODESolver(unittest.TestCase):
+from dolfin import info_green, dof_to_vertex_map
+from beatadjoint import NoCellModel, FitzHughNagumoManual, Fitzhughnagumo, \
+        CardiacODESolver, \
+        Tentusscher_2004_mcell, \
+        UnitIntervalMesh, MPI, Constant, Expression, \
+        dolfin_adjoint, adj_reset 
 
-    def setUp(self):
-        # Note that these should be essentially identical to the ones
-        # for the BasicSingleCellSolver
-        self.references = {NoCellModel:
-                           {"BackwardEuler": (0, 0.3),
-                            "CrankNicolson": (0, 0.2),
-                            "ForwardEuler": (0, 0.1),
-                            "RK4": (0, 0.2),
-                            "ESDIRK3": (0, 0.2),
-                            "ESDIRK4": (0, 0.2),
-                            },
-                           
-                           FitzHughNagumoManual:
-                           {"BackwardEuler": (0, -84.70013280019053),
-                            "CrankNicolson": (0, -84.80005016079546),
-                            "ForwardEuler": (0, -84.9),
-                            "RK4": (0, -84.80004467770296),
-                            "ESDIRK3": (0, -84.80004459269247),
-                            "ESDIRK4": (0, -84.80004468281632),
-                            },
-                           
-                           Fitzhughnagumo:
-                           {"BackwardEuler": (0, -84.70013280019053),
-                            "CrankNicolson": (0, -84.8000501607955),
-                            "ForwardEuler":  (0, -84.9),
-                            "RK4":  (0, -84.80004467770296),
-                            "ESDIRK3":  (0, -84.80004467770296),
-                            "ESDIRK4":  (0, -84.80004468281632),
-                            },
 
-                           Tentusscher_2004_mcell:
-                           {"BackwardEuler": (1, -85.89745525156506),
-                            "CrankNicolson": (1, -85.99685674414921),
-                            "ForwardEuler":  (1, -86.09643254164848),
-                            "RK4":  (1, "nan"),
-                            "ESDIRK3":  (1, -85.99681862337053),
-                            "ESDIRK4":  (1, -85.99681796046603),
-                            }
-                           }
+
+class TestCardiacODESolver(object):
+
+    # Note that these should be essentially identical to the ones
+    # for the BasicSingleCellSolver
+    references = {NoCellModel:
+                   {"BackwardEuler": (0, 0.3),
+                    "CrankNicolson": (0, 0.2),
+                    "ForwardEuler": (0, 0.1),
+                    "RK4": (0, 0.2),
+                    "ESDIRK3": (0, 0.2),
+                    "ESDIRK4": (0, 0.2),
+                    },
+                   
+                   FitzHughNagumoManual:
+                   {"BackwardEuler": (0, -84.70013280019053),
+                    "CrankNicolson": (0, -84.80005016079546),
+                    "ForwardEuler": (0, -84.9),
+                    "RK4": (0, -84.80004467770296),
+                    "ESDIRK3": (0, -84.80004459269247),
+                    "ESDIRK4": (0, -84.80004468281632),
+                    },
+                   
+                   Fitzhughnagumo:
+                   {"BackwardEuler": (0, -84.70013280019053),
+                    "CrankNicolson": (0, -84.8000501607955),
+                    "ForwardEuler":  (0, -84.9),
+                    "RK4":  (0, -84.80004467770296),
+                    "ESDIRK3":  (0, -84.80004467770296),
+                    "ESDIRK4":  (0, -84.80004468281632),
+                    },
+
+                   Tentusscher_2004_mcell:
+                   {"BackwardEuler": (1, -85.89745525156506),
+                    "CrankNicolson": (1, -85.99685674414921),
+                    "ForwardEuler":  (1, -86.09643254164848),
+                    "RK4":  (1, "nan"),
+                    "ESDIRK3":  (1, -85.99681862337053),
+                    "ESDIRK4":  (1, -85.99681796046603),
+                    }
+                   }
 
     def _setup_solver(self, Model, Scheme, mesh, time, stim=None, params=None):
         # Create model instance
@@ -78,7 +82,9 @@ class TestCardiacODESolver(unittest.TestCase):
 
         return solver
 
-def test_closure_long_run(Scheme, dt_org, abs_tol, rel_tol):
+@adjoint
+@slow
+def closure_long_run(Scheme, dt_org, abs_tol, rel_tol):
 
     def long_run_compare(self):
 
@@ -144,7 +150,7 @@ def test_closure_long_run(Scheme, dt_org, abs_tol, rel_tol):
             next_dt = max(min(tstop-float(scheme.t()), dt), 0.0)
 
         # Compare solution from CellML run using opencell
-        self.assertAlmostEqual(output[-1], Vm_reference[-1], abs_tol)
+        assert_almost_equal(output[-1], Vm_reference[-1], abs_tol)
 
         output = np.array(output)
         time_output = np.array(time_output)
@@ -152,21 +158,14 @@ def test_closure_long_run(Scheme, dt_org, abs_tol, rel_tol):
         output = np.interp(time_ref, time_output, output)
 
         value = np.sqrt(np.sum(((Vm_reference-output)/Vm_reference)**2))/len(Vm_reference)
-        self.assertAlmostEqual(value, 0.0, rel_tol)
+        assert_almost_equal(value, 0.0, rel_tol)
 
     return long_run_compare
 
-for Scheme, dt_org, abs_tol, rel_tol in [("BackwardEuler", 0.1, 1, 1),
-                                         ("CrankNicolson", 0.1, 0, 1),
-                                         ("ESDIRK3", 0.1, 0, 1),
-                                         ("ESDIRK4", 0.1, 0, 1)]:
+for Scheme, dt_org, abs_tol, rel_tol in [("BackwardEuler", 0.1, 1e-1, 1e-1),
+                                         ("CrankNicolson", 0.1, 1e-0, 1e-1),
+                                         ("ESDIRK3", 0.1, 1e-0, 1e-1),
+                                         ("ESDIRK4", 0.1, 1e-0, 1e-1)]:
 
-    func = test_closure_long_run(Scheme, dt_org, abs_tol, rel_tol)
+    func = closure_long_run(Scheme, dt_org, abs_tol, rel_tol)
     setattr(TestCardiacODESolver, "test_{0}_long_run_tentusscher".format(Scheme), func)
-
-
-if __name__ == "__main__":
-    print("")
-    print("Testing cell solvers")
-    print("--------------------")
-    unittest.main()
