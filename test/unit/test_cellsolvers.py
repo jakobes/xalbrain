@@ -4,10 +4,13 @@ Unit tests for various types of solvers for cardiac cell models.
 __author__ = "Marie E. Rognes (meg@simula.no), 2013"
 
 
-from dolfin import *
-from beatadjoint import *
-from testutils import slow, assert_almost_equal, parametrize
 import itertools
+from testutils import slow, assert_almost_equal, parametrize
+
+from dolfin import info, info_green, Constant, Expression, UnitIntervalMesh
+from beatadjoint import supported_cell_models, CardiacODESolver, \
+        NoCellModel, FitzHughNagumoManual, Fitzhughnagumo, Tentusscher_2004_mcell
+
 
 supported_schemes = ["ForwardEuler", "BackwardEuler", "CrankNicolson", "RK4", "ESDIRK3", "ESDIRK4"]
 
