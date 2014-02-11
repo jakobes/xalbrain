@@ -160,7 +160,7 @@ class TestBasicSingleCellSolver(object):
                                             0.0:  (1, -86.09643254164848),}
                    }
 
-    def _run_solve(self, model, time, theta=None):
+    def _run_solve(self, model, time, theta):
         "Run two time steps for the given model with the given theta solver."
         dt = 0.01
         T = 2*dt
@@ -168,8 +168,7 @@ class TestBasicSingleCellSolver(object):
 
         # Initialize solver
         params = BasicSingleCellSolver.default_parameters()
-        if theta is not None:
-            params["theta"] = theta
+        params["theta"] = theta
 
         params["enable_adjoint"] = False
         solver = BasicSingleCellSolver(model, time, params=params)
@@ -187,7 +186,7 @@ class TestBasicSingleCellSolver(object):
         assert_almost_equal(t1, T, 1e-10)
         return vs.vector()
 
-    def _compare_solve_step(self, Model, theta=None):
+    def _compare_solve_step(self, Model, theta):
         "Set-up model and compare result to precomputed reference if available."
         model = Model()
         time = Constant(0.0)
@@ -202,20 +201,10 @@ class TestBasicSingleCellSolver(object):
             info("Missing references for %r, %r" % (Model, theta))
 
     @slow
-    def test_default_basic_single_cell_solver(self):
+    @parametrize(("theta"), 
+            [0., 0.5, 1.]
+            )
+    def test_default_basic_single_cell_solver(self, theta):
         "Test basic single cell solver."
         for Model in supported_cell_models:
-            self._compare_solve_step(Model)
-
-    @slow
-    def test_default_basic_single_cell_solver_be(self):
-        "Test basic single cell solver with Backward Euler."
-        for Model in supported_cell_models:
-            self._compare_solve_step(Model, theta=1.0)
-
-    @slow
-    def test_default_basic_single_cell_solver_fe(self):
-        "Test basic single cell solver with Forward Euler."
-        for Model in supported_cell_models:
-            self._compare_solve_step(Model, theta=0.0)
-
+            self._compare_solve_step(Model, theta=theta)
