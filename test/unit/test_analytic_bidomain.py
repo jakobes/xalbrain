@@ -1,30 +1,30 @@
 """
-This test just solves the bidomain equations with an analytic solution
-(assuming no state variables) to verify the correctness of the
+This test solves the bidomain equations (assuming no state variables)
+with an analytic solution to verify the correctness of the basic
 splitting solver.
 """
 
 __author__ = "Marie E. Rognes (meg@simula.no), 2012--2013"
 __all__ = []
 
-from beatadjoint.dolfinimport import *
-from beatadjoint import *
+import pytest
+
+from beatadjoint import CardiacModel, NoCellModel
+from beatadjoint import BasicSplittingSolver
+from beatadjoint import Constant, UnitSquareMesh
+from beatadjoint import Function, Expression, errornorm
 from beatadjoint.utils import convergence_rate
 
+from testutils import regression
+
 def main(N, dt, T, theta):
-    set_log_level(WARNING)
-
-    mesh = UnitSquareMesh(N, N)
-    time = Constant(0.0)
-
-    # Create cardiac cell model
-    cell_model = NoCellModel()
-
-    # Create stimulus
-    ac_str = "cos(t)*cos(2*pi*x[0])*cos(2*pi*x[1]) + 4*pow(pi, 2)*cos(2*pi*x[0])*cos(2*pi*x[1])*sin(t)"
-    stimulus = {0:Expression(ac_str, t=time, degree=3)}
 
     # Create cardiac model
+    mesh = UnitSquareMesh(N, N)
+    time = Constant(0.0)
+    cell_model = NoCellModel()
+    ac_str = "cos(t)*cos(2*pi*x[0])*cos(2*pi*x[1]) + 4*pow(pi, 2)*cos(2*pi*x[0])*cos(2*pi*x[1])*sin(t)"
+    stimulus = {0: Expression(ac_str, t=time, degree=3)}
     heart = CardiacModel(mesh, time, 1.0, 1.0, cell_model, stimulus=stimulus)
 
     # Set-up solver
@@ -54,13 +54,14 @@ def main(N, dt, T, theta):
     # Compute errors
     (v, s) = vs.split(deepcopy=True)
     v_error = errornorm(v_exact, v, "L2", degree_rise=2)
-
     (v, u, r) = vur.split(deepcopy=True)
     u_error = errornorm(u_exact, u, "L2", degree_rise=2)
 
     return (v_error, u_error, mesh.hmin(), dt, T)
 
-def test_regression():
+@regression
+def test_analytic_bidomain():
+    "Test errors for bidomain solver against reference."
 
     # Create domain
     level = 0
@@ -91,13 +92,13 @@ def test_regression():
     assert (v_diff < tolerance), msg % ("v", v_diff)
     assert (u_diff < tolerance), msg % ("u", u_diff)
 
+@regression
 def test_spatial_and_temporal_convergence():
-
+    "Test convergence rates for bidomain solver."
     v_errors = []
     u_errors = []
     dts = []
     hs = []
-    set_log_level(WARNING)
     T = 0.1
     dt = 0.01
     theta = 0.5
@@ -119,8 +120,3 @@ def test_spatial_and_temporal_convergence():
 
     assert all(v > 1.9 for v in v_rates), "Failed convergence for v"
     assert all(u > 1.9 for u in u_rates), "Failed convergence for u"
-
-if __name__ == "__main__":
-
-    test_regression()
-    test_spatial_and_temporal_convergence()
