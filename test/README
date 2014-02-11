@@ -7,19 +7,17 @@ Running the tests:
 We recommend running the tests from the test/ directory. The complete
 test suite can be run with:
 
-  python test.py
+  py.test
 
-In order to only run tests in specified sub-directories, do
+Guidelines for organizing the tests:
+----------------------------------------
 
-  python test.py subdirectory1 subdirectory2 ...
+- Mark tests that tests dolfin-adjoint functionality by
 
-Organizing the tests:
----------------------
+  @adjoint
 
-* Place proper unit tests under unit/
+- Mark tests according to speed:
 
-* Place proper regression tests under regression/
-
-* Place tests that just check whether something run under system/
-
-* Add other test directories at will.
+  @fast   : (complete) test < ~1 s
+  @medium : (complete) test < ~10 s
+  @slow   : (complete) test > ~10 s

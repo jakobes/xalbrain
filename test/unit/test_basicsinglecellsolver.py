@@ -6,7 +6,7 @@ check that maximal v/s values do not regress
 """
 
 __author__ = "Marie E. Rognes (meg@simula.no), 2012--2013"
-__all__ = ["BasicSingleCellSolverTestCase"]
+__all__ = ["TestBasicSingleCellSolver"]
 
 import pytest
 
