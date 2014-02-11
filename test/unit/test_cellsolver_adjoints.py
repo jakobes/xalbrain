@@ -5,11 +5,19 @@ Unit tests for various types of solvers for cardiac cell models.
 __author__ = "Marie E. Rognes (meg@simula.no), 2013"
 __all__ = ["TestBasicSingleCellSolverAdjoint"]
 
+from testutils import assert_equal, assert_true, assert_greater
 
 import types
-import unittest
-from beatadjoint.dolfinimport import *
-from beatadjoint import *
+from beatadjoint.dolfinimport import UnitIntervalMesh, info_green, \
+        MPI, mpi_comm_world
+from beatadjoint import supported_cell_models, \
+        Tentusscher_2004_mcell, \
+        BasicSingleCellSolver, CardiacODESolver, \
+        adj_reset, replay_dolfin, InitialConditionParameter, \
+        Constant, Expression, Function, Functional, \
+        project, inner, assemble, dx, dt, FINISH_TIME, \
+        parameters, compute_gradient_tlm, compute_gradient, \
+        taylor_test
 
 # TODO: Check with these parameters!
 #parameters["form_compiler"]["cpp_optimize"] = True
@@ -36,7 +44,7 @@ def basic_single_cell_closure(theta, Model):
 
         info_green("Replaying")
         success = replay_dolfin(tol=0.0, stop=True)
-        self.assertEqual(success, True)
+        assert_true(success)
         
 
     def test_compute_adjoint(self):
@@ -58,9 +66,6 @@ def basic_single_cell_closure(theta, Model):
         self._run(solver, model, ics)
 
         (vs_, vs) = solver.solution_fields()
-
-        adj_html("forward.html", "forward")
-        adj_html("adjoint.html", "adjoint")
 
         # Define functional and compute gradient etc
         J = Functional(inner(vs_, vs_)*dx*dt[FINISH_TIME])
@@ -94,9 +99,6 @@ def basic_single_cell_closure(theta, Model):
         info_green("Running forward %s with theta %g" % (model, theta))
         self._run(solver, model, ics)
 
-        adj_html("forward.html", "forward")
-        adj_html("adjoint.html", "adjoint")
-
         # Define functional
         (vs_, vs) = solver.solution_fields()
         J = Functional(inner(vs, vs)*dx*dt[FINISH_TIME])
@@ -125,9 +127,6 @@ def basic_single_cell_closure(theta, Model):
         # Run forward model
         info_green("Running forward %s with theta %g" % (model, theta))
         self._run(solver, model, ics)
-
-        adj_html("forward.html", "forward")
-        adj_html("adjoint.html", "adjoint")
 
         # Define functional
         (vs_, vs) = solver.solution_fields()
@@ -160,12 +159,12 @@ def basic_single_cell_closure(theta, Model):
                                 Jics, dJdics, seed=seed)
 
         # Check that minimal rate is greater than some given number
-        self.assertGreater(conv_rate, 1.8)
+        assert_greater(conv_rate, 1.8)
 
     # Return functions with Model and theta fixed
     return tuple(func for func in locals().values() if isinstance(func, types.FunctionType))
 
-class TestBasicSingleCellSolverAdjoint(unittest.TestCase):
+class TestBasicSingleCellSolverAdjoint(object):
     "Test adjoint functionality for the basic single cell solver."
 
     def _run(self, solver, model, ics):
@@ -209,7 +208,7 @@ def single_cell_closure(Scheme, Model):
 
         # FIXME: Can we increase the tolerance?
         success = replay_dolfin(tol=0, stop=True)
-        self.assertTrue(success)
+        assert_true(success)
         
         "Test that we can compute the gradient for some given functional"
         if MPI.size(mpi_comm_world()) > 1:
@@ -234,9 +233,6 @@ def single_cell_closure(Scheme, Model):
 
         info_green("Running forward %s with %s B" % (model, Scheme))
         self._run(solver, ics)
-
-        adj_html("forward.html", "forward")
-        adj_html("adjoint.html", "adjoint")
 
         # Define functional
         (vs_, vs) = solver.solution_fields()
@@ -270,8 +266,7 @@ def single_cell_closure(Scheme, Model):
         assert (dJdics is not None), "Gradient is None (#fail)."
         conv_rate_tlm = taylor_test(Jhat, InitialConditionParameter(vs), Jics, dJdics, seed=seed)
 
-        # FIXME: outcommented because of failure
-        self.assertGreater(conv_rate_tlm, 1.8)
+        assert_greater(conv_rate_tlm, 1.8)
 
         # Check ADM correctness
         dJdics = compute_gradient(J, InitialConditionParameter(vs), forget=False)
@@ -279,8 +274,7 @@ def single_cell_closure(Scheme, Model):
         conv_rate = taylor_test(Jhat, InitialConditionParameter(vs), Jics, dJdics, seed=seed)
 
         # Check that minimal rate is greater than some given number
-        # FIXME: outcommented because of failure
-        self.assertGreater(conv_rate, 1.8)
+        assert_greater(conv_rate, 1.8)
 
 
     def test_taylor_remainder(self):
@@ -308,9 +302,6 @@ def single_cell_closure(Scheme, Model):
         info_green("Running forward %s with %s C" % (model, Scheme))
         self._run(solver, ics)
 
-        adj_html("forward.html", "forward")
-        adj_html("adjoint.html", "adjoint")
-
         # Define functional
         (vs_, vs) = solver.solution_fields()
         form = lambda w: inner(w, w)*dx
@@ -343,8 +334,7 @@ def single_cell_closure(Scheme, Model):
         assert (dJdics is not None), "Gradient is None (#fail)."
         conv_rate_tlm = taylor_test(Jhat, InitialConditionParameter(vs), Jics, dJdics, seed=seed)
 
-        # FIXME: outcommented because of failure
-        self.assertGreater(conv_rate_tlm, 1.8)
+        assert_greater(conv_rate_tlm, 1.8)
 
         # Check ADM correctness
         dJdics = compute_gradient(J, InitialConditionParameter(vs), forget=False)
@@ -352,13 +342,12 @@ def single_cell_closure(Scheme, Model):
         conv_rate = taylor_test(Jhat, InitialConditionParameter(vs), Jics, dJdics, seed=seed)
 
         # Check that minimal rate is greater than some given number
-        # FIXME: outcommented because of failure
-        self.assertGreater(conv_rate, 1.8)
+        assert_greater(conv_rate, 1.8)
     
     # Return functions with Scheme and Model fixed
     return tuple(func for func in locals().values() if isinstance(func, types.FunctionType))
 
-class TestCardiacODESolverAdjoint(unittest.TestCase):
+class TestCardiacODESolverAdjoint(object):
     def _setup_solver(self, model, Scheme, mesh):
 
         # Initialize time and stimulus (note t=time construction!)
@@ -405,13 +394,3 @@ for Model in supported_cell_models:
         for func in single_cell_closure(Scheme, Model):
             method_name = func.func_name+"_"+Scheme+"_"+Model.__name__
             setattr(TestCardiacODESolverAdjoint, method_name, func)
-
-if __name__ == "__main__":
-    print("")
-    if dolfin_adjoint:
-        print("Testing adjoints of cell solvers")
-        print("--------------------------------")
-        unittest.main()
-    else:
-        print("Dolfin adjoint not present. Skipping this test")
-        print("----------------------------------------------")
