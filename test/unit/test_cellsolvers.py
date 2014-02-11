@@ -7,8 +7,8 @@ __author__ = "Marie E. Rognes (meg@simula.no), 2013"
 import itertools
 from testutils import slow, assert_almost_equal, parametrize
 
-from dolfin import info, info_green, Constant, Expression, UnitIntervalMesh
-from beatadjoint import supported_cell_models, CardiacODESolver, \
+from dolfin import info, info_green, UnitIntervalMesh
+from beatadjoint import supported_cell_models, CardiacODESolver, Constant, Expression, \
         NoCellModel, FitzHughNagumoManual, Fitzhughnagumo, Tentusscher_2004_mcell
 
 
@@ -67,7 +67,7 @@ class TestCardiacODESolver(object):
 
         info("Value for %s, %s is %g" % (Model, Scheme, sol[ind]))
         if ref_value != "nan":
-            assert_almost_equal(float(sol[ind]), float(ref_value), tolerance=6)
+            assert_almost_equal(float(sol[ind]), float(ref_value), tolerance=1e-6)
 
     def replace_with_constants(self, params):
         ''' Replace all float values in params by Constants. '''
@@ -110,7 +110,7 @@ class TestCardiacODESolver(object):
         ''' Runs the given cell model with the numerical scheme 
             and compares the result with the reference value. '''
 
-        solver = self._setup_solver(Model, Scheme)
+        solver = self._setup_solver(Model, Scheme, time=Constant(0))
         (vs_, vs) = solver.solution_fields()
 
         next_dt = 0.01
