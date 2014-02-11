@@ -19,9 +19,9 @@ parametrize = pytest.mark.parametrize
 
 def assert_almost_equal(a, b, tolerance):
     c = a - b
-    if type(c) in (int, float):
-        assert abs(c) < tolerance
-    else:
+    try:
+        assert abs(float(c)) < tolerance
+    except TypeError:
         c_inf = numpy.linalg.norm(c, numpy.inf)
         assert c_inf < tolerance
 
