@@ -100,5 +100,5 @@ if __name__ == "__main__":
     print "norm_u = %.16f" % norm_u
     reference =  11.2487499749304991
     diff = abs(reference - norm_u)
-    tol = 1.e-11
+    tol = 1.e-7
     assert (diff < tol), "Mismatch in norm of u: %r" % diff
