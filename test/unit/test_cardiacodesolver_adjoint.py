@@ -19,15 +19,17 @@ from beatadjoint import supported_cell_models, \
         parameters, compute_gradient_tlm, compute_gradient, \
         taylor_test
 
-parameters["form_compiler"]["cpp_optimize"] = True
-flags = "-O3 -ffast-math -march=native"
-parameters["form_compiler"]["cpp_optimize_flags"] = flags
+def set_dolfin_parameters():
+    parameters["form_compiler"]["cpp_optimize"] = True
+    flags = "-O3 -ffast-math -march=native"
+    parameters["form_compiler"]["cpp_optimize_flags"] = flags
 
 def single_cell_closure(Scheme, Model):
 
     @adjoint
     @slow
     def test_replay(self):
+        set_dolfin_parameters()
         mesh = UnitIntervalMesh(1)
         if Model in [Tentusscher_2004_mcell] and Scheme in \
            ["ForwardEuler", "RK4"]:
@@ -123,6 +125,7 @@ def single_cell_closure(Scheme, Model):
         "Test that we can compute the gradient for some given functional"
         if MPI.size(mpi_comm_world()) > 1:
             return
+        set_dolfin_parameters()
         mesh = UnitIntervalMesh(1)
 
         #if Model in [Tentusscher_2004_mcell]:
