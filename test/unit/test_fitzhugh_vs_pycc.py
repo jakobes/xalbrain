@@ -102,4 +102,4 @@ def test_fitzhugh():
     print "norm_u = ", norm_u
     print "reference = ", reference
 
-    assert_almost_equal(reference, norm_u, 1.e-7)
+    assert_almost_equal(reference, norm_u, 1.e-6)
