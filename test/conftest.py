@@ -11,3 +11,10 @@ def pytest_cmdline_preparse(args):
         import multiprocessing
         num = multiprocessing.cpu_count()
         args[:] = ["-n", str(num)] + args
+
+def pytest_runtest_setup(item):
+    try:
+        from beatadjoint import adj_reset
+        adj_reset()
+    except ImportError:
+        pass
