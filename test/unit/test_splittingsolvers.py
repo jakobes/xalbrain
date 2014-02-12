@@ -5,7 +5,7 @@ Unit tests for various types of bidomain solver
 __author__ = "Marie E. Rognes (meg@simula.no), 2013"
 __all__ = ["TestSplittingSolver"]
 
-from testutils import assert_almost_equal, slow
+from testutils import assert_almost_equal, medium
 
 from dolfin import info, set_log_level, WARNING
 from beatadjoint import CardiacModel, \
