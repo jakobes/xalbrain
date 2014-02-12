@@ -4,10 +4,14 @@ Collection of tests for beatadjoint
 Running the tests:
 ------------------
 
-We recommend running the tests from the test/ directory. The complete
+We recommend running the tests from the test/unit/ directory. The complete
 test suite can be run with:
 
   py.test
+
+For quick testing, we recommend:
+
+  py.test -m "not slow" -v
 
 Guidelines for organizing the tests:
 ----------------------------------------
