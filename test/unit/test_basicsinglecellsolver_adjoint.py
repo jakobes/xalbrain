@@ -19,9 +19,10 @@ from beatadjoint import supported_cell_models, \
         parameters, compute_gradient_tlm, compute_gradient, \
         taylor_test, compute_adjoint
 
-parameters["form_compiler"]["cpp_optimize"] = True
-flags = "-O3 -ffast-math -march=native"
-parameters["form_compiler"]["cpp_optimize_flags"] = flags
+def set_dolfin_parameters():
+    parameters["form_compiler"]["cpp_optimize"] = True
+    flags = "-O3 -ffast-math -march=native"
+    parameters["form_compiler"]["cpp_optimize_flags"] = flags
 
 def basic_single_cell_closure(theta, Model):
 
@@ -29,6 +30,7 @@ def basic_single_cell_closure(theta, Model):
     @slow
     def test_replay(self):
         "Test that replay reports success for basic single cell solver"
+        set_dolfin_parameters()
         adj_reset()
         model = Model()
 
@@ -52,6 +54,7 @@ def basic_single_cell_closure(theta, Model):
     @slow
     def test_compute_adjoint(self):
         "Test that we can compute the adjoint for some given functional"
+        set_dolfin_parameters()
         adj_reset()
         model = Model()
 
@@ -87,7 +90,7 @@ def basic_single_cell_closure(theta, Model):
     @slow
     def test_compute_gradient(self):
         "Test that we can compute the gradient for some given functional"
-
+        set_dolfin_parameters()
         adj_reset()
         model = Model()
 
@@ -119,6 +122,7 @@ def basic_single_cell_closure(theta, Model):
     @slow
     def test_taylor_remainder(self):
         "Run Taylor remainder tests for selection of models and solvers."
+        set_dolfin_parameters()
         adj_reset()
         model = Model()
 
