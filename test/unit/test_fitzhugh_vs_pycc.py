@@ -8,6 +8,10 @@ less than 0.2% for all timesteps in all variables.
 
 The test was then shortened to T = 4.0, and the reference at that time
 computed and used as a reference here.
+
+The test was then shortened to T = 1.0, and mesh reduced to 20x20
+(from 100x100) and used as reference here.
+
 """
 
 __author__ = "Marie E. Rognes (meg@simula.no), 2012--2014"
@@ -19,7 +23,7 @@ from beatadjoint import Expression, parameters, FitzHughNagumoManual, as_tensor
 from beatadjoint import UnitSquareMesh, Constant, CardiacModel
 from beatadjoint import BasicSplittingSolver, project, norm
 
-from testutils import assert_almost_equal, slow
+from testutils import assert_almost_equal, medium
 
 class InitialCondition(Expression):
     def eval(self, values, x):
@@ -54,13 +58,13 @@ def setup_model():
     M_e = as_tensor(((s_el, 0), (0, s_et)))
 
     # Define mesh
-    domain = UnitSquareMesh(100, 100)
+    domain = UnitSquareMesh(20, 20)
     time = Constant(0.0)
 
     heart = CardiacModel(domain, time, M_i, M_e, cell)
     return heart
 
-@slow
+@medium
 def test_fitzhugh():
 
     parameters["reorder_dofs_serial"] = False
@@ -83,7 +87,7 @@ def test_fitzhugh():
 
     # Define end-time and (constant) timestep
     dt = 0.25 # mS
-    T = 4.0 + 1.e-6  # mS
+    T = 1.0# + 1.e-6  # mS
 
     # Define initial condition(s)
     ic = InitialCondition()
@@ -98,7 +102,7 @@ def test_fitzhugh():
 
     u = project(vur[1], vur.function_space().sub(1).collapse())
     norm_u = norm(u)
-    reference =  11.2487499749304991
+    reference =  10.3756526773
     print "norm_u = ", norm_u
     print "reference = ", reference
 
