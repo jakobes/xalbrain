@@ -50,7 +50,7 @@ def main(N, dt, T, theta):
     u_error = errornorm(u_exact, u, "L2", degree_rise=2)
     return [v_error, u_error, mesh.hmin(), dt, T]
 
-@slow
+@medium
 def test_spatial_convergence():
     """Take a very small timestep, reduce mesh size, expect 2nd order
     convergence."""
@@ -76,7 +76,7 @@ def test_spatial_convergence():
     assert all(v > 1.99 for v in v_rates), "Failed convergence for v"
     assert all(u > 1.99 for u in u_rates), "Failed convergence for u"
 
-@slow
+@medium
 def test_spatial_and_temporal_convergence():
     v_errors = []
     u_errors = []
