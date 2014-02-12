@@ -36,7 +36,6 @@ def single_cell_closure(Scheme, Model):
             return
 
         # Initiate solver, with model and Scheme
-        adj_reset()
         params = Model.default_parameters()
         model = Model(params=params)
 
@@ -134,8 +133,6 @@ def single_cell_closure(Scheme, Model):
         if Model in [Tentusscher_2004_mcell] and Scheme in \
            ["ForwardEuler", "RK4"]:
             return
-
-        adj_reset()
 
         # Initiate solver, with model and Scheme
         params = Model.default_parameters()
