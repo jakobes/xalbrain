@@ -1,0 +1,29 @@
+
+This Python package provides the module 'beatadjoint' -- beatadjoint
+is a problem and solver collection for cardiac electrophysiology
+models.
+
+Installation:
+-------------
+
+See separate file ./INSTALL for how to install the module and a list
+of dependencies.
+
+Documentation:
+---------------
+
+The API documentation for beatadjoint is automatically
+generated. Generate the documentation by running the script:
+
+    ./scripts/generate-doc
+
+assuming that beatadjoint and the optional dependency Sphinx
+(sphinx-doc.org) is installed.
+
+Authors:
+--------
+
+  Marie E. Rognes    (meg@simula.no)
+  Johan E. Hake      (hake@simula.no)
+  Patrick E. Farrell (patrick.farrell@imperial.ac.uk)
+  Simon W. Funke     (simon@simula.no)
