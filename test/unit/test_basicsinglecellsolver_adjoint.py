@@ -13,7 +13,7 @@ from beatadjoint.dolfinimport import UnitIntervalMesh, info_green, \
 from beatadjoint import supported_cell_models, \
         Tentusscher_2004_mcell, FitzHughNagumoManual, \
         BasicSingleCellSolver, \
-        adj_reset, replay_dolfin, InitialConditionParameter, \
+        replay_dolfin, InitialConditionParameter, \
         Constant, Expression, Function, Functional, \
         project, inner, assemble, dx, dt, FINISH_TIME, \
         parameters, compute_gradient_tlm, compute_gradient, \
@@ -31,7 +31,6 @@ def basic_single_cell_closure(theta, Model):
     def test_replay(self):
         "Test that replay reports success for basic single cell solver"
         set_dolfin_parameters()
-        adj_reset()
         model = Model()
 
         # Initialize solver
@@ -55,7 +54,6 @@ def basic_single_cell_closure(theta, Model):
     def test_compute_adjoint(self):
         "Test that we can compute the adjoint for some given functional"
         set_dolfin_parameters()
-        adj_reset()
         model = Model()
 
         params = BasicSingleCellSolver.default_parameters()
@@ -91,7 +89,6 @@ def basic_single_cell_closure(theta, Model):
     def test_compute_gradient(self):
         "Test that we can compute the gradient for some given functional"
         set_dolfin_parameters()
-        adj_reset()
         model = Model()
 
         params = BasicSingleCellSolver.default_parameters()
@@ -123,7 +120,6 @@ def basic_single_cell_closure(theta, Model):
     def test_taylor_remainder(self):
         "Run Taylor remainder tests for selection of models and solvers."
         set_dolfin_parameters()
-        adj_reset()
         model = Model()
 
         params = BasicSingleCellSolver.default_parameters()

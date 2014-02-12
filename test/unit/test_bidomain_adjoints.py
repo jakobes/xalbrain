@@ -11,7 +11,7 @@ from testutils import assert_equal, fast, adjoint
 from beatadjoint.dolfinimport import info_green
 from beatadjoint import BasicBidomainSolver, BidomainSolver, \
         UnitCubeMesh, Constant, Expression, \
-        adj_reset, replay_dolfin
+        replay_dolfin
 
 
 class TestCase(object):
@@ -37,7 +37,6 @@ class TestBasicBidomainSolverAdjoint(object):
     "Test adjoint functionality for the basic bidomain solver."
 
     def setUp(self):
-        adj_reset()
         self.case = TestCase()
 
     def _run_replay(self, solver_type):
@@ -81,7 +80,6 @@ class TestBidomainSolverAdjoint(object):
     "Test adjoint functionality for the bidomain solver."
 
     def setUp(self):
-        adj_reset()
         self.case = TestCase()
 
     def _run_replay(self, solver_type):
