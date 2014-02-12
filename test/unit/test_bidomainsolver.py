@@ -12,7 +12,7 @@ from beatadjoint.dolfinimport import Expression, Constant, UnitSquareMesh
 from beatadjoint import BidomainSolver, errornorm
 from beatadjoint.utils import convergence_rate
 
-from testutils import slow
+from testutils import medium
 
 def main(N, dt, T, theta):
 
