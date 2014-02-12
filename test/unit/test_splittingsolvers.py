@@ -52,7 +52,7 @@ class TestSplittingSolver(object):
         self.ics = self.cell_model.initial_conditions()
 
 
-    @slow
+    @medium
     def test_basic_and_optimised_splitting_solver_exact(self):
         """Test that basic and optimised splitting solvers yield
         very comparative results when configured identically."""
