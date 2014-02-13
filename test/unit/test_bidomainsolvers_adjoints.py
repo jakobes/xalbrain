@@ -3,8 +3,7 @@ Unit tests for various types of solvers for cardiac cell models.
 """
 
 __author__ = "Marie E. Rognes (meg@simula.no), 2013, and Simon W. Funke (simon@simula.no) 2014"
-__all__ = ["TestBasicBidomainSolverAdjoint",
-           "TestBidomainSolverAdjoint"]
+__all__ = ["TestBidomainSolversAdjoint"]
 
 import pytest
 from testutils import assert_equal, fast, slow, \
@@ -19,7 +18,7 @@ from beatadjoint import BasicBidomainSolver, BidomainSolver, \
         taylor_test, Function
 
 
-class TestBasicBidomainSolverAdjoint(object):
+class TestBidomainSolversAdjoint(object):
     """Test adjoint functionality for the basic bidomain solver."""
 
     def setup(self):
@@ -57,6 +56,9 @@ class TestBasicBidomainSolverAdjoint(object):
             params = Solver.default_parameters()
             params.linear_solver_type = solver_type
             if solver_type == "iterative":
+                # FIXME: It seems that PETSc remembers some solver settings from previous test runs.
+                # Hence, we need to explicitely set the solver and preconditioner settings here if we want 
+                # to ensure that we use suitable solvers.
                 params.algorithm = "gmres"
                 params.preconditioner = "ilu"
                 params.krylov_solver.relative_tolerance = 1e-12
@@ -94,6 +96,7 @@ class TestBasicBidomainSolverAdjoint(object):
         ])
     def test_replay(self, Solver, solver_type):
         "Test that replay of basic bidomain solver reports success."
+        # FIXME
         if (Solver, solver_type) == (BidomainSolver, "iterative"):
             pytest.xfail("Bug in dolfin-adjoint?"),
 
@@ -142,6 +145,7 @@ class TestBasicBidomainSolverAdjoint(object):
     def test_tlm(self, Solver, solver_type):
         """Test that tangent linear model of basic bidomain solver converges at 2nd order."""
         info_green("Running tlm basic (%s)" % solver_type)
+        # FIXME
         if (Solver, solver_type) == (BidomainSolver, "direct"):
             pytest.xfail("Bug in dolfin-adjoint?"),
 
@@ -167,6 +171,7 @@ class TestBasicBidomainSolverAdjoint(object):
     def test_adjoint(self, Solver, solver_type):
         """Test that adjoint model of basic bidomain solver converges at 2nd order."""
         info_green("Running adjoint basic (%s)" % solver_type)
+        # FIXME
         if (Solver, solver_type) == (BidomainSolver, "direct"):
             pytest.xfail("Bug in dolfin-adjoint?"),
 
