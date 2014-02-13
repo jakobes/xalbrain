@@ -112,7 +112,8 @@ def closure_long_run(Scheme, dt_org, abs_tol, rel_tol):
             adj_reset()
 
         solver = self._setup_solver(Model, Scheme, mesh, time, stim, params)
-        solver._pi_solver.parameters["newton_solver"]["absolute_tolerance"] = 1e-6
+        solver._pi_solver.parameters["newton_solver"]["relative_tolerance"] = 1e-8
+        solver._pi_solver.parameters["newton_solver"]["maximum_iterations"] = 30
         solver._pi_solver.parameters["newton_solver"]["report"] = False
 
         scheme = solver._scheme
@@ -163,9 +164,10 @@ def closure_long_run(Scheme, dt_org, abs_tol, rel_tol):
     return long_run_compare
 
 for Scheme, dt_org, abs_tol, rel_tol in [("BackwardEuler", 0.1, 1e-1, 1e-1),
-                                         ("CrankNicolson", 0.1, 1e-0, 1e-1),
-                                         ("ESDIRK3", 0.1, 1e-0, 1e-1),
-                                         ("ESDIRK4", 0.1, 1e-0, 1e-1)]:
+                                         ("CrankNicolson", 0.125, 1e-0, 1e-1),
+                                         ("ESDIRK3", 0.125, 1e-0, 1e-1),
+                                         ("ESDIRK4", 0.25, 1e-0, 1e-1),
+                                         ]:
 
     func = closure_long_run(Scheme, dt_org, abs_tol, rel_tol)
     setattr(TestCardiacODESolver, "test_{0}_long_run_tentusscher".format(Scheme), func)
