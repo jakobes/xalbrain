@@ -133,6 +133,11 @@ class CellModelGenerator(DOLFINCodeGenerator):
             gotran_error("expected the ODE to have at least more than 1 state")
 
         # Check that ode model has the membrane potential state name
+        if membrane_potential not in ode.present_ode_objects:
+            gotran_error("Cannot find the membrane potential. ODE does not "\
+                         "contain a state with name '{0}'".format(\
+                             membrane_potential))
+            
         state = ode.present_ode_objects[membrane_potential]
         if not isinstance(state, gotran.model.State):
             gotran_error("Cannot find the membrane potential. ODE does not "\
