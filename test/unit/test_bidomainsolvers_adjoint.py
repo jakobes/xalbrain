@@ -57,12 +57,12 @@ class TestBidomainSolversAdjoint(object):
             params = Solver.default_parameters()
             params.linear_solver_type = solver_type
             if solver_type == "iterative":
-                # FIXME: It seems that PETSc remembers some solver settings from previous test runs.
-                # Hence, we need to explicitely set the solver and preconditioner settings here if we want 
-                # to ensure that we use suitable solvers.
-                params.algorithm = "gmres"
-                params.preconditioner = "ilu"
                 params.krylov_solver.relative_tolerance = 1e-12
+            else:
+                params.use_avg_u_constraint = True  # NOTE: In contrast to iterative 
+                    # solvers, the direct solver does not handle nullspaces consistently, 
+                    # i.e. the solution differes from solve to solve, and hence the Taylor 
+                    # testes would not pass.
 
             params.enable_adjoint = enable_adjoint
             
@@ -90,23 +90,23 @@ class TestBidomainSolversAdjoint(object):
 
     @adjoint
     @fast
-    @parametrize(("Solver", "solver_type"), [
-        (BasicBidomainSolver, "direct"),
-        (BasicBidomainSolver, "iterative"),
-        (BidomainSolver, "direct"),
+    @parametrize(("Solver", "solver_type", "tol"), [
+        (BasicBidomainSolver, "direct", 0.),
+        (BasicBidomainSolver, "iterative", 0.),
+        (BidomainSolver, "direct", 0.),
+        (BidomainSolver, "iterative", 1e-10),  # NOTE: The replace is not exact because 
+            # dolfin-adjoint's overloaded Krylov method is not constent with DOLFIN's 
+            # (it orthogonalizes the rhs vector as an additional step)
         ])
-    def test_replay(self, Solver, solver_type):
+    def test_replay(self, Solver, solver_type, tol):
         "Test that replay of basic bidomain solver reports success."
-        # FIXME
-        if (Solver, solver_type) == (BidomainSolver, "iterative"):
-            pytest.xfail("Bug in dolfin-adjoint?"),
-
+        
         self._setup_solver(Solver, solver_type)
         self._solve()
 
         # Check replay
         info_green("Running replay basic (%s)" % solver_type)
-        success = replay_dolfin(stop=True, tol=0.0)
+        success = replay_dolfin(stop=True, tol=tol)
         assert_equal(success, True)
 
     def tlm_adj_setup(self, Solver, solver_type):
@@ -146,9 +146,6 @@ class TestBidomainSolversAdjoint(object):
     def test_tlm(self, Solver, solver_type):
         """Test that tangent linear model of basic bidomain solver converges at 2nd order."""
         info_green("Running tlm basic (%s)" % solver_type)
-        # FIXME
-        if (Solver, solver_type) == (BidomainSolver, "direct"):
-            pytest.xfail("Bug in dolfin-adjoint?"),
 
         J, Jhat, m, Jics = self.tlm_adj_setup(Solver, solver_type)
 
@@ -172,9 +169,6 @@ class TestBidomainSolversAdjoint(object):
     def test_adjoint(self, Solver, solver_type):
         """Test that adjoint model of basic bidomain solver converges at 2nd order."""
         info_green("Running adjoint basic (%s)" % solver_type)
-        # FIXME
-        if (Solver, solver_type) == (BidomainSolver, "direct"):
-            pytest.xfail("Bug in dolfin-adjoint?"),
 
         J, Jhat, m, Jics = self.tlm_adj_setup(Solver, solver_type)
 
