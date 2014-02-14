@@ -2,205 +2,45 @@
 Unit tests for various types of solvers for cardiac cell models.
 """
 
-__author__ = "Marie E. Rognes (meg@simula.no), 2013"
+__author__ = "Marie E. Rognes (meg@simula.no), 2013 and Simon W. Funke (simon@simula.no), 2014"
 __all__ = ["TestCardiacODESolverAdjoint"]
 
-from testutils import assert_equal, assert_true, assert_greater, slow, adjoint
+import pytest
+from testutils import assert_true, assert_greater, slow, \
+        adjoint, cell_model, parametrize
 
-import types
-from beatadjoint.dolfinimport import UnitIntervalMesh, info_green, \
-        MPI, mpi_comm_world
-from beatadjoint import supported_cell_models, \
-        Tentusscher_2004_mcell, \
-        CardiacODESolver, \
-        adj_reset, replay_dolfin, InitialConditionParameter, \
+from beatadjoint.dolfinimport import UnitIntervalMesh, info_green
+from beatadjoint import Tentusscher_2004_mcell, CardiacODESolver, \
+        replay_dolfin, InitialConditionParameter, \
         Constant, Expression, Function, Functional, \
         project, inner, assemble, dx, dt, FINISH_TIME, \
         parameters, compute_gradient_tlm, compute_gradient, \
         taylor_test
 
-def set_dolfin_parameters():
-    parameters["form_compiler"]["cpp_optimize"] = True
-    flags = "-O3 -ffast-math -march=native"
-    parameters["form_compiler"]["cpp_optimize_flags"] = flags
+supported_schemes = ["ForwardEuler", "BackwardEuler", "CrankNicolson", "RK4",
+        "ESDIRK3", "ESDIRK4"]
 
-def single_cell_closure(Scheme, Model):
-
-    @adjoint
-    @slow
-    def test_replay(self):
-        set_dolfin_parameters()
-        mesh = UnitIntervalMesh(1)
-        if Model in [Tentusscher_2004_mcell] and Scheme in \
-           ["ForwardEuler", "RK4"]:
-            return
-
-        # Initiate solver, with model and Scheme
-        params = Model.default_parameters()
-        model = Model(params=params)
-
-        solver = self._setup_solver(model, Scheme, mesh)
-        ics = project(model.initial_conditions(), solver.VS)
-
-        info_green("Running forward %s with %s A" % (model, Scheme))
-        self._run(solver, ics)
-
-        info_green("Replaying")
-
-        # FIXME: Can we increase the tolerance?
-        success = replay_dolfin(tol=0, stop=True)
-        assert_true(success)
-        
-        "Test that we can compute the gradient for some given functional"
-        if MPI.size(mpi_comm_world()) > 1:
-            return
-        mesh = UnitIntervalMesh(1)
-        
-        #if Model in [Tentusscher_2004_mcell]:
-        #    return
-
-        if Model in [Tentusscher_2004_mcell] and Scheme in \
-           ["ForwardEuler", "RK4"]:
-            return
-
-        adj_reset()
-
-        # Initiate solver, with model and Scheme
-        params = Model.default_parameters()
-        model = Model(params=params)
-
-        solver = self._setup_solver(model, Scheme, mesh)
-        ics = Function(project(model.initial_conditions(), solver.VS), name="ics")
-
-        info_green("Running forward %s with %s B" % (model, Scheme))
-        self._run(solver, ics)
-
-        # Define functional
-        (vs_, vs) = solver.solution_fields()
-        form = lambda w: inner(w, w)*dx
-        J = Functional(form(vs)*dt[FINISH_TIME])
-
-        # Compute value of functional with current ics
-        Jics = assemble(form(vs))
-
-        # Seed for taylor test
-        if isinstance(model, Tentusscher_2004_mcell):
-            seed=1.e-5
-        else:
-            seed=None
-
-        # Set-up runner
-        def Jhat(ics):
-            self._run(solver, ics)
-            (vs_, vs) = solver.solution_fields()
-            return assemble(form(vs))
-
-        # Stop annotating
-        parameters["adjoint"]["stop_annotating"] = True
-
-        # Compute gradient with respect to vs. 
-        info_green("Computing gradient")
-        m = InitialConditionParameter(vs)
-
-        # Check TLM correctness
-        dJdics = compute_gradient_tlm(J, InitialConditionParameter(vs), forget=False)
-        assert (dJdics is not None), "Gradient is None (#fail)."
-        conv_rate_tlm = taylor_test(Jhat, InitialConditionParameter(vs), Jics, dJdics, seed=seed)
-
-        assert_greater(conv_rate_tlm, 1.8)
-
-        # Check ADM correctness
-        dJdics = compute_gradient(J, InitialConditionParameter(vs), forget=False)
-        assert (dJdics is not None), "Gradient is None (#fail)."
-        conv_rate = taylor_test(Jhat, InitialConditionParameter(vs), Jics, dJdics, seed=seed)
-
-        # Check that minimal rate is greater than some given number
-        assert_greater(conv_rate, 1.8)
-
-
-    @adjoint
-    @slow
-    def test_taylor_remainder(self):
-        "Test that we can compute the gradient for some given functional"
-        if MPI.size(mpi_comm_world()) > 1:
-            return
-        set_dolfin_parameters()
-        mesh = UnitIntervalMesh(1)
-
-        #if Model in [Tentusscher_2004_mcell]:
-        #    return
-
-        if Model in [Tentusscher_2004_mcell] and Scheme in \
-           ["ForwardEuler", "RK4"]:
-            return
-
-        # Initiate solver, with model and Scheme
-        params = Model.default_parameters()
-        model = Model(params=params)
-
-        solver = self._setup_solver(model, Scheme, mesh)
-        ics = Function(project(model.initial_conditions(), solver.VS), name="ics")
-
-        info_green("Running forward %s with %s C" % (model, Scheme))
-        self._run(solver, ics)
-
-        # Define functional
-        (vs_, vs) = solver.solution_fields()
-        form = lambda w: inner(w, w)*dx
-        J = Functional(form(vs)*dt[FINISH_TIME])
-
-        # Compute value of functional with current ics
-        Jics = assemble(form(vs))
-
-        # Seed for taylor test
-        if isinstance(model, Tentusscher_2004_mcell):
-            seed=1.e-5
-        else:
-            seed=None
-
-        # Set-up runner
-        def Jhat(ics):
-            self._run(solver, ics)
-            (vs_, vs) = solver.solution_fields()
-            return assemble(form(vs))
-
-        # Stop annotating
-        parameters["adjoint"]["stop_annotating"] = True
-
-        # Compute gradient with respect to vs. 
-        info_green("Computing gradient")
-        m = InitialConditionParameter(vs)
-
-        # Check TLM correctness
-        dJdics = compute_gradient_tlm(J, InitialConditionParameter(vs), forget=False)
-        assert (dJdics is not None), "Gradient is None (#fail)."
-        conv_rate_tlm = taylor_test(Jhat, InitialConditionParameter(vs), Jics, dJdics, seed=seed)
-
-        assert_greater(conv_rate_tlm, 1.8)
-
-        # Check ADM correctness
-        dJdics = compute_gradient(J, InitialConditionParameter(vs), forget=False)
-        assert (dJdics is not None), "Gradient is None (#fail)."
-        conv_rate = taylor_test(Jhat, InitialConditionParameter(vs), Jics, dJdics, seed=seed)
-
-        # Check that minimal rate is greater than some given number
-        assert_greater(conv_rate, 1.8)
-    
-    # Return functions with Scheme and Model fixed
-    return tuple(func for func in locals().values() if isinstance(func, types.FunctionType))
 
 class TestCardiacODESolverAdjoint(object):
+
+    def setup_dolfin_parameters(self):
+        ''' Set optimisation parameters for these tests '''
+
+        parameters["form_compiler"]["cpp_optimize"] = True
+        flags = "-O3 -ffast-math -march=native"
+        parameters["form_compiler"]["cpp_optimize_flags"] = flags
+
     def _setup_solver(self, model, Scheme, mesh):
 
         # Initialize time and stimulus (note t=time construction!)
         time = Constant(0.0)
-        stim = Expression("(time >= stim_start) && (time < stim_start + stim_duration)"\
-                          " ? stim_amplitude : 0.0 ", time=time, stim_amplitude=52.0, \
+        stim = Expression("(time >= stim_start) && (time < stim_start + stim_duration)"
+                          " ? stim_amplitude : 0.0 ", time=time, stim_amplitude=52.0,
                           stim_start=1.0, stim_duration=1.0, name="stim")
 
         # FIXME: How can we include the above time dependent stimuli current
         stim = None
-        
+
         # Initialize solver
         params = CardiacODESolver.default_parameters()
         params["scheme"] = Scheme
@@ -228,11 +68,108 @@ class TestCardiacODESolverAdjoint(object):
         for ((t0, t1), vs) in solutions:
             pass
 
+    def tlm_adj_setup(self, cell_model, Scheme):
+        mesh = UnitIntervalMesh(3)
+        Model = cell_model.__class__
 
-for Model in supported_cell_models:
-    for Scheme in ["ForwardEuler", "BackwardEuler",
-                   "CrankNicolson","RK4", "ESDIRK3", "ESDIRK4"
-                   ]:
-        for func in single_cell_closure(Scheme, Model):
-            method_name = func.func_name+"_"+Scheme+"_"+Model.__name__
-            setattr(TestCardiacODESolverAdjoint, method_name, func)
+        # Initiate solver, with model and Scheme
+        params = Model.default_parameters()
+        model = Model(params=params)
+
+        solver = self._setup_solver(model, Scheme, mesh)
+        ics = Function(project(model.initial_conditions(), solver.VS), name="ics")
+
+        info_green("Running forward %s with %s C" % (model, Scheme))
+        self._run(solver, ics)
+
+        # Define functional
+        (vs_, vs) = solver.solution_fields()
+        form = lambda w: inner(w, w)*dx
+        J = Functional(form(vs)*dt[FINISH_TIME])
+
+        # Compute value of functional with current ics
+        Jics = assemble(form(vs))
+
+        # Set-up runner
+        def Jhat(ics):
+            self._run(solver, ics)
+            (vs_, vs) = solver.solution_fields()
+            return assemble(form(vs))
+
+        # Stop annotating
+        parameters["adjoint"]["stop_annotating"] = True
+
+        m = InitialConditionParameter(vs)
+        return J, Jhat, m, Jics
+
+    @adjoint
+    @slow
+    @parametrize(("Scheme"), supported_schemes)
+    def test_replay(self, cell_model, Scheme):
+        mesh = UnitIntervalMesh(3)
+        Model = cell_model.__class__
+
+        # Initiate solver, with model and Scheme
+        params = Model.default_parameters()
+        model = Model(params=params)
+
+        solver = self._setup_solver(model, Scheme, mesh)
+        ics = project(model.initial_conditions(), solver.VS)
+
+        info_green("Running forward %s with %s A" % (model, Scheme))
+        self._run(solver, ics)
+
+        info_green("Replaying")
+        success = replay_dolfin(tol=0, stop=True)
+        assert_true(success)
+
+    @adjoint
+    @slow
+    @parametrize(("Scheme"), supported_schemes)
+    def test_tlm(self, cell_model, Scheme):
+        "Test that we can compute the gradient for some given functional"
+
+        if isinstance(cell_model, Tentusscher_2004_mcell) and Scheme == "RK4":
+            pytest.xfail("Produces nans") # FIXME?
+
+        J, Jhat, m, Jics = self.tlm_adj_setup(cell_model, Scheme)
+
+        # Seed for taylor test
+        if isinstance(cell_model, Tentusscher_2004_mcell):
+            seed = 1.e-5
+        else:
+            seed = None
+
+        # Check TLM correctness
+        info_green("Computing gradient")
+        dJdics = compute_gradient_tlm(J, m, forget=False)
+        assert (dJdics is not None), "Gradient is None (#fail)."
+        conv_rate_tlm = taylor_test(Jhat, m, Jics, dJdics, seed=seed)
+
+        assert_greater(conv_rate_tlm, 1.8)
+
+    @adjoint
+    @slow
+    @parametrize(("Scheme"), supported_schemes)
+    def test_adjoint(self, cell_model, Scheme):
+        """ Test that the gradient computed with the adjoint model is correct. """
+
+        if isinstance(cell_model, Tentusscher_2004_mcell) and Scheme == "RK4":
+            pytest.xfail("Produces nans") # FIXME?
+
+        J, Jhat, m, Jics = self.tlm_adj_setup(cell_model, Scheme)
+
+        # Seed for taylor test
+        if isinstance(cell_model, Tentusscher_2004_mcell):
+            seed = 1.e-5
+        else:
+            seed = None
+
+        # Compute gradient with respect to vs. 
+        info_green("Computing gradient")
+        dJdics = compute_gradient(J, m, forget=False)
+        assert (dJdics is not None), "Gradient is None (#fail)."
+        conv_rate = taylor_test(Jhat, m, Jics, dJdics, seed=seed)
+
+        # Check that minimal rate is greater than some given number
+        assert_greater(conv_rate, 1.8)
