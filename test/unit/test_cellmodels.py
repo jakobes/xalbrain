@@ -62,7 +62,7 @@ class TestCompilationCorrectness:
 
         # Create and step solver
         solver = PointIntegralSolver(scheme)
-        solver.parameters["newton_solver"]["absolute_tolerance"] = 1e-6
+        solver.parameters["newton_solver"]["relative_tolerance"] = 1e-6
         solver.parameters["newton_solver"]["report"] = False
         dt = 0.1
         solver.step(dt)

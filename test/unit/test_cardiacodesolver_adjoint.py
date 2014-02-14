@@ -222,7 +222,7 @@ class TestCardiacODESolverAdjoint(object):
         dt = [(0.0, dt), (dt*3,dt/2)]
         solver._pi_solver.parameters.reset_stage_solutions = True
         solver._pi_solver.parameters.newton_solver.reset_each_step = True
-        solver._pi_solver.parameters.newton_solver.absolute_tolerance = 1.0e-10
+        solver._pi_solver.parameters.newton_solver.relative_tolerance = 1.0e-10
         solver._pi_solver.parameters.newton_solver.recompute_jacobian_for_linear_problems = True
         solutions = solver.solve((0.0, T), dt)
         for ((t0, t1), vs) in solutions:
