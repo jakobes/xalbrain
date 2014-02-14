@@ -47,7 +47,8 @@ class TestBidomainSolversAdjoint(object):
             params = Solver.default_parameters()
             params.linear_variational_solver.linear_solver = \
                             "gmres" if solver_type == "iterative" else "lu"
-            params.linear_variational_solver.preconditioner = 'petsc_amg'
+            params.linear_variational_solver.krylov_solver.relative_tolerance = 1e-12
+            params.linear_variational_solver.preconditioner = 'jacobi'
             self.solver = Solver(self.mesh, self.time, self.M_i, self.M_e,
                             I_s=self.stimulus,
                             I_a=self.applied_current,
