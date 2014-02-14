@@ -19,7 +19,7 @@ set_log_level(WARNING)
 class TestSplittingSolver(object):
     "Test functionality for the splitting solvers."
 
-    def setUp(self):
+    def setup(self):
         self.mesh = UnitCubeMesh(5, 5, 5)
 
         # Create time
@@ -56,7 +56,6 @@ class TestSplittingSolver(object):
     def test_basic_and_optimised_splitting_solver_exact(self):
         """Test that basic and optimised splitting solvers yield
         very comparative results when configured identically."""
-        self.setUp()
 
         # Create basic solver
         params = BasicSplittingSolver.default_parameters()
