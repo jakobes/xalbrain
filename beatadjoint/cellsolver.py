@@ -433,7 +433,8 @@ class CardiacODESolver(object):
 
         (t0, t1) = interval
         dt = t1 - t0
-        self._pi_solver.step(dt)
+        # FIXME: Honor the enable_adjoint here.
+        self._pi_solver.step(dt)#, annotate=self.parameters["enable_adjoint"])
 
     def solve(self, interval, dt=None):
         """
