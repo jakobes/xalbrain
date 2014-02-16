@@ -125,11 +125,6 @@ class BasicSplittingSolver:
         self.pde_solver = self._create_pde_solver()
         (self.v_, self.vur) = self.pde_solver.solution_fields()
 
-        # If not enable adjoint
-        if not self.parameters.enable_adjoint:
-            parameters.adjoint.record_all = False
-            parameters.adjoint.stop_annotating = False
-
     def _create_ode_solver(self):
         """Helper function to initialize a suitable ODE solver from
         the cardiac model."""
