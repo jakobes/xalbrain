@@ -338,7 +338,7 @@ class BidomainSolver(BasicBidomainSolver):
             warning("'enable_adjoint' is set to True, but no "\
                     "dolfin_adjoint installed.")
 
-        annotate_kwargs = {"annotate":self.parameters["enable_adjoint"]} \
+        annotate_kwargs = {"annotate": self.parameters["enable_adjoint"]} \
                           if dolfin_adjoint else {}
         self._lhs_matrix = assemble(self._lhs, **annotate_kwargs)
 
@@ -358,7 +358,7 @@ class BidomainSolver(BasicBidomainSolver):
         "Helper function for creating linear solver based on parameters."
         solver_type = self.parameters["linear_solver_type"]
 
-        annotate_kwargs = {"annotate":self.parameters["enable_adjoint"]} \
+        annotate_kwargs = {"annotate": self.parameters["enable_adjoint"]} \
                           if dolfin_adjoint else {}
 
         if solver_type == "direct":
@@ -526,7 +526,7 @@ class BidomainSolver(BasicBidomainSolver):
         (t0, t1) = interval
         dt = t1 - t0
         theta = self.parameters["theta"]
-        annotate_kwargs = {"annotate":self.parameters["enable_adjoint"]} \
+        annotate_kwargs = {"annotate": self.parameters["enable_adjoint"]} \
                           if dolfin_adjoint else {}
 
         t = t0 + theta*dt

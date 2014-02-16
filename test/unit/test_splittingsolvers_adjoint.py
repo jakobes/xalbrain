@@ -98,7 +98,10 @@ class TestSplittingSolverAdjoint(object):
         # Define functional
         form = lambda w: inner(w, w)*dx
         J = Functional(form(vs)*dt[FINISH_TIME])
-        m = InitialConditionParameter(vs_)
+        if Solver == SplittingSolver:
+            m = InitialConditionParameter(vs)
+        else:
+            m = InitialConditionParameter(vs_)
 
         # Compute value of functional with current ics
         Jics = assemble(form(vs))
@@ -133,7 +136,7 @@ class TestSplittingSolverAdjoint(object):
         assert success
 
     @slow
-    @parametrize("Solver", [BasicSplittingSolver]) #, SplittingSolver])
+    @parametrize("Solver", [BasicSplittingSolver, SplittingSolver])
     def test_TangentLinearModelOfSplittingSolver_PassesTaylorTest(self, Solver):
         """Test that basic and optimised splitting solvers yield
         very comparative results when configured identically."""
@@ -141,7 +144,9 @@ class TestSplittingSolverAdjoint(object):
         J, Jhat, m, Jics = self.tlm_adj_setup(Solver)
 
         # Check TLM correctness
+        info_green("Compute gradient with tangent linear model")
         dJdics = compute_gradient_tlm(J, m, forget=False)
+
         assert (dJdics is not None), "Gradient is None (#fail)."
         conv_rate_tlm = taylor_test(Jhat, m, Jics, dJdics)
 
@@ -149,18 +154,19 @@ class TestSplittingSolverAdjoint(object):
         assert_greater(conv_rate_tlm, 1.9)
 
     @slow
-    @parametrize("Solver", [BasicSplittingSolver]) #, SplittingSolver])
+    @parametrize("Solver", [BasicSplittingSolver, SplittingSolver])
     def test_AdjointModelOfSplittingSolver_PassesTaylorTest(self, Solver):
         """Test that basic and optimised splitting solvers yield
         very comparative results when configured identically."""
 
         J, Jhat, m, Jics = self.tlm_adj_setup(Solver)
 
-        # Compute gradient with adjoint model
+        # Check adjoint model correctness
+        info_green("Compute gradient with adjoint linear model")
         dJdics = compute_gradient(J, m, forget=False)
 
         assert (dJdics is not None), "Gradient is None (#fail)."
-        conv_rate_tlm = taylor_test(Jhat, m, Jics, dJdics)
+        conv_rate = taylor_test(Jhat, m, Jics, dJdics)
 
         # Check that minimal convergence rate is greater than some given number
-        assert_greater(conv_rate_tlm, 1.9)
+        assert_greater(conv_rate, 1.9)
