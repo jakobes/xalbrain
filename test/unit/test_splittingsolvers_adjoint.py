@@ -124,12 +124,7 @@ class TestSplittingSolverAdjoint(object):
         """Test that basic and optimised splitting solvers yield
         very comparative results when configured identically."""
 
-        wrap = generate_solver(Solver)
-
-        # Solve
-        solutions = wrap.solver.solve((wrap.t0, wrap.T), wrap.dt)
-        for (interval, fields) in solutions:
-            (vs_, vs, vur) = fields
+        self.tlm_adj_setup(Solver)
 
         info_green("Replaying")
         success = replay_dolfin(tol=0, stop=True)
