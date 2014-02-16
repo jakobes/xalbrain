@@ -43,19 +43,16 @@ class TestBidomainSolversAdjoint(object):
         """Creates the bidomain solver."""
 
         # Create solver
+        params = Solver.default_parameters()
+
         if Solver == BasicBidomainSolver:
-            params = Solver.default_parameters()
             params.linear_variational_solver.linear_solver = \
                             "gmres" if solver_type == "iterative" else "lu"
             params.linear_variational_solver.krylov_solver.relative_tolerance = 1e-12
             params.linear_variational_solver.preconditioner = 'jacobi'
-            self.solver = Solver(self.mesh, self.time, self.M_i, self.M_e,
-                            I_s=self.stimulus,
-                            I_a=self.applied_current,
-                            params=params)
         else:
-            params = Solver.default_parameters()
             params.linear_solver_type = solver_type
+            params.enable_adjoint = enable_adjoint
             if solver_type == "iterative":
                 params.krylov_solver.relative_tolerance = 1e-12
             else:
@@ -63,12 +60,10 @@ class TestBidomainSolversAdjoint(object):
                     # solvers, the direct solver does not handle nullspaces consistently, 
                     # i.e. the solution differes from solve to solve, and hence the Taylor 
                     # testes would not pass.
-
-            params.enable_adjoint = enable_adjoint
             
-            self.solver = Solver(self.mesh, self.time, self.M_i, self.M_e,
-                            I_s=self.stimulus,
-                            I_a=self.applied_current, params=params)
+        self.solver = Solver(self.mesh, self.time, self.M_i, self.M_e,
+                        I_s=self.stimulus,
+                        I_a=self.applied_current, params=params)
 
 
     def _solve(self, ics=None):
