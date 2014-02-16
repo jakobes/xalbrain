@@ -484,9 +484,15 @@ class SplittingSolver(BasicSplittingSolver):
           solution (:py:class:`dolfin.Function`)
             Function holding the combined result
         """
-        # Disabled for now (does not pass replay)
-
         begin("Merging using custom projecter")
+
+        if dolfin_adjoint:
+            # Disabled for now (does not pass replay)
+            info_red("BasicSplittingSolver.merge not supported by dolfin-adjoint yet. Falling back to BasicSplittingSolver.merge.")
+            BasicSplittingSolver.merge(self, solution)
+            end()
+            return
+
         if self.parameters["pde_solver"] == "bidomain":
             v = split(self.vur)[0]
         else:
