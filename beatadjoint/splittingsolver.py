@@ -481,24 +481,23 @@ class SplittingSolver(BasicSplittingSolver):
         """
         begin("Merging using custom projecter")
 
-        if dolfin_adjoint:
-            # Disabled for now (does not pass replay)
-            info_red("BasicSplittingSolver.merge not supported by dolfin-adjoint yet. Falling back to BasicSplittingSolver.merge.")
-            BasicSplittingSolver.merge(self, solution)
-            end()
-            return
-
         if self.parameters["pde_solver"] == "bidomain":
             v = split(self.vur)[0]
         else:
             v = self.vur
         
         s = split(self.vs)[1]
+
+        if len(s.shape())==1:
+            proj = as_vector([v]+[s[i] for i in range(s.shape()[0])])
+        else:
+            proj = as_vector((v, s))
+
         # FIXME: We should not need to do a projection. A sub function assign would
         # FIXME: be sufficient.
         if len(s.shape())==1:
-            self.vs_projecter(as_vector([v]+[s[i] for i in range(s.shape()[0])]), solution)
+            self.vs_projecter(proj, solution)
         else:
-            self.vs_projecter(as_vector((v, s)), solution)
+            self.vs_projecter(proj, solution)
 
         end()

@@ -7,6 +7,11 @@ __all__ = ["state_space", "end_of_time", "convergence_rate",
 
 import math
 from dolfinimport import dolfin, dolfin_adjoint
+if dolfin_adjoint:
+    from dolfin_adjoint import assemble, LUSolver, KrylovSolver
+else:
+    from dolfin import assemble, LUSolver, KrylovSolver
+
 
 def state_space(domain, d, family=None, k=1):
     """Return function space for the state variables.
@@ -195,10 +200,7 @@ class Projecter(object):
         self.u = dolfin.TrialFunction(self.V)
         self.v = dolfin.TestFunction(self.V)
         self.m = dolfin.inner(self.u, self.v)*dolfin.dx()
-        if dolfin_adjoint:
-            self.M = dolfin_adjoint.assemble(self.m)
-        else:
-            self.M = dolfin.assemble(self.m)
+        self.M = assemble(self.m)
         self.b = dolfin.Vector(V.mesh().mpi_comm(), V.dim())
 
         solver_type = self.parameters["linear_solver_type"]
@@ -207,13 +209,13 @@ class Projecter(object):
         if solver_type == "lu":
             dolfin.debug("Setting up direct solver for projecter")
             # Customize LU solver (reuse everything)
-            solver = dolfin.LUSolver(self.M)
+            solver = LUSolver(self.M)
             solver.parameters["same_nonzero_pattern"] = True
             solver.parameters["reuse_factorization"] = True
         else:
             dolfin.debug("Setting up iterative solver for projecter")
             # Customize Krylov solver (reuse everything)
-            solver = dolfin.KrylovSolver("cg", "ilu")
+            solver = KrylovSolver("cg", "ilu")
             solver.set_operator(self.M)
             solver.parameters["preconditioner"]["structure"] = "same"
             # solver.parameters["nonzero_initial_guess"] = True
@@ -238,6 +240,5 @@ class Projecter(object):
             The result of the projection
         """
         L = dolfin.inner(f, self.v)*dolfin.dx()
-        dolfin.assemble(L, tensor=self.b, reset_sparsity=False)
+        assemble(L, tensor=self.b, reset_sparsity=False)
         self.solver.solve(u.vector(), self.b)
-
