@@ -20,7 +20,7 @@ def main(N, dt, T, theta):
     mesh = UnitSquareMesh(N, N)
     time = Constant(0.0)
     ac_str = "cos(t)*cos(2*pi*x[0])*cos(2*pi*x[1]) + 4*pow(pi, 2)*cos(2*pi*x[0])*cos(2*pi*x[1])*sin(t)"
-    stimulus = {0:Expression(ac_str, t=time, degree=5)}
+    stimulus = {0: Expression(ac_str, t=time, degree=5)}
     M_i = 1.
     M_e = 1.0
 
