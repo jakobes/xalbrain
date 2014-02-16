@@ -555,7 +555,7 @@ class BidomainSolver(BasicBidomainSolver):
         """Helper function for updating an LUSolver depending on
         whether timestep has changed."""
 
-        annotate_kwargs = {"annotate":self.parameters["enable_adjoint"]} \
+        annotate_kwargs = {"annotate": self.parameters["enable_adjoint"]} \
                           if dolfin_adjoint else {}
 
         # Update reuse of factorization parameter in accordance with
