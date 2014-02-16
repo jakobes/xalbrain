@@ -49,15 +49,22 @@ def generate_solver(Solver, ics=None, enable_adjoint=True):
 
             dt = 0.1
             self.t0 = 0.0
-            self.dt = [(0.0, dt), (dt*2, dt/2), (dt*4, dt)]
+            if Solver == SplittingSolver:
+                # FIXME: Dolfin-adjoint fails with adaptive timestep and SplittingSolver
+                self.dt = dt
+            else:
+                self.dt = [(0.0, dt), (dt*2, dt/2), (dt*4, dt)]
             # Test using variable dt interval but using the same dt.
 
             self.T = self.t0 + 5*dt
 
             # Create solver object
             params = Solver.default_parameters()
-            if isinstance(Solver, BasicSplittingSolver):
-                params.BidomainSolver.linear_solver_type = 'iterative'
+            
+            if Solver == SplittingSolver:
+                params.enable_adjoint = enable_adjoint
+                params.BidomainSolver.linear_solver_type = 'direct'
+                params.BidomainSolver.use_avg_u_constraint = True
 
             self.solver = Solver(self.cardiac_model, params=params)
             (vs_, vs, vur) = self.solver.solution_fields()
@@ -109,7 +116,7 @@ class TestSplittingSolverAdjoint(object):
         return J, Jhat, m, Jics
 
     @medium
-    @parametrize("Solver", [BasicSplittingSolver]) #, SplittingSolver])
+    @parametrize("Solver", [BasicSplittingSolver, SplittingSolver])
     def test_ReplayOfSplittingSolver_IsExact(self, Solver):
         """Test that basic and optimised splitting solvers yield
         very comparative results when configured identically."""
