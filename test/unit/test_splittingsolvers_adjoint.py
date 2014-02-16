@@ -2,21 +2,23 @@
 Unit tests for various types of bidomain solver
 """
 
-__author__ = "Simon W. Funke (simon@simula.no) and Marie E. Rognes (meg@simula.no), 2014"
+__author__ = "Simon W. Funke (simon@simula.no) \
+        and Marie E. Rognes (meg@simula.no), 2014"
 __all__ = ["TestSplittingSolverAdjoint"]
 
-from testutils import assert_true, medium, parametrize
+from testutils import assert_greater, medium, slow, parametrize
 
-from dolfin import info, info_green, info_green, set_log_level, WARNING
+from dolfin import info_green, set_log_level, WARNING
 from beatadjoint import CardiacModel, \
-        BasicSplittingSolver, SplittingSolver, BasicCardiacODESolver, \
-        FitzHughNagumoManual, \
-        Constant, Expression, UnitCubeMesh, \
-        dolfin_adjoint, replay_dolfin, Functional, assemble, \
-        inner, dx, dt, FINISH_TIME, InitialConditionParameter, parameters, \
-        compute_gradient_tlm, taylor_test
+    BasicSplittingSolver, SplittingSolver, \
+    FitzHughNagumoManual, \
+    Constant, Expression, UnitCubeMesh, \
+    replay_dolfin, Functional, assemble, \
+    inner, dx, dt, FINISH_TIME, InitialConditionParameter, parameters, \
+    compute_gradient_tlm, compute_gradient, taylor_test
 
 set_log_level(WARNING)
+
 
 def generate_solver(Solver, ics=None, enable_adjoint=True):
 
@@ -29,7 +31,7 @@ def generate_solver(Solver, ics=None, enable_adjoint=True):
 
             # Create stimulus
             # NOTE: 0 domain is the whole domain
-            self.stimulus = {0:Expression("2.0*t", t=self.time)}
+            self.stimulus = {0: Expression("2.0*t", t=self.time)}
 
             # Create ac
             self.applied_current = Expression("sin(2*pi*x[0])*t", t=self.time)
@@ -51,10 +53,6 @@ def generate_solver(Solver, ics=None, enable_adjoint=True):
             # Test using variable dt interval but using the same dt.
 
             self.T = self.t0 + 5*dt
-            if ics is None:
-                self.ics = self.cell_model.initial_conditions()
-            else:
-                self.ics = ics
 
             # Create solver object
             params = Solver.default_parameters()
@@ -62,17 +60,21 @@ def generate_solver(Solver, ics=None, enable_adjoint=True):
                 params.BidomainSolver.linear_solver_type = 'iterative'
 
             self.solver = Solver(self.cardiac_model, params=params)
-
             (vs_, vs, vur) = self.solver.solution_fields()
-            vs_.assign(self.ics)
+
+            if ics is None:
+                self.ics = self.cell_model.initial_conditions()
+                vs_.assign(self.ics)
+            else:
+                vs_.vector()[:] = ics.vector()
 
         def run_forward_model(self):
-            solutions = self.solver.solve((self.t0, self.T), self.dt)
 
+            solutions = self.solver.solve((self.t0, self.T), self.dt)
             for (interval, fields) in solutions:
                 pass
-
             (vs_, vs, vur) = self.solver.solution_fields()
+
             return vs_, vs
 
     return SolverWrapper()
@@ -96,8 +98,8 @@ class TestSplittingSolverAdjoint(object):
 
         # Define reduced functional
         def Jhat(ics):
-            wrap = generate_solver(Solver, enable_adjoint=False)
-            vs = wrap.run_forward_model()
+            wrap = generate_solver(Solver, ics=ics, enable_adjoint=False)
+            vs_, vs = wrap.run_forward_model()
 
             return assemble(form(vs))
 
@@ -123,9 +125,9 @@ class TestSplittingSolverAdjoint(object):
         success = replay_dolfin(tol=0, stop=True)
         assert success
 
-    @medium
+    @slow
     @parametrize("Solver", [BasicSplittingSolver]) #, SplittingSolver])
-    def xtest_TangentLinearModelOfSplittingSolver_PassesTaylorTest(self, Solver):
+    def test_TangentLinearModelOfSplittingSolver_PassesTaylorTest(self, Solver):
         """Test that basic and optimised splitting solvers yield
         very comparative results when configured identically."""
 
@@ -139,3 +141,19 @@ class TestSplittingSolverAdjoint(object):
         # Check that minimal convergence rate is greater than some given number
         assert_greater(conv_rate_tlm, 1.9)
 
+    @slow
+    @parametrize("Solver", [BasicSplittingSolver]) #, SplittingSolver])
+    def test_AdjointModelOfSplittingSolver_PassesTaylorTest(self, Solver):
+        """Test that basic and optimised splitting solvers yield
+        very comparative results when configured identically."""
+
+        J, Jhat, m, Jics = self.tlm_adj_setup(Solver)
+
+        # Compute gradient with adjoint model
+        dJdics = compute_gradient(J, m, forget=False)
+
+        assert (dJdics is not None), "Gradient is None (#fail)."
+        conv_rate_tlm = taylor_test(Jhat, m, Jics, dJdics)
+
+        # Check that minimal convergence rate is greater than some given number
+        assert_greater(conv_rate_tlm, 1.9)
