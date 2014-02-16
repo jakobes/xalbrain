@@ -20,7 +20,7 @@ from beatadjoint import CardiacModel, \
 set_log_level(WARNING)
 
 
-def generate_solver(Solver, ics=None, enable_adjoint=True):
+def generate_solver(Solver, solver_type, ics=None, enable_adjoint=True):
 
     class SolverWrapper(object):
         def __init__(self):
@@ -63,8 +63,14 @@ def generate_solver(Solver, ics=None, enable_adjoint=True):
             
             if Solver == SplittingSolver:
                 params.enable_adjoint = enable_adjoint
-                params.BidomainSolver.linear_solver_type = 'direct'
-                params.BidomainSolver.use_avg_u_constraint = True
+                params.BidomainSolver.linear_solver_type = solver_type
+                params.BidomainSolver.krylov_solver.relative_tolerance = 1e-12
+            else:
+                params.BasicBidomainSolver.linear_variational_solver.linear_solver = \
+                                "gmres" if solver_type == "iterative" else "lu"
+                params.BasicBidomainSolver.linear_variational_solver.krylov_solver.relative_tolerance = 1e-12
+                params.BasicBidomainSolver.linear_variational_solver.preconditioner = 'jacobi'
+
 
             self.solver = Solver(self.cardiac_model, params=params)
             (vs_, vs, vur) = self.solver.solution_fields()
@@ -90,9 +96,9 @@ def generate_solver(Solver, ics=None, enable_adjoint=True):
 class TestSplittingSolverAdjoint(object):
     "Test adjoint functionality for the splitting solvers."
 
-    def tlm_adj_setup(self, Solver):
+    def tlm_adj_setup(self, Solver, solver_type):
         """ Common code for test_tlm and test_adjoint. """
-        wrap = generate_solver(Solver)
+        wrap = generate_solver(Solver, solver_type)
         vs_, vs = wrap.run_forward_model()
 
         # Define functional
@@ -108,7 +114,7 @@ class TestSplittingSolverAdjoint(object):
 
         # Define reduced functional
         def Jhat(ics):
-            wrap = generate_solver(Solver, ics=ics, enable_adjoint=False)
+            wrap = generate_solver(Solver, solver_type, ics=ics, enable_adjoint=False)
             vs_, vs = wrap.run_forward_model()
 
             return assemble(form(vs))
@@ -119,24 +125,36 @@ class TestSplittingSolverAdjoint(object):
         return J, Jhat, m, Jics
 
     @medium
-    @parametrize("Solver", [BasicSplittingSolver, SplittingSolver])
-    def test_ReplayOfSplittingSolver_IsExact(self, Solver):
+    @parametrize(("Solver", "solver_type", "tol"), [
+            (BasicSplittingSolver, "direct", 0.),
+            (BasicSplittingSolver, "iterative", 0.),
+            (SplittingSolver, "direct", 0.),
+            (SplittingSolver, "iterative", 1e-10),  # NOTE: The replay is not exact because 
+            # dolfin-adjoint's overloaded Krylov method is not constent with DOLFIN's 
+            # (it orthogonalizes the rhs vector as an additional step)
+            ])
+    def test_ReplayOfSplittingSolver_IsExact(self, Solver, solver_type, tol):
         """Test that basic and optimised splitting solvers yield
         very comparative results when configured identically."""
 
-        self.tlm_adj_setup(Solver)
+        self.tlm_adj_setup(Solver, solver_type)
 
         info_green("Replaying")
-        success = replay_dolfin(tol=0, stop=True)
+        success = replay_dolfin(tol=tol, stop=True)
         assert success
 
     @slow
-    @parametrize("Solver", [BasicSplittingSolver, SplittingSolver])
-    def test_TangentLinearModelOfSplittingSolver_PassesTaylorTest(self, Solver):
+    @parametrize(("Solver", "solver_type"), [
+            (BasicSplittingSolver, "direct"),
+            (BasicSplittingSolver, "iterative"),
+            (SplittingSolver, "direct"),
+            (SplittingSolver, "iterative")
+            ])
+    def test_TangentLinearModelOfSplittingSolver_PassesTaylorTest(self, Solver, solver_type):
         """Test that basic and optimised splitting solvers yield
         very comparative results when configured identically."""
 
-        J, Jhat, m, Jics = self.tlm_adj_setup(Solver)
+        J, Jhat, m, Jics = self.tlm_adj_setup(Solver, solver_type)
 
         # Check TLM correctness
         info_green("Compute gradient with tangent linear model")
@@ -149,12 +167,17 @@ class TestSplittingSolverAdjoint(object):
         assert_greater(conv_rate_tlm, 1.9)
 
     @slow
-    @parametrize("Solver", [BasicSplittingSolver, SplittingSolver])
-    def test_AdjointModelOfSplittingSolver_PassesTaylorTest(self, Solver):
+    @parametrize(("Solver", "solver_type"), [
+            (BasicSplittingSolver, "direct"),
+            (BasicSplittingSolver, "iterative"),
+            (SplittingSolver, "direct"),
+            (SplittingSolver, "iterative")
+            ])
+    def test_AdjointModelOfSplittingSolver_PassesTaylorTest(self, Solver, solver_type):
         """Test that basic and optimised splitting solvers yield
         very comparative results when configured identically."""
 
-        J, Jhat, m, Jics = self.tlm_adj_setup(Solver)
+        J, Jhat, m, Jics = self.tlm_adj_setup(Solver, solver_type)
 
         # Check adjoint model correctness
         info_green("Compute gradient with adjoint linear model")

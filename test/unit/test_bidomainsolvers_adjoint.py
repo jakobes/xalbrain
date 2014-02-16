@@ -89,7 +89,7 @@ class TestBidomainSolversAdjoint(object):
         (BasicBidomainSolver, "direct", 0.),
         (BasicBidomainSolver, "iterative", 0.),
         (BidomainSolver, "direct", 0.),
-        (BidomainSolver, "iterative", 1e-10),  # NOTE: The replace is not exact because 
+        (BidomainSolver, "iterative", 1e-10),  # NOTE: The replay is not exact because 
             # dolfin-adjoint's overloaded Krylov method is not constent with DOLFIN's 
             # (it orthogonalizes the rhs vector as an additional step)
         ])
