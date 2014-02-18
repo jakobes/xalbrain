@@ -30,6 +30,7 @@ def main(N, dt, T, theta):
     # Set-up solver
     ps = BasicSplittingSolver.default_parameters()
     ps["theta"] = theta
+    ps["enable_adjoint"] = False # FIXME
     ps["BasicBidomainSolver"]["linear_variational_solver"]["linear_solver"] = "direct"
     solver = BasicSplittingSolver(heart, params=ps)
 
