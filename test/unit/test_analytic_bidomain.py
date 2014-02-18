@@ -13,11 +13,16 @@ from beatadjoint import CardiacModel, NoCellModel
 from beatadjoint import BasicSplittingSolver
 from beatadjoint import Constant, UnitSquareMesh
 from beatadjoint import Function, Expression, errornorm
+from beatadjoint import dolfin_adjoint, adj_reset
+
 from beatadjoint.utils import convergence_rate
 
 from testutils import slow
 
 def main(N, dt, T, theta):
+
+    if dolfin_adjoint:
+        adj_reset()
 
     # Create cardiac model
     mesh = UnitSquareMesh(N, N)
@@ -30,7 +35,6 @@ def main(N, dt, T, theta):
     # Set-up solver
     ps = BasicSplittingSolver.default_parameters()
     ps["theta"] = theta
-    ps["enable_adjoint"] = False # FIXME
     ps["BasicBidomainSolver"]["linear_variational_solver"]["linear_solver"] = "direct"
     solver = BasicSplittingSolver(heart, params=ps)
 
