@@ -111,7 +111,7 @@ class BasicSplittingSolver:
         self.parameters = self.default_parameters()
         if params is not None:
             self.parameters.update(params)
-        
+
         # Extract solution domain
         self._domain = self._model.domain
         self._time = self._model.time
@@ -174,7 +174,7 @@ class BasicSplittingSolver:
             params = self.parameters["BasicMonodomainSolver"]
             args = (self._domain, self._time, M_i,)
             kwargs = dict(I_s=stimulus, v_=self.vs[0], params=params)
-        
+
         # Propagate enable_adjoint to Bidomain solver
         if params.has_key("enable_adjoint"):
             params["enable_adjoint"] = self.parameters["enable_adjoint"]
@@ -198,7 +198,7 @@ class BasicSplittingSolver:
 
         params = Parameters("BasicSplittingSolver")
         params.add("enable_adjoint", True)
-        params.add("theta", 0.5, 0, 1)
+        params.add("theta", 0.5, 0., 1.)
         params.add("apply_stimulus_current_to_pde", False)
         params.add("pde_solver", "bidomain", ["bidomain", "monodomain"])
 
@@ -261,7 +261,7 @@ class BasicSplittingSolver:
 
         """
 
-        # Create timestepper 
+        # Create timestepper
         time_stepper = TimeStepper(interval, dt, \
                                    annotate=self.parameters["enable_adjoint"])
 
@@ -350,7 +350,7 @@ class BasicSplittingSolver:
             v = split(self.vur)[0]
         else:
             v = self.vur
-        
+
         s = split(self.vs)[1]
 
         if len(s.shape())==1:
@@ -393,11 +393,18 @@ class SplittingSolver(BasicSplittingSolver):
         params.add("theta", 0.5, 0, 1)
         params.add("apply_stimulus_current_to_pde", False)
         params.add("pde_solver", "bidomain", ["bidomain", "monodomain"])
+        params.add("ode_solver_choice", "CardiacODESolver", ["BasicCardiacODESolver", "CardiacODESolver"])
 
         # Add default parameters from ODE solver
         ode_solver_params = CardiacODESolver.default_parameters()
         ode_solver_params["scheme"] = "CN2"
         params.add(ode_solver_params)
+
+        # Add default parameters from ODE solver
+        basic_ode_solver_params = BasicCardiacODESolver.default_parameters()
+        basic_ode_solver_params["V_polynomial_degree"] = 1
+        basic_ode_solver_params["V_polynomial_family"] = "CG"
+        params.add(basic_ode_solver_params)
 
         pde_solver_params = BidomainSolver.default_parameters()
         pde_solver_params["polynomial_degree"] = 1
@@ -425,12 +432,12 @@ class SplittingSolver(BasicSplittingSolver):
         else:
             stimulus = self._model.stimulus
 
-        # Extract ode solver parameters
-        params = self.parameters["CardiacODESolver"]
-        solver = CardiacODESolver(self._domain, self._time,
-                                  cell_model.num_states(),
-                                  cell_model.F, cell_model.I,
-                                  I_s=stimulus, params=params)
+        Solver = eval(self.parameters["ode_solver_choice"])
+        solver = Solver(self._domain, self._time,
+                        cell_model.num_states(),
+                        cell_model.F, cell_model.I,
+                        I_s=stimulus, params=self.parameters[Solver.__name__])
+
         return solver
 
     def _create_pde_solver(self):
@@ -461,7 +468,7 @@ class SplittingSolver(BasicSplittingSolver):
             params = self.parameters["MonodomainSolver"]
             args = (self._domain, self._time, M_i,)
             kwargs = dict(I_s=stimulus, v_=self.vs[0], params=params)
-        
+
         # Propagate enable_adjoint to Bidomain solver
         if params.has_key("enable_adjoint"):
             params["enable_adjoint"] = self.parameters["enable_adjoint"]
@@ -485,7 +492,7 @@ class SplittingSolver(BasicSplittingSolver):
             v = split(self.vur)[0]
         else:
             v = self.vur
-        
+
         s = split(self.vs)[1]
 
         if len(s.shape())==1:

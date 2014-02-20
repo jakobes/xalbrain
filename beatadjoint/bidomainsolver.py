@@ -537,6 +537,7 @@ class BidomainSolver(BasicBidomainSolver):
         self._update_solver(timestep_unchanged, dt)
 
         # Check that applied current has average value zero
+        # FIXME: MER says: Should this happen in each step??
         if self._I_a:
             consistency = assemble(self._I_a*dx, mesh=self._domain)
             tolerance = 1.e-14
