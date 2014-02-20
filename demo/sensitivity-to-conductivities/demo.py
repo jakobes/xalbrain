@@ -29,6 +29,7 @@ def setup_general_parameters():
     parameters["form_compiler"]["cpp_optimize"] = True
     flags = ["-O3", "-ffast-math", "-march=native"]
     parameters["form_compiler"]["cpp_optimize_flags"] = " ".join(flags)
+    parameters["form_compiler"]["quadrature_degree"] = 2
 
 def setup_conductivities(mesh, application_parameters):
     # Load fibers and sheets
@@ -88,7 +89,7 @@ def setup_cell_model(params):
                            "v_rest":Vrest, "v_peak": Vpeak}
         cell_model = FitzHughNagumoManual(cell_parameters)
     elif option == "tenTusscher":
-        cell_model = Tentusscher_2004_mcell
+        cell_model = Tentusscher_2004_mcell()
     else:
         error("Unrecognized cell model option: %s" % option)
 
@@ -103,7 +104,7 @@ def setup_cardiac_model(application_parameters):
     mesh.coordinates()[:] /= 1000.0 # Scale mesh from micrometer to millimeter
     mesh.coordinates()[:] /= 10.0   # Scale mesh from millimeter to centimeter
     mesh.coordinates()[:] /= 4.0    # Scale mesh as indicated by Johan/Molly
-    plot(mesh, title="The computational domain")
+    #plot(mesh, title="The computational domain")
 
     # Setup conductivities
     (M_i, M_e, gs) = setup_conductivities(mesh, application_parameters)
@@ -148,6 +149,8 @@ def main(store_solutions=True):
     begin("Setting up splitting solver")
     params = SplittingSolver.default_parameters()
     params["theta"] = 1.0
+    params["ode_solver_choice"] = "BasicCardiacODESolver"
+    #params["ode_solver_choice"] = "CardiacODESolver" # Diverges after 2 steps
     params["BidomainSolver"]["linear_solver_type"] = "direct"
     params["BidomainSolver"]["default_timestep"] = k_n
     solver = SplittingSolver(heart, params=params)
