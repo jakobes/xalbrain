@@ -57,15 +57,19 @@ def generate_conductivities():
     g_it_field = Function(V)
     g_it_field.vector()[:] = (1-ischemic_array)*g_it_isch+ischemic_array*g_it
 
-    # Store these
+    # Store these. Note use of t for both t and n
     info("Storing conductivities")
     file = File("data/g_el_field.xml.gz")
     file << g_el_field
     file = File("data/g_et_field.xml.gz")
     file << g_et_field
+    file = File("data/g_en_field.xml.gz")
+    file << g_et_field
     file = File("data/g_il_field.xml.gz")
     file << g_il_field
     file = File("data/g_it_field.xml.gz")
+    file << g_it_field
+    file = File("data/g_in_field.xml.gz")
     file << g_it_field
 
     info("Creating healthy conductivities")
@@ -79,15 +83,19 @@ def generate_conductivities():
     g_it_field = Function(V)
     g_it_field.vector()[:] = g_it
 
-    # Store these
+    # Store these. Note use of t for both t and n
     info("Storing healthy conductivities")
     file = File("data/healthy_g_el_field.xml.gz")
     file << g_el_field
     file = File("data/healthy_g_et_field.xml.gz")
     file << g_et_field
+    file = File("data/healthy_g_en_field.xml.gz")
+    file << g_et_field
     file = File("data/healthy_g_il_field.xml.gz")
     file << g_il_field
     file = File("data/healthy_g_it_field.xml.gz")
+    file << g_it_field
+    file = File("data/healthy_g_in_field.xml.gz")
     file << g_it_field
 
 

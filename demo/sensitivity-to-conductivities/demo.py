@@ -3,7 +3,7 @@ Demo for propagation of electric potential through left and right
 ventricles.
 """
 
-__author__ = "Marie E. Rognes (meg@simula.no), 2012--2013"
+__author__ = "Marie E. Rognes (meg@simula.no), 2012--2014"
 
 import math
 from beatadjoint import *
@@ -17,16 +17,18 @@ def setup_application_parameters():
     application_parameters.add("directory", "default-results")
     application_parameters.add("stimulus_amplitude", 30.0)
     application_parameters.add("healthy", False)
+    application_parameters.add("cell_model", "FitzHughNagumo")
     application_parameters.parse()
     info(application_parameters, True)
     return application_parameters
 
 def setup_general_parameters():
-    # Adjust some general parameters
+    # Adjust some general FEniCS related parameters
     parameters["reorder_dofs_serial"] = False # Crucial because of
                                               # stimulus assumption. FIXME.
     parameters["form_compiler"]["cpp_optimize"] = True
-    parameters["form_compiler"]["optimize"] = True
+    flags = ["-O3", "-ffast-math", "-march=native"]
+    parameters["form_compiler"]["cpp_optimize_flags"] = " ".join(flags)
 
 def setup_conductivities(mesh, application_parameters):
     # Load fibers and sheets
@@ -38,67 +40,76 @@ def setup_conductivities(mesh, application_parameters):
     cross_sheet = Function(Vv)
     File("data/cross_sheet.xml.gz") >> cross_sheet
 
-    # Extract conductivity data
+    # Extract stored conductivity data.
     V = FunctionSpace(mesh, "CG", 1)
     if (application_parameters["healthy"] == True):
         info_blue("Using healthy conductivities")
-        g_el_field = Function(V, "data/healthy_g_el_field.xml.gz",
-                              name="g_el")
-        g_et_field = Function(V, "data/healthy_g_et_field.xml.gz",
-                              name="g_et")
-        g_il_field = Function(V, "data/healthy_g_il_field.xml.gz",
-                              name="g_il")
-        g_it_field = Function(V, "data/healthy_g_it_field.xml.gz",
-                              name="g_it")
+        g_el_field = Function(V, "data/healthy_g_el_field.xml.gz", name="g_el")
+        g_et_field = Function(V, "data/healthy_g_et_field.xml.gz", name="g_et")
+        g_en_field = Function(V, "data/healthy_g_en_field.xml.gz", name="g_en")
+        g_il_field = Function(V, "data/healthy_g_il_field.xml.gz", name="g_il")
+        g_it_field = Function(V, "data/healthy_g_it_field.xml.gz", name="g_it")
+        g_in_field = Function(V, "data/healthy_g_in_field.xml.gz", name="g_in")
     else:
         info_blue("Using unhealthy conductivities")
         g_el_field = Function(V, "data/g_el_field.xml.gz", name="g_el")
         g_et_field = Function(V, "data/g_et_field.xml.gz", name="g_et")
+        g_en_field = Function(V, "data/g_en_field.xml.gz", name="g_en")
         g_il_field = Function(V, "data/g_il_field.xml.gz", name="g_il")
         g_it_field = Function(V, "data/g_it_field.xml.gz", name="g_it")
+        g_in_field = Function(V, "data/g_in_field.xml.gz", name="g_in")
 
     # Construct conductivity tensors from directions and conductivity
     # values relative to that coordinate system
     A = as_matrix([[fiber[0], sheet[0], cross_sheet[0]],
                    [fiber[1], sheet[1], cross_sheet[1]],
                    [fiber[2], sheet[2], cross_sheet[2]]])
-    M_e_star = diag(as_vector([g_el_field, g_et_field, g_et_field]))
-    M_i_star = diag(as_vector([g_il_field, g_it_field, g_it_field]))
+    M_e_star = diag(as_vector([g_el_field, g_et_field, g_en_field]))
+    M_i_star = diag(as_vector([g_il_field, g_it_field, g_in_field]))
     M_e = A*M_e_star*A.T
     M_i = A*M_i_star*A.T
 
-    gs = (g_il_field, g_it_field, g_el_field, g_et_field)
+    gs = (g_il_field, g_it_field, g_in_field,
+          g_el_field, g_et_field, g_en_field)
 
     return (M_i, M_e, gs)
 
-def setup_cell_model():
+def setup_cell_model(params):
 
-    # Setup cell model based on parameters from Glenn, which seems to
-    # be a little more excitable than the default FitzHugh-Nagumo
-    # parameters from the book.
-    k = 0.00004; Vrest = -85.; Vthreshold = -70.;
-    Vpeak = 40.; k = 0.00004; l = 0.63; b = 0.013; v_amp = Vpeak - Vrest
-    cell_parameters = {"c_1": k*v_amp**2, "c_2": k*v_amp, "c_3": b/l,
-                       "a": (Vthreshold - Vrest)/v_amp, "b": l,
-                       "v_rest":Vrest, "v_peak": Vpeak}
-    cell = FitzHughNagumoManual(cell_parameters)
-    return cell
+    option = params["cell_model"]
+    if option == "FitzHughNagumo":
+        # Setup cell model based on parameters from G. T. Lines, which
+        # seems to be a little more excitable than the default
+        # FitzHugh-Nagumo parameters from the Sundnes et al book.
+        k = 0.00004; Vrest = -85.; Vthreshold = -70.;
+        Vpeak = 40.; k = 0.00004; l = 0.63; b = 0.013; v_amp = Vpeak - Vrest
+        cell_parameters = {"c_1": k*v_amp**2, "c_2": k*v_amp, "c_3": b/l,
+                           "a": (Vthreshold - Vrest)/v_amp, "b": l,
+                           "v_rest":Vrest, "v_peak": Vpeak}
+        cell_model = FitzHughNagumoManual(cell_parameters)
+    elif option == "tenTusscher":
+        cell_model = Tentusscher_2004_mcell
+    else:
+        error("Unrecognized cell model option: %s" % option)
+
+    return cell_model
+
 
 def setup_cardiac_model(application_parameters):
 
-    # Initialize domain
+    # Initialize the computational domain in time and space
+    time = Constant(0.0)
     mesh = Mesh("data/mesh115_refined.xml.gz")
     mesh.coordinates()[:] /= 1000.0 # Scale mesh from micrometer to millimeter
     mesh.coordinates()[:] /= 10.0   # Scale mesh from millimeter to centimeter
     mesh.coordinates()[:] /= 4.0    # Scale mesh as indicated by Johan/Molly
-
-    time = Constant(0.0)
+    plot(mesh, title="The computational domain")
 
     # Setup conductivities
     (M_i, M_e, gs) = setup_conductivities(mesh, application_parameters)
 
     # Setup cell model
-    cell_model = setup_cell_model()
+    cell_model = setup_cell_model(application_parameters)
 
     # Define some simulation protocol (use cpp expression for speed)
     stimulation_cells = MeshFunction("size_t", mesh,
@@ -112,7 +123,7 @@ def setup_cardiac_model(application_parameters):
     pulse.t = time        # ms
 
     # Initialize cardiac model with the above input
-    heart = CardiacModel(mesh, time, M_i, M_e, cell_model, stimulus=pulse)
+    heart = CardiacModel(mesh, time, M_i, M_e, cell_model, stimulus={0:pulse})
     return (heart, gs)
 
 def main(store_solutions=True):
@@ -128,7 +139,7 @@ def main(store_solutions=True):
     (heart, gs) = setup_cardiac_model(application_parameters)
     end()
 
-    # Extract time and time-step
+    # Extract end time and time-step from application parameters
     T = application_parameters["T"]
     k_n = application_parameters["timestep"]
 
@@ -146,7 +157,7 @@ def main(store_solutions=True):
     (vs_, vs, vu) = solver.solution_fields()
 
     # Extract and assign initial condition
-    vs_.assign(heart.cell_model.initial_conditions(), solver.VS)
+    vs_.assign(heart.cell_model().initial_conditions(), solver.VS)
     #vs.assign(heart.cell_model.initial_conditions(), solver.VS)
 
     # Store application parameters (arbitrary whether this works in
