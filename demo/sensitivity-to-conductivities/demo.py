@@ -149,8 +149,8 @@ def main(store_solutions=True):
     begin("Setting up splitting solver")
     params = SplittingSolver.default_parameters()
     params["theta"] = 1.0
-    params["ode_solver_choice"] = "BasicCardiacODESolver"
-    #params["ode_solver_choice"] = "CardiacODESolver" # Diverges after 2 steps
+    #params["ode_solver_choice"] = "BasicCardiacODESolver"
+    params["ode_solver_choice"] = "CardiacODESolver" # Diverges after 2 steps
     params["BidomainSolver"]["linear_solver_type"] = "direct"
     params["BidomainSolver"]["default_timestep"] = k_n
     solver = SplittingSolver(heart, params=params)
