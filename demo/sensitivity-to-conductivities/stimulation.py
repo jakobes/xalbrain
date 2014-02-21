@@ -37,3 +37,37 @@ public:
   double duration;
 };"""
 
+
+debug_stimulus = """
+class Stimulus : public Expression
+{
+public:
+
+  boost::shared_ptr<Constant> t;
+
+  Stimulus() : Expression(), amplitude(0), duration(0)
+  {
+  }
+
+  void eval(Array<double>& values, const Array<double>& x,
+            const ufc::cell& c) const
+  {
+    assert(t);
+    double t_value = *t;
+
+    if (x[0] <= 1.0/520)
+    {
+      values[0] = 0.0;
+    }
+    else
+    {
+      if (t_value <= duration)
+        values[0] = amplitude;
+      else
+        values[0] = 0.0;
+    }
+  }
+  double amplitude;
+  double duration;
+};"""
+
