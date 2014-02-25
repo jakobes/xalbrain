@@ -499,7 +499,7 @@ dCa_sl_dt = -I_Ca_tot_sl*Cmem/(Vsl*2*Frdy) + J_ca_juncsl/Vsl*(Ca_j - Ca_sl) + J_
 dCa_i_dt = -J_serca*Vsr/Vmyo - J_CaB_cytosol + J_ca_slmyo/Vmyo*(Ca_sl - Ca_i)
 
 component("Membrane potential")
-i_Stim = Conditional(And(Ge(time - floor(time/stim_period)*stim_period, stim_start), Le(time - floor(time/stim_period)*stim_period, stim_start + stim_duration), ), -stim_amplitude, 0)
+i_Stim = 0.0#Conditional(And(Ge(time - floor(time/stim_period)*stim_period, stim_start), Le(time - floor(time/stim_period)*stim_period, stim_start + stim_duration), ), -stim_amplitude, 0)
 I_Na_tot = I_Na_tot_junc + I_Na_tot_sl
 I_Cl_tot = I_ClCa + I_Clbk
 I_Ca_tot = I_Ca_tot_junc + I_Ca_tot_sl

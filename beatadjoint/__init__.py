@@ -10,6 +10,9 @@ To import the module, type::
 
 import dolfinimport
 
+# Import all of dolfin with possibly dolfin-adjoint on top
+from dolfinimport import *
+
 # Model imports
 from beatadjoint.cardiacmodels import CardiacModel
 from beatadjoint.cellmodels import *
@@ -28,5 +31,5 @@ from beatadjoint.monodomainsolver import MonodomainSolver
 import beatadjoint.utils
 
 # Set-up some global parameters
-beat_parameters = Parameters("beat-parameters")
+beat_parameters = dolfinimport.Parameters("beat-parameters")
 beat_parameters.add("enable_adjoint", True)

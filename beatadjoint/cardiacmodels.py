@@ -10,7 +10,7 @@ scenarios.
 
 __all__ = ["CardiacModel"]
 
-from dolfinimport import Parameters
+from dolfinimport import Parameters, Mesh, Constant
 from cellmodels import *
 
 # ------------------------------------------------------------------------------
