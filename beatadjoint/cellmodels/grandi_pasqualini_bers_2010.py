@@ -26,7 +26,15 @@ class Grandi_pasqualini_bers_2010(CardiacCellModel):
     @staticmethod
     def default_parameters():
         "Set-up and return default parameters."
-        params = OrderedDict([("GNa", 23),
+        params = OrderedDict([("Fjunc", 0.11),
+                              ("Fjunc_CaL", 0.9),
+                              ("cellLength", 100),
+                              ("cellRadius", 10.25),
+                              ("distJuncSL", 0.5),
+                              ("distSLcyto", 0.45),
+                              ("junctionLength", 0.16),
+                              ("junctionRadius", 0.015),
+                              ("GNa", 23),
                               ("GNaB", 0.000597),
                               ("IbarNaK", 1.8),
                               ("KmKo", 1.5),
@@ -121,18 +129,10 @@ class Grandi_pasqualini_bers_2010(CardiacCellModel):
                               ("Frdy", 96485),
                               ("R", 8314),
                               ("Temp", 310),
-                              ("stim_amplitude", 9.5),
-                              ("stim_duration", 5),
-                              ("stim_period", 1000),
-                              ("stim_start", 10),
-                              ("Fjunc", 0.11),
-                              ("Fjunc_CaL", 0.9),
-                              ("cellLength", 100),
-                              ("cellRadius", 10.25),
-                              ("distJuncSL", 0.5),
-                              ("distSLcyto", 0.45),
-                              ("junctionLength", 0.16),
-                              ("junctionRadius", 0.015)])
+                              ("stim_amplitude", 0.0),
+                              ("stim_duration", 1.0),
+                              ("stim_period", 1000.0),
+                              ("stim_start", 1.0)])
         return params
 
     @staticmethod
@@ -194,6 +194,8 @@ class Grandi_pasqualini_bers_2010(CardiacCellModel):
             Csqn_b, Na_i, Na_j, Na_sl, K_i, Ca_i, Ca_j, Ca_sl = s
 
         # Assign parameters
+        Fjunc = self._parameters["Fjunc"]
+        Fjunc_CaL = self._parameters["Fjunc_CaL"]
         GNa = self._parameters["GNa"]
         GNaB = self._parameters["GNaB"]
         IbarNaK = self._parameters["IbarNaK"]
@@ -230,12 +232,6 @@ class Grandi_pasqualini_bers_2010(CardiacCellModel):
         Frdy = self._parameters["Frdy"]
         R = self._parameters["R"]
         Temp = self._parameters["Temp"]
-        stim_amplitude = self._parameters["stim_amplitude"]
-        stim_duration = self._parameters["stim_duration"]
-        stim_period = self._parameters["stim_period"]
-        stim_start = self._parameters["stim_start"]
-        Fjunc = self._parameters["Fjunc"]
-        Fjunc_CaL = self._parameters["Fjunc_CaL"]
 
         # Init return args
         current = [ufl.zero()]*1
@@ -382,10 +378,7 @@ class Grandi_pasqualini_bers_2010(CardiacCellModel):
         I_Ca_tot_sl = -2*I_ncx_sl + I_pca_sl + I_cabk_sl + I_Ca_sl
 
         # Expressions for the Membrane potential component
-        i_Stim = ufl.conditional(ufl.And(ufl.ge(time -\
-            stim_period*ufl.floor(time/stim_period), stim_start), ufl.le(time\
-            - stim_period*ufl.floor(time/stim_period), stim_duration +\
-            stim_start)), -stim_amplitude, 0)
+        i_Stim = 0
         I_Na_tot = I_Na_tot_junc + I_Na_tot_sl
         I_Cl_tot = I_Clbk + I_ClCa
         I_Ca_tot = I_Ca_tot_junc + I_Ca_tot_sl
@@ -419,6 +412,10 @@ class Grandi_pasqualini_bers_2010(CardiacCellModel):
             Csqn_b, Na_i, Na_j, Na_sl, K_i, Ca_i, Ca_j, Ca_sl = s
 
         # Assign parameters
+        Fjunc = self._parameters["Fjunc"]
+        Fjunc_CaL = self._parameters["Fjunc_CaL"]
+        cellLength = self._parameters["cellLength"]
+        cellRadius = self._parameters["cellRadius"]
         GNa = self._parameters["GNa"]
         GNaB = self._parameters["GNaB"]
         IbarNaK = self._parameters["IbarNaK"]
@@ -499,10 +496,6 @@ class Grandi_pasqualini_bers_2010(CardiacCellModel):
         Frdy = self._parameters["Frdy"]
         R = self._parameters["R"]
         Temp = self._parameters["Temp"]
-        Fjunc = self._parameters["Fjunc"]
-        Fjunc_CaL = self._parameters["Fjunc_CaL"]
-        cellLength = self._parameters["cellLength"]
-        cellRadius = self._parameters["cellRadius"]
 
         # Init return args
         F_expressions = [ufl.zero()]*38
