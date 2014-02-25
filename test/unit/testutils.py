@@ -5,7 +5,7 @@ __author__ = "Marie E. Rognes (meg@simula.no), 2014"
 from dolfin import *
 import numpy.linalg
 import pytest
-from beatadjoint import supported_cell_models
+from beatadjoint.cellmodels import *
 from beatadjoint.utils import state_space
 
 # Marks
@@ -16,6 +16,7 @@ slow = pytest.mark.slow
 adjoint = pytest.mark.adjoint
 
 parametrize = pytest.mark.parametrize
+supported_cell_models_str = [Model.__name__ for Model in supported_cell_models]
 
 def assert_almost_equal(a, b, tolerance):
     c = a - b
@@ -35,14 +36,14 @@ def assert_greater(a, b):
     assert a > b
 
 # Fixtures
-@pytest.fixture(params=supported_cell_models)
+@pytest.fixture(params=supported_cell_models_str)
 def cell_model(request):
-    Model = request.param
+    Model = eval(request.param)
     return Model()
 
-@pytest.fixture(params=supported_cell_models)
+@pytest.fixture(params=supported_cell_models_str)
 def ode_test_form(request):
-    Model = request.param
+    Model = eval(request.param)
     model = Model()
     mesh = UnitSquareMesh(10, 10)
     V = FunctionSpace(mesh, "CG", 1)

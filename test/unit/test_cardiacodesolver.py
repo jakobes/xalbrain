@@ -13,11 +13,13 @@ from dolfin import info, info_red, info_green, \
         UnitIntervalMesh, MPI, mpi_comm_world
 from beatadjoint import supported_cell_models, \
         CardiacODESolver, BasicSingleCellSolver, \
-        NoCellModel, FitzHughNagumoManual, Fitzhughnagumo, Tentusscher_2004_mcell, \
         Constant, Expression
+from beatadjoint.cellmodels import *
 
 
-supported_schemes = ["ForwardEuler", "BackwardEuler", "CrankNicolson", "RK4", "ESDIRK3", "ESDIRK4"]
+supported_schemes = ["ForwardEuler", "BackwardEuler", "CrankNicolson",
+                     "RK4", "ESDIRK3", "ESDIRK4"]
+supported_cell_models_str = [Model.__name__ for Model in supported_cell_models]
 
 class TestCardiacODESolver(object):
     """ Tests the cardiac ODE solver on different cell models. """
@@ -83,6 +85,8 @@ class TestCardiacODESolver(object):
     def _setup_solver(self, Model, Scheme, time=0.0, stim=None, params=None):
         ''' Generate a new solver object with the given start time, stimulus and parameters. '''
         # Create model instance
+        if isinstance(Model, str):
+            Model = eval(Model)
         model = Model(params=params)
 
         # Initialize time and stimulus (note t=time construction!)
@@ -109,7 +113,7 @@ class TestCardiacODESolver(object):
 
     @slow
     @parametrize(("Model","Scheme"), 
-        list(itertools.product(supported_cell_models,supported_schemes))
+        list(itertools.product(supported_cell_models_str,supported_schemes))
         )
     def test_compare_against_reference(self, Model, Scheme):
         ''' Runs the given cell model with the numerical scheme 
@@ -127,12 +131,13 @@ class TestCardiacODESolver(object):
 
     @slow
     @parametrize(("Model","Scheme"), 
-        list(itertools.product(supported_cell_models,supported_schemes))
+        list(itertools.product(supported_cell_models_str,supported_schemes))
         )
     def test_compare_against_reference_constant(self, Model, Scheme):
         ''' Runs the given cell model with the numerical scheme 
             and compares the result with the reference value. '''
 
+        Model = eval(Model)
         params = Model.default_parameters()
         self.replace_with_constants(params)
 
