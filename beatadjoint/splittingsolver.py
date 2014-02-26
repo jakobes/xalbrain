@@ -125,6 +125,14 @@ class BasicSplittingSolver:
         self.pde_solver = self._create_pde_solver()
         (self.v_, self.vur) = self.pde_solver.solution_fields()
 
+        # Create function assigner for merging v from self.vur into self.vs[0]
+        if self.parameters["pde_solver"] == "bidomain":
+            V = self.vur.function_space().sub(0)
+        else:
+            V = self.vur.function_space()
+
+        self.merger = FunctionAssigner(self.VS.sub(0), V)
+
     def _create_ode_solver(self):
         """Helper function to initialize a suitable ODE solver from
         the cardiac model."""
@@ -347,10 +355,15 @@ class BasicSplittingSolver:
         begin("Merging")
 
         if self.parameters["pde_solver"] == "bidomain":
-            v = split(self.vur)[0]
+            v = self.vur.sub(0)
         else:
             v = self.vur
 
+        self.merger.assign(self.vs.sub(0), v)
+        
+        end()
+        return
+    
         s = split(self.vs)[1]
 
         if len(s.shape())==1:
@@ -372,8 +385,8 @@ class SplittingSolver(BasicSplittingSolver):
         BasicSplittingSolver.__init__(self, model, params)
 
         # Set-up projection solver (for optimised merging) of fields
-        self.vs_projecter = Projecter(self.VS,
-                                      params=self.parameters["Projecter"])
+        #self.vs_projecter = Projecter(self.VS,
+        #                              params=self.parameters["Projecter"])
 
     @staticmethod
     def default_parameters():
@@ -477,7 +490,7 @@ class SplittingSolver(BasicSplittingSolver):
 
         return solver
 
-    def merge(self, solution):
+    def smerge(self, solution):
         """
         Combine solutions from the PDE solve and the ODE solve to form
         a single mixed function.
