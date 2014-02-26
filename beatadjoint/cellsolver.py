@@ -8,7 +8,7 @@ __all__ = ["BasicSingleCellSolver",
 
 from dolfinimport import *
 from beatadjoint import CardiacCellModel
-from beatadjoint.utils import state_space, TimeStepper
+from beatadjoint.utils import state_space, TimeStepper, splat
 
 class BasicCardiacODESolver(object):
     """A basic, non-optimised solver for systems of ODEs typically
@@ -101,13 +101,18 @@ class BasicCardiacODESolver(object):
             self.parameters.update(params)
 
         # Create (mixed) function space for potential + states
-        family = self.parameters["V_polynomial_family"]
-        degree = self.parameters["V_polynomial_degree"]
-        V = FunctionSpace(self._domain, family, degree)
-        family = self.parameters["S_polynomial_family"]
-        degree = self.parameters["S_polynomial_degree"]
-        S = state_space(self._domain, self._num_states, family, degree)
-        self.VS = V*S
+        v_family = self.parameters["V_polynomial_family"]
+        v_degree = self.parameters["V_polynomial_degree"]
+        s_family = self.parameters["S_polynomial_family"]
+        s_degree = self.parameters["S_polynomial_degree"]
+
+        if (v_family == s_family and s_degree == v_degree):
+            self.VS = VectorFunctionSpace(self._domain, v_family, v_degree,
+                                          dim=self._num_states+1)
+        else:
+            V = FunctionSpace(self._domain, v_family, v_degree)
+            S = state_space(self._domain, self._num_states, s_family, s_degree)
+            self.VS = V*S
 
         # Initialize solution fields
         self.vs_ = Function(self.VS, name="vs_")
@@ -197,7 +202,7 @@ class BasicCardiacODESolver(object):
             # Yield solutions
             yield (t0, t1), self.vs
 
-            # FIXME: This eventually breaks in parallel!?
+            # FIXME Hake: This may possibly break in parallel!?
             self.vs_.assign(self.vs)
 
     def step(self, interval):
@@ -224,12 +229,12 @@ class BasicCardiacODESolver(object):
         k_n = Constant(t1 - t0)
 
         # Extract previous solution(s)
-        (v_, s_) = split(self.vs_)
+        (v_, s_) = splat(self.vs_, self._num_states+1)
 
         # Set-up current variables
         self.vs.assign(self.vs_) # Start with good guess
-        (v, s) = split(self.vs)
-        (w, r) = TestFunctions(self.VS)
+        (v, s) = splat(self.vs, self._num_states+1)
+        (w, r) = splat(TestFunction(self.VS), self._num_states+1)
 
         # Define equation based on cell model
         Dt_v = (v - v_)/k_n
@@ -345,18 +350,16 @@ class CardiacODESolver(object):
         if params is not None:
             self.parameters.update(params)
 
-        # Create (mixed) function space for potential + states
-        V = FunctionSpace(self._domain, "CG", 1)
-        S = state_space(self._domain, self._num_states)
-        self.VS = V*S
+        # Create (vector) function space for potential + states
+        self.VS = VectorFunctionSpace(self._domain, "CG", 1, dim=self._num_states+1)
 
         # Initialize solution field
         self.vs_ = Function(self.VS, name="vs_")
         self.vs = Function(self.VS, name="vs")
 
         # Initialize scheme
-        (v, s) = split(self.vs)
-        (w, q) = TestFunctions(self.VS)
+        (v, s) = splat(self.vs, self._num_states+1)
+        (w, q) = splat(TestFunction(self.VS), self._num_states+1)
         self._rhs = (inner(self._F(v, s, self._time), q)
                      - inner(self._I_ion(v, s, self._time), w))*dP
 
