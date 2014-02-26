@@ -13,6 +13,19 @@ else:
     from dolfin import assemble, LUSolver, KrylovSolver
 
 
+def splat(vs, dim):
+    
+    if vs.function_space().ufl_element().num_sub_elements()==dim:
+        v = vs[0]
+        if dim == 2:
+            s = vs[1]
+        else:
+            s = dolfin.as_vector([vs[i] for i in range(1, dim)])
+    else:
+        v, s = dolfin.split(vs)
+    
+    return v, s
+
 def state_space(domain, d, family=None, k=1):
     """Return function space for the state variables.
 
