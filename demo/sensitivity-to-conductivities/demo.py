@@ -136,6 +136,10 @@ def main(store_solutions=True):
     setup_general_parameters()
     end()
 
+    if 0:
+        application_parameters["cell_model"] = "tenTusscher"
+        application_parameters["timestep"] = 0.1
+
     begin("Setting up cardiac model")
     (heart, gs) = setup_cardiac_model(application_parameters)
     end()
@@ -150,7 +154,13 @@ def main(store_solutions=True):
     params = SplittingSolver.default_parameters()
     params["theta"] = 1.0
     #params["ode_solver_choice"] = "BasicCardiacODESolver"
-    params["ode_solver_choice"] = "CardiacODESolver" # Diverges after 2 steps
+    params["ode_solver_choice"] = "CardiacODESolver"
+    params["CardiacODESolver"]["scheme"] = "BackwardEuler"
+    ns_params = params["CardiacODESolver"]["point_integral_solver"]["newton_solver"]
+    #ns_params["recompute_jacobian_each_solve"] = True
+    ns_params["relative_tolerance"] =  1e-6
+    ns_params["maximum_iterations"] = 60
+    ns_params["max_relative_previous_residual"] = 0.1
     params["BidomainSolver"]["linear_solver_type"] = "direct"
     params["BidomainSolver"]["default_timestep"] = k_n
     solver = SplittingSolver(heart, params=params)
