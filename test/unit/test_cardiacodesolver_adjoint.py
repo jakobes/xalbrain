@@ -33,11 +33,12 @@ fails_with_RK4 = (Tentusscher_2004_mcell,
                   )
 
 seed_collection_adm = {Tentusscher_2004_mcell:1e-5,
-                   Tentusscher_2004_mcell_disc:1e-5,
-                   Tentusscher_2004_mcell_cont:1e-5,
-                   Tentusscher_panfilov_2006_M_cell:1e-5,
-                   Grandi_pasqualini_bers_2010:1e-7,
-                   }
+                       Tentusscher_2004_mcell_disc:1e-5,
+                       Tentusscher_2004_mcell_cont:1e-5,
+                       Tentusscher_panfilov_2006_M_cell:1e-5,
+                       Grandi_pasqualini_bers_2010:1e-7,
+                       Beeler_reuter_1977:1e-5,
+                       }
 
 seed_collection_tlm = seed_collection_adm.copy()
 seed_collection_tlm[Grandi_pasqualini_bers_2010] = 1e-6
