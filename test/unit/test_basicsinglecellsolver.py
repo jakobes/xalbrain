@@ -25,9 +25,9 @@ class TestBasicSingleCellSolver(object):
                    FitzHughNagumoManual: {1.0:  (0, -84.70013280019053),
                                           0.5: (0, -84.8000503072239979),
                                           0.0:  (0, -84.9)},
-                   Tentusscher_2004_mcell: {1.0: (1, -85.89745525156506),
-                                            0.5: (1, -85.99686000794499),
-                                            0.0:  (1, -86.09643254164848),}
+                   Tentusscher_2004_mcell: {1.0: (0, -85.89745525156506),
+                                            0.5: (0, -85.99686000794499),
+                                            0.0:  (0, -86.09643254164848),}
                    }
 
     def _run_solve(self, model, time, theta):
@@ -77,6 +77,9 @@ class TestBasicSingleCellSolver(object):
 
         if Model in self.references and theta in self.references[Model]:
             ind, ref_value = self.references[Model][theta]
+            print "vec_solve", vec_solve.array()
+            print "ind", ind, "ref", ref_value
+
             assert_almost_equal(vec_solve[ind], ref_value, 1e-10)
         else:
             info_red("Missing references for %r, %r" % (Model, theta))

@@ -26,7 +26,7 @@ class TestCardiacODESolver(object):
 
     # Note that these should be essentially identical to the ones
     # for the BasicSingleCellSolver
-    references = {NoCellModel:
+    references = {"NoCellModel":
                    {"BackwardEuler": (0, 0.3),
                     "CrankNicolson": (0, 0.2),
                     "ForwardEuler": (0, 0.1),
@@ -35,7 +35,7 @@ class TestCardiacODESolver(object):
                     "ESDIRK4": (0, 0.2),
                     },
                    
-                   FitzHughNagumoManual:
+                   "FitzHughNagumoManual":
                    {"BackwardEuler": (0, -84.70013280019053),
                     "CrankNicolson": (0, -84.80005016079546),
                     "ForwardEuler": (0, -84.9),
@@ -44,7 +44,7 @@ class TestCardiacODESolver(object):
                     "ESDIRK4": (0, -84.80004468281632),
                     },
                    
-                   Fitzhughnagumo:
+                   "Fitzhughnagumo":
                    {"BackwardEuler": (0, -84.70013280019053),
                     "CrankNicolson": (0, -84.8000501607955),
                     "ForwardEuler":  (0, -84.9),
@@ -53,13 +53,13 @@ class TestCardiacODESolver(object):
                     "ESDIRK4":  (0, -84.80004468281632),
                     },
 
-                   Tentusscher_2004_mcell:
-                   {"BackwardEuler": (1, -85.89745525156506),
-                    "CrankNicolson": (1, -85.99685674414921),
-                    "ForwardEuler":  (1, -86.09643254164848),
-                    "RK4":  (1, "nan"),
-                    "ESDIRK3":  (1, -85.99681862337053),
-                    "ESDIRK4":  (1, -85.99681796046603),
+                   "Tentusscher_2004_mcell":
+                   {"BackwardEuler": (0, -85.89745525156506),
+                    "CrankNicolson": (0, -85.99685674414921),
+                    "ForwardEuler":  (0, -86.09643254164848),
+                    "RK4":  (0, "nan"),
+                    "ESDIRK3":  (0, -85.99681862337053),
+                    "ESDIRK4":  (0, -85.99681796046603),
                     }
                    }
 

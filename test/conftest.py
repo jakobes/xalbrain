@@ -3,9 +3,6 @@ import os
 import pytest
 import beatadjoint
 
-# Disable the xdist plugin by running py.test like this:
-# py.test -p no:xdist
-
 # Automatically parallelize over all cpus
 def pytest_cmdline_preparse(args):
     if 'xdist' in sys.modules: # pytest-xdist plugin

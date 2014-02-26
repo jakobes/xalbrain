@@ -13,6 +13,11 @@ For quick testing, we recommend:
 
   py.test -m "not slow" -v
 
+For parallel run install python-pytest-xdist.
+Disable the xdist plugin by:
+
+  py.test -p no:xdist
+
 Guidelines for organizing the tests:
 ----------------------------------------
 
