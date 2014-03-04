@@ -130,7 +130,7 @@ class BasicSplittingSolver:
             V = self.vur.function_space().sub(0)
         else:
             V = self.vur.function_space()
-
+            
         self.merger = FunctionAssigner(self.VS.sub(0), V)
 
     def _create_ode_solver(self):
@@ -355,11 +355,12 @@ class BasicSplittingSolver:
         begin("Merging")
 
         if self.parameters["pde_solver"] == "bidomain":
+            #v = split(self.vur)[0]
             v = self.vur.sub(0)
         else:
             v = self.vur
 
-        self.merger.assign(self.vs.sub(0), v)
+        self.merger.assign(solution.sub(0), v)
         
         end()
         return
