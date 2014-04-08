@@ -455,8 +455,7 @@ class MonodomainSolver(BasicMonodomainSolver):
         self._update_solver(timestep_unchanged, dt)
 
         # Assemble right-hand-side
-        assemble(self._rhs, tensor=self._rhs_vector, reset_sparsity=False, \
-                 **annotate_kwargs)
+        assemble(self._rhs, tensor=self._rhs_vector, **annotate_kwargs)
 
         # Solve problem
         self.linear_solver.solve(self.v.vector(), self._rhs_vector,

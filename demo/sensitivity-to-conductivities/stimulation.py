@@ -3,8 +3,8 @@ class Stimulus : public Expression
 {
 public:
 
-  boost::shared_ptr<MeshFunction<std::size_t> > cell_data;
-  boost::shared_ptr<Constant> t;
+  std::shared_ptr<MeshFunction<std::size_t> > cell_data;
+  std::shared_ptr<Constant> t;
 
   Stimulus() : Expression(), amplitude(0), duration(0)
   {
@@ -43,7 +43,7 @@ class Stimulus : public Expression
 {
 public:
 
-  boost::shared_ptr<Constant> t;
+  std::shared_ptr<Constant> t;
 
   Stimulus() : Expression(), amplitude(0), duration(0)
   {

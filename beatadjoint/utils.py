@@ -14,7 +14,7 @@ else:
 
 
 def splat(vs, dim):
-    
+
     if vs.function_space().ufl_element().num_sub_elements()==dim:
         v = vs[0]
         if dim == 2:
@@ -23,7 +23,7 @@ def splat(vs, dim):
             s = dolfin.as_vector([vs[i] for i in range(1, dim)])
     else:
         v, s = dolfin.split(vs)
-    
+
     return v, s
 
 def state_space(domain, d, family=None, k=1):
@@ -84,7 +84,7 @@ class TimeStepper:
         if interval[0] >= interval[1]:
             raise ValueError("Start time need to be larger than stop time: "\
                              "interval[0] < interval[1]")
-        
+
         # Store time interval
         (self.T0, self.T1) = interval
 
@@ -93,7 +93,7 @@ class TimeStepper:
 
         if isinstance(dt, (float, int)):
             dt = [(self.T0, dt)]
-        
+
         # Check that all dt are tuples of size 2 with either floats or ints.
         if any((not isinstance(item, tuple) or \
                 len(item)!=2 or not all(isinstance(value, (float, int)) \
@@ -109,7 +109,7 @@ class TimeStepper:
         # Check that all time values given in dt are increasing
         if not all(dt[i][0] < dt[i+1][0] for i in range(len(dt)-1)):
             raise ValueError("expected all time values in dt to be increasing")
-        
+
         # Check that all time step values given in dt are positive
         if not all(dt[i][1] > 0 for i in range(len(dt))):
             raise ValueError("expected all time step values in dt to be positive")
@@ -134,7 +134,7 @@ class TimeStepper:
         """
         Return an iterator over time intervals
         """
-        
+
         while True:
 
             # Get next t1
@@ -148,13 +148,13 @@ class TimeStepper:
                 if self.annotate and dolfin_adjoint:
                     dolfin_adjoint.adj_inc_timestep(time=t1, finished=True)
                 break
-            
+
             # Move to next time
             if self.annotate and dolfin_adjoint:
                 dolfin_adjoint.adj_inc_timestep(time=t1)
-            
+
             self.t0 = t1
-            
+
     def next_t1(self):
         """
         Return the time of next end interval
@@ -168,7 +168,7 @@ class TimeStepper:
         # Update dt index
         self._dt_ind += 1
         return time_to_switch_dt
-        
+
 def convergence_rate(hs, errors):
     """
     Compute and return rates of convergence :math:`r_i` such that
@@ -253,5 +253,5 @@ class Projecter(object):
             The result of the projection
         """
         L = dolfin.inner(f, self.v)*dolfin.dx()
-        assemble(L, tensor=self.b, reset_sparsity=False)
+        assemble(L, tensor=self.b)
         self.solver.solve(u.vector(), self.b)
