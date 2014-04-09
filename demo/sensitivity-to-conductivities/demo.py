@@ -19,6 +19,7 @@ def setup_application_parameters():
     application_parameters.add("stimulus_amplitude", 30.0)
     application_parameters.add("healthy", False)
     application_parameters.add("cell_model", "FitzHughNagumo")
+    application_parameters.add("basic", False)
     application_parameters.parse()
     info(application_parameters, True)
     return application_parameters
@@ -173,16 +174,22 @@ def main(store_solutions=True):
     begin("Setting up splitting solver")
     params = SplittingSolver.default_parameters()
     params["theta"] = 1.0
-    params["ode_solver_choice"] = "BasicCardiacODESolver"
-    params["BasicCardiacODESolver"]["theta"] = 1.0
-    params["BasicCardiacODESolver"]["S_polynomial_family"] = "CG"
-    params["BasicCardiacODESolver"]["S_polynomial_degree"] = 1
-    #params["ode_solver_choice"] = "CardiacODESolver"
-    #params["CardiacODESolver"]["scheme"] = "BackwardEuler"
-    #ns_params = params["CardiacODESolver"]["point_integral_solver"]["newton_solver"]
-    #ns_params["recompute_jacobian_each_solve"] = True
-    #ns_params["maximum_iterations"] = 60
-    #ns_params["report"] = True
+    basic = application_parameters["basic"]
+    if basic:
+        params["ode_solver_choice"] = "BasicCardiacODESolver"
+        params["BasicCardiacODESolver"]["theta"] = 1.0
+        params["BasicCardiacODESolver"]["S_polynomial_family"] = "CG"
+        params["BasicCardiacODESolver"]["S_polynomial_degree"] = 1
+    else:
+        params["ode_solver_choice"] = "CardiacODESolver"
+        params["CardiacODESolver"]["scheme"] = "BackwardEuler"
+        ns_params = params["CardiacODESolver"]["point_integral_solver"]["newton_solver"]
+        ns_params["always_recompute_jacobian"] = True
+        # ns_params["recompute_jacobian_for_linear_problems"] = True
+        # ns_params["recompute_jacobian_each_solve"] = True
+        ns_params["maximum_iterations"] = 40
+        ns_params["report"] = True
+
     params["BidomainSolver"]["linear_solver_type"] = "direct"
     params["BidomainSolver"]["default_timestep"] = k_n
     solver = SplittingSolver(heart, params=params)
@@ -236,3 +243,4 @@ def main(store_solutions=True):
 
 if __name__ == "__main__":
     main()
+    interactive()
