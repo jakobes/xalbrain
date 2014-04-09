@@ -1,8 +1,11 @@
 
 TODO
 
-1. Check that forward model runs in serial and gives comparable
-   results as before (say around 2012)
+1.1 Check that forward model runs in serial and gives comparable
+   results as before (say around 2012). (Check)
+
+1.2 Understand why BasicCardiacODESolver and CardiacODESolver gives
+   pretty different results.
 
 2. Improve storage format (using hdf5)
 
