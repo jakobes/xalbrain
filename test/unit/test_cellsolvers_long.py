@@ -13,9 +13,7 @@ from beatadjoint import NoCellModel, FitzHughNagumoManual, Fitzhughnagumo, \
         CardiacODESolver, \
         Tentusscher_2004_mcell, \
         UnitIntervalMesh, MPI, Constant, Expression, \
-        dolfin_adjoint, adj_reset 
-
-
+        dolfin_adjoint, adj_reset
 
 class TestCardiacODESolver(object):
 
@@ -29,7 +27,7 @@ class TestCardiacODESolver(object):
                     "ESDIRK3": (0, 0.2),
                     "ESDIRK4": (0, 0.2),
                     },
-                   
+
                    FitzHughNagumoManual:
                    {"BackwardEuler": (0, -84.70013280019053),
                     "CrankNicolson": (0, -84.80005016079546),
@@ -38,7 +36,7 @@ class TestCardiacODESolver(object):
                     "ESDIRK3": (0, -84.80004459269247),
                     "ESDIRK4": (0, -84.80004468281632),
                     },
-                   
+
                    Fitzhughnagumo:
                    {"BackwardEuler": (0, -84.70013280019053),
                     "CrankNicolson": (0, -84.8000501607955),
@@ -90,7 +88,7 @@ def closure_long_run(Scheme, dt_org, abs_tol, rel_tol):
 
         mesh = UnitIntervalMesh(5)
 
-        # FIXME: We need to make this run in paralell. 
+        # FIXME: We need to make this run in paralell.
         if MPI.size(mesh.mpi_comm()) > 1:
             return
 
@@ -155,7 +153,7 @@ def closure_long_run(Scheme, dt_org, abs_tol, rel_tol):
 
         output = np.array(output)
         time_output = np.array(time_output)
-        
+
         output = np.interp(time_ref, time_output, output)
 
         value = np.sqrt(np.sum(((Vm_reference-output)/Vm_reference)**2))/len(Vm_reference)
