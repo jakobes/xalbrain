@@ -9,11 +9,10 @@ import itertools
 import pytest
 from testutils import slow, assert_almost_equal, parametrize, cell_model
 
-from dolfin import info, info_red, info_green, \
-        UnitIntervalMesh, MPI, mpi_comm_world
+from dolfin import info, info_red, info_green, UnitIntervalMesh
 from beatadjoint import supported_cell_models, \
-        CardiacODESolver, BasicSingleCellSolver, \
-        Constant, Expression
+    CardiacODESolver, BasicSingleCellSolver, \
+    Constant, Expression
 from beatadjoint.cellmodels import *
 
 
@@ -34,7 +33,7 @@ class TestCardiacODESolver(object):
                     "ESDIRK3": (0, 0.2),
                     "ESDIRK4": (0, 0.2),
                     },
-                   
+
                    "FitzHughNagumoManual":
                    {"BackwardEuler": (0, -84.70013280019053),
                     "CrankNicolson": (0, -84.80005016079546),
@@ -43,7 +42,7 @@ class TestCardiacODESolver(object):
                     "ESDIRK3": (0, -84.80004459269247),
                     "ESDIRK4": (0, -84.80004468281632),
                     },
-                   
+
                    "Fitzhughnagumo":
                    {"BackwardEuler": (0, -84.70013280019053),
                     "CrankNicolson": (0, -84.8000501607955),
@@ -112,11 +111,11 @@ class TestCardiacODESolver(object):
         return solver
 
     @slow
-    @parametrize(("Model","Scheme"), 
+    @parametrize(("Model","Scheme"),
         list(itertools.product(supported_cell_models_str,supported_schemes))
         )
     def test_compare_against_reference(self, Model, Scheme):
-        ''' Runs the given cell model with the numerical scheme 
+        ''' Runs the given cell model with the numerical scheme
             and compares the result with the reference value. '''
 
         solver = self._setup_solver(Model, Scheme, time=Constant(0))
@@ -130,11 +129,11 @@ class TestCardiacODESolver(object):
         self.compare_against_reference(vs.vector(), Model, Scheme)
 
     @slow
-    @parametrize(("Model","Scheme"), 
+    @parametrize(("Model","Scheme"),
         list(itertools.product(supported_cell_models_str,supported_schemes))
         )
     def test_compare_against_reference_constant(self, Model, Scheme):
-        ''' Runs the given cell model with the numerical scheme 
+        ''' Runs the given cell model with the numerical scheme
             and compares the result with the reference value. '''
 
         Model = eval(Model)

@@ -9,12 +9,12 @@ import itertools
 import pytest
 from testutils import medium, assert_almost_equal, parametrize, cell_model
 
-from dolfin import info, info_red, info_green, \
-        UnitIntervalMesh, MPI, mpi_comm_world
+from dolfin import info, info_red, info_green, UnitIntervalMesh
 from beatadjoint import supported_cell_models, \
-        CardiacODESolver, BasicSingleCellSolver, \
-        NoCellModel, FitzHughNagumoManual, Fitzhughnagumo, Tentusscher_2004_mcell, \
-        Constant, Expression
+    CardiacODESolver, BasicSingleCellSolver, \
+    NoCellModel, FitzHughNagumoManual, Fitzhughnagumo, \
+    Tentusscher_2004_mcell, \
+    Constant, Expression
 
 class TestBasicSingleCellSolver(object):
     "Test functionality for the basic single cell solver."
