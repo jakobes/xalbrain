@@ -204,7 +204,6 @@ def main(store_solutions=True):
     params_file = File("%s/parameters.xml" % directory)
     params_file << parameters
 
-    exit()
     # Setup pvd storage
     v_pvd = File("%s/v.pvd" % directory, "compressed")
     u_pvd = File("%s/u.pvd" % directory, "compressed")
