@@ -14,7 +14,8 @@ def setup_application_parameters():
     application_parameters = Parameters("Application")
     application_parameters.add("T", 420.0)      # End time  (ms)
     application_parameters.add("timestep", 1.0) # Time step (ms)
-    application_parameters.add("directory", "default-results")
+    application_parameters.add("directory",
+                               "results-%s" % time.strftime("%Y_%d%b_%H:%M"))
     application_parameters.add("stimulus_amplitude", 30.0)
     application_parameters.add("healthy", False)
     application_parameters.add("cell_model", "FitzHughNagumo")
@@ -127,6 +128,29 @@ def setup_cardiac_model(application_parameters):
     heart = CardiacModel(mesh, time, M_i, M_e, cell_model, stimulus={0:pulse})
     return (heart, gs)
 
+def store_solution_fields(fields, directory, counter, pvds):
+
+    begin("Storing solutions at timestep %d..." % counter)
+
+    # Extract fields
+    (vs_, vs, vu) = fields
+    vsfile = File("%s/vs_%d.xml.gz" % (directory, counter))
+    vsfile << vs
+    ufile = File("%s/vu_%d.xml.gz" % (directory, counter))
+    ufile << vu
+
+    # Extract subfields
+    u = vu.split()[1]
+    (v, s) = vs.split()
+
+    (v_pvd, u_pvd, s_pvd) = pvds
+
+    # Store pvd of subfields
+    v_pvd << v
+    # s_pvd << s
+    # u_pvd << u
+    end()
+
 def main(store_solutions=True):
 
     set_log_level(PROGRESS)
@@ -156,11 +180,11 @@ def main(store_solutions=True):
     #params["ode_solver_choice"] = "BasicCardiacODESolver"
     params["ode_solver_choice"] = "CardiacODESolver"
     params["CardiacODESolver"]["scheme"] = "BackwardEuler"
-    ns_params = params["CardiacODESolver"]["point_integral_solver"]["newton_solver"]
+    #ns_params = params["CardiacODESolver"]["point_integral_solver"]["newton_solver"]
     #ns_params["recompute_jacobian_each_solve"] = True
-    ns_params["relative_tolerance"] =  1e-6
-    ns_params["maximum_iterations"] = 60
-    ns_params["max_relative_previous_residual"] = 0.1
+    #ns_params["relative_tolerance"] =  1e-6
+    #ns_params["maximum_iterations"] = 60
+    #ns_params["max_relative_previous_residual"] = 0.1
     params["BidomainSolver"]["linear_solver_type"] = "direct"
     params["BidomainSolver"]["default_timestep"] = k_n
     solver = SplittingSolver(heart, params=params)
@@ -173,47 +197,34 @@ def main(store_solutions=True):
     vs_.assign(heart.cell_model().initial_conditions(), solver.VS)
     #vs.assign(heart.cell_model.initial_conditions(), solver.VS)
 
-    # Store application parameters (arbitrary whether this works in
-    # parallel!)
+    # Store parameters (FIXME: arbitrary whether this works in parallel!)
     directory = application_parameters["directory"]
-    parametersfile = File("%s/parameters.xml" % directory)
-    parametersfile << application_parameters
+    application_params_file = File("%s/application_parameters.xml" % directory)
+    application_params_file << application_parameters
+    params_file = File("%s/parameters.xml" % directory)
+    params_file << parameters
 
+    exit()
     # Setup pvd storage
     v_pvd = File("%s/v.pvd" % directory, "compressed")
     u_pvd = File("%s/u.pvd" % directory, "compressed")
     s_pvd = File("%s/s.pvd" % directory, "compressed")
+    pvds = (v_pvd, u_pvd, s_pvd)
 
     # Set-up solve
     solutions = solver.solve((0, T), k_n)
+
+    # Store initial solutions: (vs_ as second argument on purpose!)
+    store_solution_fields((vs_, vs_, vu), directory, 0, pvds)
 
     # (Compute) and store solutions
     begin("Solving primal")
     start = time.time()
     timestep_counter = 1
     for (timestep, fields) in solutions:
-
-        # Extract
-        (vs_, vs, vu) = fields
-
         # Store xml
         if store_solutions:
-            begin("Storing solutions...")
-            vsfile = File("%s/vs_%d.xml.gz" % (directory, timestep_counter))
-            vsfile << vs
-            ufile = File("%s/vu_%d.xml.gz" % (directory, timestep_counter))
-            ufile << vu
-
-            # Extract subfields
-            u = vu.split()[1]
-            (v, s) = vs.split()
-
-            # Store pvd of subfields
-            v_pvd << v
-            # s_pvd << s
-            # u_pvd << u
-            end()
-
+            store_solution_fields(fields, directory, timestep_counter, pvds)
         timestep_counter += 1
 
     stop = time.time()
