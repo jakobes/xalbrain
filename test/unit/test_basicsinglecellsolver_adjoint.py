@@ -8,8 +8,7 @@ __all__ = ["TestBasicSingleCellSolverAdjoint"]
 from testutils import assert_equal, assert_true, assert_greater, adjoint, slow
 
 import types
-from beatadjoint.dolfinimport import UnitIntervalMesh, info_green, \
-        MPI, mpi_comm_world
+from beatadjoint.dolfinimport import UnitIntervalMesh, info_green
 from beatadjoint import supported_cell_models, \
         Tentusscher_2004_mcell, FitzHughNagumoManual, \
         BasicSingleCellSolver, \
@@ -47,7 +46,7 @@ def basic_single_cell_closure(theta, Model):
         info_green("Replaying")
         success = replay_dolfin(tol=0.0, stop=True)
         assert_true(success)
-        
+
 
     @adjoint
     @slow
@@ -83,7 +82,7 @@ def basic_single_cell_closure(theta, Model):
             if var.name == "vs_":
                 msg = "Adjoint solution for vs_ is None (#fail)."
                 assert (value is not None), msg
-        
+
     @adjoint
     @slow
     def test_compute_gradient(self):
