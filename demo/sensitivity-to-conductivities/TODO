@@ -1,0 +1,12 @@
+
+TODO
+
+1. Check that forward model runs in serial and gives comparable
+   results as before (say around 2012)
+
+2. Modify stimulus to that forward model runs in parallel. Check that
+   results are as before when running in parallel.
+
+3. Set-up code for Taylor test for (shortened) forward simulation
+
+4. ...
