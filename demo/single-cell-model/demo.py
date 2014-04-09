@@ -35,11 +35,13 @@ def main():
     "Solve a single cell model on some time frame."
 
     # Initialize model and assign stimulus
-    model = FitzHughNagumoManual()
+    #model = Beeler_reuter_1977()
+    model = Grandi_pasqualini_bers_2010()
+    #model = FitzHughNagumoManual()
     #model = Fitzhughnagumo()
     #model = Tentusscher_2004_mcell()
     time = Constant(0.0)
-    model.stimulus = {0:Stimulus(time)}
+    model.stimulus = {0: Stimulus(time)}
 
     # Initialize solver
     params = BasicSingleCellSolver.default_parameters()
@@ -59,6 +61,7 @@ def main():
     times = []
     values = []
     for ((t0, t1), vs) in solutions:
+        print "Current time: %g" % t1
         times.append(t1)
         values.append(vs.vector().array())
 
