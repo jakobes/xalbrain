@@ -61,7 +61,7 @@ from beatadjoint import CardiacModel
 from beatadjoint.cellsolver import BasicCardiacODESolver, CardiacODESolver
 from beatadjoint.bidomainsolver import BasicBidomainSolver, BidomainSolver
 from beatadjoint.monodomainsolver import BasicMonodomainSolver, MonodomainSolver
-from beatadjoint.utils import state_space, TimeStepper, Projecter
+from beatadjoint.utils import state_space, TimeStepper
 
 class BasicSplittingSolver:
     """
@@ -130,7 +130,7 @@ class BasicSplittingSolver:
             V = self.vur.function_space().sub(0)
         else:
             V = self.vur.function_space()
-            
+
         self.merger = FunctionAssigner(self.VS.sub(0), V)
 
     def _create_ode_solver(self):
@@ -353,41 +353,17 @@ class BasicSplittingSolver:
             Function holding the combined result
         """
         begin("Merging")
-
         if self.parameters["pde_solver"] == "bidomain":
-            #v = split(self.vur)[0]
             v = self.vur.sub(0)
         else:
             v = self.vur
-
         self.merger.assign(solution.sub(0), v)
-        
-        end()
-        return
-    
-        s = split(self.vs)[1]
-
-        if len(s.shape())==1:
-            proj = as_vector([v]+[s[i] for i in range(s.shape()[0])])
-        else:
-            proj = as_vector((v, s))
-
-        VS = self.vs.function_space()
-        p = TrialFunction(VS)
-        q = TestFunction(VS)
-        a = inner(p, q)*dx()
-        L = inner(proj, q)*dx() # FIXME: Shape mismatch?
-        solve(a == L, solution, solver_parameters={"linear_solver": "cg"})
         end()
 
 class SplittingSolver(BasicSplittingSolver):
 
     def __init__(self, model, params=None):
         BasicSplittingSolver.__init__(self, model, params)
-
-        # Set-up projection solver (for optimised merging) of fields
-        #self.vs_projecter = Projecter(self.VS,
-        #                              params=self.parameters["Projecter"])
 
     @staticmethod
     def default_parameters():
@@ -427,9 +403,6 @@ class SplittingSolver(BasicSplittingSolver):
         pde_solver_params = MonodomainSolver.default_parameters()
         pde_solver_params["polynomial_degree"] = 1
         params.add(pde_solver_params)
-
-        projecter_params = Projecter.default_parameters()
-        params.add(projecter_params)
 
         return params
 
@@ -490,35 +463,3 @@ class SplittingSolver(BasicSplittingSolver):
         solver = PDESolver(*args, **kwargs)
 
         return solver
-
-    def smerge(self, solution):
-        """
-        Combine solutions from the PDE solve and the ODE solve to form
-        a single mixed function.
-
-        *Arguments*
-          solution (:py:class:`dolfin.Function`)
-            Function holding the combined result
-        """
-        begin("Merging using custom projecter")
-
-        if self.parameters["pde_solver"] == "bidomain":
-            v = split(self.vur)[0]
-        else:
-            v = self.vur
-
-        s = split(self.vs)[1]
-
-        if len(s.shape())==1:
-            proj = as_vector([v]+[s[i] for i in range(s.shape()[0])])
-        else:
-            proj = as_vector((v, s))
-
-        # FIXME: We should not need to do a projection. A sub function assign would
-        # FIXME: be sufficient.
-        if len(s.shape())==1:
-            self.vs_projecter(proj, solution)
-        else:
-            self.vs_projecter(proj, solution)
-
-        end()
