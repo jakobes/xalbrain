@@ -5,7 +5,9 @@ TODO
    results as before (say around 2012). (Check)
 
 1.2 Understand why BasicCardiacODESolver and CardiacODESolver gives
-   pretty different results.
+   pretty different results. (Check.)
+
+1.3 Check sanity of cardiac ode solver results.
 
 2. Improve storage format (using hdf5)
 
