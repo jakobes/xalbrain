@@ -13,13 +13,13 @@ def setup_application_parameters():
     # Setup application parameters and parse from command-line
     application_parameters = Parameters("Application")
     application_parameters.add("T", 420.0)      # End time  (ms)
-    application_parameters.add("timestep", 1.0) # Time step (ms)
+    application_parameters.add("timestep", 0.1) # Time step (ms)
     application_parameters.add("directory",
                                "results-%s" % time.strftime("%Y_%d%b_%H:%M"))
     application_parameters.add("stimulus_amplitude", 30.0)
-    application_parameters.add("healthy", False)
+    application_parameters.add("healthy", True)
     application_parameters.add("cell_model", "FitzHughNagumo")
-    application_parameters.add("basic", False)
+    #application_parameters.add("basic", False)
     application_parameters.parse()
     info(application_parameters, True)
     return application_parameters
@@ -117,13 +117,16 @@ def setup_cardiac_model(application_parameters):
     # Define some simulation protocol (use cpp expression for speed)
     stimulation_cells = MeshFunction("size_t", mesh,
                                      "data/stimulation_cells.xml.gz")
+
+    V = FunctionSpace(mesh, "DG", 0)
     from stimulation import cpp_stimulus
-    pulse = Expression(cpp_stimulus)
+    pulse = Expression(cpp_stimulus, element=V.ufl_element())
     pulse.cell_data = stimulation_cells
     amp = application_parameters["stimulus_amplitude"]
     pulse.amplitude = amp #
     pulse.duration = 10.0 # ms
     pulse.t = time        # ms
+    #pulse = interpolate(pulse, V)
 
     # Initialize cardiac model with the above input
     heart = CardiacModel(mesh, time, M_i, M_e, cell_model, stimulus={0:pulse})
@@ -135,15 +138,14 @@ def store_solution_fields(fields, directory, counter, pvds):
 
     # Extract fields
     (vs_, vs, vu) = fields
-    vsfile = File("%s/vs_%d.xml.gz" % (directory, counter))
-    vsfile << vs
-    ufile = File("%s/vu_%d.xml.gz" % (directory, counter))
-    ufile << vu
+    #vsfile = File("%s/vs_%d.xml.gz" % (directory, counter))
+    #vsfile << vs
+    #ufile = File("%s/vu_%d.xml.gz" % (directory, counter))
+    #ufile << vu
 
     # Extract subfields
     u = vu.split()[1]
     (v, s) = vs.split()
-
     (v_pvd, u_pvd, s_pvd) = pvds
 
     # Store pvd of subfields
@@ -174,21 +176,14 @@ def main(store_solutions=True):
     begin("Setting up splitting solver")
     params = SplittingSolver.default_parameters()
     params["theta"] = 1.0
-    basic = application_parameters["basic"]
-    if basic:
-        params["ode_solver_choice"] = "BasicCardiacODESolver"
-        params["BasicCardiacODESolver"]["theta"] = 1.0
-        params["BasicCardiacODESolver"]["S_polynomial_family"] = "CG"
-        params["BasicCardiacODESolver"]["S_polynomial_degree"] = 1
-    else:
-        params["ode_solver_choice"] = "CardiacODESolver"
-        params["CardiacODESolver"]["scheme"] = "BackwardEuler"
-        ns_params = params["CardiacODESolver"]["point_integral_solver"]["newton_solver"]
-        ns_params["always_recompute_jacobian"] = True
-        # ns_params["recompute_jacobian_for_linear_problems"] = True
-        # ns_params["recompute_jacobian_each_solve"] = True
-        ns_params["maximum_iterations"] = 40
-        ns_params["report"] = True
+    params["CardiacODESolver"]["scheme"] = "BackwardEuler"
+    ns_params = params["CardiacODESolver"]["point_integral_solver"]["newton_solver"]
+    #ns_params["always_recompute_jacobian"] = True
+    #ns_params["recompute_jacobian_for_linear_problems"] = True
+    #ns_params["recompute_jacobian_each_solve"] = True
+    ns_params["relative_tolerance"] = 1.e-5
+    ns_params["maximum_iterations"] = 40
+    ns_params["report"] = True
 
     params["BidomainSolver"]["linear_solver_type"] = "direct"
     params["BidomainSolver"]["default_timestep"] = k_n
@@ -200,7 +195,6 @@ def main(store_solutions=True):
 
     # Extract and assign initial condition
     vs_.assign(heart.cell_model().initial_conditions(), solver.VS)
-    #vs.assign(heart.cell_model.initial_conditions(), solver.VS)
 
     # Store parameters (FIXME: arbitrary whether this works in parallel!)
     directory = application_parameters["directory"]
