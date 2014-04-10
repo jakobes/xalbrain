@@ -1,2 +1,2 @@
 clean:
-	rm *.pyc *.html *.orig
+	rm *.pyc *.html *.orig *~

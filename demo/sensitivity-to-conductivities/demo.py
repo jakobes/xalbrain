@@ -15,11 +15,10 @@ def setup_application_parameters():
     application_parameters.add("T", 420.0)      # End time  (ms)
     application_parameters.add("timestep", 0.1) # Time step (ms)
     application_parameters.add("directory",
-                               "results-%s" % time.strftime("%Y_%d%b_%H:%M"))
+                               "results_%s" % time.strftime("%Y_%d%b_%Hh_%Mm"))
     application_parameters.add("stimulus_amplitude", 30.0)
     application_parameters.add("healthy", True)
     application_parameters.add("cell_model", "FitzHughNagumo")
-    #application_parameters.add("basic", False)
     application_parameters.parse()
     info(application_parameters, True)
     return application_parameters
@@ -132,28 +131,6 @@ def setup_cardiac_model(application_parameters):
     heart = CardiacModel(mesh, time, M_i, M_e, cell_model, stimulus={0:pulse})
     return (heart, gs)
 
-def store_solution_fields(fields, directory, counter, pvds):
-
-    begin("Storing solutions at timestep %d..." % counter)
-
-    # Extract fields
-    (vs_, vs, vu) = fields
-    #vsfile = File("%s/vs_%d.xml.gz" % (directory, counter))
-    #vsfile << vs
-    #ufile = File("%s/vu_%d.xml.gz" % (directory, counter))
-    #ufile << vu
-
-    # Extract subfields
-    u = vu.split()[1]
-    (v, s) = vs.split()
-    (v_pvd, u_pvd, s_pvd) = pvds
-
-    # Store pvd of subfields
-    v_pvd << v
-    # s_pvd << s
-    # u_pvd << u
-    end()
-
 def main(store_solutions=True):
 
     set_log_level(PROGRESS)
@@ -205,34 +182,34 @@ def main(store_solutions=True):
     params_file = File("%s/parameters.xml" % directory)
     params_file << parameters
 
-    # Setup pvd storage
-    v_pvd = File("%s/v.pvd" % directory, "compressed")
-    u_pvd = File("%s/u.pvd" % directory, "compressed")
-    s_pvd = File("%s/s.pvd" % directory, "compressed")
-    pvds = (v_pvd, u_pvd, s_pvd)
-
     # Set-up solve
     solutions = solver.solve((0, T), k_n)
 
-    # Store initial solutions: (vs_ as second argument on purpose!)
-    store_solution_fields((vs_, vs_, vu), directory, 0, pvds)
+    # Set up storage
+    mpi_comm = heart.domain.mpi_comm()
+    vs_timeseries = TimeSeriesHDF5(mpi_comm, "%s/vs" % directory)
+    u_timeseries = TimeSeriesHDF5(mpi_comm, "%s/u" % directory)
+
+    # Store initial solutions:
+    if store_solutions:
+        vs_timeseries.store(vs_.vector(), 0.0)
+        u = vu.split(deepcopy=True)[1]
+        u_timeseries.store(u.vector(), 0.0)
 
     # (Compute) and store solutions
-    begin("Solving primal")
-    start = time.time()
-    timestep_counter = 1
+    timer = Timer("Forward solve")
+    theta = params["theta"]
     for (timestep, fields) in solutions:
-        # Store xml
+        # Store hdf5
         if store_solutions:
-            store_solution_fields(fields, directory, timestep_counter, pvds)
-        timestep_counter += 1
+            (t0, t1) = timestep
+            vs_timeseries.store(vs.vector(), t1)
+            u = vu.split(deepcopy=True)[1]
+            u_timeseries.store(u.vector(), t0 + theta*(t1 - t0))
+    timer.stop()
 
-    stop = time.time()
-    print "Time elapsed: %g" % (stop - start)
-    end()
-
+    # List timings
     list_timings()
-
     return (gs, solver)
 
 if __name__ == "__main__":
