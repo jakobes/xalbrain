@@ -90,7 +90,8 @@ def setup_cell_model(params):
                            "v_rest":Vrest, "v_peak": Vpeak}
         cell_model = FitzHughNagumoManual(cell_parameters)
     elif option == "tenTusscher":
-        cell_model = Tentusscher_2004_mcell()
+        cell_model = Tentusscher_panfilov_2006_M_cell()
+        #cell_model = Tentusscher_2004_mcell()
     else:
         error("Unrecognized cell model option: %s" % option)
 
