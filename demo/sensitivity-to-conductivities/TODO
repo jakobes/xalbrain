@@ -7,9 +7,9 @@ TODO
 1.2 Understand why BasicCardiacODESolver and CardiacODESolver gives
    pretty different results. (Check.)
 
-1.3 Check sanity of cardiac ode solver results.
+1.3 Check sanity of cardiac ode solver results. [TODO]
 
-2. Improve storage format (using hdf5)
+2. Improve storage format (using hdf5) (Check)
 
 3. Modify stimulus to that forward model runs in parallel. Check that
    results are as before when running in parallel.
