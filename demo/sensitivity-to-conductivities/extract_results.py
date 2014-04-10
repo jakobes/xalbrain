@@ -13,9 +13,9 @@ directory = sys.argv[1]
 parameters["reorder_dofs_serial"] = False
 
 mesh = Mesh("data/mesh115_refined.xml.gz")
-num_states = 1
+num_states = 18
 V = FunctionSpace(mesh, "CG", 1)
-S = FunctionSpace(mesh, "CG", 1, 1)
+S = FunctionSpace(mesh, "CG", 1)
 VS = VectorFunctionSpace(mesh, "CG", 1, dim=num_states + 1)
 vs = Function(VS)
 v = Function(V)
