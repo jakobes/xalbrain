@@ -12,13 +12,14 @@ potential :math:`u = u(x, t)`, and any additional state variables
 
 .. math::
 
-   v_t - \mathrm{div} ( G_i v + G_i u) = - I_{ion}(v, s) + I_s
+   Xi C_m v_t - \mathrm{div} ( G_i v + G_i u) = - Xi I_{ion}(v, s) + I_s
 
    \mathrm{div} (G_i v + (G_i + G_e) u) = I_a
 
    s_t = F(v, s)
 
-where the subscript :math:`t` denotes the time derivative;
+where :math:`Xi` is the surface-to volume ratio of cells; :math:`C_m` is the specific 
+membrane capacitance; the subscript :math:`t` denotes the time derivative;
 :math:`G_x` denotes a weighted gradient: :math:`G_x = M_x
 \mathrm{grad}(v)` for :math:`x \in \{i, e\}`, where :math:`M_i` and
 :math:`M_e` are cardiac conductivity tensors; :math:`I_s` and
@@ -112,6 +113,14 @@ class BasicSplittingSolver:
         if params is not None:
             self.parameters.update(params)
 
+        # Rescale stimulus so that the time term of the 
+        # differential problems have coefficient 1
+        self.stimulus = self._model.stimulus or {}
+
+        fac = Constant(self.parameters["Xi"]*self.parameters["C_m"])
+        for k in self.stimulus.keys():
+            self.stimulus[k] /= fac
+
         # Extract solution domain
         self._domain = self._model.domain
         self._time = self._model.time
@@ -144,7 +153,7 @@ class BasicSplittingSolver:
         if self.parameters.apply_stimulus_current_to_pde:
             stimulus = None
         else:
-            stimulus = self._model.stimulus
+            stimulus = self.stimulus
 
         # Extract ode solver parameters
         params = self.parameters["BasicCardiacODESolver"]
@@ -162,14 +171,24 @@ class BasicSplittingSolver:
         # invoked in the ODE step)
         applied_current = self._model.applied_current
 
+        # Rescale applied current so that the time term of the 
+        # differential problems have coefficient 1
+        if applied_current is not None:
+            applied_current /= Constant(self.parameters["C_m"])
+
         # Extract stimulus from the cardiac model(!)
         if self.parameters.apply_stimulus_current_to_pde:
-            stimulus = self._model.stimulus
+            stimulus = self.stimulus
         else:
             stimulus = None
 
         # Extract conductivities from the cardiac model
         (M_i, M_e) = self._model.conductivities()
+
+        # Rescale conductivities so that the time term of the 
+        # differential problems have coefficient 1
+        M_i /= Constant(self.parameters["Xi"]*self.parameters["C_m"])
+        M_e /= Constant(self.parameters["Xi"]*self.parameters["C_m"])
 
         if self.parameters["pde_solver"] == "bidomain":
             PDESolver = BasicBidomainSolver
@@ -180,7 +199,7 @@ class BasicSplittingSolver:
         else:
             PDESolver = BasicMonodomainSolver
             params = self.parameters["BasicMonodomainSolver"]
-            args = (self._domain, self._time, M_i,)
+            args = (self._domain, self._time, M_i)
             kwargs = dict(I_s=stimulus, v_=self.vs[0], params=params)
 
         # Propagate enable_adjoint to Bidomain solver
@@ -207,6 +226,8 @@ class BasicSplittingSolver:
         params = Parameters("BasicSplittingSolver")
         params.add("enable_adjoint", True)
         params.add("theta", 0.5, 0., 1.)
+        params.add("C_m", 1, 0, 1e10)
+        params.add("Xi", 1, 0, 1e10)
         params.add("apply_stimulus_current_to_pde", False)
         params.add("pde_solver", "bidomain", ["bidomain", "monodomain"])
 
@@ -381,6 +402,8 @@ class SplittingSolver(BasicSplittingSolver):
         params = Parameters("SplittingSolver")
         params.add("enable_adjoint", True)
         params.add("theta", 0.5, 0, 1)
+        params.add("C_m", 1, 0, 1e10)
+        params.add("Xi", 1, 0, 1e10)
         params.add("apply_stimulus_current_to_pde", False)
         params.add("pde_solver", "bidomain", ["bidomain", "monodomain"])
         params.add("ode_solver_choice", "CardiacODESolver", ["BasicCardiacODESolver", "CardiacODESolver"])
@@ -417,7 +440,7 @@ class SplittingSolver(BasicSplittingSolver):
         if self.parameters.apply_stimulus_current_to_pde:
             stimulus = None
         else:
-            stimulus = self._model.stimulus
+            stimulus = self.stimulus
 
         Solver = eval(self.parameters["ode_solver_choice"])
         solver = Solver(self._domain, self._time,
@@ -435,14 +458,24 @@ class SplittingSolver(BasicSplittingSolver):
         # invoked in the ODE step)
         applied_current = self._model.applied_current
 
+        # Rescale applied current so that the time term of the 
+        # differential problems have coefficient 1
+        if applied_current is not None:
+            applied_current /= Constant(self.parameters["C_m"])
+
         # Extract stimulus from the cardiac model(!)
         if self.parameters.apply_stimulus_current_to_pde:
-            stimulus = self._model.stimulus
+            stimulus = self.stimulus
         else:
             stimulus = None
 
         # Extract conductivities from the cardiac model
         (M_i, M_e) = self._model.conductivities()
+
+        # Rescale conductivities so that the time term of the 
+        # differential problems have coefficient 1
+        M_i /= Constant(self.parameters["Xi"]*self.parameters["C_m"])
+        M_e /= Constant(self.parameters["Xi"]*self.parameters["C_m"])
 
         if self.parameters["pde_solver"] == "bidomain":
             PDESolver = BidomainSolver
@@ -453,7 +486,7 @@ class SplittingSolver(BasicSplittingSolver):
         else:
             PDESolver = MonodomainSolver
             params = self.parameters["MonodomainSolver"]
-            args = (self._domain, self._time, M_i,)
+            args = (self._domain, self._time, M_i)
             kwargs = dict(I_s=stimulus, v_=self.vs[0], params=params)
 
         # Propagate enable_adjoint to Bidomain solver
