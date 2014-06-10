@@ -12,7 +12,7 @@ except Exception, e:
 
 from modelparameters.parameterdict import ParameterDict
 
-from gotran.codegeneration.codegenerator import PythonCodeGenerator
+from gotran.codegeneration.codegenerators import PythonCodeGenerator
 
 from gotran.model.ode import ODE
 from gotran.model.odeobjects import Comment
