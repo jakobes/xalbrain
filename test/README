@@ -18,6 +18,11 @@ Disable the xdist plugin by:
 
   py.test -p no:xdist
 
+To see the standard output of the tests, as well as for dropping into an 
+debugger or embedded IPython shell you want to use:
+
+  py.test -p no:xdist -s
+
 Guidelines for organizing the tests:
 ----------------------------------------
 
