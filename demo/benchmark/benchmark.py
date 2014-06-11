@@ -209,6 +209,9 @@ def run_splitting_solver(CellModel, domain, dt, T, amplitude=50., \
     ps["enable_adjoint"] = False
     ps["apply_stimulus_current_to_pde"] = True
 
+    ps["Xi"] = 1400. # Surface to volume ratio 1/cm
+    ps["C_m"] = 1.   # Membrane capacitance uF/cm^2
+
     cm_params = CellModel.default_parameters()
     cm_inits = CellModel.default_initial_conditions()
     cellmodel = CellModel(params=cm_params, init_conditions=cm_inits)
