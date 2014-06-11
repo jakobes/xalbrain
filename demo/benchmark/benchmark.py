@@ -218,13 +218,9 @@ def run_splitting_solver(CellModel, domain, dt, T, amplitude=50., \
     
     solver = SplittingSolver(heart, ps)
 
+    # Extract the solution fields and set the initial conditions
     (vs_, vs, vur) = solver.solution_fields()
-
-    # FIXME: Do not hardcode this, but use something like:
-    #solver.ode_solver.set_initial_conditions(v)
-    # FIXME: Is this really what I want?
-    vs_.vector()[:] = -85.23
-    vs.vector()[:] = -85.23
+    vs_.assign(cellmodel.initial_conditions())
 
     # Solve
     total = Timer("Total solver time")
@@ -238,26 +234,26 @@ def run_splitting_solver(CellModel, domain, dt, T, amplitude=50., \
     activation_times = Function(vs_.function_space()).vector().array()
     activation_times = 100*np.ones((activation_times.shape[0], 2))
     
-    for (timestep, (v, vur)) in solutions:
+    for (timestep, (vs_, vs, vur)) in solutions:
 
-        v_values = v.vector().array()
-        activation_times[v_values>0, 1] = timestep[1]
+        vs_values = vs.vector().array()
+        activation_times[vs_values>0, 1] = timestep[1]
         activation_times[:, 0] = activation_times.min(1)
         num_activated = (activation_times[:, 0]<100).sum()
         print "{:.2f} {:5d}/{:5d}".format(\
-            timestep[1], num_activated, len(v_values))
+            timestep[1], num_activated, len(vs_values))
         if do_plot:
-            plot(v, title="run, t=%.3f" % timestep[1], interactive=False, scale=0.,
+            plot(vs, title="run, t=%.3f" % timestep[1], interactive=False, scale=0.,
                  range_max=plot_range[1], range_min=plot_range[0])
 
-        if num_activated == len(v_values):
+        if num_activated == len(vs_values):
             break
         
         continue
     
     total.stop()
 
-    u = Function(v.function_space())
+    u = Function(vs_.function_space())
     u.vector().set_local(activation_times[:, 0].copy())
 
     File("activation_times_{}_{}.xdmf".format(\
@@ -281,7 +277,8 @@ if __name__ == "__main__":
     stim_amplitude = 0.0
     stim_duration = 2.0
 
-    T = 70.0  + 1.e-6  # mS 500.0
+    #T = 70.0  + 1.e-6  # mS 500.0
+    T = 0.2  + 1.e-6  # FIXME: Reduced time only for testing purposes
 
     Lx = 2.0  # cm
     Ly = 0.7  # cm
