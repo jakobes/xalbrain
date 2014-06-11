@@ -194,7 +194,7 @@ def cell_model_initial_conditions():
 
 
 def run_splitting_solver(CellModel, domain, dt, T, amplitude=50., \
-                        duration=2.0, theta=1.0)
+        duration=2.0, theta=1.0):
 
     assert CellModel == Tentusscher_panfilov_2006_epi_cell
     
