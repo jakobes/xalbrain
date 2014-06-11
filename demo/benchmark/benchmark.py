@@ -20,18 +20,18 @@ from beatadjoint import *
 import numpy as np
 import ufl
 
-#parameters["reorder_dofs_serial"] = False
-#parameters["form_compiler"]["representation"] = "uflacs"
+parameters["reorder_dofs_serial"] = False # Crucial because of
+                                          # stimulus assumption. FIXME.
 parameters["form_compiler"]["cpp_optimize"] = True
-parameters["form_compiler"]["cpp_optimize_flags"] = "-O3 --fast-math"
-parameters["form_compiler"]["optimize"] = True
+flags = ["-O3", "-ffast-math", "-march=native"]
+parameters["form_compiler"]["cpp_optimize_flags"] = " ".join(flags)
 parameters["form_compiler"]["quadrature_degree"] = 2
 
 set_log_active(False)
 set_log_level(WARNING)
 ufl.set_level(WARNING)
 
-do_plot = True
+do_plot = False
 
 class StimSubDomain(SubDomain):
     def __init__(self, dx_stim):
@@ -194,8 +194,7 @@ def cell_model_initial_conditions():
 
 
 def run_splitting_solver(CellModel, domain, dt, T, amplitude=50., \
-                        duration=2.0, theta=1.0, \
-                        ode_solver="RL"):
+                        duration=2.0, theta=1.0)
 
     assert CellModel == Tentusscher_panfilov_2006_epi_cell
     
@@ -219,22 +218,24 @@ def run_splitting_solver(CellModel, domain, dt, T, amplitude=50., \
     
     solver = SplittingSolver(heart, ps)
 
-    (v, vur) = solver.solution_fields()
+    (vs_, vs, vur) = solver.solution_fields()
 
+    # FIXME: Do not hardcode this, but use something like:
     #solver.ode_solver.set_initial_conditions(v)
-    # FIXME: Do not hardcode this!
-    v.vector()[:] = -85.23
+    # FIXME: Is this really what I want?
+    vs_.vector()[:] = -85.23
+    vs.vector()[:] = -85.23
 
     # Solve
     total = Timer("Total solver time")
     solutions = solver.solve((0, T), dt)
     plot_range = (-90., 40.)
     if do_plot:
-        plot(v, interactive=True, title="Initial conditions", scale=0.,
+        plot(vs_, interactive=True, title="Initial conditions", scale=0.,
              range_max=plot_range[1], range_min=plot_range[0])
 
     # Get the local dofs from a Function
-    activation_times = Function(v.function_space()).vector().array()
+    activation_times = Function(vs_.function_space()).vector().array()
     activation_times = 100*np.ones((activation_times.shape[0], 2))
     
     for (timestep, (v, vur)) in solutions:
@@ -286,7 +287,6 @@ if __name__ == "__main__":
     Ly = 0.7  # cm
     Lz = 0.3  # cm
 
-    ode_solver = "GRL2" # RL, BackwardEuler 
     theta = 0.5 # 1.0
 
     for dx in [0.05]:#, 0.02, 0.01]:
@@ -298,4 +298,4 @@ if __name__ == "__main__":
             run_splitting_solver(CellModel, domain, \
                                 dt, T, stim_amplitude, \
                                 stim_duration, \
-                                theta, ode_solver)
+                                theta)
