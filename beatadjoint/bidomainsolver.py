@@ -539,7 +539,7 @@ class BidomainSolver(BasicBidomainSolver):
         # Check that applied current has average value zero
         # FIXME: MER says: Should this happen in each step??
         if self._I_a:
-            consistency = assemble(self._I_a*dx, mesh=self._domain)
+            consistency = assemble(self._I_a*dx(self._domain))
             tolerance = 1.e-14
             assert (abs(consistency) < tolerance), \
                 "Inconsistency in system: \int I_a = %g != 0" % consistency
