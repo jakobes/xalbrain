@@ -2,6 +2,7 @@ import sys
 import os
 import pytest
 import beatadjoint
+import dolfin_adjoint
 
 # Automatically parallelize over all cpus
 def pytest_cmdline_preparse(args):
@@ -10,6 +11,11 @@ def pytest_cmdline_preparse(args):
         num = multiprocessing.cpu_count()
         args[:] = ["-n", str(num)] + args
 
+del dolfin_adjoint.test_initial_condition_adjoint
+del dolfin_adjoint.test_initial_condition_tlm
+del dolfin_adjoint.test_scalar_parameters_adjoint
+del dolfin_adjoint.test_initial_condition_adjoint_cdiff
+del dolfin_adjoint.test_scalar_parameter_adjoint
 
 default_params = beatadjoint.parameters.copy()
 def pytest_runtest_setup(item):
