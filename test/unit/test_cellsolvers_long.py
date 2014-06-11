@@ -7,6 +7,7 @@ __all__ = ["TestCardiacODESolver"]
 
 from testutils import assert_almost_equal, adjoint, slow
 import numpy as np
+import os
 
 from dolfin import info_green, dof_to_vertex_map
 from beatadjoint import NoCellModel, FitzHughNagumoManual, Fitzhughnagumo, \
@@ -97,7 +98,8 @@ def closure_long_run(Scheme, dt_org, abs_tol, rel_tol):
         ind_V = 0
         dt_ref = 0.1
         time_ref = np.linspace(0, tstop, int(tstop/dt_ref)+1)
-        Vm_reference = np.fromfile("Vm_reference.npy")
+        dir_path = os.path.dirname(__file__)
+        Vm_reference = np.fromfile(os.path.join(dir_path, "Vm_reference.npy"))
         params = Model.default_parameters()
 
         time = Constant(0.0)
