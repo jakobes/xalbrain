@@ -144,10 +144,6 @@ class Tentusscher_panfilov_2006_epi_cell(CardiacCellModel):
         F = self._parameters["F"]
         R = self._parameters["R"]
         T = self._parameters["T"]
-        stim_amplitude = self._parameters["stim_amplitude"]
-        stim_duration = self._parameters["stim_duration"]
-        stim_period = self._parameters["stim_period"]
-        stim_start = self._parameters["stim_start"]
         K_o = self._parameters["K_o"]
 
         # Init return args
@@ -207,12 +203,9 @@ class Tentusscher_panfilov_2006_epi_cell(CardiacCellModel):
         i_p_K = g_pK*(-E_K + V)/(1 + 65.4052157419*ufl.exp(-0.167224080268*V))
 
         # Expressions for the Membrane component
-        i_Stim = ufl.conditional(ufl.And(ufl.ge(time -\
-            stim_period*ufl.floor(time/stim_period), stim_start), ufl.le(time\
-            - stim_period*ufl.floor(time/stim_period), stim_start +\
-            stim_duration)), -stim_amplitude, 0)
+        i_Stim = 0
         current[0] = -i_b_Ca - i_K1 - i_b_Na - i_to - i_p_Ca - i_Ks - i_p_K -\
-            i_NaK - i_Kr - i_NaCa - i_Stim - i_Na - i_CaL
+            i_NaK - i_Kr - i_Stim - i_NaCa - i_Na - i_CaL
 
         # Return results
         return current[0]
@@ -287,10 +280,6 @@ class Tentusscher_panfilov_2006_epi_cell(CardiacCellModel):
         R = self._parameters["R"]
         T = self._parameters["T"]
         V_c = self._parameters["V_c"]
-        stim_amplitude = self._parameters["stim_amplitude"]
-        stim_duration = self._parameters["stim_duration"]
-        stim_period = self._parameters["stim_period"]
-        stim_start = self._parameters["stim_start"]
         K_o = self._parameters["K_o"]
 
         # Init return args
@@ -463,10 +452,7 @@ class Tentusscher_panfilov_2006_epi_cell(CardiacCellModel):
         F_expressions[16] = Cm*(-i_b_Na - 3*i_NaCa - 3*i_NaK - i_Na)/(F*V_c)
 
         # Expressions for the Membrane component
-        i_Stim = ufl.conditional(ufl.And(ufl.ge(time -\
-            stim_period*ufl.floor(time/stim_period), stim_start), ufl.le(time\
-            - stim_period*ufl.floor(time/stim_period), stim_start +\
-            stim_duration)), -stim_amplitude, 0)
+        i_Stim = 0
 
         # Expressions for the Potassium dynamics component
         F_expressions[17] = Cm*(-i_K1 + 2*i_NaK - i_to - i_Ks - i_p_K - i_Kr\
