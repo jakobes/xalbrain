@@ -112,11 +112,11 @@ class Plotter:
 
 def cell_model_parameters():
     "Set-up and return benchmark parameters for the ten Tuscher & Panfilov cell model."
-    # FIXME: sf1409: values need to be changed to the actual benchmark parameters
+    # FIXME: simon: double check that parameters are the actual benchmark parameters
     params = OrderedDict([("P_kna", 0.03),
                           ("g_K1", 5.405),
                           ("g_Kr", 0.153),
-                          ("g_Ks", 0.098),
+                          ("g_Ks", 0.392),
                           ("g_Na", 14.838),
                           ("g_bna", 0.00029),
                           ("g_CaL", 3.98e-05),
@@ -164,7 +164,7 @@ def cell_model_parameters():
                           ("stim_amplitude", 0),
                           ("stim_duration", 1),
                           ("stim_period", 1000),
-                          ("stim_start", 1),
+                          ("stim_start", 10),
                           ("K_o", 5.4)])
     return params
 
@@ -183,12 +183,12 @@ def cell_model_initial_conditions():
                       ("fCass", 0.9953),
                       ("s", 0.999998),
                       ("r", 2.42e-08),
-                      ("Ca_SR", 3.64), 
                       ("Ca_i", 0.000126),
-                      ("Ca_ss", 0.00036),
                       ("R_prime", 0.9073),
-                      ("Na_i", 10.132),    # FIXME: simon: this does not appear in the benchmark ic list
-                      ("K_i", 138.52)])    # FIXME: simon: this does not appear in the benchmark ic list, left over values in the benchmark list are intracellular sodium and intracellular potassium
+                      ("Ca_SR", 3.64),
+                      ("Ca_ss", 0.00036),
+                      ("Na_i", 8.604),
+                      ("K_i", 136.89)])
     return ic
 
 
@@ -197,7 +197,7 @@ def run_splitting_solver(CellModel, domain, dt, T, amplitude=50., \
                         duration=2.0, theta=1.0, \
                         ode_solver="RL"):
 
-    assert CellModel == Tentusscher_panfilov_2006_M_cell
+    assert CellModel == Tentusscher_panfilov_2006_epi_cell
     
     # Set-up solver
     ps = SplittingSolver.default_parameters()
@@ -275,7 +275,7 @@ def run_splitting_solver(CellModel, domain, dt, T, amplitude=50., \
     
 if __name__ == "__main__":
 
-    CellModel = Tentusscher_panfilov_2006_M_cell
+    CellModel = Tentusscher_panfilov_2006_epi_cell
 
     stim_amplitude = 0.0
     stim_duration = 2.0
@@ -289,8 +289,6 @@ if __name__ == "__main__":
     ode_solver = "GRL2" # RL, BackwardEuler 
     theta = 0.5 # 1.0
 
-    timings_file = open("timings_{0}_benchmark.txt".format(CellModel.__name__), "w")
-    timings_file.write("Solver Theta dt h ODE PDE Total\n")
     for dx in [0.05]:#, 0.02, 0.01]:
         for dt in [0.05]:#, 0.01, 0.005]:
             domain = BoxMesh(0.0, 0.0, 0.0,
