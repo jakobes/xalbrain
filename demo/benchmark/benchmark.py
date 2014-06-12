@@ -23,9 +23,9 @@ flags = ["-O3", "-ffast-math", "-march=native"]
 parameters["form_compiler"]["cpp_optimize_flags"] = " ".join(flags)
 parameters["form_compiler"]["quadrature_degree"] = 2
 
-set_log_active(False)
-set_log_level(WARNING)
-ufl.set_level(WARNING)
+#set_log_active(False)
+#set_log_level(WARNING)
+#ufl.set_level(WARNING)
 
 do_plot = True
 
@@ -232,14 +232,13 @@ def run_splitting_solver(domain, dt, T, theta=1.0):
     # Extract the solution fields and set the initial conditions
     (vs_, vs, vur) = solver.solution_fields()
     vs_.assign(cellmodel.initial_conditions())
-
-    # Solve
-    total = Timer("Total solver time")
-
     solutions = solver.solve((0, T), dt)
 
+    # Define common function for plotting purposes
     v = Function(vs.function_space().sub(0).collapse())
 
+    # Solve
+    total = Timer("Total beatadjoint solver time")
     for (timestep, (vs_, vs, vur)) in solutions:
         print "Solving on %s" % str(timestep)
         if do_plot:
@@ -247,9 +246,10 @@ def run_splitting_solver(domain, dt, T, theta=1.0):
             w = vs.split(deepcopy=True)
             v.assign(w[0], annotate=False)
             plot(v, title="v")
+    total.stop()
 
+    list_timings()
     interactive()
-    exit()
 
     # # Get the local dofs from a Function
     # activation_times = Function(vs_.function_space()).vector().array()
