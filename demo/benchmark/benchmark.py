@@ -1,27 +1,23 @@
 """
-This test tests the splitting solver for the bidomain equations with a
-FitzHughNagumo model.
-
-The test case was been compared against pycc up till T = 100.0. The
-relative difference in L^2(mesh) norm between beat and pycc was then
-less than 0.2% for all timesteps in all variables.
-
-The test was then shortened to T = 4.0, and the reference at that time
-computed and used as a reference here.
+This script solves the Niederer et al 2011 benchmark
+Phil.Trans. R. Soc. A 369,
 """
 
-__author__ = "Marie E. Rognes (meg@simula.no), 2012--2013"
+__author__ = "Johan Hake and Simon W. Funke (simon@simula.no), 2014"
 __all__ = []
+
+# Modified by Marie E. Rognes, 2014
 
 import math
 
+# FIXME: Is this user-friendly? (Low priority atm)
+from collections import OrderedDict
+
 from dolfin import *
 from beatadjoint import *
-import numpy as np
+import numpy
 import ufl
 
-parameters["reorder_dofs_serial"] = False # Crucial because of
-                                          # stimulus assumption. FIXME.
 parameters["form_compiler"]["cpp_optimize"] = True
 flags = ["-O3", "-ffast-math", "-march=native"]
 parameters["form_compiler"]["cpp_optimize_flags"] = " ".join(flags)
@@ -31,88 +27,103 @@ set_log_active(False)
 set_log_level(WARNING)
 ufl.set_level(WARNING)
 
-do_plot = False
+do_plot = True
 
+# MER says: should use compiled c++ expression here for vastly
+# improved efficiency.
 class StimSubDomain(SubDomain):
-    def __init__(self, dx_stim):
-        self.dx_stim = dx_stim
+    "This represents the stimulation domain: [0, L]^3 mm."
+    def __init__(self, L):
+        self.L = L
         SubDomain.__init__(self)
-        
+
     def inside(self, x, on_boundary):
-        return np.all(x <= self.dx_stim+DOLFIN_EPS)
+        return numpy.all(x <= self.L + DOLFIN_EPS)
 
-def setup_model(cellmodel, domain, amplitude=50, duration=1,
-                harmonic_mean=True):
-    "Set-up cardiac model based on benchmark parameters."
 
-    # Create scalar FunctionSpace
-    V = FunctionSpace(domain, "CG", 1)
+def define_conductivity_tensor(chi, C_m):
 
-    # Define conductivities
-    chi = 1400.0    # cm^{-1}
+    # Conductivities as defined by page 4339 of Niederer benchmark
+    sigma_il = 0.17  # mS / mm
+    sigma_it = 0.019 # mS / mm
+    sigma_el = 0.62  # mS / mm
+    sigma_et = 0.24  # mS / mm
 
-    s_il = 170./100/chi    # S
-    s_it = 19./100./chi  # S
-    s_el = 620./100/chi    # S
-    s_et = 240/100/chi    # S
-        
-    if harmonic_mean:
-        sl = s_il*s_el/(s_il+s_el)
-        st = s_it*s_et/(s_it+s_et)
-        M_i = as_tensor(((sl, 0, 0), (0, st, 0), (0, 0, st)))
-    else:
-        M_i = as_tensor(((s_il, 0, 0), (0, s_it, 0), (0, 0, s_it)))
-        
-    M_e = as_tensor(((s_el, 0, 0), (0, s_et, 0), (0, 0, s_et)))
+    # Compute monodomain approximation by taking harmonic mean in each
+    # direction of intracellular and extracellular part
+    def harmonic_mean(a, b):
+        return a*b/(a + b)
+    sigma_l = harmonic_mean(sigma_il, sigma_el)
+    sigma_t = harmonic_mean(sigma_it, sigma_et)
 
+    # Scale conducitivites by 1/(C_m * chi)
+    s_l = sigma_l/(C_m*chi) # mm^2 / ms
+    s_t = sigma_t/(C_m*chi) # mm^2 / ms
+
+    # Define conductivity tensor
+    M = as_tensor(((s_l, 0, 0), (0, s_t, 0), (0, 0, s_t)))
+
+    return M
+
+def setup_model(cellmodel, domain):
+    """Set-up cardiac model based on benchmark parameters.
+
+    * domain is the spatial domain/mesh
+    """
+
+    # Define time
+    time = Constant(0.0)
+
+    # Surface to volume ratio
+    chi = 140.0     # mm^{-1}
+    # Membrane capacitance
+    C_m = 0.01 # mu F / mm^2
+
+    # Define conductivity tensor
+    M = define_conductivity_tensor(chi, C_m)
+
+    # Define stimulation region defined as [0, L]^3
     stim_marker = 1
-    dx_stim = 0.15
-    stim_subdomain = StimSubDomain(0.15)
+    L = 1.5
+    stim_subdomain = StimSubDomain(L)
     stim_domain = CellFunction("size_t", domain, 0)
+    stim_domain.set_all(0)
     stim_subdomain.mark(stim_domain, stim_marker)
+    if do_plot:
+        plot(stim_domain, title="Stimulation region")
+
+    # FIXME: MER: We are NOT going to attach domains to the
+    # mesh. Figure out a way to expose the right functionality. A
+    # possibly better way of doing this is to pass the mesh function
+    # into the solver(s).
+    # Mark domains in mesh with stim domains
     domains = domain.domains()
     dim = domain.topology().dim()
-
-    if do_plot:
-        plot(stim_domain, interactive=True)
-
-    # Mark domains in mesh with stim domains
     for cell in SubsetIterator(stim_domain, stim_marker):
         domains.set_marker((cell.index(), stim_marker), dim)
-    
-    time = Constant(0.0)
-    stim = Expression("time > start ? (time <= (duration + start) ? "\
-                      "amplitude : 0.0) : 0.0", time=time, duration=duration, \
-                      start=0.0, amplitude=amplitude)
 
-    heart = CardiacModel(domain, time, M_i, M_e, cellmodel, {1:stim})
+    # Define stimulation (NB: region of interest carried by the mesh
+    # and assumptions in beatadjoint)
+    stimulation_protocol_duration = 2. # ms
+    A = 50000. # mu A/cm^3
+    cm2mm = 10.
+    factor = 1.0/(chi*C_m) # NB: beatadjoint convention
+    stimulation_protocol_amplitude = factor*A*(1./cm2mm)**3 # mV/ms
+    stim = Expression("time >= start ? (time <= (duration + start) ? amplitude : 0.0) : 0.0",
+                      time=time,
+                      start=0.0,
+                      duration=stimulation_protocol_duration,
+                      amplitude=stimulation_protocol_amplitude)
+
+    # Store input parameters in cardiac model
+    heart = CardiacModel(domain, time, M, None, cellmodel, {1:stim})
+
     return heart
 
-class Plotter:
-    def __init__(self, up, V, cell_model_str):
-        self.up = up
-        self.V = V
-        self.u_plot = Function(V)
-        self.cell_model_str = cell_model_str
-
-        # Setup projection system
-        u, v = TrialFunction(V), TestFunction(V)
-        a = u*v*dx
-        self.L = up*v*dx
-        self.A = assemble(a)
-        
-    def plot(self, interactive=False, title=""):
-        b = assemble(self.L)
-        solve(self.A, self.u_plot.vector(), b)
-        ranges = (0., 1.0) if self.cell_model_str == "bistable" else (40., -85.)
-        plot(self.u_plot, interactive=interactive, title=title, scale=0.,
-             range_max=ranges[1], range_min=ranges[0])
-
-
-
 def cell_model_parameters():
-    "Set-up and return benchmark parameters for the ten Tuscher & Panfilov cell model."
-    # FIXME: simon: double check that parameters are the actual benchmark parameters
+    """Set-up and return benchmark parameters for the ten Tuscher & Panfilov cell model."""
+    # FIXME: simon: double check that parameters are the actual
+    # benchmark parameters
     params = OrderedDict([("P_kna", 0.03),
                           ("g_K1", 5.405),
                           ("g_Kr", 0.153),
@@ -156,7 +167,7 @@ def cell_model_parameters():
                           ("max_sr", 2.5),
                           ("min_sr", 1),
                           ("Na_o", 140),
-                          ("Cm", 0.185),
+                          ("Cm", 0.185), # FIXME: Consistency of this?!
                           ("F", 96485.3415),
                           ("R", 8314.472),
                           ("T", 310),
@@ -169,8 +180,9 @@ def cell_model_parameters():
     return params
 
 def cell_model_initial_conditions():
-    "Set-up and return benchmark initial conditions for the ten Tuscher & Panfilov cell model."
-    ic = OrderedDict([("V", -85.23),
+    """Set-up and return benchmark initial conditions for the ten
+    Tuscher & Panfilov cell model. (Checked twice by SF and MER) """
+    ic = OrderedDict([("V", -85.23),  # mV
                       ("Xr1", 0.00621),
                       ("Xr2", 0.4712),
                       ("Xs", 0.0095),
@@ -183,25 +195,22 @@ def cell_model_initial_conditions():
                       ("fCass", 0.9953),
                       ("s", 0.999998),
                       ("r", 2.42e-08),
-                      ("Ca_i", 0.000126),
+                      ("Ca_i", 0.000126), # millimolar
                       ("R_prime", 0.9073),
-                      ("Ca_SR", 3.64),
-                      ("Ca_ss", 0.00036),
-                      ("Na_i", 8.604),
-                      ("K_i", 136.89)])
+                      ("Ca_SR", 3.64),    # millimolar
+                      ("Ca_ss", 0.00036), # millimolar
+                      ("Na_i", 8.604),    # millimolar
+                      ("K_i", 136.89)])   # millimolar
     return ic
 
+def run_splitting_solver(domain, dt, T, theta=1.0):
 
+    # cell model defined by benchmark specifications
+    CellModel = Tentusscher_panfilov_2006_epi_cell
 
-def run_splitting_solver(CellModel, domain, dt, T, amplitude=50., \
-        duration=2.0, theta=1.0):
-
-    assert CellModel == Tentusscher_panfilov_2006_epi_cell
-    
     # Set-up solver
     ps = SplittingSolver.default_parameters()
     ps["pde_solver"] = "monodomain"
-
     ps["MonodomainSolver"]["linear_solver_type"] = "direct"
     ps["MonodomainSolver"]["theta"] = theta
 
@@ -209,16 +218,15 @@ def run_splitting_solver(CellModel, domain, dt, T, amplitude=50., \
     ps["enable_adjoint"] = False
     ps["apply_stimulus_current_to_pde"] = True
 
-    ps["Xi"] = 1400. # Surface to volume ratio 1/cm
-    ps["C_m"] = 1.   # Membrane capacitance uF/cm^2
+    # Customize cell model parameters based on benchmark specifications
+    cell_params = cell_model_parameters()
+    cell_inits = cell_model_initial_conditions()
+    cellmodel = CellModel(params=cell_params, init_conditions=cell_inits)
 
-    cm_params = CellModel.default_parameters()
-    cm_inits = CellModel.default_initial_conditions()
-    cellmodel = CellModel(params=cm_params, init_conditions=cm_inits)
+    # Set-up cardiac model
+    heart = setup_model(cellmodel, domain)
 
-    heart = setup_model(cellmodel, domain, amplitude, duration,
-                        harmonic_mean=ps["pde_solver"] == "monodomain")
-    
+    # Set-up solver
     solver = SplittingSolver(heart, ps)
 
     # Extract the solution fields and set the initial conditions
@@ -227,75 +235,83 @@ def run_splitting_solver(CellModel, domain, dt, T, amplitude=50., \
 
     # Solve
     total = Timer("Total solver time")
+
     solutions = solver.solve((0, T), dt)
-    plot_range = (-90., 40.)
-    if do_plot:
-        plot(vs_, interactive=True, title="Initial conditions", scale=0.,
-             range_max=plot_range[1], range_min=plot_range[0])
 
-    # Get the local dofs from a Function
-    activation_times = Function(vs_.function_space()).vector().array()
-    activation_times = 100*np.ones((activation_times.shape[0], 2))
-    
+    v = Function(vs.function_space().sub(0).collapse())
+
     for (timestep, (vs_, vs, vur)) in solutions:
-
-        vs_values = vs.vector().array()
-        activation_times[vs_values>0, 1] = timestep[1]
-        activation_times[:, 0] = activation_times.min(1)
-        num_activated = (activation_times[:, 0]<100).sum()
-        print "{:.2f} {:5d}/{:5d}".format(\
-            timestep[1], num_activated, len(vs_values))
+        print "Solving on %s" % str(timestep)
         if do_plot:
-            plot(vs, title="run, t=%.3f" % timestep[1], interactive=False, scale=0.,
-                 range_max=plot_range[1], range_min=plot_range[0])
+            plot_range = (-90., 40.)
+            w = vs.split(deepcopy=True)
+            v.assign(w[0], annotate=False)
+            plot(v, title="v")
 
-        if num_activated == len(vs_values):
-            break
-        
-        continue
-    
-    total.stop()
+    interactive()
+    exit()
 
-    u = Function(vs_.function_space())
-    u.vector().set_local(activation_times[:, 0].copy())
+    # # Get the local dofs from a Function
+    # activation_times = Function(vs_.function_space()).vector().array()
+    # activation_times = 100*numpy.ones((activation_times.shape[0], 2))
 
-    File("activation_times_{}_{}.xdmf".format(\
-        domain.num_vertices(), dt))
-    activation_times[:, 0].tofile("activation_times{}_{}.np".format(\
-        domain.num_vertices(), dt))
+    # for (timestep, (vs_, vs, vur)) in solutions:
 
-    if ps["pde_solver"] == "bidomain":
-        u = project(vur[1], vur.function_space().sub(1).collapse())
-    else:
-        u = vur
-    norm_u = norm(u)
-    
+    #     vs_values = vs.vector().array()
+    #     activation_times[vs_values>0, 1] = timestep[1]
+    #     activation_times[:, 0] = activation_times.min(1)
+    #     num_activated = (activation_times[:, 0]<100).sum()
+    #     print "{:.2f} {:5d}/{:5d}".format(\
+    #         timestep[1], num_activated, len(vs_values))
+    #     if do_plot:
+    #         plot(vs, title="run, t=%.3f" % timestep[1], interactive=False, scale=0.,
+    #              range_max=plot_range[1], range_min=plot_range[0])
+
+    #     if num_activated == len(vs_values):
+    #         break
+
+    #     continue
+
+    # total.stop()
+
+    # u = Function(vs_.function_space())
+    # u.vector().set_local(activation_times[:, 0].copy())
+
+    # File("activation_times_{}_{}.xdmf".format(\
+    #     domain.num_vertices(), dt))
+    # activation_times[:, 0].tofile("activation_times{}_{}.numpy".format(\
+    #     domain.num_vertices(), dt))
+
+    # if ps["pde_solver"] == "bidomain":
+    #     u = project(vur[1], vur.function_space().sub(1).collapse())
+    # else:
+    #     u = vur
+    # norm_u = norm(u)
+
     #plot(v, title="Final u, t=%.1f (%s)" % (timestep[1], ps["pde_solver"]), \
     #     interactive=True, scale=0., range_max=40., range_min=-85.)
-    
+
 if __name__ == "__main__":
 
-    CellModel = Tentusscher_panfilov_2006_epi_cell
+    #T = 70.0 + 1.e-6  # mS 500.0
+    T = 0.2  # FIXME: Reduced time only for testing purposes
 
-    stim_amplitude = 0.0
-    stim_duration = 2.0
+    # Define geometry parameters
+    Lx = 20. # mm
+    Ly = 7.  # mm
+    Lz = 3.  # mm
 
-    #T = 70.0  + 1.e-6  # mS 500.0
-    T = 0.2  + 1.e-6  # FIXME: Reduced time only for testing purposes
+    # Define solver parameters
+    theta = 1.0 # 0.5
 
-    Lx = 2.0  # cm
-    Ly = 0.7  # cm
-    Lz = 0.3  # cm
-
-    theta = 0.5 # 1.0
-
-    for dx in [0.05]:#, 0.02, 0.01]:
+    for dx in [0.5]:#, 0.2, 0.1]:
         for dt in [0.05]:#, 0.01, 0.005]:
-            domain = BoxMesh(0.0, 0.0, 0.0,
-                             Lx, Ly, Lz,
-                             int(np.ceil(Lx/dx)), int(np.ceil(Ly/dx)), int(np.ceil(Lz/dx)))
-            
-            run_splitting_solver(CellModel, domain, \
-                                dt, T, stim_amplitude, \
-                                stim_duration, \
-                                theta)
+
+            # Create computational domain [0, Lx] x [0, Ly] x [0, Lz]
+            # with resolution prescribed by benchmark
+            N = lambda v: int(numpy.rint(v))
+            domain = BoxMesh(0.0, 0.0, 0.0, Lx, Ly, Lz,
+                             N(Lx/dx), N(Ly/dx), N(Lz/dx))
+
+            # Run solver
+            run_splitting_solver(domain, dt, T, theta)
