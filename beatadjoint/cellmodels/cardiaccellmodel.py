@@ -57,10 +57,12 @@ class CardiacCellModel:
          init_conditions (dict, :py:class:`dolfin.Mesh`, optional)
            optional initial conditions
         """
+
+        # FIXME: MER: Does this need to be this complicated?
         self._parameters = self.default_parameters()
         self._initial_conditions = self.default_initial_conditions()
 
-        params = params or {}
+        params = params or OrderedDict()
         init_conditions = init_conditions or OrderedDict()
 
         if params:
@@ -69,14 +71,14 @@ class CardiacCellModel:
             if isinstance(params, Parameters):
                 params = params.to_dict()
             self.set_parameters(**params)
-            
+
         if init_conditions:
             assert isinstance(init_conditions, dict), \
-                   "expected a dict or a Parameters, as the init_condition argument"
+                "expected a dict or a Parameters, as the init_condition argument"
             if isinstance(init_conditions, Parameters):
                 init_conditions = init_conditions.to_dict()
             self.set_initial_conditions(**init_conditions)
-        
+
         self.stimulus = None
 
     @staticmethod
@@ -113,7 +115,7 @@ class CardiacCellModel:
                init_value.value_size() != 1:
                 error("expected the value_size of '%s' to be 1" % init_name)
             self._initial_conditions[init_name] = init_value
-        
+
     def initial_conditions(self):
         "Return initial conditions for v and s as an Expression."
         return Expression(self._initial_conditions.keys(), \

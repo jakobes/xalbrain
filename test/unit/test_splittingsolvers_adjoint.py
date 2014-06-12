@@ -6,7 +6,7 @@ __author__ = "Simon W. Funke (simon@simula.no) \
         and Marie E. Rognes (meg@simula.no), 2014"
 __all__ = ["TestSplittingSolverAdjoint"]
 
-from testutils import assert_greater, medium, slow, parametrize
+from testutils import assert_greater, medium, slow, parametrize, adjoint
 
 from dolfin import info_green, set_log_level, WARNING
 from beatadjoint import CardiacModel, \
@@ -60,7 +60,7 @@ def generate_solver(Solver, solver_type, ics=None, enable_adjoint=True):
 
             # Create solver object
             params = Solver.default_parameters()
-            
+
             if Solver == SplittingSolver:
                 params.enable_adjoint = enable_adjoint
                 params.BidomainSolver.linear_solver_type = solver_type
@@ -92,7 +92,7 @@ def generate_solver(Solver, solver_type, ics=None, enable_adjoint=True):
 
     return SolverWrapper()
 
-
+@adjoint
 class TestSplittingSolverAdjoint(object):
     "Test adjoint functionality for the splitting solvers."
 
@@ -129,8 +129,8 @@ class TestSplittingSolverAdjoint(object):
             (BasicSplittingSolver, "direct", 0.),
             (BasicSplittingSolver, "iterative", 0.),
             (SplittingSolver, "direct", 0.),
-            (SplittingSolver, "iterative", 1e-10),  # NOTE: The replay is not exact because 
-            # dolfin-adjoint's overloaded Krylov method is not constent with DOLFIN's 
+            (SplittingSolver, "iterative", 1e-10),  # NOTE: The replay is not exact because
+            # dolfin-adjoint's overloaded Krylov method is not constent with DOLFIN's
             # (it orthogonalizes the rhs vector as an additional step)
             ])
     def test_ReplayOfSplittingSolver_IsExact(self, Solver, solver_type, tol):
