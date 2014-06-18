@@ -41,6 +41,39 @@ class StimSubDomain(SubDomain):
         return numpy.all(x <= self.L + DOLFIN_EPS)
 
 
+class ActivationTimer(object):
+    """ Keeps track of the pointwise activation time in the domain """
+    # sf1409: needs performance improvements
+
+    def __init__(self, V, threshold, init_value=-1.):
+        """ Arguments:
+          * V: A dolfin.FunctionSpace of the potential field,
+          * threshold: potential threshold that defines the activation,
+          * init_value: The value that should be used for points which got never activated.
+        """
+
+        self.init_value = init_value
+        self.activation_time = Function(V)
+        self.activation_time.vector()[:] = init_value
+
+        self.threshold = threshold
+
+    def update(self, timestep, potential):
+        """ Arguments:
+          * timestep: the current timestep,
+          * V: A dolfin.Function of the potential field.
+        """
+
+        p_arr = potential.vector().array()
+        at_arr = self.activation_time.vector().array()
+
+        for i, (act_time, pot) in enumerate(zip(at_arr, p_arr)):
+            # Identify points with first time activation 
+            if (act_time < self.init_value + DOLFIN_EPS and 
+                    pot > self.threshold + DOLFIN_EPS):
+                self.activation_time.vector()[i] = timestep
+
+
 def define_conductivity_tensor(chi, C_m):
 
     # Conductivities as defined by page 4339 of Niederer benchmark
@@ -234,67 +267,34 @@ def run_splitting_solver(domain, dt, T, theta=1.0):
     vs_.assign(cellmodel.initial_conditions())
     solutions = solver.solve((0, T), dt)
 
+    V = vs.function_space().sub(0).collapse()
     # Define common function for plotting purposes
-    v = Function(vs.function_space().sub(0).collapse())
+    if do_plot:
+        v = Function(V)
+
+    activation_timer = ActivationTimer(V, threshold=-85.23)
 
     # Solve
     total = Timer("Total beatadjoint solver time")
     for (timestep, (vs_, vs, vur)) in solutions:
         print "Solving on %s" % str(timestep)
+
+        w = vs.split(deepcopy=True)
+        activation_timer.update(timestep[0], w[0])
+
         if do_plot:
-            plot_range = (-90., 40.)
-            w = vs.split(deepcopy=True)
             v.assign(w[0], annotate=False)
+            plot_range = (-90., 40.)
             plot(v, title="v")
+            plot(activation_timer.activation_time, title="Activation time")
     total.stop()
 
     list_timings()
     interactive()
 
-    # # Get the local dofs from a Function
-    # activation_times = Function(vs_.function_space()).vector().array()
-    # activation_times = 100*numpy.ones((activation_times.shape[0], 2))
-
-    # for (timestep, (vs_, vs, vur)) in solutions:
-
-    #     vs_values = vs.vector().array()
-    #     activation_times[vs_values>0, 1] = timestep[1]
-    #     activation_times[:, 0] = activation_times.min(1)
-    #     num_activated = (activation_times[:, 0]<100).sum()
-    #     print "{:.2f} {:5d}/{:5d}".format(\
-    #         timestep[1], num_activated, len(vs_values))
-    #     if do_plot:
-    #         plot(vs, title="run, t=%.3f" % timestep[1], interactive=False, scale=0.,
-    #              range_max=plot_range[1], range_min=plot_range[0])
-
-    #     if num_activated == len(vs_values):
-    #         break
-
-    #     continue
-
-    # total.stop()
-
-    # u = Function(vs_.function_space())
-    # u.vector().set_local(activation_times[:, 0].copy())
-
-    # File("activation_times_{}_{}.xdmf".format(\
-    #     domain.num_vertices(), dt))
-    # activation_times[:, 0].tofile("activation_times{}_{}.numpy".format(\
-    #     domain.num_vertices(), dt))
-
-    # if ps["pde_solver"] == "bidomain":
-    #     u = project(vur[1], vur.function_space().sub(1).collapse())
-    # else:
-    #     u = vur
-    # norm_u = norm(u)
-
-    #plot(v, title="Final u, t=%.1f (%s)" % (timestep[1], ps["pde_solver"]), \
-    #     interactive=True, scale=0., range_max=40., range_min=-85.)
-
 if __name__ == "__main__":
 
-    #T = 70.0 + 1.e-6  # mS 500.0
-    T = 0.2  # FIXME: Reduced time only for testing purposes
+    T = 70.0 # mS 500.0
 
     # Define geometry parameters
     Lx = 20. # mm
