@@ -8,24 +8,17 @@ __all__ = []
 
 # Modified by Marie E. Rognes, 2014
 
-import math
-
 # FIXME: Is this user-friendly? (Low priority atm)
 from collections import OrderedDict
 
 from dolfin import *
 from beatadjoint import *
 import numpy
-import ufl
 
 parameters["form_compiler"]["cpp_optimize"] = True
 flags = ["-O3", "-ffast-math", "-march=native"]
 parameters["form_compiler"]["cpp_optimize_flags"] = " ".join(flags)
 parameters["form_compiler"]["quadrature_degree"] = 2
-
-#set_log_active(False)
-#set_log_level(WARNING)
-#ufl.set_level(WARNING)
 
 do_plot = True
 
@@ -292,6 +285,9 @@ def run_splitting_solver(domain, dt, T, theta=1.0):
     list_timings()
     interactive()
 
+    return activation_timer.activation_time
+
+
 if __name__ == "__main__":
 
     T = 70.0 # mS 500.0
@@ -314,4 +310,10 @@ if __name__ == "__main__":
                              N(Lx/dx), N(Ly/dx), N(Lz/dx))
 
             # Run solver
-            run_splitting_solver(domain, dt, T, theta)
+            activation_time = run_splitting_solver(domain, dt, T, theta)
+
+            filename = "results/activation_time_dx=%s_dt=%s.xml" % (dx, dt)
+            mesh_filename = "results/activation_time_dx=%s_dt=%s_mesh.xml" % (dx, dt)
+            print "Saving activation times to %s" % filename
+            File(filename) << activation_time
+            File(mesh_filename) << domain
