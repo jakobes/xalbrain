@@ -346,6 +346,8 @@ class BasicSplittingSolver:
         # Assumes that its vs_ is in the correct state, provides vs in
         # the correct state
         self.ode_solver.step((t, t1))
+
+
         end()
 
     def merge(self, solution):
