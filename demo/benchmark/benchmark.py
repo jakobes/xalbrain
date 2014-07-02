@@ -11,6 +11,7 @@ __all__ = []
 from dolfin import *
 from beatadjoint import *
 import numpy
+set_log_level(PROGRESS)
 
 parameters["form_compiler"]["cpp_optimize"] = True
 flags = ["-O3", "-ffast-math", "-march=native"]
@@ -247,8 +248,8 @@ if __name__ == "__main__":
             # Run solver
             activation_time = run_splitting_solver(domain, dt, T, theta)
 
-            filename = "results/activation_time_dx=%s_dt=%s.xml" % (dx, dt)
-            mesh_filename = "results/activation_time_dx=%s_dt=%s_mesh.xml" % (dx, dt)
-            print "Saving activation times to %s" % filename
-            File(filename) << activation_time
-            File(mesh_filename) << domain
+            activation_time_xml = "output/activation_time_dx=%s_dt=%s.xml" % (dx, dt)
+            mesh_xml = "output/activation_time_dx=%s_dt=%s_mesh.xml" % (dx, dt)
+            print "Run 'python analysis.py %s' to analyse the results." % activation_time_xml
+            File(activation_time_xml) << activation_time
+            File(mesh_xml) << domain
