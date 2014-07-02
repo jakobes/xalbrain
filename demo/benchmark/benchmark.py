@@ -8,9 +8,6 @@ __all__ = []
 
 # Modified by Marie E. Rognes, 2014
 
-# FIXME: Is this user-friendly? (Low priority atm)
-from collections import OrderedDict
-
 from dolfin import *
 from beatadjoint import *
 import numpy
@@ -19,8 +16,6 @@ parameters["form_compiler"]["cpp_optimize"] = True
 flags = ["-O3", "-ffast-math", "-march=native"]
 parameters["form_compiler"]["cpp_optimize_flags"] = " ".join(flags)
 parameters["form_compiler"]["quadrature_degree"] = 2
-
-do_plot = True
 
 # MER says: should use compiled c++ expression here for vastly
 # improved efficiency.
@@ -115,8 +110,7 @@ def setup_model(cellmodel, domain):
     stim_domain = CellFunction("size_t", domain, 0)
     stim_domain.set_all(0)
     stim_subdomain.mark(stim_domain, stim_marker)
-    if do_plot:
-        plot(stim_domain, title="Stimulation region")
+    File("output/simulation_region.pvd") << stim_domain
 
     # FIXME: MER: We are NOT going to attach domains to the
     # mesh. Figure out a way to expose the right functionality. A
@@ -146,87 +140,29 @@ def setup_model(cellmodel, domain):
 
     return heart
 
-def cell_model_parameters():
-    """Set-up and return benchmark parameters for the ten Tuscher & Panfilov cell model."""
-    # FIXME: simon: double check that parameters are the actual
-    # benchmark parameters
-    params = OrderedDict([("P_kna", 0.03),
-                          ("g_K1", 5.405),
-                          ("g_Kr", 0.153),
-                          ("g_Ks", 0.392),
-                          ("g_Na", 14.838),
-                          ("g_bna", 0.00029),
-                          ("g_CaL", 3.98e-05),
-                          ("g_bca", 0.000592),
-                          ("g_to", 0.294),
-                          ("K_mNa", 40),
-                          ("K_mk", 1),
-                          ("P_NaK", 2.724),
-                          ("K_NaCa", 1000),
-                          ("K_sat", 0.1),
-                          ("Km_Ca", 1.38),
-                          ("Km_Nai", 87.5),
-                          ("alpha", 2.5),
-                          ("gamma", 0.35),
-                          ("K_pCa", 0.0005),
-                          ("g_pCa", 0.1238),
-                          ("g_pK", 0.0146),
-                          ("Buf_c", 0.2),
-                          ("Buf_sr", 10),
-                          ("Buf_ss", 0.4),
-                          ("Ca_o", 2),
-                          ("EC", 1.5),
-                          ("K_buf_c", 0.001),
-                          ("K_buf_sr", 0.3),
-                          ("K_buf_ss", 0.00025),
-                          ("K_up", 0.00025),
-                          ("V_leak", 0.00036),
-                          ("V_rel", 0.102),
-                          ("V_sr", 0.001094),
-                          ("V_ss", 5.468e-05),
-                          ("V_xfer", 0.0038),
-                          ("Vmax_up", 0.006375),
-                          ("k1_prime", 0.15),
-                          ("k2_prime", 0.045),
-                          ("k3", 0.06),
-                          ("k4", 0.005),
-                          ("max_sr", 2.5),
-                          ("min_sr", 1),
-                          ("Na_o", 140),
-                          ("Cm", 0.185), # FIXME: Consistency of this?!
-                          ("F", 96485.3415),
-                          ("R", 8314.472),
-                          ("T", 310),
-                          ("V_c", 0.016404),
-                          ("stim_amplitude", 0),
-                          ("stim_duration", 1),
-                          ("stim_period", 1000),
-                          ("stim_start", 10),
-                          ("K_o", 5.4)])
-    return params
-
 def cell_model_initial_conditions():
-    """Set-up and return benchmark initial conditions for the ten
-    Tuscher & Panfilov cell model. (Checked twice by SF and MER) """
-    ic = OrderedDict([("V", -85.23),  # mV
-                      ("Xr1", 0.00621),
-                      ("Xr2", 0.4712),
-                      ("Xs", 0.0095),
-                      ("m", 0.00172),
-                      ("h", 0.7444),
-                      ("j", 0.7045),
-                      ("d", 3.373e-05),
-                      ("f", 0.7888),
-                      ("f2", 0.9755),
-                      ("fCass", 0.9953),
-                      ("s", 0.999998),
-                      ("r", 2.42e-08),
-                      ("Ca_i", 0.000126), # millimolar
-                      ("R_prime", 0.9073),
-                      ("Ca_SR", 3.64),    # millimolar
-                      ("Ca_ss", 0.00036), # millimolar
-                      ("Na_i", 8.604),    # millimolar
-                      ("K_i", 136.89)])   # millimolar
+    """Return initial conditions specified in the Niederer benchmark 
+    for the ten Tuscher & Panfilov cell model. (Checked twice by SF and MER)"""
+    ic = {"V": -85.23,       # mV
+          "Xr1": 0.00621,
+          "Xr2": 0.4712,
+          "Xs": 0.0095,
+          "m": 0.00172,
+          "h": 0.7444,
+          "j": 0.7045,
+          "d": 3.373e-05,
+          "f": 0.7888,
+          "f2": 0.9755,
+          "fCass": 0.9953,
+          "s": 0.999998,
+          "r": 2.42e-08,
+          "Ca_i": 0.000126,  # millimolar
+          "R_prime": 0.9073,
+          "Ca_SR": 3.64,     # millimolar
+          "Ca_ss": 0.00036,  # millimolar
+          "Na_i": 8.604,     # millimolar
+          "K_i": 136.89      # millimolar
+    }
     return ic
 
 def run_splitting_solver(domain, dt, T, theta=1.0):
@@ -245,9 +181,8 @@ def run_splitting_solver(domain, dt, T, theta=1.0):
     ps["apply_stimulus_current_to_pde"] = True
 
     # Customize cell model parameters based on benchmark specifications
-    cell_params = cell_model_parameters()
     cell_inits = cell_model_initial_conditions()
-    cellmodel = CellModel(params=cell_params, init_conditions=cell_inits)
+    cellmodel = CellModel(init_conditions=cell_inits)
 
     # Set-up cardiac model
     heart = setup_model(cellmodel, domain)
@@ -261,11 +196,13 @@ def run_splitting_solver(domain, dt, T, theta=1.0):
     solutions = solver.solve((0, T), dt)
 
     V = vs.function_space().sub(0).collapse()
-    # Define common function for plotting purposes
-    if do_plot:
-        v = Function(V)
+    # Define common function for output purposes
+    v_tmp = Function(V)
+    activation_time_pvd = File("output/activation_time.pvd")
+    v_pvd = File("output/v.pvd")
 
     activation_timer = ActivationTimer(V, threshold=-85.23)
+    activation_time_pvd << activation_timer.activation_time
 
     # Solve
     total = Timer("Total beatadjoint solver time")
@@ -275,11 +212,9 @@ def run_splitting_solver(domain, dt, T, theta=1.0):
         w = vs.split(deepcopy=True)
         activation_timer.update(timestep[0], w[0])
 
-        if do_plot:
-            v.assign(w[0], annotate=False)
-            plot_range = (-90., 40.)
-            plot(v, title="v")
-            plot(activation_timer.activation_time, title="Activation time")
+        v_tmp.assign(w[0], annotate=False)
+        v_pvd << v_tmp
+        activation_time_pvd << activation_timer.activation_time
     total.stop()
 
     list_timings()
@@ -300,7 +235,7 @@ if __name__ == "__main__":
     # Define solver parameters
     theta = 1.0 # 0.5
 
-    for dx in [0.5]:#, 0.2, 0.1]:
+    for dx in [0.5]:# [0.5, 0.2, 0.1]:
         for dt in [0.05]:#, 0.01, 0.005]:
 
             # Create computational domain [0, Lx] x [0, Ly] x [0, Lz]
