@@ -197,13 +197,17 @@ def run_splitting_solver(domain, dt, T, theta=1.0):
     solutions = solver.solve((0, T), dt)
 
     V = vs.function_space().sub(0).collapse()
-    # Define common function for output purposes
-    v_tmp = Function(V)
-    activation_time_pvd = File("output/activation_time.pvd")
-    v_pvd = File("output/v.pvd")
-
     activation_timer = ActivationTimer(V, threshold=-85.23)
+
+    # Define common function for output purposes
+    activation_time_pvd = File("output/activation_time.pvd")
     activation_time_pvd << activation_timer.activation_time
+
+    v_tmp = Function(V)
+    v_pvd = File("output/v.pvd")
+    w = vs.split(deepcopy=True)
+    v_tmp.assign(w[0], annotate=False)
+    v_pvd << v_tmp
 
     # Solve
     total = Timer("Total beatadjoint solver time")
@@ -234,10 +238,10 @@ if __name__ == "__main__":
     Lz = 3.  # mm
 
     # Define solver parameters
-    theta = 1.0 # 0.5
+    theta = 1.0
 
     for dx in [0.5]:# [0.5, 0.2, 0.1]:
-        for dt in [0.05]:#, 0.01, 0.005]:
+        for dt in [0.05]:# [0.05, 0.01, 0.005]:
 
             # Create computational domain [0, Lx] x [0, Ly] x [0, Lz]
             # with resolution prescribed by benchmark
