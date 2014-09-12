@@ -15,6 +15,53 @@
 import sys
 import os
 
+# Our make file calls sphinx-apidoc, but read-the-docs uses our config instead
+# (so it skips that step). Calling apidoc here instead if we're being built
+# there.
+#on_rtd = os.environ.get('READTHEDOCS', None) == 'True'
+#if on_rtd:
+# os.system("sphinx-apidoc -f -o . ../")
+# No need to install 3rd party packages to generate the docs
+class Mock(object):
+    __all__ = []
+    def __init__(self, *args, **kwargs):
+        pass
+    def __call__(self, *args, **kwargs):
+        return Mock()
+    @classmethod
+    def __getattr__(cls, name):
+        if name in ('__file__', '__path__'):
+            return '/dev/null'
+        elif name[0] == name[0].upper():
+            mockType = type(name, (Mock, ), {})
+            mockType.__module__ = __name__
+            return mockType
+        else:
+            return Mock()
+
+MOCK_MODULES = ['dolfin',
+                'ufl',
+                'goss',
+                'gotran',
+                'gotran.model',
+                'gotran.model.ode',
+                'gotran.model.odeobjects',
+                'gotran.common',
+                'gotran.common.options',
+                'gotran.codegeneration',
+                'gotran.codegeneration.codegenerators',
+                'gotran.codegeneration.algorithmcomponents',
+                'gotran.codegeneration.codecomponent'
+]
+for mod_name in MOCK_MODULES:
+    try:
+        importlib.import_module(mod_name)
+    except:
+        print "Generating mock module %s." % mod_name
+        sys.modules[mod_name] = Mock()
+
+
+
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
@@ -31,6 +78,7 @@ import os
 extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.viewcode',
+    'sphinx.ext.pngmath'
 ]
 
 # Add any paths that contain templates here, relative to this directory.
