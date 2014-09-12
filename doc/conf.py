@@ -15,7 +15,7 @@
 import sys
 import os
 
-# Our make file calls sphinx-apidoc, but read-the-docs uses our config instead
+# Our Makefile calls sphinx-apidoc, but read-the-docs uses our config instead
 # (so it skips that step). Calling apidoc here instead if we're being built
 # there.
 on_rtd = os.environ.get('READTHEDOCS', None) == 'True'
