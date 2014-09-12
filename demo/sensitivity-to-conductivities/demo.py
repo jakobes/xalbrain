@@ -1,7 +1,5 @@
-"""
-Demo for propagation of electric potential through left and right
-ventricles.
-"""
+# Demo for propagation of electric potential through left and right
+# ventricles.
 
 __author__ = "Marie E. Rognes (meg@simula.no), 2012--2014"
 
@@ -25,8 +23,6 @@ def setup_application_parameters():
 
 def setup_general_parameters():
     # Adjust some general FEniCS related parameters
-    parameters["reorder_dofs_serial"] = False # Crucial because of
-                                              # stimulus assumption. FIXME.
     parameters["form_compiler"]["cpp_optimize"] = True
     flags = ["-O3", "-ffast-math", "-march=native"]
     parameters["form_compiler"]["cpp_optimize_flags"] = " ".join(flags)
@@ -53,7 +49,7 @@ def setup_conductivities(mesh, application_parameters):
         g_it_field = Function(V, "data/healthy_g_it_field.xml.gz", name="g_it")
         g_in_field = Function(V, "data/healthy_g_in_field.xml.gz", name="g_in")
     else:
-        info_blue("Using unhealthy conductivities")
+        info_blue("Using ischemic conductivities")
         g_el_field = Function(V, "data/g_el_field.xml.gz", name="g_el")
         g_et_field = Function(V, "data/g_et_field.xml.gz", name="g_et")
         g_en_field = Function(V, "data/g_en_field.xml.gz", name="g_en")
@@ -106,7 +102,6 @@ def setup_cardiac_model(application_parameters):
     mesh.coordinates()[:] /= 1000.0 # Scale mesh from micrometer to millimeter
     mesh.coordinates()[:] /= 10.0   # Scale mesh from millimeter to centimeter
     mesh.coordinates()[:] /= 4.0    # Scale mesh as indicated by Johan/Molly
-    #plot(mesh, title="The computational domain")
 
     # Setup conductivities
     (M_i, M_e, gs) = setup_conductivities(mesh, application_parameters)
@@ -126,7 +121,6 @@ def setup_cardiac_model(application_parameters):
     pulse.amplitude = amp #
     pulse.duration = 10.0 # ms
     pulse.t = time        # ms
-    #pulse = interpolate(pulse, V)
 
     # Initialize cardiac model with the above input
     heart = CardiacModel(mesh, time, M_i, M_e, cell_model, stimulus={0:pulse})
@@ -174,7 +168,7 @@ def main(store_solutions=True):
     # Extract and assign initial condition
     vs_.assign(heart.cell_model().initial_conditions(), solver.VS)
 
-    # Store parameters (FIXME: arbitrary whether this works in parallel!)
+    # Store parameters (FIXME: arbitrary ls whether this works in parallel!)
     directory = application_parameters["directory"]
     application_params_file = File("%s/application_parameters.xml" % directory)
     application_params_file << application_parameters
@@ -207,6 +201,8 @@ def main(store_solutions=True):
             vs_timeseries.store(vs.vector(), t1)
             u = vu.split(deepcopy=True)[1]
             u_timeseries.store(u.vector(), t0 + theta*(t1 - t0))
+    plot(vs[0], title="v")
+
     timer.stop()
 
     # List timings
