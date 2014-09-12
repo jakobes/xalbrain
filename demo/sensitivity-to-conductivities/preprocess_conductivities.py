@@ -1,10 +1,5 @@
 from dolfin import *
 
-# Do the serial stuff here first
-parameters["reorder_dofs_serial"] = False # Crucial because stimulus
-                                          # is defined
-                                          # non-robustly. FIXME.
-
 def generate_conductivities():
 
     chi = 1400.0   # Membrane surface-to-volume ratio (1/cm)
@@ -22,6 +17,8 @@ def generate_conductivities():
     ischemic = Function(V)
     File("data/ischemic_region.xml.gz") >> ischemic
     ischemic_array = ischemic.vector().array()
+
+    plot(ischemic, title="Ischemic region")
 
     # Healthy and ischemic conductivities
     # (All values in mS/cm (milli-Siemens per centimeter, before division)
@@ -46,7 +43,7 @@ def generate_conductivities():
     g_it_isch = 0.125/(C_m*chi)  # Sheet
     g_it_isch = 0.125/(C_m*chi)  # Cross-sheet
 
-    info("Creating conductivities")
+    info("Creating ischemic conductivities")
     # Combine info into 2x2 distinct conductivity functions:
     g_el_field = Function(V)
     g_el_field.vector()[:] = (1-ischemic_array)*g_el_isch+ischemic_array*g_el
@@ -56,6 +53,8 @@ def generate_conductivities():
     g_il_field.vector()[:] = (1-ischemic_array)*g_il_isch+ischemic_array*g_il
     g_it_field = Function(V)
     g_it_field.vector()[:] = (1-ischemic_array)*g_it_isch+ischemic_array*g_it
+
+    plot(g_it_field, title="Ischemic g_it_field")
 
     # Store these. Note use of t for both t and n
     info("Storing conductivities")
@@ -98,7 +97,9 @@ def generate_conductivities():
     file = File("data/healthy_g_in_field.xml.gz")
     file << g_it_field
 
+    plot(g_it_field, title="Healthy g_it_field")
 
 if __name__ == "__main__":
 
     generate_conductivities()
+    interactive()
