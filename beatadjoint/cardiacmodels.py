@@ -6,9 +6,10 @@ scenarios.
 
 # Copyright (C) 2012 Marie E. Rognes (meg@simula.no)
 # Use and modify at will
-# Last changed: 2013-04-26
+# Last changed: 2014-09-12
 
 __all__ = ["CardiacModel"]
+
 
 from dolfinimport import Parameters, Mesh, Constant
 from cellmodels import *
@@ -16,7 +17,7 @@ from cellmodels import *
 # ------------------------------------------------------------------------------
 # Cardiac models
 # ------------------------------------------------------------------------------
-    
+
 class CardiacModel(object):
     """
     A container class for cardiac models. Objects of this class
@@ -48,7 +49,7 @@ class CardiacModel(object):
         with domain markers as the key and a
         :py:class:`dolfin.Expression` as values. NB: it is assumed
         that the time dependence of I_s is encoded via the 'time'
-        Constant. 
+        Constant.
       applied_current (:py:class:`ufl.Expr`, optional)
         an applied current as an ufl Expression
       cell_model_domains (:py:class:`dolfin.MeshFunction`, optional)
@@ -73,12 +74,12 @@ class CardiacModel(object):
         else:
             cell_models = {None:cell_models}
 
-        # if no cell_model domains is passed we also expect only one cell_model 
+        # if no cell_model domains is passed we also expect only one cell_model
         if cell_model_domains is None and (len(cell_models) > 1 or \
                                            cell_models.keys()[0] is not None):
             raise ValueError("When no cell_model_domains are given we only "\
                              "expect one cell model")
-        
+
         # Store attributes
         self._domain = domain
         self._time = time
@@ -132,12 +133,12 @@ class CardiacModel(object):
     def cell_model(self, domain=None):
         "The cell model (:py:class:`~beatadjoint.cellmodels.cardiaccellmodel.CardiacCellModel`)."
         return self._cell_models[domain]
-    
+
     @property
     def cell_models(self):
         "The cell model (:py:class:`dict`)."
         return self._cell_models
-    
+
     @property
     def cell_model_domains(self):
         "The cell model domains (:py:class:``dolfin.MeshFunction``)."
