@@ -49,7 +49,15 @@ help:
 clean:
 	rm -rf $(BUILDDIR)/*
 
-html:
+
+EXAMPLES_IN = ../demo
+EXAMPLES_OUT = demo
+
+build_examples:
+	mkdir -p $(EXAMPLES_OUT)/first-example
+	bin/pylit.py --overwrite yes $(EXAMPLES_IN)/first-example/demo_first_example.py $(EXAMPLES_OUT)/first-example/demo_first_example.rst
+
+html: build_examples
 	$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) $(BUILDDIR)/html
 	@echo
 	@echo "Build finished. The HTML pages are in $(BUILDDIR)/html."

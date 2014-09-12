@@ -1,6 +1,12 @@
-"""
-A basic example of how to use the beatadjoint module.
-"""
+#!/usr/bin/env python
+#  -*- coding: utf-8 -*-
+
+# .. _first_example
+#
+# A basic example of how to use the beatadjoint module.
+#
+# First example for beatadjoint
+# =============================
 
 # Import the beatadjoint module
 from beatadjoint import *

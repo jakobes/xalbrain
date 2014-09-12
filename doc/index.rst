@@ -9,9 +9,10 @@ Welcome to beatadjoint's documentation!
 Contents:
 
 .. toctree::
-   :maxdepth: 4
+   :maxdepth: 2
 
-   beatadjoint
+   demo/demos
+   .. beatadjoint
 
 
 Indices and tables
@@ -20,4 +21,3 @@ Indices and tables
 * :ref:`genindex`
 * :ref:`modindex`
 * :ref:`search`
-
