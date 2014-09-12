@@ -1,7 +1,6 @@
 # Copyright (C) 2012 Johan Hake (hake.dev@gmail.com)
 # Use and modify at will
-# Last changed: 2013-04-19
-
+# Last changed: 2014-09-12
 
 __all__ = ["gotran2cellmodel"]
 
@@ -100,10 +99,10 @@ class CellModelGenerator(DOLFINCodeGenerator):
     Convert a Gotran model to a beat-adjoint compatible cell model
     """
     def __init__(self, ode, membrane_potential):
-        
+
         # Init base class
         super(CellModelGenerator, self).__init__()
-        
+
         check_arg(ode, ODE, 0)
         check_arg(membrane_potential, str, 1)
 
@@ -114,7 +113,7 @@ class CellModelGenerator(DOLFINCodeGenerator):
         self.name = name if name[0].isupper() else name[0].upper() + \
                     (name[1:] if len(name) > 1 else "")
 
-        # Set beatadjoint compatible gotran code generation parameters 
+        # Set beatadjoint compatible gotran code generation parameters
         generation_params = gotran_parameters.generation.copy()
         generation_params.code.default_arguments = "stp"
         generation_params.code.time.name = "time"
@@ -128,7 +127,7 @@ class CellModelGenerator(DOLFINCodeGenerator):
         generation_params.code.states.array_name = "states"
         generation_params.code.body.representation = "named"
         generation_params.code.body.use_cse = False
-        
+
         if ode.num_full_states < 2:
             gotran_error("expected the ODE to have at least more than 1 state")
 
@@ -137,13 +136,13 @@ class CellModelGenerator(DOLFINCodeGenerator):
             gotran_error("Cannot find the membrane potential. ODE does not "\
                          "contain a state with name '{0}'".format(\
                              membrane_potential))
-            
+
         state = ode.present_ode_objects[membrane_potential]
         if not isinstance(state, gotran.model.State):
             gotran_error("Cannot find the membrane potential. ODE does not "\
                          "contain a state with name '{0}'".format(\
                              membrane_potential))
-        
+
         # The name of the membrane potential
         self.V_name = state.name
 
@@ -216,7 +215,7 @@ class CellModelGenerator(DOLFINCodeGenerator):
         if comp.results:
             body_lines.append("")
             body_lines.append("# Init return args")
-            
+
         for result_name in comp.results:
             shape = comp.shapes[result_name]
             if len(shape) > 1:
@@ -224,7 +223,7 @@ class CellModelGenerator(DOLFINCodeGenerator):
 
             body_lines.append("{0} = [ufl.zero()]*{1}".format(\
                 result_name, shape[0]))
-            
+
         return body_lines
 
     def generate(self):
@@ -242,7 +241,7 @@ class CellModelGenerator(DOLFINCodeGenerator):
             params = ode.parameters[:]
 
             param = params.pop(0)
-            
+
             body_lines = ["params = OrderedDict([(\"{}\", {}),".format(\
                 param.name, param.init)]
             body_lines.extend("                      (\"{}\", {}),".format(\
@@ -251,9 +250,9 @@ class CellModelGenerator(DOLFINCodeGenerator):
             body_lines[-1] = body_lines[-1][0:-1]+"])"
         else:
             body_lines = ["params = OrderedDict()"]
-            
+
         return "\n".join(self.indent_and_split_lines(body_lines, 2))
-        
+
     def initial_conditions_body(self, ode):
         """
         Generate code for the ic body
