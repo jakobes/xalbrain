@@ -12,8 +12,9 @@ of dependencies.
 Documentation:
 ---------------
 
-The API documentation for beatadjoint is automatically
-generated. Generate the documentation by running the script:
+The full API documentation for beatadjoint can be automatically
+generated. Generate the full documentation, including new
+configuration files etc, by running the script:
 
     ./scripts/generate-doc
 

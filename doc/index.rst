@@ -1,5 +1,5 @@
 .. beatadjoint documentation master file, created by
-   sphinx-quickstart on Tue Jun 24 21:58:59 2014.
+   sphinx-quickstart on Fri Sep 12 10:27:56 2014.
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
