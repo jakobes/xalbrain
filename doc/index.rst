@@ -12,7 +12,7 @@ Contents:
    :maxdepth: 2
 
    demo/demos
-   .. beatadjoint
+   beatadjoint
 
 
 Indices and tables
