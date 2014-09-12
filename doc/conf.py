@@ -18,10 +18,11 @@ import os
 # Our make file calls sphinx-apidoc, but read-the-docs uses our config instead
 # (so it skips that step). Calling apidoc here instead if we're being built
 # there.
-#on_rtd = os.environ.get('READTHEDOCS', None) == 'True'
-#if on_rtd:
-# os.system("sphinx-apidoc -f -o . ../")
-# No need to install 3rd party packages to generate the docs
+on_rtd = os.environ.get('READTHEDOCS', None) == 'True'
+if on_rtd:
+    os.system("sphinx-apidoc -f -o . ../")
+
+#No need to install 3rd party packages to generate the docs
 class Mock(object):
     __all__ = []
     def __init__(self, *args, **kwargs):
@@ -59,8 +60,6 @@ for mod_name in MOCK_MODULES:
     except:
         print "Generating mock module %s." % mod_name
         sys.modules[mod_name] = Mock()
-
-
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
