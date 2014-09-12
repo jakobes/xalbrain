@@ -12,11 +12,15 @@ of dependencies.
 Documentation:
 ---------------
 
-The full API documentation for beatadjoint can be automatically
+Update the API documentation for beatadjoint by running the script:
+
+    ./scripts/generate-doc
+
+The full API documentation for beatadjoint can also be automatically
 generated. Generate the full documentation, including new
 configuration files etc, by running the script:
 
-    ./scripts/generate-doc
+    ./scripts/generate-full-doc
 
 assuming that beatadjoint and the optional dependency Sphinx
 (sphinx-doc.org) is installed.
