@@ -42,6 +42,7 @@ class Mock(object):
 
 MOCK_MODULES = ['dolfin',
                 'ufl',
+                'numpy',
                 'goss',
                 'gotran',
                 'gotran.model',
