@@ -26,20 +26,25 @@ def assert_almost_equal(a, b, tolerance):
         c_inf = numpy.linalg.norm(c, numpy.inf)
         assert c_inf < tolerance
 
+
 def assert_equal(a, b):
     assert a == b
 
+
 def assert_true(a):
-    assert a == True
+    assert a is True
+
 
 def assert_greater(a, b):
     assert a > b
+
 
 # Fixtures
 @pytest.fixture(params=supported_cell_models_str)
 def cell_model(request):
     Model = eval(request.param)
     return Model()
+
 
 @pytest.fixture(params=supported_cell_models_str)
 def ode_test_form(request):
@@ -56,4 +61,3 @@ def ode_test_form(request):
     rhs = inner(model.F(v, s), r) + inner(- model.I(v, s), w)
     form = rhs*dP
     return form
-
