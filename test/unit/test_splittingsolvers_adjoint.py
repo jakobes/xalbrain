@@ -161,7 +161,7 @@ class TestSplittingSolverAdjoint(object):
         dJdics = compute_gradient_tlm(J, m, forget=False)
 
         assert (dJdics is not None), "Gradient is None (#fail)."
-        conv_rate_tlm = taylor_test(Jhat, m, Jics, dJdics)
+        conv_rate_tlm = taylor_test(Jhat, m, Jics, dJdics, seed=1)
 
         # Check that minimal convergence rate is greater than some given number
         assert_greater(conv_rate_tlm, 1.9)
