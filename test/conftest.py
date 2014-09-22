@@ -1,5 +1,6 @@
 import sys
 import os
+import random
 import pytest
 import beatadjoint
 import dolfin_adjoint
@@ -27,3 +28,6 @@ def pytest_runtest_setup(item):
     # Reset adjoint state
     if beatadjoint.dolfin_adjoint:
         beatadjoint.adj_reset()
+
+    # Fix the seed to avoid random test failures due to slight tolerance variations
+    random.seed(21)
