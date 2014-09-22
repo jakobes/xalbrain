@@ -42,6 +42,8 @@ seed_collection_adm = {Tentusscher_2004_mcell:1e-5,
 
 seed_collection_tlm = seed_collection_adm.copy()
 seed_collection_tlm[Grandi_pasqualini_bers_2010] = 1e-6
+seed_collection_tlm[Tentusscher_panfilov_2006_M_cell] = 5e-5
+seed_collection_tlm[Tentusscher_2004_mcell_cont] = 5e-5
 
 fails_with_forward_euler = (Grandi_pasqualini_bers_2010,
                             )
@@ -158,7 +160,7 @@ class TestCardiacODESolverAdjoint(object):
 
         if Scheme == "ForwardEuler":
             pytest.xfail("RK4 is unstable for some models with this timestep (0.01)")
-            
+
         if isinstance(cell_model, fails_with_RK4) and Scheme == "RK4":
             pytest.xfail("RK4 is unstable for some models with this timestep (0.01)")
 
