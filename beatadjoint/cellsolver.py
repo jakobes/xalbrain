@@ -62,7 +62,7 @@ class BasicCardiacODESolver(object):
         with domain markers as the key and a
         :py:class:`dolfin.Expression` as values. NB: it is assumed
         that the time dependence of I_s is encoded via the 'time'
-        Constant. 
+        Constant.
 
       params (:py:class:`dolfin.Parameters`, optional)
         Solver parameters
@@ -190,7 +190,7 @@ class BasicCardiacODESolver(object):
         if dt is None:
             dt = (T - T0)
 
-        # Create timestepper 
+        # Create timestepper
         time_stepper = TimeStepper(interval, dt, \
                                    annotate=self.parameters["enable_adjoint"])
 
@@ -428,7 +428,7 @@ class CardiacODESolver(object):
         """
         # NB: The point integral solver operates on vs directly, map
         # initial condition in vs_ to vs:
-        
+
         timer = Timer("ODE step")
 
         # FIXME: Shaky peformance in parallel?
@@ -464,7 +464,7 @@ class CardiacODESolver(object):
             # do something with the solutions
 
         """
-        
+
         # Initial time set-up
         (T0, T) = interval
 
@@ -472,7 +472,7 @@ class CardiacODESolver(object):
         if dt is None:
             dt = (T - T0)
 
-        # Create timestepper 
+        # Create timestepper
         time_stepper = TimeStepper(interval, dt, \
                                    annotate=self.parameters["enable_adjoint"])
 

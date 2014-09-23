@@ -23,7 +23,9 @@ class RogersMcCulloch(CardiacCellModel):
     """The Rogers-McCulloch model is a modified FitzHughNagumo model. This
     formulation follows the description on page 2 of "Optimal control
     approach ..." by Nagaiah, Kunisch and Plank, 2013, J Math Biol
-    with w replaced by s.
+    with w replaced by s. Note that this model introduces one
+    additional parameter compared to the original 1994
+    Rogers-McCulloch model.
 
     This is a model containing two nonlinear, ODEs for the evolution
     of the transmembrane potential v and one additional state variable
@@ -53,7 +55,7 @@ class RogersMcCulloch(CardiacCellModel):
         "Set-up and return default parameters."
         params = OrderedDict([("g", 0.13),
                               ("v_th", 13.), # mV
-                              ("v_p", 100.), # mv
+                              ("v_p", 100.), # mV
                               ("eta_1", 4.4), # 4.4 S/(cm^2)
                               ("eta_2", 0.012),
                               ("eta_3", 1.0)])
