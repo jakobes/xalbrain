@@ -83,7 +83,7 @@ class RogersMcCulloch(CardiacCellModel):
 
     @staticmethod
     def default_initial_conditions():
-        ic = OrderedDict([("V", -85.0),
+        ic = OrderedDict([("V", 0.0),
                           ("S", 0.0)])
         return ic
 
@@ -93,4 +93,4 @@ class RogersMcCulloch(CardiacCellModel):
 
     def __str__(self):
         "Return string representation of class."
-        return "Rogers-McCulloch cardiac cell model"
+        return "Rogers-McCulloch 1994 cardiac cell model"
