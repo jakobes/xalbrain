@@ -73,7 +73,7 @@ def plot_results(times, values, show=True):
 
     # Store plot
     filename = "single_cell_response.pdf"
-    info_green("Saving plot to %s")
+    info_green("Saving plot to %s" % filename)
     pylab.savefig(filename)
     if show:
         pylab.show()
