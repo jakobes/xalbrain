@@ -22,7 +22,7 @@ class BasicCardiacODESolver(object):
       s_t = F(v, s)
 
     where :math:`I_{ion}` and :math:`F` are given non-linear
-    functions, :math:`I_s` is some prescribed stimulus.
+    functions, and :math:`I_s` is some prescribed stimulus.
 
     Here, this nonlinear ODE system is solved via a theta-scheme.  By
     default theta=0.5, which corresponds to a Crank-Nicolson
@@ -289,7 +289,7 @@ class CardiacODESolver(object):
       s_t = F(v, s)
 
     where :math:`I_{ion}` and :math:`F` are given non-linear
-    functions, :math:`I_s` is some prescribed stimulus.
+    functions, and :math:`I_s` is some prescribed stimulus.
 
     .. note::
 
@@ -499,7 +499,7 @@ class BasicSingleCellSolver(BasicCardiacODESolver):
       s_t = F(v, s)
 
     where :math:`I_{ion}` and :math:`F` are given non-linear
-    functions, :math:`I_s`is some prescribed stimulus. If :math:`I_s`
+    functions, :math:`I_s` is some prescribed stimulus. If :math:`I_s`
     depends on time, it is assumed that :math:`I_s` is a
     :py:class:`dolfin.Expression` with parameter 't'.
 
