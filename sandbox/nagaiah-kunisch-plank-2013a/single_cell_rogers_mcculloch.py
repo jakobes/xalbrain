@@ -1,4 +1,6 @@
-"""
+"""Single cell simulation of the response of the cell model
+(reparametrised 1994 Rogers and McCulloch) and parameters used in
+Nagaiah et al, J Math Biol, 2013.
 """
 
 __author__ = "Marie E. Rognes (meg@simula.no), 2014"
@@ -11,9 +13,9 @@ from beatadjoint import *
 parameters["reorder_dofs_serial"] = False
 
 # For computing faster
-#parameters["form_compiler"]["cpp_optimize"] = True
-#flags = "-O3 -ffast-math -march=native"
-#parameters["form_compiler"]["cpp_optimize_flags"] = flags
+parameters["form_compiler"]["cpp_optimize"] = True
+flags = "-O3 -ffast-math -march=native"
+parameters["form_compiler"]["cpp_optimize_flags"] = flags
 
 class Stimulus(Expression):
     "Applied stimulus"
@@ -42,7 +44,7 @@ def main():
 
     # Solve and extract values
     dt = 0.1
-    T = 460. + 0.0001 # 639
+    T = 639. + 0.0001 # 639
     interval = (float(time), T)
 
     solutions = solver.solve(interval, dt)
@@ -69,12 +71,14 @@ def plot_results(times, values, show=True):
         pylab.xlabel("t")
         pylab.grid(True)
 
-    info_green("Saving plot to 'variables.pdf'")
-    pylab.savefig("variables.pdf")
+    # Store plot
+    filename = "single_cell_response.pdf"
+    info_green("Saving plot to %s")
+    pylab.savefig(filename)
     if show:
         pylab.show()
 
 if __name__ == "__main__":
 
     (times, values) = main()
-    plot_results(times, values, show=False)
+    plot_results(times, values, show=True)
