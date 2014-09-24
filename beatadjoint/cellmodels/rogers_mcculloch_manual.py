@@ -33,17 +33,17 @@ class RogersMcCulloch(CardiacCellModel):
 
     .. math::
 
-      dv/dt = - I_ion(v, s)
+      \frac{dv}{dt} = - I_{ion}(v, s)
 
-      ds/dt = F(v, s)
+      \frac{ds}{dt} = F(v, s)
 
     where
 
     .. math::
 
-      I_ion(v, s) = g*v*(1 - v/v_th)*(1 - v/v_p) + eta_1*v*s
+      I_{ion}(v, s) = g v (1 - v/v_th)(1 - v/v_p) + \eta_1 v s
 
-          F(v, s) = eta_2 * (v/vp - eta_3*s)
+          F(v, s) = \eta_2  (v/vp - \eta_3 s)
 
     """
     def __init__(self, params=None, init_conditions=None):
