@@ -11,9 +11,9 @@ from beatadjoint import *
 parameters["reorder_dofs_serial"] = False
 
 # For computing faster
-parameters["form_compiler"]["cpp_optimize"] = True
-flags = "-O3 -ffast-math -march=native"
-parameters["form_compiler"]["cpp_optimize_flags"] = flags
+#parameters["form_compiler"]["cpp_optimize"] = True
+#flags = "-O3 -ffast-math -march=native"
+#parameters["form_compiler"]["cpp_optimize_flags"] = flags
 
 class Stimulus(Expression):
     "Some self-defined stimulus."
@@ -21,7 +21,8 @@ class Stimulus(Expression):
         self.t = t
     def eval(self, value, x):
         if float(self.t) >= 50 and float(self.t) <= 60:
-            v_amp = 0.1
+            #v_amp = 125.0
+            v_amp = 1.0
             value[0] = 0.05*v_amp
         else:
             value[0] = 0.0
@@ -30,23 +31,23 @@ def main():
 
     # Initialize model and assign stimulus
     model = RogersMcCulloch()
+    #model = FitzHughNagumoManual()
     time = Constant(40.0)
     model.stimulus = {0: Stimulus(time)}
 
     # Initialize solver
     params = BasicSingleCellSolver.default_parameters()
-    #params["theta"] = 0.5
-    #params["nonlinear_variational_solver"]["newton_solver"]["linear_solver"] = "lu"
+    params["theta"] = 0.5
+    params["nonlinear_variational_solver"]["newton_solver"]["linear_solver"] = "lu"
     solver = BasicSingleCellSolver(model, time, params)
-    #solver =
 
     # Assign initial conditions
     (vs_, vs) = solver.solution_fields()
     vs_.assign(model.initial_conditions())
 
     # Solve and extract values
-    dt = 0.1
-    T = 200. + 0.0001
+    dt = 1.0
+    T = 400. + 0.0001
     interval = (float(time), T)
 
     solutions = solver.solve(interval, dt)
