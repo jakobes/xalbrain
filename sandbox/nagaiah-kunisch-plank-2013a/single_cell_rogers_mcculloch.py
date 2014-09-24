@@ -16,14 +16,12 @@ parameters["reorder_dofs_serial"] = False
 #parameters["form_compiler"]["cpp_optimize_flags"] = flags
 
 class Stimulus(Expression):
-    "Some self-defined stimulus."
+    "Applied stimulus"
     def __init__(self, t):
-        self.t = t
+        self.t = t # ms
     def eval(self, value, x):
-        if float(self.t) >= 50 and float(self.t) <= 60:
-            #v_amp = 125.0
-            v_amp = 1.0
-            value[0] = 0.05*v_amp
+        if float(self.t) >= 435 and float(self.t) <= 439:
+            value[0] = 100. # mV
         else:
             value[0] = 0.0
 def main():
@@ -31,35 +29,29 @@ def main():
 
     # Initialize model and assign stimulus
     model = RogersMcCulloch()
-    #model = FitzHughNagumoManual()
-    time = Constant(40.0)
+    time = Constant(430.0)
     model.stimulus = {0: Stimulus(time)}
 
     # Initialize solver
-    params = BasicSingleCellSolver.default_parameters()
-    params["theta"] = 0.5
-    params["nonlinear_variational_solver"]["newton_solver"]["linear_solver"] = "lu"
-    solver = BasicSingleCellSolver(model, time, params)
+    #params = BasicSingleCellSolver.default_parameters()
+    solver = BasicSingleCellSolver(model, time)#, params)
 
     # Assign initial conditions
     (vs_, vs) = solver.solution_fields()
     vs_.assign(model.initial_conditions())
 
     # Solve and extract values
-    dt = 1.0
-    T = 400. + 0.0001
+    dt = 0.1
+    T = 460. + 0.0001 # 639
     interval = (float(time), T)
 
     solutions = solver.solve(interval, dt)
     times = []
     values = []
-    try:
-        for ((t0, t1), vs) in solutions:
-            print "Current time: %g" % t1
-            times.append(t1)
-            values.append(vs.vector().array())
-    except:
-        pass
+    for ((t0, t1), vs) in solutions:
+        print "Current time: %g" % t1
+        times.append(t1)
+        values.append(vs.vector().array())
 
     return times, values
 

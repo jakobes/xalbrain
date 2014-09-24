@@ -53,7 +53,7 @@ class RogersMcCulloch(CardiacCellModel):
     @staticmethod
     def default_parameters():
         "Set-up and return default parameters."
-        params = OrderedDict([("g", 0.13),
+        params = OrderedDict([("g", 1.5),
                               ("v_th", 13.), # mV
                               ("v_p", 100.), # mV
                               ("eta_1", 4.4), # 4.4 S/(cm^2)
