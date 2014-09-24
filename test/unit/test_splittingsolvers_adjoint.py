@@ -8,7 +8,7 @@ __all__ = ["TestSplittingSolverAdjoint"]
 
 from testutils import assert_greater, medium, slow, parametrize, adjoint
 
-from dolfin import info_green, set_log_level, WARNING
+from dolfin import info_green, set_log_level, INFO
 from beatadjoint import CardiacModel, \
     BasicSplittingSolver, SplittingSolver, \
     FitzHughNagumoManual, \
@@ -17,7 +17,7 @@ from beatadjoint import CardiacModel, \
     inner, dx, dt, FINISH_TIME, InitialConditionParameter, parameters, \
     compute_gradient_tlm, compute_gradient, taylor_test
 
-set_log_level(WARNING)
+set_log_level(INFO)
 
 
 def generate_solver(Solver, solver_type, ics=None, enable_adjoint=True):
@@ -184,7 +184,7 @@ class TestSplittingSolverAdjoint(object):
         dJdics = compute_gradient(J, m, forget=False)
 
         assert (dJdics is not None), "Gradient is None (#fail)."
-        conv_rate = taylor_test(Jhat, m, Jics, dJdics)
+        conv_rate = taylor_test(Jhat, m, Jics, dJdics, seed=1.)
 
         # Check that minimal convergence rate is greater than some given number
         assert_greater(conv_rate, 1.9)
