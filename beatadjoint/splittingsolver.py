@@ -12,22 +12,22 @@ state variables :math:`s = s(x, t)` such that
 
 .. math::
 
-   v_t - \mathrm{div} (M_i grad v + M_i grad u) = - I_{ion}(v, s) + I_s
+   v_t - \mathrm{div} (M_i \mathrm{grad} v + M_i \mathrm{grad} u) = - I_{ion}(v, s) + I_s
 
-         \mathrm{div} (M_i grad v + (M_i + M_e) grad u) = I_a
+         \mathrm{div} (M_i \mathrm{grad} v + (M_i + M_e) \mathrm{grad} u) = I_a
 
    s_t = F(v, s)
 
 where
 
   * the subscript :math:`t` denotes the time derivative,
-  * M_i and M_e are conductivity tensors (in mm^2/ms)
+  * :math:`M_i` and :math:`M_e` are conductivity tensors (in mm^2/ms)
   * :math:`I_s` is prescribed input current (in mV/ms)
   * :math:`I_a` is prescribed input current (in mV/ms)
   * :math:`I_{ion}` and :math:`F` are typically specified by a cell model
 
-Note that M_i and M_e can be viewed as scaled by :math:`chi*C_m` where
-  * :math:`chi` is the surface-to volume ratio of cells (in 1/mm) ,
+Note that M_i and M_e can be viewed as scaled by :math:`\chi*C_m` where
+  * :math:`\chi` is the surface-to volume ratio of cells (in 1/mm) ,
   * :math:`C_m` is the specific membrane capacitance (in mu F/(mm^2) ),
 
 In addition, initial conditions are given for :math:`v` and :math:`s`:
