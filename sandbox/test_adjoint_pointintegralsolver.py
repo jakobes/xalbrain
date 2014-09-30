@@ -74,7 +74,7 @@ if __name__ == "__main__":
     # Define favorite functional
     print "Computing gradient"
     J = Functional(inner(vs, vs)*dx*dt[FINISH_TIME])
-    dJdic = compute_gradient(J, InitialConditionParameter(vs))
+    dJdic = compute_gradient(J, Control(vs))
 
     # Plot gradient
     plot(dJdic, interactive=True, title="dJdic")
