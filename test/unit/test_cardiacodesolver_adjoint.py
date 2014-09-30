@@ -11,11 +11,11 @@ from testutils import assert_true, assert_greater, slow, \
 
 from beatadjoint.dolfinimport import UnitIntervalMesh, info_green
 from beatadjoint import CardiacODESolver, \
-        replay_dolfin, InitialConditionParameter, \
+        replay_dolfin, Control, \
         Constant, Expression, Function, Functional, \
         project, inner, assemble, dx, dt, FINISH_TIME, \
         parameters, compute_gradient_tlm, compute_gradient, \
-        taylor_test, ScalarParameter
+        taylor_test, ConstantControl
 from beatadjoint.cellmodels import *
 
 supported_schemes = ["ForwardEuler",
@@ -138,7 +138,7 @@ class TestCardiacODESolverAdjoint(object):
         # Stop annotating
         parameters["adjoint"]["stop_annotating"] = True
 
-        m = InitialConditionParameter(vs)
+        m = Control(vs)
         return J, Jhat, m, Jics
 
     def tlm_adj_setup_cellmodel_parameters(self, cell_model, Scheme):
@@ -176,7 +176,7 @@ class TestCardiacODESolverAdjoint(object):
         # Stop annotating
         parameters["adjoint"]["stop_annotating"] = True
 
-        m = ScalarParameter(cell_params[param_name])
+        m = ConstantControl(cell_params[param_name])
         return J, Jhat, m, Jics
 
     @adjoint
@@ -241,6 +241,7 @@ class TestCardiacODESolverAdjoint(object):
         if isinstance(cell_model, fails_with_RK4) and Scheme == "RK4":
             pytest.xfail("RK4 is unstable for some models with this timestep (0.01)")
 
+        assert False, "Failing test (Gradient is None). Takes long to fail, so assert False for now."
 
         J, Jhat, m, Jics = self.tlm_adj_setup_cellmodel_parameters(cell_model, Scheme)
 
@@ -292,6 +293,8 @@ class TestCardiacODESolverAdjoint(object):
 
         if isinstance(cell_model, fails_with_forward_euler) and Scheme == "ForwardEuler":
             pytest.xfail("ForwardEuler is unstable for some models with this timestep (0.01)")
+
+        assert False, "Failing test (Gradient is None). Takes long to fail, so assert False for now."
 
         J, Jhat, m, Jics = self.tlm_adj_setup_cellmodel_parameters(cell_model, Scheme)
 

@@ -41,7 +41,7 @@ def main(replay=False):
     v = split(vs)[0]
     J = Functional(inner(v - v_obs, v - v_obs)*dx*dt[FINISH_TIME])
 
-    ics = [InitialConditionParameter(g) for g in gs]
+    ics = [Control(g) for g in gs]
 
     # Compute the gradient
     info_blue("Computing gradient")
