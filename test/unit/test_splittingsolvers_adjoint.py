@@ -14,7 +14,7 @@ from beatadjoint import CardiacModel, \
     FitzHughNagumoManual, \
     Constant, Expression, UnitCubeMesh, \
     replay_dolfin, Functional, assemble, \
-    inner, dx, dt, FINISH_TIME, InitialConditionParameter, parameters, \
+    inner, dx, dt, FINISH_TIME, Control, parameters, \
     compute_gradient_tlm, compute_gradient, taylor_test
 
 set_log_level(INFO)
@@ -105,9 +105,9 @@ class TestSplittingSolverAdjoint(object):
         form = lambda w: inner(w, w)*dx
         J = Functional(form(vs)*dt[FINISH_TIME])
         if Solver == SplittingSolver:
-            m = InitialConditionParameter(vs)
+            m = Control(vs)
         else:
-            m = InitialConditionParameter(vs_)
+            m = Control(vs_)
 
         # Compute value of functional with current ics
         Jics = assemble(form(vs))

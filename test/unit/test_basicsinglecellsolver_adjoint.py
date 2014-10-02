@@ -12,7 +12,7 @@ from beatadjoint.dolfinimport import UnitIntervalMesh, info_green
 from beatadjoint import supported_cell_models, \
         Tentusscher_2004_mcell, FitzHughNagumoManual, \
         BasicSingleCellSolver, \
-        replay_dolfin, InitialConditionParameter, \
+        replay_dolfin, Control, \
         Constant, Expression, Function, Functional, \
         project, inner, assemble, dx, dt, FINISH_TIME, \
         parameters, compute_gradient_tlm, compute_gradient, \
@@ -110,7 +110,7 @@ def basic_single_cell_closure(theta, Model):
         # Compute gradient with respect to vs_. Highly unclear
         # why with respect to ics and vs fail.
         info_green("Computing gradient")
-        dJdics = compute_gradient(J, InitialConditionParameter(vs_))
+        dJdics = compute_gradient(J, Control(vs_))
         assert (dJdics is not None), "Gradient is None (#fail)."
         print dJdics.vector().array()
 
@@ -143,7 +143,7 @@ def basic_single_cell_closure(theta, Model):
         Jics = assemble(form(vs))
 
         # Compute gradient with respect to vs_ (ics?)
-        dJdics = compute_gradient(J, InitialConditionParameter(vs_),
+        dJdics = compute_gradient(J, Control(vs_),
                                   forget=False)
 
         # Stop annotating
@@ -161,7 +161,7 @@ def basic_single_cell_closure(theta, Model):
         else:
             seed=None
 
-        conv_rate = taylor_test(Jhat, InitialConditionParameter(vs_),
+        conv_rate = taylor_test(Jhat, Control(vs_),
                                 Jics, dJdics, seed=seed)
 
         # Check that minimal rate is greater than some given number

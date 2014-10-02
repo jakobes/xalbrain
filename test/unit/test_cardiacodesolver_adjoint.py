@@ -11,11 +11,11 @@ from testutils import assert_true, assert_greater, slow, \
 
 from beatadjoint.dolfinimport import UnitIntervalMesh, info_green
 from beatadjoint import CardiacODESolver, \
-        replay_dolfin, InitialConditionParameter, \
+        replay_dolfin, Control, \
         Constant, Expression, Function, Functional, \
         project, inner, assemble, dx, dt, FINISH_TIME, \
         parameters, compute_gradient_tlm, compute_gradient, \
-        taylor_test
+        taylor_test, ConstantControl
 from beatadjoint.cellmodels import *
 
 supported_schemes = ["ForwardEuler",
@@ -47,6 +47,18 @@ seed_collection_tlm[Grandi_pasqualini_bers_2010] = 1e-5
 seed_collection_tlm[Tentusscher_panfilov_2006_M_cell] = 5e-5
 seed_collection_tlm[Tentusscher_panfilov_2006_epi_cell] = 4e-5
 seed_collection_tlm[Tentusscher_2004_mcell_cont] = 1e-5
+
+cellmodel_parameters_seeds = {}
+cellmodel_parameters_seeds[Fitzhughnagumo] = ("a", 1e-5)
+cellmodel_parameters_seeds[FitzHughNagumoManual] = ("a", 1e-5)
+cellmodel_parameters_seeds[Grandi_pasqualini_bers_2010] = ("pCa", 1e-7)
+cellmodel_parameters_seeds[RogersMcCulloch] = ("g", 1e-5)
+cellmodel_parameters_seeds[Tentusscher_2004_mcell] = ("g_CaL", 1e-5)
+cellmodel_parameters_seeds[Tentusscher_2004_mcell_cont] = ("g_CaL", 1e-5)
+cellmodel_parameters_seeds[Tentusscher_2004_mcell_disc] = ("g_CaL", 1e-5)
+cellmodel_parameters_seeds[Tentusscher_panfilov_2006_M_cell] = ("K_o", 1e-6)
+cellmodel_parameters_seeds[Tentusscher_panfilov_2006_epi_cell] = ("g_to", 1e-6)
+cellmodel_parameters_seeds[Beeler_reuter_1977] = ("g_s", 1e-5)
 
 fails_with_forward_euler = (Grandi_pasqualini_bers_2010,
                             )
@@ -95,7 +107,7 @@ class TestCardiacODESolverAdjoint(object):
         for ((t0, t1), vs) in solutions:
             pass
 
-    def tlm_adj_setup(self, cell_model, Scheme):
+    def tlm_adj_setup_initial_conditions(self, cell_model, Scheme):
         mesh = UnitIntervalMesh(3)
         Model = cell_model.__class__
 
@@ -126,7 +138,45 @@ class TestCardiacODESolverAdjoint(object):
         # Stop annotating
         parameters["adjoint"]["stop_annotating"] = True
 
-        m = InitialConditionParameter(vs)
+        m = Control(vs)
+        return J, Jhat, m, Jics
+
+    def tlm_adj_setup_cellmodel_parameters(self, cell_model, Scheme):
+        mesh = UnitIntervalMesh(3)
+        Model = cell_model.__class__
+
+        # Initiate solver, with model and Scheme
+        cell_params = Model.default_parameters()
+        param_name = cellmodel_parameters_seeds[Model][0]
+        cell_params[param_name] = Constant(cell_params[param_name], name=param_name)
+        model = Model(params=cell_params)
+
+        solver = self._setup_solver(model, Scheme, mesh)
+
+        info_green("Running forward %s with %s (setup)" % (model, Scheme))
+        ics = Function(project(model.initial_conditions(), solver.VS), name="ics")
+        self._run(solver, ics)
+
+        # Define functional
+        (vs_, vs) = solver.solution_fields()
+        form = lambda w: inner(w, w)*dx
+        J = Functional(form(vs)*dt[FINISH_TIME])
+
+        # Compute value of functional with current ics
+        Jics = assemble(form(vs))
+
+        # Set-up runner
+        def Jhat(val):
+            cell_params[param_name].assign(val)
+            ics = Function(project(model.initial_conditions(), solver.VS), name="ics")
+            self._run(solver, ics)
+            (vs_, vs) = solver.solution_fields()
+            return assemble(form(vs))
+
+        # Stop annotating
+        parameters["adjoint"]["stop_annotating"] = True
+
+        m = ConstantControl(cell_params[param_name])
         return J, Jhat, m, Jics
 
     @adjoint
@@ -158,7 +208,7 @@ class TestCardiacODESolverAdjoint(object):
     @adjoint
     @slow
     @parametrize(("Scheme"), supported_schemes)
-    def test_tlm(self, cell_model, Scheme):
+    def test_tlm_initial(self, cell_model, Scheme):
         "Test that we can compute the gradient for some given functional"
 
         if Scheme == "ForwardEuler":
@@ -167,7 +217,33 @@ class TestCardiacODESolverAdjoint(object):
         if isinstance(cell_model, fails_with_RK4) and Scheme == "RK4":
             pytest.xfail("RK4 is unstable for some models with this timestep (0.01)")
 
-        J, Jhat, m, Jics = self.tlm_adj_setup(cell_model, Scheme)
+        J, Jhat, m, Jics = self.tlm_adj_setup_initial_conditions(cell_model, Scheme)
+
+        # Seed for taylor test
+        seed = seed_collection_tlm.get(cell_model.__class__)
+
+        # Check TLM correctness
+        info_green("Computing gradient")
+        dJdics = compute_gradient_tlm(J, m, forget=False)
+        assert (dJdics is not None), "Gradient is None (#fail)."
+        conv_rate_tlm = taylor_test(Jhat, m, Jics, dJdics, seed=seed)
+
+        assert_greater(conv_rate_tlm, 1.8)
+        return
+
+    @adjoint
+    @slow
+    @parametrize(("Scheme"), supported_schemes)
+    def test_tlm_cell_model_parameter(self, cell_model, Scheme):
+        if Scheme == "ForwardEuler":
+            pytest.xfail("RK4 is unstable for some models with this timestep (0.01)")
+
+        if isinstance(cell_model, fails_with_RK4) and Scheme == "RK4":
+            pytest.xfail("RK4 is unstable for some models with this timestep (0.01)")
+
+        assert False, "Failing test (Gradient is None). Takes long to fail, so assert False for now."
+
+        J, Jhat, m, Jics = self.tlm_adj_setup_cellmodel_parameters(cell_model, Scheme)
 
         # Seed for taylor test
         seed = seed_collection_tlm.get(cell_model.__class__)
@@ -183,7 +259,7 @@ class TestCardiacODESolverAdjoint(object):
     @adjoint
     @slow
     @parametrize(("Scheme"), supported_schemes)
-    def test_adjoint(self, cell_model, Scheme):
+    def test_adjoint_initial(self, cell_model, Scheme):
         """ Test that the gradient computed with the adjoint model is correct. """
 
         if isinstance(cell_model, fails_with_RK4) and Scheme == "RK4":
@@ -192,7 +268,35 @@ class TestCardiacODESolverAdjoint(object):
         if isinstance(cell_model, fails_with_forward_euler) and Scheme == "ForwardEuler":
             pytest.xfail("ForwardEuler is unstable for some models with this timestep (0.01)")
 
-        J, Jhat, m, Jics = self.tlm_adj_setup(cell_model, Scheme)
+        J, Jhat, m, Jics = self.tlm_adj_setup_initial_conditions(cell_model, Scheme)
+
+        # Seed for taylor test
+        seed = seed_collection_adm.get(cell_model.__class__)
+
+        # Compute gradient with respect to vs.
+        info_green("Computing gradient")
+        dJdics = compute_gradient(J, m, forget=False)
+        assert (dJdics is not None), "Gradient is None (#fail)."
+        conv_rate = taylor_test(Jhat, m, Jics, dJdics, seed=seed)
+
+        # Check that minimal rate is greater than some given number
+        assert_greater(conv_rate, 1.9)
+
+    @adjoint
+    @slow
+    @parametrize(("Scheme"), supported_schemes)
+    def test_adjoint_cell_model_parameter(self, cell_model, Scheme):
+        """ Test that the gradient computed with the adjoint model is correct. """
+
+        if isinstance(cell_model, fails_with_RK4) and Scheme == "RK4":
+            pytest.xfail("RK4 is unstable for some models with this timestep (0.01)")
+
+        if isinstance(cell_model, fails_with_forward_euler) and Scheme == "ForwardEuler":
+            pytest.xfail("ForwardEuler is unstable for some models with this timestep (0.01)")
+
+        assert False, "Failing test (Gradient is None). Takes long to fail, so assert False for now."
+
+        J, Jhat, m, Jics = self.tlm_adj_setup_cellmodel_parameters(cell_model, Scheme)
 
         # Seed for taylor test
         seed = seed_collection_adm.get(cell_model.__class__)
