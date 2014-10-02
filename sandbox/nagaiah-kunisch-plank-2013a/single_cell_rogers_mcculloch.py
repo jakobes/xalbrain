@@ -23,14 +23,15 @@ class Stimulus(Expression):
         self.t = t # ms
     def eval(self, value, x):
         if float(self.t) >= 435 and float(self.t) <= 439:
-            value[0] = 100. # mV
+            value[0] = 20. # mV
         else:
             value[0] = 0.0
 def main():
     "Solve a single cell model on some time frame."
 
     # Initialize model and assign stimulus
-    model = RogersMcCulloch()
+    #model = RogersMcCulloch()
+    model = FitzHughNagumoManual()
     time = Constant(430.0)
     model.stimulus = {0: Stimulus(time)}
 
@@ -43,8 +44,8 @@ def main():
     vs_.assign(model.initial_conditions())
 
     # Solve and extract values
-    dt = 0.1
-    T = 639. + 0.0001 # 639
+    dt = 0.5
+    T = 700. + 0.0001 # 639
     interval = (float(time), T)
 
     solutions = solver.solve(interval, dt)

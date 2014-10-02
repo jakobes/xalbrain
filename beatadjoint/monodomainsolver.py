@@ -28,7 +28,7 @@ assumes pure homogeneous Neumann boundary conditions for :math:`v`.
 __all__ = ["BasicMonodomainSolver", "MonodomainSolver"]
 
 from dolfinimport import *
-from beatadjoint.utils import end_of_time
+from beatadjoint.utils import end_of_time, annotate_kwargs
 
 class BasicMonodomainSolver(object):
     """This solver is based on a theta-scheme discretization in time
@@ -289,9 +289,9 @@ class MonodomainSolver(BasicMonodomainSolver):
         # Preassemble left-hand side (will be updated if time-step
         # changes)
         debug("Preassembling monodomain matrix (and initializing vector)")
-        annotate_kwargs = {"annotate":self.parameters["enable_adjoint"]} \
-                          if dolfin_adjoint else {}
-        self._lhs_matrix = assemble(self._lhs, **annotate_kwargs)
+        kwargs = annotate_kwargs(self.parameters)
+
+        self._lhs_matrix = assemble(self._lhs, **kwargs)
         self._rhs_vector = Vector(domain.mpi_comm(), self._lhs_matrix.size(0))
         self._lhs_matrix.init_vector(self._rhs_vector, 0)
 
@@ -308,9 +308,7 @@ class MonodomainSolver(BasicMonodomainSolver):
         "Helper function for creating linear solver based on parameters."
         solver_type = self.parameters["linear_solver_type"]
 
-        annotate_kwargs = {"annotate":self.parameters["enable_adjoint"]} \
-                          if dolfin_adjoint else {}
-
+        kwargs = annotate_kwargs(self.parameters)
         if solver_type == "direct":
             solver = LUSolver(self._lhs_matrix, self.parameters["lu_type"])
             solver.parameters.update(self.parameters["lu_solver"])
@@ -321,7 +319,7 @@ class MonodomainSolver(BasicMonodomainSolver):
             # Preassemble preconditioner (will be updated if time-step
             # changes)
             debug("Preassembling preconditioner")
-            self._prec_matrix = assemble(self._prec, **annotate_kwargs)
+            self._prec_matrix = assemble(self._prec, **kwargs)
 
             # Initialize KrylovSolver with matrix and preconditioner
             alg = self.parameters["algorithm"]
@@ -444,9 +442,8 @@ class MonodomainSolver(BasicMonodomainSolver):
         (t0, t1) = interval
         dt = t1 - t0
         theta = self.parameters["theta"]
-        annotate_kwargs = {"annotate":self.parameters["enable_adjoint"]} \
-                          if dolfin_adjoint else {}
 
+        kwargs = annotate_kwargs(self.parameters)
         t = t0 + theta*dt
         self.time.assign(t)
 
@@ -455,18 +452,17 @@ class MonodomainSolver(BasicMonodomainSolver):
         self._update_solver(timestep_unchanged, dt)
 
         # Assemble right-hand-side
-        assemble(self._rhs, tensor=self._rhs_vector, **annotate_kwargs)
+        assemble(self._rhs, tensor=self._rhs_vector, **kwargs)
 
         # Solve problem
         self.linear_solver.solve(self.v.vector(), self._rhs_vector,
-                                 **annotate_kwargs)
+                                 **kwargs)
 
     def _update_lu_solver(self, timestep_unchanged, dt):
         """Helper function for updating an LUSolver depending on
         whether timestep has changed."""
 
-        annotate_kwargs = {"annotate":self.parameters["enable_adjoint"]} \
-                          if dolfin_adjoint else {}
+        kwargs = annotate_kwargs(self.parameters)
 
         # Update reuse of factorization parameter in accordance with
         # changes in timestep
@@ -482,15 +478,13 @@ class MonodomainSolver(BasicMonodomainSolver):
             self._timestep.assign(Constant(dt))#, annotate=annotate)
 
             # Reassemble matrix
-            assemble(self._lhs, tensor=self._lhs_matrix, **annotate_kwargs)
+            assemble(self._lhs, tensor=self._lhs_matrix, **kwargs)
 
     def _update_krylov_solver(self, timestep_unchanged, dt):
         """Helper function for updating a KrylovSolver depending on
         whether timestep has changed."""
 
-        annotate_kwargs = {"annotate":self.parameters["enable_adjoint"]} \
-                          if dolfin_adjoint else {}
-
+        kwargs = annotate_kwargs(self.parameters)
         # Update reuse of preconditioner parameter in accordance with
         # changes in timestep
         if timestep_unchanged:
@@ -505,10 +499,10 @@ class MonodomainSolver(BasicMonodomainSolver):
             self._timestep.assign(Constant(dt))
 
             # Reassemble matrix
-            assemble(self._lhs, tensor=self._lhs_matrix, **annotate_kwargs)
+            assemble(self._lhs, tensor=self._lhs_matrix, **kwargs)
 
             # Reassemble preconditioner
-            assemble(self._prec, tensor=self._prec_matrix, **annotate_kwargs)
+            assemble(self._prec, tensor=self._prec_matrix, **kwargs)
 
         # Set nonzero initial guess if it indeed is nonzero
         if (self.v.vector().norm("l2") > 1.e-12):
