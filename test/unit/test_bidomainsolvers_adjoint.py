@@ -12,7 +12,7 @@ from testutils import assert_equal, fast, slow, \
 from beatadjoint.dolfinimport import info_green, info_red
 from beatadjoint import BasicBidomainSolver, BidomainSolver, \
         UnitCubeMesh, Constant, Expression, inner, dx, dt, \
-        assemble, parameters, InitialConditionParameter, \
+        assemble, parameters, Control, \
         replay_dolfin, Functional, FINISH_TIME, \
         compute_gradient_tlm, compute_gradient, \
         taylor_test, Function
@@ -56,11 +56,11 @@ class TestBidomainSolversAdjoint(object):
             if solver_type == "iterative":
                 params.krylov_solver.relative_tolerance = 1e-12
             else:
-                params.use_avg_u_constraint = True  # NOTE: In contrast to iterative 
-                    # solvers, the direct solver does not handle nullspaces consistently, 
-                    # i.e. the solution differes from solve to solve, and hence the Taylor 
+                params.use_avg_u_constraint = True  # NOTE: In contrast to iterative
+                    # solvers, the direct solver does not handle nullspaces consistently,
+                    # i.e. the solution differes from solve to solve, and hence the Taylor
                     # testes would not pass.
-            
+
         self.solver = Solver(self.mesh, self.time, self.M_i, self.M_e,
                         I_s=self.stimulus,
                         I_a=self.applied_current, params=params)
@@ -89,13 +89,13 @@ class TestBidomainSolversAdjoint(object):
         (BasicBidomainSolver, "direct", 0.),
         (BasicBidomainSolver, "iterative", 0.),
         (BidomainSolver, "direct", 0.),
-        (BidomainSolver, "iterative", 1e-10),  # NOTE: The replay is not exact because 
-            # dolfin-adjoint's overloaded Krylov method is not constent with DOLFIN's 
+        (BidomainSolver, "iterative", 1e-10),  # NOTE: The replay is not exact because
+            # dolfin-adjoint's overloaded Krylov method is not constent with DOLFIN's
             # (it orthogonalizes the rhs vector as an additional step)
         ])
     def test_replay(self, Solver, solver_type, tol):
         "Test that replay of basic bidomain solver reports success."
-        
+
         self._setup_solver(Solver, solver_type)
         self._solve()
 
@@ -113,7 +113,7 @@ class TestBidomainSolversAdjoint(object):
         # Define functional
         form = lambda w: inner(w, w)*dx
         J = Functional(form(vs)*dt[FINISH_TIME])
-        m = InitialConditionParameter(vs_)
+        m = Control(vs_)
 
         # Compute value of functional with current ics
         Jics = assemble(form(vs))
