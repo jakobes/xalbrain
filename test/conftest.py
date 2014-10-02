@@ -5,13 +5,6 @@ import pytest
 import beatadjoint
 import dolfin_adjoint
 
-# Automatically parallelize over all cpus
-def pytest_cmdline_preparse(args):
-    if 'xdist' in sys.modules: # pytest-xdist plugin
-        import multiprocessing
-        num = multiprocessing.cpu_count()
-        args[:] = ["-n", str(num)] + args
-
 del dolfin_adjoint.test_initial_condition_adjoint
 del dolfin_adjoint.test_initial_condition_tlm
 del dolfin_adjoint.test_scalar_parameters_adjoint
