@@ -30,6 +30,8 @@ from beatadjoint.monodomainsolver import MonodomainSolver
 # Various utility functions, mainly for internal use
 import beatadjoint.utils
 
+from beatadjoint.timeseries import HDF5TimeSeries
+
 # Set-up some global parameters
 beat_parameters = dolfinimport.Parameters("beat-parameters")
 beat_parameters.add("enable_adjoint", True)
