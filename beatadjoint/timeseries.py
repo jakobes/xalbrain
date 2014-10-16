@@ -59,14 +59,14 @@ if __name__ == "__main__":
     u = dolfin.Function(V)
 
     # How to store
-    series = MyTimeSeries("results", "foo-series.h5", u, "w")
+    series = HDF5TimeSeries("results", "foo-series.h5", u, "w")
     series.store(u, 0.1)
     u.vector()[:] = 1.0
     series.store(u, 0.2)
     series.store_times()
 
     # How to retrieve
-    series = MyTimeSeries("results", "foo-series.h5", u, "r")
+    series = HDF5TimeSeries("results", "foo-series.h5", u, "r")
     (times, index) = series.retrieve_times()
     print "Retrieved times and index: ", times, index
     series.retrieve(u, 0.2)
