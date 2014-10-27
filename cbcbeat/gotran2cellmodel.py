@@ -96,7 +96,7 @@ _class_form = dict(
 
 class CellModelGenerator(DOLFINCodeGenerator):
     """
-    Convert a Gotran model to a beat-adjoint compatible cell model
+    Convert a Gotran model to a cbcbeat compatible cell model
     """
     def __init__(self, ode, membrane_potential):
 

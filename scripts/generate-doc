@@ -8,7 +8,7 @@
 #
 # Marie E. Rognes (meg@simula.no), 2013
 
-echo "This script generates the documentation for beat-adjoint."
+echo "This script generates the documentation for cbcbeat."
 echo "Make sure to run this from the top-level cbcbeat directory: "
 echo "  ./scripts/generate-doc"
 echo "Press return to continue."
