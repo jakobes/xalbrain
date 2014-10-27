@@ -1,5 +1,5 @@
 """This module contains a container class for cardiac models:
-:py:class:`~beatadjoint.cardiacmodels.CardiacModel`.  This class
+:py:class:`~cbcbeat.cardiacmodels.CardiacModel`.  This class
 should be instantiated for setting up specific cardiac simulation
 scenarios.
 """
@@ -29,7 +29,7 @@ class CardiacModel(object):
     * Various forms of stimulus (optional).
 
     This container class is designed for use with the splitting
-    solvers (:py:mod:`beatadjoint.splittingsolver`), see their
+    solvers (:py:mod:`cbcbeat.splittingsolver`), see their
     documentation for more information on how the attributes are
     interpreted in that context.
 
@@ -42,7 +42,7 @@ class CardiacModel(object):
         the intra-cellular conductivity as an ufl Expression
       M_e (:py:class:`ufl.Expr`)
         the extra-cellular conductivity as an ufl Expression
-      cell_models (:py:class:`~beatadjoint.cellmodels.cardiaccellmodel.CardiacCellModel`)
+      cell_models (:py:class:`~cbcbeat.cellmodels.cardiaccellmodel.CardiacCellModel`)
         a cell model or a dict with cell models associated with a cell model domain
       stimulus (:py:class:`dict`, optional)
         A typically time-dependent external stimulus given as a dict,
@@ -131,7 +131,7 @@ class CardiacModel(object):
         return self._domain
 
     def cell_model(self, domain=None):
-        "The cell model (:py:class:`~beatadjoint.cellmodels.cardiaccellmodel.CardiacCellModel`)."
+        "The cell model (:py:class:`~cbcbeat.cellmodels.cardiaccellmodel.CardiacCellModel`)."
         return self._cell_models[domain]
 
     @property

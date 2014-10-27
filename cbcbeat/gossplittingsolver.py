@@ -19,10 +19,10 @@ if "DOLFINODESystemSolver" not in goss.__dict__:
     raise ImportError("goss could not import DOLFINODESystemSolver")
 
 # Beatadjoint imports
-from beatadjoint.bidomainsolver import BidomainSolver
-from beatadjoint.monodomainsolver import MonodomainSolver
-from beatadjoint.cardiacmodels import CardiacModel
-from beatadjoint.utils import TimeStepper, Projecter
+from cbcbeat.bidomainsolver import BidomainSolver
+from cbcbeat.monodomainsolver import MonodomainSolver
+from cbcbeat.cardiacmodels import CardiacModel
+from cbcbeat.utils import TimeStepper, Projecter
 
         
 class GOSSplittingSolver:

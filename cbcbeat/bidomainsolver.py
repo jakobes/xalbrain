@@ -34,7 +34,7 @@ for u.
 __all__ = ["BasicBidomainSolver", "BidomainSolver"]
 
 from dolfinimport import *
-from beatadjoint.utils import end_of_time, annotate_kwargs
+from cbcbeat.utils import end_of_time, annotate_kwargs
 
 class BasicBidomainSolver(object):
     """This solver is based on a theta-scheme discretization in time
