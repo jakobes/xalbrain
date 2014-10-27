@@ -8,7 +8,7 @@ __all__ = ["state_space", "end_of_time", "convergence_rate",
 import math
 from dolfinimport import dolfin, dolfin_adjoint
 if dolfin_adjoint:
-    from dolfin_adjoint import assemble, LUSolver, KrylovSolver#, parameters
+    from dolfin_adjoint import assemble, LUSolver, KrylovSolver
     from dolfin import parameters
 else:
     from dolfin import assemble, LUSolver, KrylovSolver, parameters

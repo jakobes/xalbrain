@@ -311,6 +311,7 @@ class BasicBidomainSolver(object):
         """
 
         params = Parameters("BasicBidomainSolver")
+        params.add("enable_adjoint", True)
         params.add("theta", 0.5)
         params.add("polynomial_degree", 1)
         params.add("use_avg_u_constraint", True)
