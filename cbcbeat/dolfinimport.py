@@ -1,4 +1,4 @@
-"""This module handles all dolfin import in beatadjoint. Here dolfin and
+"""This module handles all dolfin import in cbcbeat. Here dolfin and
 dolfin_adjoint gets imported. If dolfin_adjoint is not present it will not
 be imported."""
 

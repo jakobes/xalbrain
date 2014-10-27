@@ -18,7 +18,7 @@ from gotran.common.options import parameters as gotran_parameters
 from gotran.codegeneration.algorithmcomponents import componentwise_derivative
 from gotran.codegeneration.codecomponent import CodeComponent
 
-from beatadjoint.gotran2dolfin import DOLFINCodeGenerator
+from cbcbeat.gotran2dolfin import DOLFINCodeGenerator
 
 _class_template = """
 \"\"\"This module contains a {ModelName} cardiac cell model
@@ -29,8 +29,8 @@ from __future__ import division
 from collections import OrderedDict
 import ufl
 
-from beatadjoint.dolfinimport import *
-from beatadjoint.cellmodels import CardiacCellModel
+from cbcbeat.dolfinimport import *
+from cbcbeat.cellmodels import CardiacCellModel
 
 class {ModelName}(CardiacCellModel):
     def __init__(self, params=None, init_conditions=None):
@@ -113,7 +113,7 @@ class CellModelGenerator(DOLFINCodeGenerator):
         self.name = name if name[0].isupper() else name[0].upper() + \
                     (name[1:] if len(name) > 1 else "")
 
-        # Set beatadjoint compatible gotran code generation parameters
+        # Set cbcbeat compatible gotran code generation parameters
         generation_params = gotran_parameters.generation.copy()
         generation_params.code.default_arguments = "stp"
         generation_params.code.time.name = "time"

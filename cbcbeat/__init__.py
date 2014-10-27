@@ -1,10 +1,10 @@
 """
-The beatadjoint Python module is a problem and solver collection for
+The cbcbeat Python module is a problem and solver collection for
 cardiac electrophysiology models.
 
 To import the module, type::
 
-  from beatadjoint import *
+  from cbcbeat import *
 
 """
 
@@ -14,23 +14,23 @@ import dolfinimport
 from dolfinimport import *
 
 # Model imports
-from beatadjoint.cardiacmodels import CardiacModel
-from beatadjoint.cellmodels import *
+from cbcbeat.cardiacmodels import CardiacModel
+from cbcbeat.cellmodels import *
 
 # Solver imports
-from beatadjoint.splittingsolver import BasicSplittingSolver
-from beatadjoint.splittingsolver import SplittingSolver
-from beatadjoint.cellsolver import BasicSingleCellSolver
-from beatadjoint.cellsolver import BasicCardiacODESolver, CardiacODESolver
-from beatadjoint.bidomainsolver import BasicBidomainSolver
-from beatadjoint.bidomainsolver import BidomainSolver
-from beatadjoint.monodomainsolver import BasicMonodomainSolver
-from beatadjoint.monodomainsolver import MonodomainSolver
+from cbcbeat.splittingsolver import BasicSplittingSolver
+from cbcbeat.splittingsolver import SplittingSolver
+from cbcbeat.cellsolver import BasicSingleCellSolver
+from cbcbeat.cellsolver import BasicCardiacODESolver, CardiacODESolver
+from cbcbeat.bidomainsolver import BasicBidomainSolver
+from cbcbeat.bidomainsolver import BidomainSolver
+from cbcbeat.monodomainsolver import BasicMonodomainSolver
+from cbcbeat.monodomainsolver import MonodomainSolver
 
 # Various utility functions, mainly for internal use
-import beatadjoint.utils
+import cbcbeat.utils
 
-from beatadjoint.timeseries import HDF5TimeSeries
+from cbcbeat.timeseries import HDF5TimeSeries
 
 # Set-up some global parameters
 beat_parameters = dolfinimport.Parameters("beat-parameters")

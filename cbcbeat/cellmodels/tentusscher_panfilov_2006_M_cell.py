@@ -7,8 +7,8 @@ from __future__ import division
 from collections import OrderedDict
 import ufl
 
-from beatadjoint.dolfinimport import *
-from beatadjoint.cellmodels import CardiacCellModel
+from cbcbeat.dolfinimport import *
+from cbcbeat.cellmodels import CardiacCellModel
 
 class Tentusscher_panfilov_2006_M_cell(CardiacCellModel):
     def __init__(self, params=None, init_conditions=None):

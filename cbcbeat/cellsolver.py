@@ -7,8 +7,8 @@ __all__ = ["BasicSingleCellSolver",
            "CardiacODESolver"]
 
 from dolfinimport import *
-from beatadjoint import CardiacCellModel
-from beatadjoint.utils import state_space, TimeStepper, splat
+from cbcbeat import CardiacCellModel
+from cbcbeat.utils import state_space, TimeStepper, splat
 
 class BasicCardiacODESolver(object):
     """A basic, non-optimised solver for systems of ODEs typically
@@ -521,7 +521,7 @@ class BasicSingleCellSolver(BasicCardiacODESolver):
        simulation.
 
     *Arguments*
-      model (:py:class:`~beatadjoint.cellmodels.cardiaccellmodel.CardiacCellModel`)
+      model (:py:class:`~cbcbeat.cellmodels.cardiaccellmodel.CardiacCellModel`)
         A cardiac cell model
       time (:py:class:`~dolfin.Constant` or None)
         A constant holding the current time.

@@ -16,8 +16,8 @@ __author__ = "Marie E. Rognes (meg@simula.no), 2012--2013"
 __all__ = ["RogersMcCulloch"]
 
 from collections import OrderedDict
-from beatadjoint.dolfinimport import Parameters, Expression
-from beatadjoint.cellmodels import CardiacCellModel
+from cbcbeat.dolfinimport import Parameters, Expression
+from cbcbeat.cellmodels import CardiacCellModel
 
 class RogersMcCulloch(CardiacCellModel):
     """The Rogers-McCulloch model is a modified FitzHughNagumo model. This
