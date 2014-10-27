@@ -10,10 +10,10 @@ import pytest
 from testutils import slow, assert_almost_equal, parametrize, cell_model
 
 from dolfin import info, info_red, info_green, UnitIntervalMesh
-from beatadjoint import supported_cell_models, \
+from cbcbeat import supported_cell_models, \
     CardiacODESolver, BasicSingleCellSolver, \
     Constant, Expression
-from beatadjoint.cellmodels import *
+from cbcbeat.cellmodels import *
 
 
 supported_schemes = ["ForwardEuler", "BackwardEuler", "CrankNicolson",

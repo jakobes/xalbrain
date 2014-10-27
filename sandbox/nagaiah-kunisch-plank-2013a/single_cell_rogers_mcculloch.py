@@ -7,7 +7,7 @@ __author__ = "Marie E. Rognes (meg@simula.no), 2014"
 
 import math
 import pylab
-from beatadjoint import *
+from cbcbeat import *
 
 # For easier visualization of the variables
 parameters["reorder_dofs_serial"] = False

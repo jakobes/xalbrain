@@ -10,7 +10,7 @@ import pytest
 from testutils import medium, assert_almost_equal, parametrize, cell_model
 
 from dolfin import info, info_red, info_green, UnitIntervalMesh
-from beatadjoint import supported_cell_models, \
+from cbcbeat import supported_cell_models, \
     CardiacODESolver, BasicSingleCellSolver, \
     NoCellModel, FitzHughNagumoManual, Fitzhughnagumo, \
     Tentusscher_2004_mcell, \

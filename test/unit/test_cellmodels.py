@@ -5,7 +5,7 @@ __author__ = "Marie E. Rognes (meg@simula.no), 2013 -- 2014"
 import pytest
 
 from dolfin import *
-from beatadjoint.utils import state_space
+from cbcbeat.utils import state_space
 
 from testutils import fast, slow, parametrize, assert_almost_equal
 from testutils import cell_model, ode_test_form

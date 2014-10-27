@@ -8,7 +8,7 @@ __all__ = ["TestSplittingSolver"]
 from testutils import assert_almost_equal, medium
 
 from dolfin import info, set_log_level, WARNING
-from beatadjoint import CardiacModel, \
+from cbcbeat import CardiacModel, \
         BasicSplittingSolver, SplittingSolver, BasicCardiacODESolver, \
         FitzHughNagumoManual, \
         Constant, Expression, UnitCubeMesh, \

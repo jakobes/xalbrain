@@ -7,7 +7,7 @@ a simplified stimulus and a coarse mesh.
 __author__ = "Marie E. Rognes (meg@simula.no), 2012--2014"
 
 import math
-from beatadjoint import *
+from cbcbeat import *
 import time
 
 def setup_application_parameters():

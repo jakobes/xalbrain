@@ -8,7 +8,7 @@ __all__ = []
 
 from dolfin import *
 from dolfin_adjoint import *
-from beatadjoint import *
+from cbcbeat import *
 
 def main(CellModel, Solver):
 

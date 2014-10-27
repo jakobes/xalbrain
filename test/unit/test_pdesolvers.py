@@ -8,7 +8,7 @@ __all__ = [""]
 from testutils import assert_almost_equal, assert_equal, fast
 
 from dolfin import *
-from beatadjoint import BasicBidomainSolver, BasicMonodomainSolver, \
+from cbcbeat import BasicBidomainSolver, BasicMonodomainSolver, \
         MonodomainSolver, BidomainSolver, \
         Constant
 

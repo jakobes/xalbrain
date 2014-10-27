@@ -5,8 +5,8 @@ __author__ = "Marie E. Rognes (meg@simula.no), 2014"
 from dolfin import *
 import numpy.linalg
 import pytest
-from beatadjoint.cellmodels import *
-from beatadjoint.utils import state_space
+from cbcbeat.cellmodels import *
+from cbcbeat.utils import state_space
 
 # Marks
 fast = pytest.mark.fast

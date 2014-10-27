@@ -1,4 +1,4 @@
-from beatadjoint import *
+from cbcbeat import *
 import os
 
 mesh = Mesh("data/mesh115_refined.xml.gz")

@@ -1,4 +1,4 @@
-from beatadjoint import *
+from cbcbeat import *
 
 class S1S2Stimulation(Expression):
     "A S1-S2 stimulation protocol."

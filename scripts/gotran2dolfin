@@ -3,7 +3,7 @@
 import numpy as np
 import os
 
-from beatadjoint.gotran2dolfin import DOLFINCodeGenerator
+from cbcbeat.gotran2dolfin import DOLFINCodeGenerator
 
 from gotran.model.loadmodel import load_ode
 from gotran.codegeneration.algorithmcomponents import rhs_expressions

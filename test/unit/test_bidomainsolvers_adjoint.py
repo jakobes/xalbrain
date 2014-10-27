@@ -9,8 +9,8 @@ import pytest
 from testutils import assert_equal, fast, slow, \
         adjoint, parametrize, assert_greater
 
-from beatadjoint.dolfinimport import info_green, info_red
-from beatadjoint import BasicBidomainSolver, BidomainSolver, \
+from cbcbeat.dolfinimport import info_green, info_red
+from cbcbeat import BasicBidomainSolver, BidomainSolver, \
         UnitCubeMesh, Constant, Expression, inner, dx, dt, \
         assemble, parameters, Control, \
         replay_dolfin, Functional, FINISH_TIME, \

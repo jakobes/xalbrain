@@ -3,15 +3,15 @@
   
 .. _first_example
 
-A basic example of how to use the beatadjoint module.
+A basic example of how to use the cbcbeat module.
 
-First example for beatadjoint
+First example for cbcbeat
 =============================
 
 ::
 
-  # Import the beatadjoint module
-  from beatadjoint import *
+  # Import the cbcbeat module
+  from cbcbeat import *
   
   # Define the cardiac model including the computational domain,
   # conductivities, cell model, stimulus

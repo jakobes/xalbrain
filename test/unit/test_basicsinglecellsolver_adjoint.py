@@ -8,8 +8,8 @@ __all__ = ["TestBasicSingleCellSolverAdjoint"]
 from testutils import assert_equal, assert_true, assert_greater, adjoint, slow
 
 import types
-from beatadjoint.dolfinimport import UnitIntervalMesh, info_green
-from beatadjoint import supported_cell_models, \
+from cbcbeat.dolfinimport import UnitIntervalMesh, info_green
+from cbcbeat import supported_cell_models, \
         Tentusscher_2004_mcell, FitzHughNagumoManual, \
         BasicSingleCellSolver, \
         replay_dolfin, Control, \
