@@ -30,8 +30,6 @@ from cbcbeat.monodomainsolver import MonodomainSolver
 # Various utility functions, mainly for internal use
 import cbcbeat.utils
 
-from cbcbeat.timeseries import HDF5TimeSeries
-
 # Set-up some global parameters
 beat_parameters = dolfinimport.Parameters("beat-parameters")
 beat_parameters.add("enable_adjoint", True)
