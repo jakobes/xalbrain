@@ -1,5 +1,4 @@
-
-This Python package provides the module 'beatadjoint' -- beatadjoint
+This Python package provides the module 'cbcbeat' -- cbcbeat
 is a problem and solver collection for cardiac electrophysiology
 models.
 
@@ -20,7 +19,7 @@ For manually updating the API and demo documentation, run:
 
     ./scripts/generate-doc
 
-assuming that beatadjoint and the optional dependency Sphinx
+assuming that cbcbeat and the optional dependency Sphinx
 (sphinx-doc.org) is installed.
 
 Authors:
