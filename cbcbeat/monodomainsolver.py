@@ -271,6 +271,7 @@ class BasicMonodomainSolver(object):
         params = Parameters("BasicMonodomainSolver")
         params.add("theta", 0.5)
         params.add("polynomial_degree", 1)
+        params.add("enable_adjoint", True)
 
         params.add(LinearVariationalSolver.default_parameters())
         return params
