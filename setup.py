@@ -25,14 +25,14 @@ if platform.system() == "Windows" or "bdist_wininst" in sys.argv:
         batch_files.append(batch_file)
     scripts.extend(batch_files)
 
-setup(name = "beatadjoint",
+setup(name = "cbcbeat",
       version = "{0}.{1}".format(major, minor),
       description = """
       An adjointable bi-domain equation solver
       """,
       author = "Marie Rognes, Johan Hake",
       author_email = "meg@simula.no",
-      packages = ["beatadjoint", "beatadjoint.cellmodels",],
-      package_dir = {"beatadjoint": "beatadjoint"},
+      packages = ["cbcbeat", "cbcbeat.cellmodels",],
+      package_dir = {"cbcbeat": "cbcbeat"},
       scripts = scripts,
       )

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# beatadjoint documentation build configuration file, created by
+# cbcbeat documentation build configuration file, created by
 # sphinx-quickstart on Fri Sep 12 10:27:56 2014.
 #
 # This file is execfile()d with the current directory set to its
@@ -96,8 +96,8 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'beatadjoint'
-copyright = u'2014, beatadjoint-authors'
+project = u'cbcbeat'
+copyright = u'2014, cbcbeat-authors'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -229,7 +229,7 @@ html_static_path = ['_static']
 #html_file_suffix = None
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'beatadjointdoc'
+htmlhelp_basename = 'cbcbeatdoc'
 
 
 # -- Options for LaTeX output ---------------------------------------------
@@ -249,8 +249,8 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-  ('index', 'beatadjoint.tex', u'beatadjoint Documentation',
-   u'beatadjoint-authors', 'manual'),
+  ('index', 'cbcbeat.tex', u'cbcbeat Documentation',
+   u'cbcbeat-authors', 'manual'),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
@@ -279,8 +279,8 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    ('index', 'beatadjoint', u'beatadjoint Documentation',
-     [u'beatadjoint-authors'], 1)
+    ('index', 'cbcbeat', u'cbcbeat Documentation',
+     [u'cbcbeat-authors'], 1)
 ]
 
 # If true, show URL addresses after external links.
@@ -293,8 +293,8 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-  ('index', 'beatadjoint', u'beatadjoint Documentation',
-   u'beatadjoint-authors', 'beatadjoint', 'One line description of project.',
+  ('index', 'cbcbeat', u'cbcbeat Documentation',
+   u'cbcbeat-authors', 'cbcbeat', 'One line description of project.',
    'Miscellaneous'),
 ]
 
@@ -314,13 +314,13 @@ texinfo_documents = [
 # -- Options for Epub output ----------------------------------------------
 
 # Bibliographic Dublin Core info.
-epub_title = u'beatadjoint'
-epub_author = u'beatadjoint-authors'
-epub_publisher = u'beatadjoint-authors'
-epub_copyright = u'2014, beatadjoint-authors'
+epub_title = u'cbcbeat'
+epub_author = u'cbcbeat-authors'
+epub_publisher = u'cbcbeat-authors'
+epub_copyright = u'2014, cbcbeat-authors'
 
 # The basename for the epub file. It defaults to the project name.
-#epub_basename = u'beatadjoint'
+#epub_basename = u'cbcbeat'
 
 # The HTML theme for the epub output. Since the default themes are not optimized
 # for small screen space, using the same theme for HTML and epub output is

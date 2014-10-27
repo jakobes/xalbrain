@@ -8,9 +8,9 @@ __all__ = []
 
 import pytest
 
-from beatadjoint.dolfinimport import Expression, Constant, UnitSquareMesh
-from beatadjoint import BidomainSolver, errornorm
-from beatadjoint.utils import convergence_rate
+from cbcbeat.dolfinimport import Expression, Constant, UnitSquareMesh
+from cbcbeat import BidomainSolver, errornorm
+from cbcbeat.utils import convergence_rate
 
 from testutils import medium
 

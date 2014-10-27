@@ -8,7 +8,7 @@ __all__ = ["TestMerger"]
 from testutils import fast, parametrize
 
 import numpy as np
-from beatadjoint import CardiacModel, \
+from cbcbeat import CardiacModel, \
         BasicSplittingSolver, SplittingSolver, \
         FitzHughNagumoManual, UnitCubeMesh
 

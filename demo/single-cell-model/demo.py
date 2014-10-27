@@ -1,6 +1,6 @@
 """
 This demo demonstrates how one can use the basic cell solver for the
-collection of cell models available in beatadjoint.
+collection of cell models available in cbcbeat.
 
 A single cell is considered with the initial conditions given by the
 model. A stimulus of 6.25 X is applied between for t in [2, 11], and
@@ -11,7 +11,7 @@ __author__ = "Marie E. Rognes (meg@simula.no), 2013"
 
 import math
 import pylab
-from beatadjoint import *
+from cbcbeat import *
 
 # For easier visualization of the variables
 parameters["reorder_dofs_serial"] = False

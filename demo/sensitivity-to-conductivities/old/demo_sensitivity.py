@@ -6,7 +6,7 @@ ventricles.
 __author__ = "Marie E. Rognes (meg@simula.no), 2012--2013"
 
 import math
-from beatadjoint import *
+from cbcbeat import *
 from demo import setup_application_parameters, setup_general_parameters
 from demo import setup_cardiac_model
 from demo import main as forward

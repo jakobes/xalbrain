@@ -9,7 +9,7 @@ __all__ = []
 # Modified by Marie E. Rognes, 2014
 
 from dolfin import *
-from beatadjoint import *
+from cbcbeat import *
 import numpy
 set_log_level(PROGRESS)
 
@@ -124,11 +124,11 @@ def setup_model(cellmodel, domain):
         domains.set_marker((cell.index(), stim_marker), dim)
 
     # Define stimulation (NB: region of interest carried by the mesh
-    # and assumptions in beatadjoint)
+    # and assumptions in cbcbeat)
     stimulation_protocol_duration = 2. # ms
     A = 50000. # mu A/cm^3
     cm2mm = 10.
-    factor = 1.0/(chi*C_m) # NB: beatadjoint convention
+    factor = 1.0/(chi*C_m) # NB: cbcbeat convention
     stimulation_protocol_amplitude = factor*A*(1./cm2mm)**3 # mV/ms
     stim = Expression("time >= start ? (time <= (duration + start) ? amplitude : 0.0) : 0.0",
                       time=time,
@@ -210,7 +210,7 @@ def run_splitting_solver(domain, dt, T, theta=1.0):
     v_pvd << v_tmp
 
     # Solve
-    total = Timer("Total beatadjoint solver time")
+    total = Timer("Total cbcbeat solver time")
     for (timestep, (vs_, vs, vur)) in solutions:
         print "Solving on %s" % str(timestep)
 

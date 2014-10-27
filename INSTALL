@@ -1,7 +1,7 @@
 Installation:
 -------------
 
-beatadjoint can be installed as any other Python module using
+cbcbeat can be installed as any other Python module using
 distutils:
 
 For system-wise install do:
@@ -32,7 +32,7 @@ located under test/:
 Dependencies:
 -------------
 
-beatadjoint depends in particular on the following software components
+cbcbeat depends in particular on the following software components
 
 * The FEniCS Project software: www.fenicsproject.org
 

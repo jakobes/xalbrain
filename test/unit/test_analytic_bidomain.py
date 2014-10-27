@@ -9,13 +9,13 @@ __all__ = []
 
 import pytest
 
-from beatadjoint import CardiacModel, NoCellModel
-from beatadjoint import BasicSplittingSolver
-from beatadjoint import Constant, UnitSquareMesh
-from beatadjoint import Function, Expression, errornorm
-from beatadjoint import dolfin_adjoint, adj_reset
+from cbcbeat import CardiacModel, NoCellModel
+from cbcbeat import BasicSplittingSolver
+from cbcbeat import Constant, UnitSquareMesh
+from cbcbeat import Function, Expression, errornorm
+from cbcbeat import dolfin_adjoint, adj_reset
 
-from beatadjoint.utils import convergence_rate
+from cbcbeat.utils import convergence_rate
 
 from testutils import slow
 

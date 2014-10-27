@@ -10,9 +10,9 @@ __all__ = ["TestBasicSingleCellSolver"]
 
 import pytest
 
-from beatadjoint import Expression, Constant, Parameters, dolfin_adjoint
-from beatadjoint import FitzHughNagumoManual, CardiacCellModel
-from beatadjoint import BasicSingleCellSolver
+from cbcbeat import Expression, Constant, Parameters, dolfin_adjoint
+from cbcbeat import FitzHughNagumoManual, CardiacCellModel
+from cbcbeat import BasicSingleCellSolver
 
 from testutils import slow
 

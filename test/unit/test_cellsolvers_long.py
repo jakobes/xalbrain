@@ -10,7 +10,7 @@ import numpy as np
 import os
 
 from dolfin import info_green, dof_to_vertex_map
-from beatadjoint import NoCellModel, FitzHughNagumoManual, Fitzhughnagumo, \
+from cbcbeat import NoCellModel, FitzHughNagumoManual, Fitzhughnagumo, \
         CardiacODESolver, \
         Tentusscher_2004_mcell, \
         UnitIntervalMesh, MPI, Constant, Expression, \

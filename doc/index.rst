@@ -1,9 +1,9 @@
-.. beatadjoint documentation master file, created by
+.. cbcbeat documentation master file, created by
    sphinx-quickstart on Fri Sep 12 10:27:56 2014.
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to beatadjoint's documentation!
+Welcome to cbcbeat's documentation!
 =======================================
 
 Contents:
@@ -12,7 +12,7 @@ Contents:
    :maxdepth: 2
 
    demo/demos
-   beatadjoint
+   cbcbeat
 
 
 Indices and tables

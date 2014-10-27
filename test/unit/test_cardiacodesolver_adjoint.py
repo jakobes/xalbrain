@@ -9,14 +9,14 @@ import pytest
 from testutils import assert_true, assert_greater, slow, \
         adjoint, cell_model, parametrize
 
-from beatadjoint.dolfinimport import UnitIntervalMesh, info_green
-from beatadjoint import CardiacODESolver, \
+from cbcbeat.dolfinimport import UnitIntervalMesh, info_green
+from cbcbeat import CardiacODESolver, \
         replay_dolfin, Control, \
         Constant, Expression, Function, Functional, \
         project, inner, assemble, dx, dt, FINISH_TIME, \
         parameters, compute_gradient_tlm, compute_gradient, \
         taylor_test, ConstantControl
-from beatadjoint.cellmodels import *
+from cbcbeat.cellmodels import *
 
 supported_schemes = ["ForwardEuler",
                      "BackwardEuler",

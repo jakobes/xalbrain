@@ -9,7 +9,7 @@ __all__ = ["TestSplittingSolverAdjoint"]
 from testutils import assert_greater, medium, slow, parametrize, adjoint
 
 from dolfin import info_green, set_log_level, INFO
-from beatadjoint import CardiacModel, \
+from cbcbeat import CardiacModel, \
     BasicSplittingSolver, SplittingSolver, \
     FitzHughNagumoManual, \
     Constant, Expression, UnitCubeMesh, \

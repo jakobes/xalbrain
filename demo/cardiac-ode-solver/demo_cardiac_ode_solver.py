@@ -3,7 +3,7 @@
 
 __author__ = "Marie E. Rognes (meg@simula.no), 2013"
 
-from beatadjoint import *
+from cbcbeat import *
 
 # For computing faster
 parameters["form_compiler"]["cpp_optimize"] = True
