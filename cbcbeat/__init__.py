@@ -16,6 +16,7 @@ from dolfinimport import *
 # Model imports
 from cbcbeat.cardiacmodels import CardiacModel
 from cbcbeat.cellmodels import *
+from cbcbeat.markerwisefield import *
 
 # Solver imports
 from cbcbeat.splittingsolver import BasicSplittingSolver
