@@ -34,7 +34,7 @@ for u.
 __all__ = ["BasicBidomainSolver", "BidomainSolver"]
 
 from dolfinimport import *
-from markerwisefield import *
+from cbcbeat.markerwisefield import *
 from cbcbeat.utils import end_of_time, annotate_kwargs
 
 class BasicBidomainSolver(object):
@@ -52,7 +52,7 @@ class BasicBidomainSolver(object):
        simulation.
 
     *Arguments*
-      domain (:py:class:`dolfin.Mesh`)
+      mesh (:py:class:`dolfin.Mesh`)
         The spatial domain (mesh)
 
       time (:py:class:`dolfin.Constant` or None)
@@ -83,19 +83,19 @@ class BasicBidomainSolver(object):
         Solver parameters
 
       """
-    def __init__(self, domain, time, M_i, M_e, I_s=None, I_a=None, v_=None,
+    def __init__(self, mesh, time, M_i, M_e, I_s=None, I_a=None, v_=None,
                  params=None):
 
         # Check some input
-        assert isinstance(domain, Mesh), \
-            "Expecting domain to be a Mesh instance, not %r" % domain
+        assert isinstance(mesh, Mesh), \
+            "Expecting mesh to be a Mesh instance, not %r" % mesh
         assert isinstance(time, Constant) or time is None, \
             "Expecting time to be a Constant instance (or None)."
         assert isinstance(params, Parameters) or params is None, \
             "Expecting params to be a Parameters instance (or None)"
 
         # Store input
-        self._domain = domain
+        self._mesh = mesh
         self._time = time
         self._M_i = M_i
         self._M_e = M_e
@@ -109,12 +109,12 @@ class BasicBidomainSolver(object):
 
         # Set-up function spaces
         k = self.parameters["polynomial_degree"]
-        V = FunctionSpace(self._domain, "CG", k)
-        U = FunctionSpace(self._domain, "CG", k)
+        V = FunctionSpace(self._mesh, "CG", k)
+        U = FunctionSpace(self._mesh, "CG", k)
 
         use_R = self.parameters["use_avg_u_constraint"]
         if use_R:
-            R = FunctionSpace(self._domain, "R", 0)
+            R = FunctionSpace(self._mesh, "R", 0)
             self.VUR = MixedFunctionSpace((V, U, R))
         else:
             self.VUR = MixedFunctionSpace((V, U))
@@ -249,12 +249,7 @@ class BasicBidomainSolver(object):
         self.time.assign(t)
 
         # Define spatial integration domains:
-        I_s = self._I_s
-        if isinstance(I_s, Markerwise):
-            markers = self._I_s.markers()
-            dz = Measure("dx", mesh=mesh, markers=markers)
-        else:
-            dz = dx()
+        (dz, rhs) = rhs_with_markerwise_field(self._I_s, self._mesh, w)
 
         theta_parabolic = (inner(M_i*grad(v_mid), grad(w))*dz()
                            + inner(M_i*grad(u), grad(w))*dz())
@@ -272,11 +267,7 @@ class BasicBidomainSolver(object):
 
         # Add applied stimulus as source in parabolic equation if
         # applicable
-        if isinstance(I_s, GenericFunction):
-            G -= I_s*w*dz()
-        else:
-            rhs = sum([I*w*dz(i) for (i, I) in zip(I_s.keys(), I_s.values())])
-            G -= rhs
+        G -= rhs
 
         # Define variational problem
         a, L = system(G)
@@ -311,11 +302,11 @@ class BasicBidomainSolver(object):
 class BidomainSolver(BasicBidomainSolver):
     __doc__ = BasicBidomainSolver.__doc__
 
-    def __init__(self, domain, time, M_i, M_e, I_s=None, I_a=None, v_=None,
+    def __init__(self, mesh, time, M_i, M_e, I_s=None, I_a=None, v_=None,
                  params=None):
 
         # Call super-class
-        BasicBidomainSolver.__init__(self, domain, time, M_i, M_e,
+        BasicBidomainSolver.__init__(self, mesh, time, M_i, M_e,
                                      I_s=I_s, I_a=I_a, v_=v_,
                                      params=params)
 
@@ -333,7 +324,7 @@ class BidomainSolver(BasicBidomainSolver):
 
         self._lhs_matrix = assemble(self._lhs, **self._annotate_kwargs)
 
-        self._rhs_vector = Vector(domain.mpi_comm(), self._lhs_matrix.size(0))
+        self._rhs_vector = Vector(mesh.mpi_comm(), self._lhs_matrix.size(0))
         self._lhs_matrix.init_vector(self._rhs_vector, 0)
 
         # Create linear solver (based on parameter choices)
@@ -512,7 +503,7 @@ class BidomainSolver(BasicBidomainSolver):
         # Check that applied current has average value zero
         # FIXME: MER says: Should this happen in each step??
         if self._I_a:
-            consistency = assemble(self._I_a*dx(self._domain))
+            consistency = assemble(self._I_a*dx(self._mesh))
             tolerance = 1.e-14
             assert (abs(consistency) < tolerance), \
                 "Inconsistency in system: \int I_a = %g != 0" % consistency
