@@ -40,7 +40,7 @@ class TestBasicSingleCellSolver:
 
         cell = FitzHughNagumoManual()
         time = Constant(0.0)
-        cell.stimulus = {0: Stimulus(time)}
+        cell.stimulus = Stimulus(time)
         solver = BasicSingleCellSolver(cell, time)
 
         # Setup initial condition
@@ -214,4 +214,3 @@ class TestBasicSingleCellSolver:
             pylab.title("Modified FitzHugh-Nagumo")
             pylab.plot(times_mod, v_values_mod, 'b*')
             pylab.plot(times_mod, s_values_mod, 'r-')
-

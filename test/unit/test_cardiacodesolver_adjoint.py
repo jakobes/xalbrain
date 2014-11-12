@@ -76,9 +76,9 @@ class TestCardiacODESolverAdjoint(object):
 
         # Initialize time and stimulus (note t=time construction!)
         time = Constant(0.0)
-        stim = {0: Expression("(time >= stim_start) && (time < stim_start + stim_duration)"
-                              " ? stim_amplitude : 0.0 ", time=time, stim_amplitude=52.0,
-                              stim_start=0.0, stim_duration=1.0, name="stim")}
+        stim = Expression("(time >= stim_start) && (time < stim_start + stim_duration)"
+                          " ? stim_amplitude : 0.0 ", time=time, stim_amplitude=52.0,
+                          stim_start=0.0, stim_duration=1.0, name="stim")
 
         # Initialize solver
         params = CardiacODESolver.default_parameters()

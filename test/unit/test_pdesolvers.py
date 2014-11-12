@@ -20,7 +20,7 @@ class TestBasicBidomainSolver(object):
         self.time = Constant(0.0)
 
         # Create stimulus
-        self.stimulus = {0:Expression("2.0")}
+        self.stimulus = Expression("2.0")
 
         # Create ac
         self.applied_current = Expression("sin(2*pi*x[0])*t", t=self.time)
@@ -87,7 +87,7 @@ class TestBasicMonodomainSolver(object):
         self.time = Constant(0.0)
 
         # Create stimulus
-        self.stimulus = {0:Expression("2.0")}
+        self.stimulus = Expression("2.0")
 
         # Create conductivity "tensors"
         self.M_i = 1.0
@@ -146,7 +146,7 @@ class TestBidomainSolver(object):
         self.time = Constant(0.0)
 
         # Create stimulus
-        self.stimulus = {0:Expression("2.0")}
+        self.stimulus = Expression("2.0")
 
         # Create ac
         self.applied_current = Expression("sin(2*pi*x[0])*t", t=self.time)
@@ -254,7 +254,7 @@ class TestMonodomainSolver(object):
         self.time = Constant(0.0)
 
         # Create stimulus
-        self.stimulus = {0:Expression("2.0")}
+        self.stimulus = Expression("2.0")
 
         # Create conductivity "tensors"
         self.M_i = 1.0

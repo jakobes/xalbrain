@@ -90,7 +90,7 @@ class TestCardiacODESolver(object):
 
         # Initialize time and stimulus (note t=time construction!)
         if stim is None:
-            stim = {0: Expression("1000*t", t=time)}
+            stim = Expression("1000*t", t=time)
 
         # Initialize solver
         mesh = UnitIntervalMesh(5)
