@@ -34,6 +34,7 @@ for u.
 __all__ = ["BasicBidomainSolver", "BidomainSolver"]
 
 from dolfinimport import *
+from markerwisefield import *
 from cbcbeat.utils import end_of_time, annotate_kwargs
 
 class BasicBidomainSolver(object):
@@ -97,16 +98,8 @@ class BasicBidomainSolver(object):
         self._domain = domain
         self._M_i = M_i
         self._M_e = M_e
-        self._I_s = I_s or {}
+        self._I_s = I_s
         self._I_a = I_a
-
-        # Check for stored mesh domains
-        self._sub_domains = {}
-        dim = domain.topology().dim()
-        for domain_dim in [0, dim]:
-            if domain.domains().num_marked(domain_dim):
-                self._sub_domains[domain_dim] = MeshFunction(\
-                    "size_t", domain, dim, domain.domains())
 
         # Create time if not given, otherwise use given time
         if time is None:
@@ -199,7 +192,7 @@ class BasicBidomainSolver(object):
         t0 = T0
         t1 = T0 + dt
 
-        # Step through time steps until at end time
+       # Step through time steps until at end time
         while (True) :
             info("Solving on t = (%g, %g)" % (t0, t1))
             self.step((t0, t1))
@@ -236,11 +229,6 @@ class BasicBidomainSolver(object):
 
         timer = Timer("PDE step")
 
-        dim = self._domain.topology().dim()
-        dxx = dx
-        if dim in self._sub_domains:
-            dxx = dxx[self._sub_domains[dim]]
-
         # Extract interval and thus time-step
         (t0, t1) = interval
         k_n = Constant(t1 - t0)
@@ -265,29 +253,35 @@ class BasicBidomainSolver(object):
         t = t0 + theta*(t1 - t0)
         self.time.assign(t)
 
-        theta_parabolic = (inner(M_i*grad(v_mid), grad(w))*dxx()
-                           + inner(M_i*grad(u), grad(w))*dxx())
-        theta_elliptic = (inner(M_i*grad(v_mid), grad(q))*dxx()
-                          + inner((M_i + M_e)*grad(u), grad(q))*dxx())
-        G = Dt_v*w*dxx() + theta_parabolic + theta_elliptic
+        # Define spatial integration domains:
+        I_s = self._I_s
+        if isinstance(I_s, Markerwise):
+            markers = self._I_s.markers()
+            dz = dx(mesh=mesh, markers=markers)
+        else:
+            dz = dx()
+
+        theta_parabolic = (inner(M_i*grad(v_mid), grad(w))*dz
+                           + inner(M_i*grad(u), grad(w))*dz)
+        theta_elliptic = (inner(M_i*grad(v_mid), grad(q))*dz
+                          + inner((M_i + M_e)*grad(u), grad(q))*dz)
+        G = Dt_v*w*dz + theta_parabolic + theta_elliptic
 
         if use_R:
-            G += (lamda*u + l*q)*dxx()
+            G += (lamda*u + l*q)*dz
 
         # Add applied current as source in elliptic equation if
         # applicable
         if self._I_a:
-            G -= self._I_a*q*dxx()
+            G -= self._I_a*q*dz
 
         # Add applied stimulus as source in parabolic equation if
         # applicable
-        # FIXME: domain == 0 the whole domain. Any better way to indicate a stimulus
-        # FIXME: for the whole domain?
-        for domain, I in self._I_s.items():
-            if domain == 0:
-                G -= I*w*dxx()
-            else:
-                G -= I*w*dxx(domain)
+        if isinstance(I_s, GenericFunction):
+            G -= I_s*w*dz
+        else:
+            rhs = sum([I*w*dz(i) for (i, I) in zip(I_s.keys(), I_s.values())])
+            G -= rhs
 
         # Define variational problem
         a, L = system(G)
@@ -451,12 +445,6 @@ class BidomainSolver(BasicBidomainSolver):
 
         """
 
-        # Check for cell domains
-        dim = self._domain.topology().dim()
-        dxx = dx
-        if dim in self._sub_domains:
-            dxx = dxx[self._sub_domains[dim]]
-
         # Extract theta parameter and conductivities
         theta = self.parameters["theta"]
         M_i = self._M_i
@@ -471,37 +459,41 @@ class BidomainSolver(BasicBidomainSolver):
              (v, u) = TrialFunctions(self.VUR)
              (w, q) = TestFunctions(self.VUR)
 
+        if isinstance(self._I_s, Markerwise):
+            markers = self._I_s.markers()
+            dz = dx(mesh=mesh, markers=markers)
+        else:
+            dz = dx()
+
         # Set-up variational problem
         Dt_v_k_n = (v - self.v_)
         v_mid = theta*v + (1.0 - theta)*self.v_
-        theta_parabolic = (inner(M_i*grad(v_mid), grad(w))*dxx()
-                           + inner(M_i*grad(u), grad(w))*dxx())
-        theta_elliptic = (inner(M_i*grad(v_mid), grad(q))*dxx()
-                          + inner((M_i + M_e)*grad(u), grad(q))*dxx())
+        theta_parabolic = (inner(M_i*grad(v_mid), grad(w))*dz
+                           + inner(M_i*grad(u), grad(w))*dz)
+        theta_elliptic = (inner(M_i*grad(v_mid), grad(q))*dz
+                          + inner((M_i + M_e)*grad(u), grad(q))*dz)
 
-        G = (Dt_v_k_n*w*dxx() + k_n*theta_parabolic + k_n*theta_elliptic)
+        G = (Dt_v_k_n*w*dz + k_n*theta_parabolic + k_n*theta_elliptic)
 
         if use_R:
-            G += k_n*(lamda*u + l*q)*dxx()
+            G += k_n*(lamda*u + l*q)*dz
 
         # Add applied current as source in elliptic equation if
         # applicable
         if self._I_a:
-            G -= k_n*self._I_a*q*dxx()
+            G -= k_n*self._I_a*q*dz
 
         # Add applied stimulus as source in parabolic equation if
         # applicable
-        # FIXME: domain == 0 the whole domain. Any better way to indicate a stimulus
-        # FIXME: for the whole domain?
-        for domain, I in self._I_s.items():
-            if domain == 0:
-                G -= k_n*I*w*dxx()
-            else:
-                G -= k_n*I*w*dxx(domain)
+        if isinstance(I_s, GenericFunction):
+            G -= I_s*w*dz
+        else:
+            rhs = sum([I*w*dz(i) for (i, I) in zip(I_s.keys(), I_s.values())])
+            G -= rhs
 
         # Define preconditioner based on educated(?) guess by Marie
-        prec = (v*w + k_n/2.0*inner(M_i*grad(v), grad(w)))*dxx()  \
-            + (u*q + k_n/2.0*inner((M_i + M_e)*grad(u), grad(q)))*dxx()
+        prec = (v*w + k_n/2.0*inner(M_i*grad(v), grad(w)))*dz  \
+            + (u*q + k_n/2.0*inner((M_i + M_e)*grad(u), grad(q)))*dz
 
         (a, L) = system(G)
         return (a, L, prec)

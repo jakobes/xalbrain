@@ -7,7 +7,7 @@ __all__ = ["BasicSingleCellSolver",
            "CardiacODESolver"]
 
 from dolfinimport import *
-from cbcbeat import CardiacCellModel
+from cbcbeat import CardiacCellModel, Markerwise, handle_markerwise
 from cbcbeat.utils import state_space, TimeStepper, splat
 
 class BasicCardiacODESolver(object):
@@ -39,7 +39,7 @@ class BasicCardiacODESolver(object):
        simulation.
 
     *Arguments*
-      domain (:py:class:`dolfin.Mesh`)
+      mesh (:py:class:`dolfin.Mesh`)
         The spatial domain (mesh)
 
       time (:py:class:`dolfin.Constant` or None)
@@ -57,37 +57,25 @@ class BasicCardiacODESolver(object):
         A (non-)linear lambda scalar function describing the evolution
         of the variable v
 
-      I_s (:py:class:`dict`, optional)
-        A typically time-dependent external stimulus given as a dict,
-        with domain markers as the key and a
-        :py:class:`dolfin.Expression` as values. NB: it is assumed
-        that the time dependence of I_s is encoded via the 'time'
-        Constant.
+      I_s (optional) A typically time-dependent external stimulus
+        given as a :py:class:`dolfin.GenericFunction` or a
+        Markerwise. NB: it is assumed that the time dependence of I_s
+        is encoded via the 'time' Constant.
 
       params (:py:class:`dolfin.Parameters`, optional)
         Solver parameters
 
     """
-    def __init__(self, domain, time, num_states, F, I_ion,
+    def __init__(self, mesh, time, num_states, F, I_ion,
                  I_s=None, params=None):
-
         # Store input
-        self._domain = domain
+        self._mesh = mesh
         self._num_states = num_states
         self._F = F
         self._I_ion = I_ion
-        self._I_s = I_s or {}
 
-        assert isinstance(self._I_s, dict), "expects a dict with domain markers as "\
-               "keys and stimulus expressions as values"
-
-        # Check for stored mesh domains
-        self._sub_domains = {}
-        dim = domain.topology().dim()
-        for domain_dim in [0, dim]:
-            if domain.domains().num_marked(domain_dim):
-                self._sub_domains[domain_dim] = MeshFunction(\
-                    "size_t", domain, dim, domain.domains())
+        # Handle stimulus
+        self._I_s = handle_markerwise(I_s, GenericFunction) or Constant(0.0)
 
         # Create time if not given, otherwise use given time
         if time is None:
@@ -107,11 +95,11 @@ class BasicCardiacODESolver(object):
         s_degree = self.parameters["S_polynomial_degree"]
 
         if (v_family == s_family and s_degree == v_degree):
-            self.VS = VectorFunctionSpace(self._domain, v_family, v_degree,
+            self.VS = VectorFunctionSpace(self._mesh, v_family, v_degree,
                                           dim=self._num_states+1)
         else:
-            V = FunctionSpace(self._domain, v_family, v_degree)
-            S = state_space(self._domain, self._num_states, s_family, s_degree)
+            V = FunctionSpace(self._mesh, v_family, v_degree)
+            S = state_space(self._mesh, self._num_states, s_family, s_degree)
             self.VS = V*S
 
         # Initialize solution fields
@@ -202,7 +190,6 @@ class BasicCardiacODESolver(object):
             # Yield solutions
             yield (t0, t1), self.vs
 
-            # FIXME Hake: This may possibly break in parallel!?
             self.vs_.assign(self.vs)
 
     def step(self, interval):
@@ -218,13 +205,10 @@ class BasicCardiacODESolver(object):
 
         timer = Timer("ODE step")
 
-        # Check for cell domains
-        dim = self._domain.topology().dim()
-        dxx = dx
-        if dim in self._sub_domains:
-            dxx = dxx[self._sub_domains[dim]]
+        # Check for cell meshs
+        dim = self._mesh.topology().dim()
 
-        # Extract time domain
+        # Extract time mesh
         (t0, t1) = interval
         k_n = Constant(t1 - t0)
 
@@ -250,25 +234,22 @@ class BasicCardiacODESolver(object):
         v_mid = theta*v + (1.0 - theta)*v_
         s_mid = theta*s + (1.0 - theta)*s_
 
-        # Note sign for I_theta
+        # Evaluate currents at averaged v and s. Note sign for I_theta
         F_theta = self._F(v_mid, s_mid, time=self.time)
         I_theta = - self._I_ion(v_mid, s_mid, time=self.time)
-        ## Note that if we only keep one time, then we cannot really use
-        ## the formulation below.
-        #F_theta = theta*self._F(v, s) + (1 - theta)*self._F(v_, s_)
-        #I_theta = - (theta*self._I_ion(v, s) + (1 - theta)*self._I_ion(v_, s_))
+
+        # Handle possible markerwise definition of the stimulus
+        I_s = self._I_s
+        if instance(I_s, Markerwise):
+            markers = self._I_s.markers()
+            dz = dx(mesh=mesh, markers=markers)
+            rhs = sum([I*w*dz(i) for (i, I) in zip(I_s.keys(), I_s.values())])
+        else:
+            dz = dx()
+            rhs = I_s*w*dz
 
         # Set-up system of equations
-        G = (Dt_v - I_theta)*w*dx + inner(Dt_s - F_theta, r)*dx
-
-        # Add stimulus (I_s) if applicable.
-        # FIXME: domain == 0 the whole domain. Any better way to indicate a stimulus
-        # FIXME: for the whole domain?
-        for domain, I in self._I_s.items():
-            if domain == 0:
-                G -= I*w*dxx()
-            else:
-                G -= I*w*dxx(domain)
+        G = (Dt_v - I_theta)*w*dz + inner(Dt_s - F_theta, r)*dz - rhs
 
         # Solve system
         pde = NonlinearVariationalProblem(G, self.vs, J=derivative(G, self.vs))
@@ -302,8 +283,8 @@ class CardiacODESolver(object):
        simulation.
 
     *Arguments*
-      domain (:py:class:`dolfin.Mesh`)
-        The spatial domain (mesh)
+      mesh (:py:class:`dolfin.Mesh`)
+        The spatial mesh (mesh)
 
       time (:py:class:`dolfin.Constant` or None)
         A constant holding the current time. If None is given, time is
@@ -329,11 +310,11 @@ class CardiacODESolver(object):
         Solver parameters
 
     """
-    def __init__(self, domain, time, num_states, F, I_ion,
+    def __init__(self, mesh, time, num_states, F, I_ion,
                  I_s=None, params=None):
 
         # Store input
-        self._domain = domain
+        self._mesh = mesh
         self._num_states = num_states
         self._F = F
         self._I_ion = I_ion
@@ -351,7 +332,7 @@ class CardiacODESolver(object):
             self.parameters.update(params)
 
         # Create (vector) function space for potential + states
-        self.VS = VectorFunctionSpace(self._domain, "CG", 1, dim=self._num_states+1)
+        self.VS = VectorFunctionSpace(self._mesh, "CG", 1, dim=self._num_states+1)
 
         # Initialize solution field
         self.vs_ = Function(self.VS, name="vs_")
@@ -363,11 +344,10 @@ class CardiacODESolver(object):
         self._rhs = (inner(self._F(v, s, self._time), q)
                      - inner(self._I_ion(v, s, self._time), w))*dP
 
-        # Add stimuli current
-        assert len(self._I_s) in [0,1], "Domains are not supported for "\
-               "PointIntegralSolver so we only accept one domain"
-        for I in self._I_s.values():
-            self._rhs += inner(I, w)*dP
+        # Handle stimulus: only handle single function case for now
+        msg = "Markerwise stimulus not supported by PointIntegralSolver."
+        assert isinstance(self._I_s, GenericFunction), msg
+        self._rhs += self._I_s*w*dP
 
         name = self.parameters["scheme"]
         Scheme = self._name_to_scheme(name)
@@ -430,14 +410,11 @@ class CardiacODESolver(object):
         # initial condition in vs_ to vs:
 
         timer = Timer("ODE step")
-
-        # FIXME: Shaky peformance in parallel?
         self.vs.assign(self.vs_)
 
         (t0, t1) = interval
         dt = t1 - t0
-        # FIXME: Honor the enable_adjoint here.
-        self._pi_solver.step(dt)#, annotate=self.parameters["enable_adjoint"])
+        self._pi_solver.step(dt)
 
     def solve(self, interval, dt=None):
         """
@@ -504,7 +481,7 @@ class BasicSingleCellSolver(BasicCardiacODESolver):
     :py:class:`dolfin.Expression` with parameter 't'.
 
     Use this solver if you just want to test the results from a
-    cardiac cell model without any spatial domain dependence.
+    cardiac cell model without any spatial mesh dependence.
 
     Here, this nonlinear ODE system is solved via a theta-scheme.  By
     default theta=0.5, which corresponds to a Crank-Nicolson
@@ -543,13 +520,13 @@ class BasicSingleCellSolver(BasicCardiacODESolver):
         # Store model
         self._model = model
 
-        # Define carefully chosen dummy domain
-        domain = UnitIntervalMesh(1)
+        # Define carefully chosen dummy mesh
+        mesh = UnitIntervalMesh(1)
 
         # Extract information from cardiac cell model and ship off to
         # super-class.
         BasicCardiacODESolver.__init__(self,
-                                       domain,
+                                       mesh,
                                        time,
                                        model.num_states(),
                                        model.F,

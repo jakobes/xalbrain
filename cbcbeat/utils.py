@@ -13,7 +13,6 @@ if dolfin_adjoint:
 else:
     from dolfin import assemble, LUSolver, KrylovSolver, parameters
 
-
 def annotate_kwargs(ba_parameters):
     if not dolfin_adjoint:
         return {}
@@ -23,7 +22,6 @@ def annotate_kwargs(ba_parameters):
         return {}
 
     return {"annotate": True}
-
 
 def splat(vs, dim):
 
