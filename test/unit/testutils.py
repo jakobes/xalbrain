@@ -12,12 +12,11 @@ from cbcbeat.utils import state_space
 fast = pytest.mark.fast
 medium = pytest.mark.medium
 slow = pytest.mark.slow
-
 adjoint = pytest.mark.adjoint
-
 parametrize = pytest.mark.parametrize
-supported_cell_models_str = [Model.__name__ for Model in supported_cell_models]
+disabled = pytest.mark.disabled
 
+# Assertions
 def assert_almost_equal(a, b, tolerance):
     c = a - b
     try:
@@ -26,25 +25,23 @@ def assert_almost_equal(a, b, tolerance):
         c_inf = numpy.linalg.norm(c, numpy.inf)
         assert c_inf < tolerance
 
-
 def assert_equal(a, b):
     assert a == b
-
 
 def assert_true(a):
     assert a is True
 
-
 def assert_greater(a, b):
     assert a > b
 
-
 # Fixtures
+supported_cell_models_str = [Model.__name__
+                             for Model in supported_cell_models]
+
 @pytest.fixture(params=supported_cell_models_str)
 def cell_model(request):
     Model = eval(request.param)
     return Model()
-
 
 @pytest.fixture(params=supported_cell_models_str)
 def ode_test_form(request):
