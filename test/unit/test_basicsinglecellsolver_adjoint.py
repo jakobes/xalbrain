@@ -35,7 +35,8 @@ def basic_single_cell_closure(theta, Model):
         # Initialize solver
         params = BasicSingleCellSolver.default_parameters()
         params["theta"] = theta
-        solver = BasicSingleCellSolver(model, None, params=params)
+        time = Constant(0.0)
+        solver = BasicSingleCellSolver(model, time, params=params)
 
         info_green("Running %s with theta %g" % (model, theta))
 
@@ -57,7 +58,8 @@ def basic_single_cell_closure(theta, Model):
 
         params = BasicSingleCellSolver.default_parameters()
         params["theta"] = theta
-        solver = BasicSingleCellSolver(model, None, params=params)
+        time = Constant(0.0)
+        solver = BasicSingleCellSolver(model, time, params=params)
 
         # Get initial conditions (Projection of expressions
         # don't get annotated, which is fine, because there is
@@ -92,7 +94,8 @@ def basic_single_cell_closure(theta, Model):
 
         params = BasicSingleCellSolver.default_parameters()
         params["theta"] = theta
-        solver = BasicSingleCellSolver(model, None, params=params)
+        time = Constant(0.0)
+        solver = BasicSingleCellSolver(model, time, params=params)
 
         # Get initial conditions (Projection of expressions
         # don't get annotated, which is fine, because there is
@@ -123,7 +126,8 @@ def basic_single_cell_closure(theta, Model):
 
         params = BasicSingleCellSolver.default_parameters()
         params["theta"] = theta
-        solver = BasicSingleCellSolver(model, None, params=params)
+        time = Constant(0.0)
+        solver = BasicSingleCellSolver(model, time, params=params)
 
         # Get initial conditions (Projection of expressions
         # don't get annotated, which is fine, because there is
