@@ -118,8 +118,8 @@ class BasicSplittingSolver:
             self.parameters.update(params)
 
         # Extract solution domain
-        self._domain = self._model.domain
-        self._time = self._model.time
+        self._domain = self._model.domain()
+        self._time = self._model.time()
 
         # Create ODE solver and extract solution fields
         self.ode_solver = self._create_ode_solver()
@@ -143,31 +143,34 @@ class BasicSplittingSolver:
         the cardiac model."""
 
         # Extract cardiac cell model from cardiac model
-        cell_model = self._model.cell_model()
+        cell_model = self._model.cell_models()
 
         # Extract stimulus from the cardiac model(!)
         if self.parameters.apply_stimulus_current_to_pde:
             stimulus = None
         else:
-            stimulus = self._model.stimulus
+            stimulus = self._model.stimulus()
 
         # Extract ode solver parameters
         params = self.parameters["BasicCardiacODESolver"]
         solver = BasicCardiacODESolver(self._domain, self._time,
                                        cell_model.num_states(),
-                                       cell_model.F, cell_model.I,
-                                       I_s=stimulus, params=params)
+                                       cell_model.F,
+                                       cell_model.I,
+                                       I_s=stimulus,
+                                       params=params)
         return solver
 
     def _create_pde_solver(self):
         """Helper function to initialize a suitable PDE solver from
         the cardiac model."""
 
-        # Extract applied current from the cardiac model (stimulus
-        # invoked in the ODE step)
+        # Extract applied current from the cardiac model
         applied_current = self._model.applied_current
 
-        # Extract stimulus from the cardiac model(!)
+        # Extract stimulus from the cardiac model if we should apply
+        # it to the PDEs (in the other case, it is handled by the ODE
+        # solver)
         if self.parameters.apply_stimulus_current_to_pde:
             stimulus = self._model.stimulus
         else:
@@ -418,19 +421,21 @@ class SplittingSolver(BasicSplittingSolver):
         the cardiac model."""
 
         # Extract cardiac cell model from cardiac model
-        cell_model = self._model.cell_model()
+        cell_model = self._model.cell_models()
 
         # Extract stimulus from the cardiac model(!)
         if self.parameters.apply_stimulus_current_to_pde:
             stimulus = None
         else:
-            stimulus = self._model.stimulus
+            stimulus = self._model.stimulus()
 
         Solver = eval(self.parameters["ode_solver_choice"])
         solver = Solver(self._domain, self._time,
                         cell_model.num_states(),
-                        cell_model.F, cell_model.I,
-                        I_s=stimulus, params=self.parameters[Solver.__name__])
+                        cell_model.F,
+                        cell_model.I,
+                        I_s=stimulus,
+                        params=self.parameters[Solver.__name__])
 
         return solver
 

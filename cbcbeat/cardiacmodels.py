@@ -6,12 +6,12 @@ scenarios.
 
 # Copyright (C) 2012 Marie E. Rognes (meg@simula.no)
 # Use and modify at will
-# Last changed: 2014-09-12
+# Last changed: 2014-11-12
 
 __all__ = ["CardiacModel"]
 
-
-from dolfinimport import Parameters, Mesh, Constant
+from dolfinimport import Parameters, Mesh, Constant, GenericFunction, error
+from markerwisefield import Markerwise, handle_markerwise
 from cellmodels import *
 
 # ------------------------------------------------------------------------------
@@ -52,52 +52,51 @@ class CardiacModel(object):
         Constant.
       applied_current (:py:class:`ufl.Expr`, optional)
         an applied current as an ufl Expression
-      cell_model_domains (:py:class:`dolfin.MeshFunction`, optional)
-        a mesh function mapping what domain a certain cell model is associated with
 
     """
-    def __init__(self, domain, time, M_i, M_e, cell_models, stimulus=None,
-                 applied_current=None, cell_model_domains=None):
+    def __init__(self, domain, time, M_i, M_e, cell_models,
+                 stimulus=None, applied_current=None):
         "Create CardiacModel from given input."
 
-        # Check some input
-        assert isinstance(domain, Mesh), \
-            "Expecting domain to be a Mesh instance, not %r" % domain
-        assert isinstance(time, Constant) or time is None, \
-            "Expecting time to be a Constant instance (or None)."
+        self._handle_input(domain, time, M_i, M_e, cell_models,
+                           stimulus, applied_current)
 
-        if isinstance(cell_models, dict):
-            if not all(isinstance(key, int) for key in cell_models):
-                raise TypeError("Expected keys on cell_models to be integers")
-            if len(cell_models) == 1:
-                cell_models = {None:cell_models.values()[0]}
-        else:
-            cell_models = {None:cell_models}
+    def _handle_input(self, domain, time, M_i, M_e, cell_models,
+                      stimulus=None, applied_current=None):
 
-        # if no cell_model domains is passed we also expect only one cell_model
-        if cell_model_domains is None and (len(cell_models) > 1 or \
-                                           cell_models.keys()[0] is not None):
-            raise ValueError("When no cell_model_domains are given we only "\
-                             "expect one cell model")
-
-        # Store attributes
+        # Check input and store attributes
+        msg = "Expecting domain to be a Mesh instance, not %r" % domain
+        assert isinstance(domain, Mesh), msg
         self._domain = domain
+
+        msg = "Expecting time to be a Constant instance, not %r." % time
+        assert isinstance(time, Constant) or time is None, msg
         self._time = time
+
         self._intracellular_conductivity = M_i
         self._extracellular_conductivity = M_e
-        self._cell_models = cell_models
-        self._stimulus = stimulus
-        self._applied_current = applied_current
-        self._cell_model_domains = cell_model_domains
 
-    @property
+        # Handle cell_models
+        self._cell_models = handle_markerwise(cell_models, CardiacCellModel)
+        if isinstance(self._cell_models, Markerwise):
+            msg = "Different cell_models are currently not supported."
+            error(msg)
+
+        # Handle stimulus
+        self._stimulus = handle_markerwise(stimulus, GenericFunction)  \
+                         or Constant(0.0)
+
+        # Handle applied current
+        ac = applied_current
+        self._applied_current = handle_markerwise(ac, GenericFunction) \
+                                or Constant(0.0)
+
     def applied_current(self):
-        "An applied current (:py:class:`ufl.Expr`)"
+        "An applied current: used as a source in the elliptic bidomain equation"
         return self._applied_current
 
-    @property
     def stimulus(self):
-        "A stimulus (:py:class:`ufl.Expr`)"
+        "A stimulus: used as a source in the parabolic bidomain equation"
         return self._stimulus
 
     def conductivities(self):
@@ -110,36 +109,22 @@ class CardiacModel(object):
         return (self.intracellular_conductivity,
                 self.extracellular_conductivity)
 
-    @property
     def intracellular_conductivity(self):
         "The intracellular conductivity (:py:class:`ufl.Expr`)."
         return self._intracellular_conductivity
 
-    @property
     def extracellular_conductivity(self):
         "The intracellular conductivity (:py:class:`ufl.Expr`)."
         return self._extracellular_conductivity
 
-    @property
     def time(self):
         "The current time (:py:class:`dolfin.Constant` or None)."
         return self._time
 
-    @property
     def domain(self):
         "The spatial domain (:py:class:`dolfin.Mesh`)."
         return self._domain
 
-    def cell_model(self, domain=None):
-        "The cell model (:py:class:`~cbcbeat.cellmodels.cardiaccellmodel.CardiacCellModel`)."
-        return self._cell_models[domain]
-
-    @property
     def cell_models(self):
-        "The cell model (:py:class:`dict`)."
+        "Return the cell models"
         return self._cell_models
-
-    @property
-    def cell_model_domains(self):
-        "The cell model domains (:py:class:``dolfin.MeshFunction``)."
-        return self._cell_model_domains

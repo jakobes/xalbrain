@@ -1,13 +1,23 @@
 # Copyright (C) 2014 Marie E. Rognes (meg@simula.no)
 # Use and modify at will
-# Last changed: 2014-11-02
+# Last changed: 2014-11-12
 
-__all__ = ["MarkerwiseField"]
+__all__ = ["Markerwise", "handle_markerwise"]
 
+def handle_markerwise(g, classtype):
+    # Handle stimulus
+    if (g is None \
+        or isinstance(g, classtype) \
+        or isinstance(g, Markerwise)):
+        return g
+    else:
+        msg = "Expecting stimulus to be a %s or Markerwise, not %r " \
+              % (str(classtype), g)
+        error(msg)
 
-class MarkerwiseField(object):
-    """A container class representing a function defined by a number of
-    function combined with a mesh function defining mesh domains and a
+class Markerwise(object):
+    """A container class representing an object defined by a number of
+    objects combined with a mesh function defining mesh domains and a
     map between the these.
 
     Example: Given (g0, g1), (2, 5) and markers, let
@@ -16,42 +26,40 @@ class MarkerwiseField(object):
       g = g1 on domains marked by 5 in markers
 
     *Arguments*
-      functions (tuple of :py:class:`dolfin.GenericFunction`)
-        the different functions
+      objects (tuple)
+        the different objects
       keys (tuple of ints)
-        a map from the functions to the domains marked in markers
+        a map from the objects to the domains marked in markers
       markers (:py:class:`dolfin.MeshFunction`)
         a mesh function mapping which domains the mesh consist of
 
     """
-
-    def __init__(self, functions, keys, markers):
-        "Create MarkerwiseField from given input."
+    def __init__(self, objects, keys, markers):
+        "Create Markerwise from given input."
 
         # Check input
-        assert len(functions) == len(keys), \
-            "Expecting the number of functions to equal the number of keys"
+        assert len(objects) == len(keys), \
+            "Expecting the number of objects to equal the number of keys"
 
         # Store attributes:
-        self._functions = functions
-        self._keys = keys
+        self._objects = dict(zip(keys, objects))
         self._markers = markers
 
-    @property
-    def functions(self):
-        "The functions"
-        return self._functions
+    def values(self):
+        "The objects"
+        return self._objects.values()
 
-    @property
     def keys(self):
         "The keys or domain numbers"
-        return self._keys
+        return self._objects.keys()
 
-    @property
     def markers(self):
         "The markers"
         return self._markers
 
+    def __getitem__(self, key):
+        "The objects"
+        return self._objects[key]
 
 if __name__ == "__main__":
 
@@ -69,6 +77,9 @@ if __name__ == "__main__":
     domain = SampleDomain()
     domain.mark(markers, 5)
 
-    g = MarkerwiseField((g1, g5), (1, 5), markers)
+    g = Markerwise((g1, g5), (1, 5), markers)
 
-    plot(markers, interactive=True)
+    plot(g.markers())
+    for v in g.values():
+        plot(v, mesh=mesh)
+    interactive()
