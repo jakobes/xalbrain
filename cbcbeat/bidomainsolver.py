@@ -457,7 +457,7 @@ class BidomainSolver(BasicBidomainSolver):
                           + inner((M_i + M_e)*grad(u), grad(q))*dz())
 
         G = (Dt_v_k_n*w*dz() + k_n*theta_parabolic + k_n*theta_elliptic
-             - rhs)
+             - k_n*rhs)
 
         if use_R:
             G += k_n*(lamda*u + l*q)*dz()

@@ -4,7 +4,7 @@
 
 __all__ = ["Markerwise", "handle_markerwise", "rhs_with_markerwise_field"]
 
-from dolfin import dx, Measure
+from dolfinimport import dx, Measure
 
 def handle_markerwise(g, classtype):
     # Handle stimulus
@@ -19,15 +19,15 @@ def handle_markerwise(g, classtype):
 
 def rhs_with_markerwise_field(g, mesh, v):
     if g is None:
-        dz = dx()
+        dz = dx
         rhs = 0.0
     elif isinstance(g, Markerwise):
         markers = g.markers()
-        dz = Measure("dx", mesh=mesh, markers=markers)
+        dz = Measure("dx", domain=mesh, markers=markers)
         rhs = sum([g*v*dz(i) for (i, g) in zip(g.keys(), g.values())])
     else:
-        dz = dx()
-        rhs = g*v*dz
+        dz = dx
+        rhs = g*v*dz()
     return (dz, rhs)
 
 class Markerwise(object):
