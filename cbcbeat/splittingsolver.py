@@ -166,7 +166,7 @@ class BasicSplittingSolver:
         the cardiac model."""
 
         # Extract applied current from the cardiac model
-        applied_current = self._model.applied_current
+        applied_current = self._model.applied_current()
 
         # Extract stimulus from the cardiac model if we should apply
         # it to the PDEs (in the other case, it is handled by the ODE
@@ -445,7 +445,7 @@ class SplittingSolver(BasicSplittingSolver):
 
         # Extract applied current from the cardiac model (stimulus
         # invoked in the ODE step)
-        applied_current = self._model.applied_current
+        applied_current = self._model.applied_current()
 
         # Extract stimulus from the cardiac model(!)
         if self.parameters.apply_stimulus_current_to_pde:

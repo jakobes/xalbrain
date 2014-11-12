@@ -7,7 +7,8 @@ __all__ = ["BasicSingleCellSolver",
            "CardiacODESolver"]
 
 from dolfinimport import *
-from cbcbeat import CardiacCellModel, Markerwise, handle_markerwise
+from cbcbeat import CardiacCellModel
+from cbcbeat.markerwisefield import *
 from cbcbeat.utils import state_space, TimeStepper, splat
 
 class BasicCardiacODESolver(object):
@@ -64,24 +65,18 @@ class BasicCardiacODESolver(object):
 
       params (:py:class:`dolfin.Parameters`, optional)
         Solver parameters
-
     """
-    def __init__(self, mesh, time, num_states, F, I_ion,
-                 I_s=None, params=None):
+    def __init__(self, mesh, time, num_states, F, I_ion, I_s=None, params=None):
+
         # Store input
         self._mesh = mesh
+        self._time = time
         self._num_states = num_states
         self._F = F
         self._I_ion = I_ion
 
         # Handle stimulus
-        self._I_s = handle_markerwise(I_s, GenericFunction) or Constant(0.0)
-
-        # Create time if not given, otherwise use given time
-        if time is None:
-            self._time = Constant(0.0)
-        else:
-            self._time = time
+        self._I_s = handle_markerwise(I_s, GenericFunction)
 
         # Initialize and update parameters if given
         self.parameters = self.default_parameters()
@@ -181,7 +176,6 @@ class BasicCardiacODESolver(object):
         # Create timestepper
         time_stepper = TimeStepper(interval, dt, \
                                    annotate=self.parameters["enable_adjoint"])
-
         for t0, t1 in time_stepper:
 
             info_blue("Solving on t = (%g, %g)" % (t0, t1))
@@ -239,14 +233,7 @@ class BasicCardiacODESolver(object):
         I_theta = - self._I_ion(v_mid, s_mid, time=self.time)
 
         # Handle possible markerwise definition of the stimulus
-        I_s = self._I_s
-        if instance(I_s, Markerwise):
-            markers = self._I_s.markers()
-            dz = dx(mesh=mesh, markers=markers)
-            rhs = sum([I*w*dz(i) for (i, I) in zip(I_s.keys(), I_s.values())])
-        else:
-            dz = dx()
-            rhs = I_s*w*dz
+        (dz, rhs) = rhs_with_markerwise_field(self._I_s, self._mesh, w)
 
         # Set-up system of equations
         G = (Dt_v - I_theta)*w*dz + inner(Dt_s - F_theta, r)*dz - rhs
@@ -257,6 +244,7 @@ class BasicCardiacODESolver(object):
         solver_params = self.parameters["nonlinear_variational_solver"]
         solver.parameters.update(solver_params)
         solver.solve()
+
 
 class CardiacODESolver(object):
     """An optimised solver for systems of ODEs typically
@@ -332,7 +320,8 @@ class CardiacODESolver(object):
             self.parameters.update(params)
 
         # Create (vector) function space for potential + states
-        self.VS = VectorFunctionSpace(self._mesh, "CG", 1, dim=self._num_states+1)
+        self.VS = VectorFunctionSpace(self._mesh, "CG", 1,
+                                      dim=self._num_states+1)
 
         # Initialize solution field
         self.vs_ = Function(self.VS, name="vs_")
@@ -347,7 +336,7 @@ class CardiacODESolver(object):
         # Handle stimulus: only handle single function case for now
         msg = "Markerwise stimulus not supported by PointIntegralSolver."
         assert isinstance(self._I_s, GenericFunction), msg
-        self._rhs += self._I_s*w*dP
+        self._rhs += self._I_s*w*dP()
 
         name = self.parameters["scheme"]
         Scheme = self._name_to_scheme(name)
@@ -511,11 +500,11 @@ class BasicSingleCellSolver(BasicCardiacODESolver):
         "Create solver from given cell model and optional parameters."
 
         assert isinstance(model, CardiacCellModel), \
-            "Expecting CardiacCellModel as first argument to BasicSingleCellSolver, not %r" % model
-        #assert (isinstance(time, Constant) or time is None), \
-        #    "Expecting time to be a Constant instance (or None), not %r" % time
+            "Expecting model to be a CardiacCellModel, not %r" % model
+        assert (isinstance(time, Constant)), \
+            "Expecting time to be a Constant instance, not %r" % time
         assert isinstance(params, Parameters) or params is None, \
-            "Expecting params to be a Parameters instance (or None), not %r" % params
+            "Expecting params to be a Parameters (or None), not %r" % params
 
         # Store model
         self._model = model
@@ -531,5 +520,5 @@ class BasicSingleCellSolver(BasicCardiacODESolver):
                                        model.num_states(),
                                        model.F,
                                        model.I,
-                                       I_s=model.stimulus,
+                                       I_s=model.stimulus(),
                                        params=params)

@@ -2,7 +2,9 @@
 # Use and modify at will
 # Last changed: 2014-11-12
 
-__all__ = ["Markerwise", "handle_markerwise"]
+__all__ = ["Markerwise", "handle_markerwise", "rhs_with_markerwise_field"]
+
+from dolfin import dx, Measure
 
 def handle_markerwise(g, classtype):
     # Handle stimulus
@@ -14,6 +16,19 @@ def handle_markerwise(g, classtype):
         msg = "Expecting stimulus to be a %s or Markerwise, not %r " \
               % (str(classtype), g)
         error(msg)
+
+def rhs_with_markerwise_field(g, mesh, v):
+    if g is None:
+        dz = dx()
+        rhs = 0.0
+    elif isinstance(g, Markerwise):
+        markers = g.markers()
+        dz = Measure("dx", mesh=mesh, markers=markers)
+        rhs = sum([g*v*dz(i) for (i, g) in zip(g.keys(), g.values())])
+    else:
+        dz = dx()
+        rhs = g*v*dz
+    return (dz, rhs)
 
 class Markerwise(object):
     """A container class representing an object defined by a number of
