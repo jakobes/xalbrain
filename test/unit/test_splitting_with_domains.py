@@ -6,7 +6,7 @@ __author__ = "Marie E. Rognes (meg@simula.no), 2013"
 __all__ = ["TestSplittingSolver"]
 
 from testutils import fast
-from cbcbeat import *
+from cbcbeat import UnitCubeMesh, Constant, Expression, CardiacModel, FitzHughNagumoManual, SplittingSolver
 
 @fast
 def test_solver_with_domains():

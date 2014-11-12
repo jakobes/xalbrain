@@ -72,7 +72,7 @@ def run_monodomain_solver(mesh, dt, T, theta):
 
     # Define stimulation (NB: region of interest carried by the mesh
     # and assumptions in cbcbeat)
-    stimulation_protocol_duration = 2. # ms
+    stimulation_protocol_duration = dt # ms
     A = 50000. # mu A/cm^3
     cm2mm = 10.
     factor = 1.0/(chi*C_m) # NB: cbcbeat convention
