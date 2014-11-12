@@ -300,8 +300,8 @@ class TestMonodomainSolver(object):
             (v_, vur) = fields
         basic_monodomain_result = vur.vector().norm("l2")
 
-        print monodomain_result
-        print basic_monodomain_result
+        print "monodomain_result = ", monodomain_result
+        print "basic_monodomain_result = ", basic_monodomain_result
         assert_almost_equal(monodomain_result, basic_monodomain_result,
                                1e-13)
 

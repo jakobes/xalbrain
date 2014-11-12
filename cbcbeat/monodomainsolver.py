@@ -373,8 +373,8 @@ class MonodomainSolver(BasicMonodomainSolver):
         v_mid = theta*v + (1.0 - theta)*self.v_
 
         (dz, rhs) = rhs_with_markerwise_field(self._I_s, self._mesh, w)
-        theta_parabolic = inner(M_i*grad(v_mid), grad(w))*dz
-        G = Dt_v_k_n*w*dz + k_n*theta_parabolic - rhs
+        theta_parabolic = inner(M_i*grad(v_mid), grad(w))*dz()
+        G = Dt_v_k_n*w*dz + k_n*theta_parabolic - k_n*rhs
 
         # Define preconditioner based on educated(?) guess by Marie
         prec = (v*w + k_n/2.0*inner(M_i*grad(v), grad(w)))*dz
