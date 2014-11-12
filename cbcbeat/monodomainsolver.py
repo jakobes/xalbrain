@@ -289,18 +289,22 @@ class MonodomainSolver(BasicMonodomainSolver):
             update_routine = self._update_lu_solver
 
         elif solver_type == "iterative":
-
             # Preassemble preconditioner (will be updated if time-step
             # changes)
             debug("Preassembling preconditioner")
-            self._prec_matrix = assemble(self._prec, **self._annotate_kwargs)
-
             # Initialize KrylovSolver with matrix and preconditioner
             alg = self.parameters["algorithm"]
             prec = self.parameters["preconditioner"]
-            solver = KrylovSolver(alg, prec)
-            solver.parameters.update(self.parameters["krylov_solver"])
-            solver.set_operators(self._lhs_matrix, self._prec_matrix)
+            if self.parameters["use_custom_preconditioner"]:
+                self._prec_matrix = assemble(self._prec,
+                                             **self._annotate_kwargs)
+                solver = KrylovSolver(alg, prec)
+                solver.parameters.update(self.parameters["krylov_solver"])
+                solver.set_operators(self._lhs_matrix, self._prec_matrix)
+            else:
+                solver = KrylovSolver(alg, prec)
+                solver.parameters.update(self.parameters["krylov_solver"])
+                solver.set_operator(self._lhs_matrix)
 
             update_routine = self._update_krylov_solver
         else:
@@ -333,7 +337,8 @@ class MonodomainSolver(BasicMonodomainSolver):
         # Set default iterative solver choices (used if iterative
         # solver is invoked)
         params.add("algorithm", "cg")
-        params.add("preconditioner", "amg")
+        params.add("preconditioner", "jacobi")
+        params.add("use_custom_preconditioner", True)
 
         # Add default parameters from both LU and Krylov solvers
         params.add(LUSolver.default_parameters())
@@ -459,8 +464,9 @@ class MonodomainSolver(BasicMonodomainSolver):
                      **self._annotate_kwargs)
 
             # Reassemble preconditioner
-            assemble(self._prec, tensor=self._prec_matrix,
-                     **self._annotate_kwargs)
+            if self.parameters["use_custom_preconditioner"]:
+                assemble(self._prec, tensor=self._prec_matrix,
+                         **self._annotate_kwargs)
 
         # Set nonzero initial guess if it indeed is nonzero
         if (self.v.vector().norm("l2") > 1.e-12):
