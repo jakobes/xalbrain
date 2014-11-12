@@ -10,7 +10,7 @@ from testutils import fast, parametrize
 import numpy as np
 from cbcbeat import CardiacModel, \
         BasicSplittingSolver, SplittingSolver, \
-        FitzHughNagumoManual, UnitCubeMesh
+        FitzHughNagumoManual, UnitCubeMesh, Constant
 
 class TestMerger(object):
     "Test functionality for the splitting solvers."
@@ -37,8 +37,7 @@ class TestMerger(object):
         vs.vector()[:] = 2.0
         vur.vector()[:] = 1.0
         solver.merge(vs)
-        
+
         tol = 1e-13
         assert np.abs(vs.sub(0, deepcopy=1).vector().array()-1.0).max() < tol
         assert np.abs(vs.sub(1, deepcopy=1).vector().array()-2.0).max() < tol
-
