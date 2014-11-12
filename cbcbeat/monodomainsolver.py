@@ -28,6 +28,7 @@ assumes pure homogeneous Neumann boundary conditions for :math:`v`.
 __all__ = ["BasicMonodomainSolver", "MonodomainSolver"]
 
 from dolfinimport import *
+from cbcbeat.markerwisefield import *
 from cbcbeat.utils import end_of_time, annotate_kwargs
 
 class BasicMonodomainSolver(object):
@@ -45,7 +46,7 @@ class BasicMonodomainSolver(object):
        simulation.
 
     *Arguments*
-      domain (:py:class:`dolfin.Mesh`)
+      mesh (:py:class:`dolfin.Mesh`)
         The spatial domain (mesh)
 
       time (:py:class:`dolfin.Constant` or None)
@@ -70,35 +71,22 @@ class BasicMonodomainSolver(object):
         Solver parameters
 
       """
-    def __init__(self, domain, time, M_i, I_s=None, v_=None,
+    def __init__(self, mesh, time, M_i, I_s=None, v_=None,
                  params=None):
 
         # Check some input
-        assert isinstance(domain, Mesh), \
-            "Expecting domain to be a Mesh instance, not %r" % domain
+        assert isinstance(mesh, Mesh), \
+            "Expecting mesh to be a Mesh instance, not %r" % mesh
         assert isinstance(time, Constant) or time is None, \
             "Expecting time to be a Constant instance (or None)."
         assert isinstance(params, Parameters) or params is None, \
             "Expecting params to be a Parameters instance (or None)"
 
         # Store input
-        self._domain = domain
+        self._mesh = mesh
         self._M_i = M_i
-        self._I_s = I_s or {}
-
-        # Check for stored mesh domains
-        self._sub_domains = {}
-        dim = domain.topology().dim()
-        for domain_dim in [0, dim]:
-            if domain.domains().num_marked(domain_dim):
-                self._sub_domains[domain_dim] = MeshFunction(\
-                    "size_t", domain, dim, domain.domains())
-
-        # Create time if not given, otherwise use given time
-        if time is None:
-            self._time = Constant(0.0)
-        else:
-            self._time = time
+        self._I_s = I_s
+        self._time = time
 
         # Initialize and update parameters if given
         self.parameters = self.default_parameters()
@@ -107,7 +95,7 @@ class BasicMonodomainSolver(object):
 
         # Set-up function spaces
         k = self.parameters["polynomial_degree"]
-        V = FunctionSpace(self._domain, "CG", k)
+        V = FunctionSpace(self._mesh, "CG", k)
 
         self.V = V
 
@@ -210,11 +198,6 @@ class BasicMonodomainSolver(object):
           self.v in correct state at t1.
         """
 
-        dim = self._domain.topology().dim()
-        dxx = dx
-        if dim in self._sub_domains:
-            dxx = dxx[self._sub_domains[dim]]
-
         # Extract interval and thus time-step
         (t0, t1) = interval
         k_n = Constant(t1 - t0)
@@ -223,29 +206,19 @@ class BasicMonodomainSolver(object):
         # Extract conductivities
         M_i = self._M_i
 
-        # Define variational formulation
-        v = TrialFunction(self.V)
-        w = TestFunction(self.V)
-
-        Dt_v = (v - self.v_)/k_n
-        v_mid = theta*v + (1.0 - theta)*self.v_
-
         # Set time
         t = t0 + theta*(t1 - t0)
         self.time.assign(t)
 
-        theta_parabolic = inner(M_i*grad(v_mid), grad(w))*dxx()
-        G = Dt_v*w*dxx() + theta_parabolic
+        # Define variational formulation
+        v = TrialFunction(self.V)
+        w = TestFunction(self.V)
+        Dt_v = (v - self.v_)/k_n
+        v_mid = theta*v + (1.0 - theta)*self.v_
 
-        # Add applied stimulus as source in parabolic equation if
-        # applicable
-        # FIXME: domain == 0 the whole domain. Any better way to indicate a stimulus
-        # FIXME: for the whole domain?
-        for domain, I in self._I_s.items():
-            if domain == 0:
-                G -= I*w*dxx()
-            else:
-                G -= I*w*dxx(domain)
+        (dz, rhs) = rhs_with_markerwise_field(self._I_s, self._mesh, w)
+        theta_parabolic = inner(M_i*grad(v_mid), grad(w))*dz()
+        G = Dt_v*w*dz() + theta_parabolic - rhs
 
         # Define variational problem
         a, L = system(G)
@@ -279,10 +252,10 @@ class BasicMonodomainSolver(object):
 class MonodomainSolver(BasicMonodomainSolver):
     __doc__ = BasicMonodomainSolver.__doc__
 
-    def __init__(self, domain, time, M_i, I_s=None, v_=None, params=None):
+    def __init__(self, mesh, time, M_i, I_s=None, v_=None, params=None):
 
         # Call super-class
-        BasicMonodomainSolver.__init__(self, domain, time, M_i, I_s=I_s,
+        BasicMonodomainSolver.__init__(self, mesh, time, M_i, I_s=I_s,
                                        v_=v_, params=params)
 
         # Create variational forms
@@ -294,7 +267,7 @@ class MonodomainSolver(BasicMonodomainSolver):
         # changes)
         debug("Preassembling monodomain matrix (and initializing vector)")
         self._lhs_matrix = assemble(self._lhs, **self._annotate_kwargs)
-        self._rhs_vector = Vector(domain.mpi_comm(), self._lhs_matrix.size(0))
+        self._rhs_vector = Vector(mesh.mpi_comm(), self._lhs_matrix.size(0))
         self._lhs_matrix.init_vector(self._rhs_vector, 0)
 
         # Create linear solver (based on parameter choices)
@@ -387,12 +360,6 @@ class MonodomainSolver(BasicMonodomainSolver):
 
         """
 
-        # Check for cell domains
-        dim = self._domain.topology().dim()
-        dxx = dx
-        if dim in self._sub_domains:
-            dxx = dxx[self._sub_domains[dim]]
-
         # Extract theta parameter and conductivities
         theta = self.parameters["theta"]
         M_i = self._M_i
@@ -404,22 +371,13 @@ class MonodomainSolver(BasicMonodomainSolver):
         # Set-up variational problem
         Dt_v_k_n = (v - self.v_)
         v_mid = theta*v + (1.0 - theta)*self.v_
-        theta_parabolic = inner(M_i*grad(v_mid), grad(w))*dxx()
 
-        G = Dt_v_k_n*w*dxx() + k_n*theta_parabolic
-
-        # Add applied stimulus as source in parabolic equation if
-        # applicable
-        # FIXME: domain == 0 the whole domain. Any better way to indicate a stimulus
-        # FIXME: for the whole domain?
-        for domain, I in self._I_s.items():
-            if domain == 0:
-                G -= k_n*I*w*dxx()
-            else:
-                G -= k_n*I*w*dxx(domain)
+        (dz, rhs) = rhs_with_markerwise_field(self._I_s, self._mesh, w)
+        theta_parabolic = inner(M_i*grad(v_mid), grad(w))*dz
+        G = Dt_v_k_n*w*dz + k_n*theta_parabolic - rhs
 
         # Define preconditioner based on educated(?) guess by Marie
-        prec = (v*w + k_n/2.0*inner(M_i*grad(v), grad(w)))*dxx()
+        prec = (v*w + k_n/2.0*inner(M_i*grad(v), grad(w)))*dz
 
         (a, L) = system(G)
         return (a, L, prec)
