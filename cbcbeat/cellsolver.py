@@ -335,7 +335,6 @@ class CardiacODESolver(object):
 
         # Handle stimulus: only handle single function case for now
         msg = "Markerwise stimulus not supported by PointIntegralSolver."
-        print "self._I_s = ", self._I_s
         assert (not isinstance(self._I_s, Markerwise)), msg
         if self._I_s:
             self._rhs += self._I_s*w*dP()
