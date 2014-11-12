@@ -414,7 +414,9 @@ class MonodomainSolver(BasicMonodomainSolver):
         self._update_solver(timestep_unchanged, dt)
 
         # Assemble right-hand-side
+        timer = Timer("Assemble rhs")
         assemble(self._rhs, tensor=self._rhs_vector, **self._annotate_kwargs)
+        del timer
 
         # Solve problem
         self.linear_solver.solve(self.v.vector(), self._rhs_vector,
@@ -469,6 +471,6 @@ class MonodomainSolver(BasicMonodomainSolver):
                          **self._annotate_kwargs)
 
         # Set nonzero initial guess if it indeed is nonzero
-        if (self.v.vector().norm("l2") > 1.e-12):
-            debug("Initial guess is non-zero.")
-            self.linear_solver.parameters["nonzero_initial_guess"] = True
+        #if (self.v.vector().norm("l2") > 1.e-12):
+        #    debug("Initial guess is non-zero.")
+        #    self.linear_solver.parameters["nonzero_initial_guess"] = True
