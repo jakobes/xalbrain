@@ -172,7 +172,7 @@ class BasicSplittingSolver:
         # it to the PDEs (in the other case, it is handled by the ODE
         # solver)
         if self.parameters.apply_stimulus_current_to_pde:
-            stimulus = self._model.stimulus
+            stimulus = self._model.stimulus()
         else:
             stimulus = None
 
@@ -447,9 +447,9 @@ class SplittingSolver(BasicSplittingSolver):
         # invoked in the ODE step)
         applied_current = self._model.applied_current()
 
-        # Extract stimulus from the cardiac model(!)
+        # Extract stimulus from the cardiac model
         if self.parameters.apply_stimulus_current_to_pde:
-            stimulus = self._model.stimulus
+            stimulus = self._model.stimulus()
         else:
             stimulus = None
 
