@@ -3,11 +3,12 @@ __all__ = []
 
 # Modified by Marie E. Rognes, 2014
 
-from dolfin import *
+#from dolfin import *
 from cbcbeat import *
 import numpy
-set_log_level(PROGRESS)
+#set_log_level(PROGRESS)
 
+#parameters["form_compiler"]["representation"] = "uflacs"
 parameters["form_compiler"]["cpp_optimize"] = True
 flags = ["-O3", "-ffast-math", "-march=native"]
 parameters["form_compiler"]["cpp_optimize_flags"] = " ".join(flags)
