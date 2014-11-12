@@ -522,5 +522,5 @@ class BasicSingleCellSolver(BasicCardiacODESolver):
                                        model.num_states(),
                                        model.F,
                                        model.I,
-                                       I_s=model.stimulus(),
+                                       I_s=model.stimulus,
                                        params=params)
