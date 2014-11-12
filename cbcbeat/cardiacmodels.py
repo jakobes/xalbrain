@@ -83,13 +83,11 @@ class CardiacModel(object):
             error(msg)
 
         # Handle stimulus
-        self._stimulus = handle_markerwise(stimulus, GenericFunction)  \
-                         or Constant(0.0)
+        self._stimulus = handle_markerwise(stimulus, GenericFunction)
 
         # Handle applied current
         ac = applied_current
-        self._applied_current = handle_markerwise(ac, GenericFunction) \
-                                or Constant(0.0)
+        self._applied_current = handle_markerwise(ac, GenericFunction)
 
     def applied_current(self):
         "An applied current: used as a source in the elliptic bidomain equation"
@@ -106,8 +104,8 @@ class CardiacModel(object):
         *Returns*
         (M_i, M_e) (:py:class:`tuple` of :py:class:`ufl.Expr`)
         """
-        return (self.intracellular_conductivity,
-                self.extracellular_conductivity)
+        return (self.intracellular_conductivity(),
+                self.extracellular_conductivity())
 
     def intracellular_conductivity(self):
         "The intracellular conductivity (:py:class:`ufl.Expr`)."

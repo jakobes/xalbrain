@@ -96,16 +96,11 @@ class BasicBidomainSolver(object):
 
         # Store input
         self._domain = domain
+        self._time = time
         self._M_i = M_i
         self._M_e = M_e
         self._I_s = I_s
         self._I_a = I_a
-
-        # Create time if not given, otherwise use given time
-        if time is None:
-            self._time = Constant(0.0)
-        else:
-            self._time = time
 
         # Initialize and update parameters if given
         self.parameters = self.default_parameters()
@@ -257,28 +252,28 @@ class BasicBidomainSolver(object):
         I_s = self._I_s
         if isinstance(I_s, Markerwise):
             markers = self._I_s.markers()
-            dz = dx(mesh=mesh, markers=markers)
+            dz = Measure("dx", mesh=mesh, markers=markers)
         else:
             dz = dx()
 
-        theta_parabolic = (inner(M_i*grad(v_mid), grad(w))*dz
-                           + inner(M_i*grad(u), grad(w))*dz)
-        theta_elliptic = (inner(M_i*grad(v_mid), grad(q))*dz
-                          + inner((M_i + M_e)*grad(u), grad(q))*dz)
-        G = Dt_v*w*dz + theta_parabolic + theta_elliptic
+        theta_parabolic = (inner(M_i*grad(v_mid), grad(w))*dz()
+                           + inner(M_i*grad(u), grad(w))*dz())
+        theta_elliptic = (inner(M_i*grad(v_mid), grad(q))*dz()
+                          + inner((M_i + M_e)*grad(u), grad(q))*dz())
+        G = Dt_v*w*dz() + theta_parabolic + theta_elliptic
 
         if use_R:
-            G += (lamda*u + l*q)*dz
+            G += (lamda*u + l*q)*dz()
 
         # Add applied current as source in elliptic equation if
         # applicable
         if self._I_a:
-            G -= self._I_a*q*dz
+            G -= self._I_a*q*dz()
 
         # Add applied stimulus as source in parabolic equation if
         # applicable
         if isinstance(I_s, GenericFunction):
-            G -= I_s*w*dz
+            G -= I_s*w*dz()
         else:
             rhs = sum([I*w*dz(i) for (i, I) in zip(I_s.keys(), I_s.values())])
             G -= rhs
@@ -459,41 +454,31 @@ class BidomainSolver(BasicBidomainSolver):
              (v, u) = TrialFunctions(self.VUR)
              (w, q) = TestFunctions(self.VUR)
 
-        if isinstance(self._I_s, Markerwise):
-            markers = self._I_s.markers()
-            dz = dx(mesh=mesh, markers=markers)
-        else:
-            dz = dx()
+        # Set-up measure and rhs from stimulus
+        (dz, rhs) = rhs_with_markerwise_field(self._I_s, mesh, w)
 
         # Set-up variational problem
         Dt_v_k_n = (v - self.v_)
         v_mid = theta*v + (1.0 - theta)*self.v_
-        theta_parabolic = (inner(M_i*grad(v_mid), grad(w))*dz
-                           + inner(M_i*grad(u), grad(w))*dz)
-        theta_elliptic = (inner(M_i*grad(v_mid), grad(q))*dz
-                          + inner((M_i + M_e)*grad(u), grad(q))*dz)
+        theta_parabolic = (inner(M_i*grad(v_mid), grad(w))*dz()
+                           + inner(M_i*grad(u), grad(w))*dz())
+        theta_elliptic = (inner(M_i*grad(v_mid), grad(q))*dz()
+                          + inner((M_i + M_e)*grad(u), grad(q))*dz())
 
-        G = (Dt_v_k_n*w*dz + k_n*theta_parabolic + k_n*theta_elliptic)
+        G = (Dt_v_k_n*w*dz() + k_n*theta_parabolic + k_n*theta_elliptic
+             - rhs)
 
         if use_R:
-            G += k_n*(lamda*u + l*q)*dz
+            G += k_n*(lamda*u + l*q)*dz()
 
         # Add applied current as source in elliptic equation if
         # applicable
         if self._I_a:
-            G -= k_n*self._I_a*q*dz
-
-        # Add applied stimulus as source in parabolic equation if
-        # applicable
-        if isinstance(I_s, GenericFunction):
-            G -= I_s*w*dz
-        else:
-            rhs = sum([I*w*dz(i) for (i, I) in zip(I_s.keys(), I_s.values())])
-            G -= rhs
+            G -= k_n*self._I_a*q*dz()
 
         # Define preconditioner based on educated(?) guess by Marie
-        prec = (v*w + k_n/2.0*inner(M_i*grad(v), grad(w)))*dz  \
-            + (u*q + k_n/2.0*inner((M_i + M_e)*grad(u), grad(q)))*dz
+        prec = (v*w + k_n/2.0*inner(M_i*grad(v), grad(w)))*dz()  \
+            + (u*q + k_n/2.0*inner((M_i + M_e)*grad(u), grad(q)))*dz()
 
         (a, L) = system(G)
         return (a, L, prec)
