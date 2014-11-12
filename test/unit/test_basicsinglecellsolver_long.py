@@ -165,7 +165,7 @@ class TestBasicSingleCellSolver:
                 from dolfin_adjoint import adj_reset
                 adj_reset()
 
-            solver = BasicSingleCellSolver(cell, None)
+            solver = BasicSingleCellSolver(cell, Constant(0.0))
 
             # Setup initial condition
             (vs_, vs) = solver.solution_fields()
