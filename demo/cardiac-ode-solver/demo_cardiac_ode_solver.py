@@ -9,10 +9,9 @@ from cbcbeat import *
 parameters["form_compiler"]["cpp_optimize"] = True
 flags = "-O3 -ffast-math -march=native"
 parameters["form_compiler"]["cpp_optimize_flags"] = flags
-parameters["form_compiler"]["quadrature_degree"] = 3
+parameters["form_compiler"]["quadrature_degree"] = 2
 
 # Choose your favorite solver here
-# FIXME: Replace this by CardiacODESolver when it works.
 Solver = BasicCardiacODESolver
 
 def forward():
@@ -25,17 +24,16 @@ def forward():
 
     # Choose your favorite cell model and extract some info
     model = Tentusscher_2004_mcell()
-    #model = FitzHughNagumoManual()
     num_states = model.num_states()
     F = model.F
     I = model.I
 
     # Add some forces
-    stimulus = {0:Expression("100*t", t=time)}
+    stimulus = Expression("100*t", t=time)
 
     params = Solver.default_parameters()
     if Solver == CardiacODESolver:
-        params["scheme"] = "RK4"
+        params["scheme"] = "CN"
     solver = Solver(mesh, time, num_states, F, I, I_s=stimulus, params=params)
 
     # Set-up initial conditions
@@ -70,14 +68,6 @@ def replay():
     else:
         info_green("Replay failed")
 
-def tangent_linear():
-    # FIXME
-    pass
-
-def adjoint():
-    # FIXME
-    pass
-
 if __name__ == "__main__":
 
     # Run forward model
@@ -85,9 +75,3 @@ if __name__ == "__main__":
 
     # Replay
     replay()
-
-    #
-    tangent_linear()
-
-    #
-    adjoint()

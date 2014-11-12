@@ -41,7 +41,7 @@ def main():
     #model = Fitzhughnagumo()
     #model = Tentusscher_2004_mcell()
     time = Constant(0.0)
-    model.stimulus = {0: Stimulus(time)}
+    model.stimulus = Stimulus(time)
 
     # Initialize solver
     params = BasicSingleCellSolver.default_parameters()

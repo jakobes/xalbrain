@@ -5,9 +5,10 @@ Unit tests for various types of bidomain solver
 __author__ = "Marie E. Rognes (meg@simula.no), 2013"
 __all__ = ["TestSplittingSolver"]
 
-from testutils import medium
+from testutils import fast
 from cbcbeat import *
 
+@fast
 def test_solver_with_domains():
 
     mesh = UnitCubeMesh(5, 5, 5)

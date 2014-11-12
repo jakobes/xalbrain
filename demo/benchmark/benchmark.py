@@ -57,8 +57,8 @@ class ActivationTimer(object):
         at_arr = self.activation_time.vector().array()
 
         for i, (act_time, pot) in enumerate(zip(at_arr, p_arr)):
-            # Identify points with first time activation 
-            if (act_time < self.init_value + DOLFIN_EPS and 
+            # Identify points with first time activation
+            if (act_time < self.init_value + DOLFIN_EPS and
                     pot > self.threshold + DOLFIN_EPS):
                 self.activation_time.vector()[i] = timestep
 
@@ -105,23 +105,13 @@ def setup_model(cellmodel, domain):
     M = define_conductivity_tensor(chi, C_m)
 
     # Define stimulation region defined as [0, L]^3
-    stim_marker = 1
+    stimulus_domain_marker = 1
     L = 1.5
-    stim_subdomain = StimSubDomain(L)
-    stim_domain = CellFunction("size_t", domain, 0)
-    stim_domain.set_all(0)
-    stim_subdomain.mark(stim_domain, stim_marker)
-    File("output/simulation_region.pvd") << stim_domain
-
-    # FIXME: MER: We are NOT going to attach domains to the
-    # mesh. Figure out a way to expose the right functionality. A
-    # possibly better way of doing this is to pass the mesh function
-    # into the solver(s).
-    # Mark domains in mesh with stim domains
-    domains = domain.domains()
-    dim = domain.topology().dim()
-    for cell in SubsetIterator(stim_domain, stim_marker):
-        domains.set_marker((cell.index(), stim_marker), dim)
+    stimulus_subdomain = StimSubDomain(L)
+    markers = CellFunction("size_t", domain, 0)
+    markers.set_all(0)
+    stimulus_subdomain.mark(markers, stimulus_domain_marker)
+    File("output/simulation_region.pvd") << markers
 
     # Define stimulation (NB: region of interest carried by the mesh
     # and assumptions in cbcbeat)
@@ -137,12 +127,13 @@ def setup_model(cellmodel, domain):
                       amplitude=stimulation_protocol_amplitude)
 
     # Store input parameters in cardiac model
-    heart = CardiacModel(domain, time, M, None, cellmodel, {1:stim})
+    I_s = Markerwise((stim,), (1,), markers)
+    heart = CardiacModel(domain, time, M, None, cellmodel, I_s)
 
     return heart
 
 def cell_model_initial_conditions():
-    """Return initial conditions specified in the Niederer benchmark 
+    """Return initial conditions specified in the Niederer benchmark
     for the ten Tuscher & Panfilov cell model. (Checked twice by SF and MER)"""
     ic = {"V": -85.23,       # mV
           "Xr1": 0.00621,
