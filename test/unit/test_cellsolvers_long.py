@@ -38,15 +38,6 @@ class TestCardiacODESolver(object):
                     "ESDIRK4": (0, -84.80004468281632),
                     },
 
-                   Fitzhughnagumo:
-                   {"BackwardEuler": (0, -84.70013280019053),
-                    "CrankNicolson": (0, -84.8000501607955),
-                    "ForwardEuler":  (0, -84.9),
-                    "RK4":  (0, -84.80004467770296),
-                    "ESDIRK3":  (0, -84.80004467770296),
-                    "ESDIRK4":  (0, -84.80004468281632),
-                    },
-
                    Tentusscher_2004_mcell:
                    {"BackwardEuler": (1, -85.89745525156506),
                     "CrankNicolson": (1, -85.99685674414921),
