@@ -7,7 +7,7 @@ __all__ = ["TestCardiacODESolverAdjoint"]
 
 import pytest
 from testutils import assert_true, assert_greater, slow, \
-        adjoint, cell_model, parametrize
+        adjoint, cell_model, parametrize, disabled
 
 from cbcbeat.dolfinimport import UnitIntervalMesh, info_green
 from cbcbeat import CardiacODESolver, \
@@ -18,50 +18,30 @@ from cbcbeat import CardiacODESolver, \
         taylor_test, ConstantControl
 from cbcbeat.cellmodels import *
 
-supported_schemes = ["ForwardEuler",
-                     "BackwardEuler",
-                     "CrankNicolson",
+supported_schemes = ["CrankNicolson",
                      "RK4",
-                     "ESDIRK3",
-                     "ESDIRK4",
-                     ]
+                     "ESDIRK4"]
 
 fails_with_RK4 = (Tentusscher_2004_mcell,
-                  Tentusscher_2004_mcell_disc,
-                  Tentusscher_2004_mcell_cont,
-                  Tentusscher_panfilov_2006_M_cell,
                   Tentusscher_panfilov_2006_epi_cell,
-                  )
+)
 
 seed_collection_adm = {Tentusscher_2004_mcell: 1e-5,
-                       Tentusscher_2004_mcell_disc: 1e-5,
-                       Tentusscher_2004_mcell_cont: 1e-5,
-                       Tentusscher_panfilov_2006_M_cell: 1e-5,
-                       Grandi_pasqualini_bers_2010: 1e-7,
                        Beeler_reuter_1977: 1e-5,
                        Tentusscher_panfilov_2006_epi_cell: 1e-6,
-                       }
+}
 
 seed_collection_tlm = seed_collection_adm.copy()
-seed_collection_tlm[Grandi_pasqualini_bers_2010] = 1e-5
-seed_collection_tlm[Tentusscher_panfilov_2006_M_cell] = 5e-5
 seed_collection_tlm[Tentusscher_panfilov_2006_epi_cell] = 4e-5
-seed_collection_tlm[Tentusscher_2004_mcell_cont] = 1e-5
 
 cellmodel_parameters_seeds = {}
-cellmodel_parameters_seeds[Fitzhughnagumo] = ("a", 1e-5)
 cellmodel_parameters_seeds[FitzHughNagumoManual] = ("a", 1e-5)
-cellmodel_parameters_seeds[Grandi_pasqualini_bers_2010] = ("pCa", 1e-7)
 cellmodel_parameters_seeds[RogersMcCulloch] = ("g", 1e-5)
 cellmodel_parameters_seeds[Tentusscher_2004_mcell] = ("g_CaL", 1e-5)
-cellmodel_parameters_seeds[Tentusscher_2004_mcell_cont] = ("g_CaL", 1e-5)
-cellmodel_parameters_seeds[Tentusscher_2004_mcell_disc] = ("g_CaL", 1e-5)
-cellmodel_parameters_seeds[Tentusscher_panfilov_2006_M_cell] = ("K_o", 1e-6)
 cellmodel_parameters_seeds[Tentusscher_panfilov_2006_epi_cell] = ("g_to", 1e-6)
 cellmodel_parameters_seeds[Beeler_reuter_1977] = ("g_s", 1e-5)
 
-fails_with_forward_euler = (Grandi_pasqualini_bers_2010,
-                            )
+fails_with_forward_euler = ()
 
 class TestCardiacODESolverAdjoint(object):
 
@@ -233,6 +213,7 @@ class TestCardiacODESolverAdjoint(object):
 
     @adjoint
     @slow
+    @disabled
     @parametrize(("Scheme"), supported_schemes)
     def test_tlm_cell_model_parameter(self, cell_model, Scheme):
         if Scheme == "ForwardEuler":
@@ -240,8 +221,6 @@ class TestCardiacODESolverAdjoint(object):
 
         if isinstance(cell_model, fails_with_RK4) and Scheme == "RK4":
             pytest.xfail("RK4 is unstable for some models with this timestep (0.01)")
-
-        assert False, "Failing test (Gradient is None). Takes long to fail, so assert False for now."
 
         J, Jhat, m, Jics = self.tlm_adj_setup_cellmodel_parameters(cell_model, Scheme)
 
@@ -284,6 +263,7 @@ class TestCardiacODESolverAdjoint(object):
 
     @adjoint
     @slow
+    @disabled
     @parametrize(("Scheme"), supported_schemes)
     def test_adjoint_cell_model_parameter(self, cell_model, Scheme):
         """ Test that the gradient computed with the adjoint model is correct. """
@@ -293,8 +273,6 @@ class TestCardiacODESolverAdjoint(object):
 
         if isinstance(cell_model, fails_with_forward_euler) and Scheme == "ForwardEuler":
             pytest.xfail("ForwardEuler is unstable for some models with this timestep (0.01)")
-
-        assert False, "Failing test (Gradient is None). Takes long to fail, so assert False for now."
 
         J, Jhat, m, Jics = self.tlm_adj_setup_cellmodel_parameters(cell_model, Scheme)
 

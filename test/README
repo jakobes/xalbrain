@@ -9,6 +9,10 @@ test suite can be run with:
 
   py.test
 
+but we recommend
+
+  py.test -m "not disabled" -v
+
 For quick testing, we recommend:
 
   py.test -m "not slow" -v
