@@ -48,10 +48,7 @@ def define_conductivity_tensor(chi, C_m):
 
     return M
 
-
 def run_monodomain_solver(mesh, dt, T, theta):
-
-    total = Timer("Total solver time")
 
     # Define time
     time = Constant(0.0)
@@ -89,8 +86,11 @@ def run_monodomain_solver(mesh, dt, T, theta):
     # Store input parameters in cardiac model
     I_s = Markerwise((stim,), (stimulus_domain_marker,), markers)
 
+    total = Timer("Total solver time")
+
     # Set-up solver
     ps = MonodomainSolver.default_parameters()
+    ps["default_timestep"] = dt
     ps["linear_solver_type"] = "iterative"
     ps["theta"] = theta
     ps["use_custom_preconditioner"] = True
