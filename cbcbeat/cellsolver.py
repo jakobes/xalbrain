@@ -306,7 +306,7 @@ class CardiacODESolver(object):
         self._num_states = num_states
         self._F = F
         self._I_ion = I_ion
-        self._I_s = I_s or {}
+        self._I_s = handle_markerwise(I_s, GenericFunction)
 
         # Create time if not given, otherwise use given time
         if time is None:
@@ -335,8 +335,10 @@ class CardiacODESolver(object):
 
         # Handle stimulus: only handle single function case for now
         msg = "Markerwise stimulus not supported by PointIntegralSolver."
-        assert isinstance(self._I_s, GenericFunction), msg
-        self._rhs += self._I_s*w*dP()
+        print "self._I_s = ", self._I_s
+        assert (not isinstance(self._I_s, Markerwise)), msg
+        if self._I_s:
+            self._rhs += self._I_s*w*dP()
 
         name = self.parameters["scheme"]
         Scheme = self._name_to_scheme(name)
