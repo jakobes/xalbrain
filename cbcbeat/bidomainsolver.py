@@ -123,9 +123,10 @@ class BasicBidomainSolver(object):
 
         # Set-up solution fields:
         if v_ is None:
+            self.merger = FunctionAssigner(self.VUR.sub(0), V)
             self.v_ = Function(V, name="v_")
         else:
-            debug("Experimental: v_ shipped from elsewhere.")
+            self.merger = None
             self.v_ = v_
         self.vur = Function(self.VUR, name="vur")
 
@@ -177,8 +178,6 @@ class BasicBidomainSolver(object):
             # do something with the solutions
         """
 
-        timer = Timer("PDE step")
-
         # Initial set-up
         # Solve on entire interval if no interval is given.
         (T0, T) = interval
@@ -202,8 +201,10 @@ class BasicBidomainSolver(object):
             # If not: update members and move to next time
             # Subfunction assignment would be good here.
             if isinstance(self.v_, Function):
-                v_tmp = project(self.vur[0], self.v_.function_space())
-                self.v_.assign(v_tmp)
+                self.merger.assign(self.vur.sub(0), self.v_)
+                #self.v_.assign(self.vur[0])
+            #    v_tmp = project(self.vur[0], self.v_.function_space())
+            #    self.v_.assign(v_tmp)
             else:
                 debug("Assuming that v_ is updated elsewhere. Experimental.")
             t0 = t1
@@ -277,6 +278,8 @@ class BasicBidomainSolver(object):
         solver = LinearVariationalSolver(pde)
         solver.parameters.update(self.parameters["linear_variational_solver"])
         solver.solve()
+
+        del timer
 
     @staticmethod
     def default_parameters():
@@ -403,8 +406,8 @@ class BidomainSolver(BasicBidomainSolver):
 
         # Set default iterative solver choices (used if iterative
         # solver is invoked)
-        params.add("algorithm", "gmres")
-        params.add("preconditioner", "amg")
+        params.add("algorithm", "cg")
+        params.add("preconditioner", "jacobi")
 
         # Add default parameters from both LU and Krylov solvers
         params.add(LUSolver.default_parameters())
@@ -446,7 +449,7 @@ class BidomainSolver(BasicBidomainSolver):
              (w, q) = TestFunctions(self.VUR)
 
         # Set-up measure and rhs from stimulus
-        (dz, rhs) = rhs_with_markerwise_field(self._I_s, mesh, w)
+        (dz, rhs) = rhs_with_markerwise_field(self._I_s, self._mesh, w)
 
         # Set-up variational problem
         Dt_v_k_n = (v - self.v_)
@@ -499,14 +502,6 @@ class BidomainSolver(BasicBidomainSolver):
         # Update matrix and linear solvers etc as needed
         timestep_unchanged = (abs(dt - float(self._timestep)) < 1.e-12)
         self._update_solver(timestep_unchanged, dt)
-
-        # Check that applied current has average value zero
-        # FIXME: MER says: Should this happen in each step??
-        if self._I_a:
-            consistency = assemble(self._I_a*dx(self._mesh))
-            tolerance = 1.e-14
-            assert (abs(consistency) < tolerance), \
-                "Inconsistency in system: \int I_a = %g != 0" % consistency
 
         # Assemble right-hand-side
         assemble(self._rhs, tensor=self._rhs_vector, **self._annotate_kwargs)
