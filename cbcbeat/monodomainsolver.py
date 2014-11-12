@@ -414,13 +414,14 @@ class MonodomainSolver(BasicMonodomainSolver):
         self._update_solver(timestep_unchanged, dt)
 
         # Assemble right-hand-side
-        timer = Timer("Assemble rhs")
+        timer0 = Timer("Assemble rhs")
         assemble(self._rhs, tensor=self._rhs_vector, **self._annotate_kwargs)
-        del timer
+        del timer0
 
         # Solve problem
         self.linear_solver.solve(self.v.vector(), self._rhs_vector,
                                  **self._annotate_kwargs)
+        timer.stop()
 
     def _update_lu_solver(self, timestep_unchanged, dt):
         """Helper function for updating an LUSolver depending on
