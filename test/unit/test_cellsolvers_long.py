@@ -63,7 +63,7 @@ class TestCardiacODESolver(object):
 
         # Initialize time and stimulus (note t=time construction!)
         if stim is None:
-            stim = {0:Expression("1000*t", t=time)}
+            stim = Expression("1000*t", t=time)
 
         # Initialize solver
         params = CardiacODESolver.default_parameters()
@@ -103,9 +103,9 @@ def closure_long_run(Scheme, dt_org, abs_tol, rel_tol):
         params = Model.default_parameters()
 
         time = Constant(0.0)
-        stim = {0:Expression("(time >= stim_start) && (time < stim_start + stim_duration)"\
+        stim = Expression("(time >= stim_start) && (time < stim_start + stim_duration)"\
                              " ? stim_amplitude : 0.0 ", time=time, stim_amplitude=52.0, \
-                             stim_start=1.0, stim_duration=1.0)}
+                             stim_start=1.0, stim_duration=1.0)
 
         # Initiate solver, with model and Scheme
         if dolfin_adjoint:
