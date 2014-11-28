@@ -123,9 +123,11 @@ class BasicBidomainSolver(object):
 
         # Set-up solution fields:
         if v_ is None:
+            self.merger = FunctionAssigner(V, self.VUR.sub(0))
             self.v_ = Function(V, name="v_")
         else:
             debug("Experimental: v_ shipped from elsewhere.")
+            self.merger = None
             self.v_ = v_
         self.vur = Function(self.VUR, name="vur")
 
@@ -201,8 +203,9 @@ class BasicBidomainSolver(object):
             # If not: update members and move to next time
             # Subfunction assignment would be good here.
             if isinstance(self.v_, Function):
-                v_tmp = project(self.vur[0], self.v_.function_space())
-                self.v_.assign(v_tmp)
+                self.merger.assign(self.v_, self.vur.sub(0))
+                #v_tmp = project(self.vur[0], self.v_.function_space())
+                #self.v_.assign(v_tmp)
             else:
                 debug("Assuming that v_ is updated elsewhere. Experimental.")
             t0 = t1
