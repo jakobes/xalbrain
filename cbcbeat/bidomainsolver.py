@@ -204,8 +204,6 @@ class BasicBidomainSolver(object):
             # Subfunction assignment would be good here.
             if isinstance(self.v_, Function):
                 self.merger.assign(self.v_, self.vur.sub(0))
-                #v_tmp = project(self.vur[0], self.v_.function_space())
-                #self.v_.assign(v_tmp)
             else:
                 debug("Assuming that v_ is updated elsewhere. Experimental.")
             t0 = t1
