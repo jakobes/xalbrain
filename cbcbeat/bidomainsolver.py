@@ -123,10 +123,9 @@ class BasicBidomainSolver(object):
 
         # Set-up solution fields:
         if v_ is None:
-            self.merger = FunctionAssigner(self.VUR.sub(0), V)
             self.v_ = Function(V, name="v_")
         else:
-            self.merger = None
+            debug("Experimental: v_ shipped from elsewhere.")
             self.v_ = v_
         self.vur = Function(self.VUR, name="vur")
 
@@ -177,6 +176,7 @@ class BasicBidomainSolver(object):
             v_, vur = solution_fields
             # do something with the solutions
         """
+        timer = Timer("PDE step")
 
         # Initial set-up
         # Solve on entire interval if no interval is given.
@@ -201,10 +201,8 @@ class BasicBidomainSolver(object):
             # If not: update members and move to next time
             # Subfunction assignment would be good here.
             if isinstance(self.v_, Function):
-                self.merger.assign(self.vur.sub(0), self.v_)
-                #self.v_.assign(self.vur[0])
-            #    v_tmp = project(self.vur[0], self.v_.function_space())
-            #    self.v_.assign(v_tmp)
+                v_tmp = project(self.vur[0], self.v_.function_space())
+                self.v_.assign(v_tmp)
             else:
                 debug("Assuming that v_ is updated elsewhere. Experimental.")
             t0 = t1
@@ -278,8 +276,6 @@ class BasicBidomainSolver(object):
         solver = LinearVariationalSolver(pde)
         solver.parameters.update(self.parameters["linear_variational_solver"])
         solver.solve()
-
-        del timer
 
     @staticmethod
     def default_parameters():
