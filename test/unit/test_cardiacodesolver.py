@@ -17,8 +17,10 @@ from cbcbeat.cellmodels import *
 
 
 supported_schemes = ["ForwardEuler", "BackwardEuler", "CrankNicolson",
-                     "RK4", "ESDIRK3", "ESDIRK4"]
+                     "RK4", "ESDIRK3", "ESDIRK4", "RL1", "RL2", "GRL1", "GRL2"]
+print [Model.__name__ for Model in supported_cell_models]
 supported_cell_models_str = [Model.__name__ for Model in supported_cell_models]
+#supported_cell_models_str = ["Tentusscher_2004_mcell"]
 
 class TestCardiacODESolver(object):
     """ Tests the cardiac ODE solver on different cell models. """
@@ -29,6 +31,10 @@ class TestCardiacODESolver(object):
                    {"BackwardEuler": (0, 0.3),
                     "CrankNicolson": (0, 0.2),
                     "ForwardEuler": (0, 0.1),
+                    "RL1": (0, 0.1),
+                    "RL2": (0, 0.2),
+                    "GRL1": (0, 0.1),
+                    "GRL2": (0, 0.2),
                     "RK4": (0, 0.2),
                     "ESDIRK3": (0, 0.2),
                     "ESDIRK4": (0, 0.2),
@@ -38,6 +44,10 @@ class TestCardiacODESolver(object):
                    {"BackwardEuler": (0, -84.70013280019053),
                     "CrankNicolson": (0, -84.80005016079546),
                     "ForwardEuler": (0, -84.9),
+                    "RL1": (0, -84.9),
+                    "RL2": (0, -84.80003356232497),
+                    "GRL1": (0, -84.90001689809608),
+                    "GRL2": (0, -84.8000834179),
                     "RK4": (0, -84.80004467770296),
                     "ESDIRK3": (0, -84.80004459269247),
                     "ESDIRK4": (0, -84.80004468281632),
@@ -47,6 +57,10 @@ class TestCardiacODESolver(object):
                    {"BackwardEuler": (0, -84.70013280019053),
                     "CrankNicolson": (0, -84.8000501607955),
                     "ForwardEuler":  (0, -84.9),
+                    "RL1": (0, -84.9),
+                    "RL2": (0, -84.80003356232497),
+                    "GRL1": (0, -84.90001689809608),
+                    "GRL2": (0, -84.8000834179),
                     "RK4":  (0, -84.80004467770296),
                     "ESDIRK3":  (0, -84.80004467770296),
                     "ESDIRK4":  (0, -84.80004468281632),
@@ -56,6 +70,10 @@ class TestCardiacODESolver(object):
                    {"BackwardEuler": (0, -85.89745525156506),
                     "CrankNicolson": (0, -85.99685674414921),
                     "ForwardEuler":  (0, -86.09643254164848),
+                    "RL1": (0, -86.09648383320031),
+                    "RL2": (0, -85.99673587692514),
+                    "GRL1": (0, -86.09661529223865),
+                    "GRL2": (0, -85.99710694560402),
                     "RK4":  (0, "nan"),
                     "ESDIRK3":  (0, -85.99681862337053),
                     "ESDIRK4":  (0, -85.99681796046603),
