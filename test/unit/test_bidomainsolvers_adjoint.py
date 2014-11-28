@@ -71,11 +71,12 @@ class TestBidomainSolversAdjoint(object):
         print("Running forward basic model")
 
         (vs_, vs) = self.solver.solution_fields()
+
         solutions = self.solver.solve((self.t0, self.t0 + self.T), self.dt)
 
         # Set initial conditions
         if ics is not None:
-            vs_.assign(ics)
+            vs_.interpolate(ics)
 
         # Solve
         for (interval, fields) in solutions:
