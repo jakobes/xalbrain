@@ -10,6 +10,7 @@ from dolfinimport import *
 from cbcbeat import CardiacCellModel
 from cbcbeat.markerwisefield import *
 from cbcbeat.utils import state_space, TimeStepper, splat
+import ufl.classes
 
 class BasicCardiacODESolver(object):
     """A basic, non-optimised solver for systems of ODEs typically
@@ -330,15 +331,34 @@ class CardiacODESolver(object):
         # Initialize scheme
         (v, s) = splat(self.vs, self._num_states+1)
         (w, q) = splat(TestFunction(self.VS), self._num_states+1)
-        self._rhs = (inner(self._F(v, s, self._time), q)
-                     - inner(self._I_ion(v, s, self._time), w))*dP
+
+        # Workaround to get algorithm in RL schemes working as it only
+        # works for scalar expressions
+        F_exprs = self._F(v, s, self._time)
+
+        # If we have a as_vector expression
+        F_exprs_q = zero()
+        if isinstance(F_exprs, ufl.classes.ListTensor):
+            for i, expr_i in enumerate(F_exprs.operands()):
+                F_exprs_q += expr_i*q[i]
+        else:
+            F_exprs_q = F_exprs*q
+            
+        #inner(self._I_ion(v, s, self._time), w)
+        rhs = F_exprs_q - self._I_ion(v, s, self._time)*w
 
         # Handle stimulus: only handle single function case for now
         msg = "Markerwise stimulus not supported by PointIntegralSolver."
         assert (not isinstance(self._I_s, Markerwise)), msg
         if self._I_s:
-            self._rhs += self._I_s*w*dP()
+            rhs += self._I_s*w
 
+        # FIXME: The application of dP was moved so adding an integral
+        # is done just once. Otherwise ufl could not figure out that
+        # we had only one integral...
+        self._rhs = rhs*dP()
+
+        #sys.exit()
         name = self.parameters["scheme"]
         Scheme = self._name_to_scheme(name)
         self._scheme = Scheme(self._rhs, self.vs, self._time)
