@@ -11,15 +11,14 @@ from testutils import assert_equal, fast, slow, \
 
 from cbcbeat.dolfinimport import info_green, info_red
 from cbcbeat import BasicBidomainSolver, BidomainSolver, \
-     BasicMonodomainSolver, MonodomainSolver,\
-     UnitCubeMesh, Constant, Expression, inner, dx, dt, \
-     assemble, parameters, Control, \
-     replay_dolfin, Functional, FINISH_TIME, \
-     compute_gradient_tlm, compute_gradient, \
-     taylor_test, Function
+        UnitCubeMesh, Constant, Expression, inner, dx, dt, \
+        assemble, parameters, Control, \
+        replay_dolfin, Functional, FINISH_TIME, \
+        compute_gradient_tlm, compute_gradient, \
+        taylor_test, Function
 
 
-class TestPDESolversAdjoint(object):
+class TestBidomainSolversAdjoint(object):
     """Test adjoint functionality for the basic bidomain solver."""
 
     def setup(self):
@@ -44,19 +43,14 @@ class TestPDESolversAdjoint(object):
         """Creates the bidomain solver."""
 
         # Create solver
-        Solver = eval(Solver)
         params = Solver.default_parameters()
 
-        kwargs = dict(I_s=self.stimulus, params=params)
-        args = [self.mesh, self.time, self.M_i]
         if Solver == BasicBidomainSolver:
             params.linear_variational_solver.linear_solver = \
                             "gmres" if solver_type == "iterative" else "lu"
             params.linear_variational_solver.krylov_solver.relative_tolerance = 1e-12
             params.linear_variational_solver.preconditioner = 'jacobi'
-            kwargs["I_a"] = self.applied_current
-            args.append(self.M_e)
-        elif Solver == BidomainSolver:
+        else:
             params.linear_solver_type = solver_type
             params.enable_adjoint = enable_adjoint
             if solver_type == "iterative":
@@ -66,21 +60,10 @@ class TestPDESolversAdjoint(object):
                     # solvers, the direct solver does not handle nullspaces consistently,
                     # i.e. the solution differes from solve to solve, and hence the Taylor
                     # testes would not pass.
-            kwargs["I_a"] = self.applied_current
-            args.append(self.M_e)
-        elif Solver == BasicMonodomainSolver:
-            params.linear_variational_solver.linear_solver = \
-                            "gmres" if solver_type == "iterative" else "lu"
-            params.linear_variational_solver.krylov_solver.relative_tolerance = 1e-12
-            params.linear_variational_solver.preconditioner = 'jacobi'
-            
-        elif Solver == MonodomainSolver:
-            params.linear_solver_type = solver_type
-            params.enable_adjoint = enable_adjoint
-            if solver_type == "iterative":
-                params.krylov_solver.relative_tolerance = 1e-12
 
-        self.solver = Solver(*args, **kwargs)
+        self.solver = Solver(self.mesh, self.time, self.M_i, self.M_e,
+                        I_s=self.stimulus,
+                        I_a=self.applied_current, params=params)
 
 
     def _solve(self, ics=None):
@@ -104,17 +87,12 @@ class TestPDESolversAdjoint(object):
     @adjoint
     @fast
     @parametrize(("Solver", "solver_type", "tol"), [
-        ("BasicBidomainSolver", "direct", 0.),
-        ("BasicBidomainSolver", "iterative", 0.),
-        ("BidomainSolver", "direct", 0.),
-        ("BidomainSolver", "iterative", 1e-10),
-        ("BasicMonodomainSolver", "direct", 0.),
-        ("BasicMonodomainSolver", "iterative", 1e-10),
-        ("MonodomainSolver", "direct", 0.),
-        ("MonodomainSolver", "iterative", 1e-10),
-        # NOTE: The replay is not exact because
-        # dolfin-adjoint's overloaded Krylov method is not constent with DOLFIN's
-        # (it orthogonalizes the rhs vector as an additional step)
+        (BasicBidomainSolver, "direct", 0.),
+        (BasicBidomainSolver, "iterative", 0.),
+        (BidomainSolver, "direct", 0.),
+        (BidomainSolver, "iterative", 1e-10),  # NOTE: The replay is not exact because
+            # dolfin-adjoint's overloaded Krylov method is not constent with DOLFIN's
+            # (it orthogonalizes the rhs vector as an additional step)
         ])
     def test_replay(self, Solver, solver_type, tol):
         "Test that replay of basic bidomain solver reports success."
@@ -156,14 +134,10 @@ class TestPDESolversAdjoint(object):
     @adjoint
     @slow
     @parametrize(("Solver", "solver_type"), [
-        ("BasicBidomainSolver", "direct"),
-        ("BasicBidomainSolver", "iterative"),
-        ("BidomainSolver", "iterative"),
-        ("BidomainSolver", "direct"),
-        ("BasicMonodomainSolver", "direct"),
-        ("BasicMonodomainSolver", "iterative"),
-        ("MonodomainSolver", "direct"),
-        ("MonodomainSolver", "iterative"),
+        (BasicBidomainSolver, "direct"),
+        (BasicBidomainSolver, "iterative"),
+        (BidomainSolver, "iterative"),
+        (BidomainSolver, "direct")
         ])
     def test_tlm(self, Solver, solver_type):
         """Test that tangent linear model of basic bidomain solver converges at 2nd order."""
@@ -179,17 +153,14 @@ class TestPDESolversAdjoint(object):
         # Check that minimal convergence rate is greater than some given number
         assert_greater(conv_rate_tlm, 1.9)
 
+
     @adjoint
     @slow
     @parametrize(("Solver", "solver_type"), [
-        ("BasicBidomainSolver", "direct"),
-        ("BasicBidomainSolver", "iterative"),
-        ("BidomainSolver", "iterative"),
-        ("BidomainSolver", "direct"),
-        ("BasicMonodomainSolver", "direct"),
-        ("BasicMonodomainSolver", "iterative"),
-        ("MonodomainSolver", "direct"),
-        ("MonodomainSolver", "iterative"),
+        (BasicBidomainSolver, "direct"),
+        (BasicBidomainSolver, "iterative"),
+        (BidomainSolver, "iterative"),
+        (BidomainSolver, "direct"),
         ])
     def test_adjoint(self, Solver, solver_type):
         """Test that adjoint model of basic bidomain solver converges at 2nd order."""

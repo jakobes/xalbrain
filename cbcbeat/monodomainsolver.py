@@ -27,7 +27,6 @@ assumes pure homogeneous Neumann boundary conditions for :math:`v`.
 
 __all__ = ["BasicMonodomainSolver", "MonodomainSolver"]
 
-import ufl
 from dolfinimport import *
 from cbcbeat.markerwisefield import *
 from cbcbeat.utils import end_of_time, annotate_kwargs
@@ -261,11 +260,16 @@ class MonodomainSolver(BasicMonodomainSolver):
 
         # Create variational forms
         self._timestep = Constant(self.parameters["default_timestep"])
+        (self._lhs, self._rhs, self._prec) \
+            = self.variational_forms(self._timestep)
 
-        # Preassemble left and right-hand side (will be updated if time-step
+        # Preassemble left-hand side (will be updated if time-step
         # changes)
-        self.assemble_basic_matrices_and_forms(self._timestep)
-        
+        debug("Preassembling monodomain matrix (and initializing vector)")
+        self._lhs_matrix = assemble(self._lhs, **self._annotate_kwargs)
+        self._rhs_vector = Vector(mesh.mpi_comm(), self._lhs_matrix.size(0))
+        self._lhs_matrix.init_vector(self._rhs_vector, 0)
+
         # Create linear solver (based on parameter choices)
         self._linear_solver, self._update_solver = self._create_linear_solver()
 
@@ -292,6 +296,8 @@ class MonodomainSolver(BasicMonodomainSolver):
             alg = self.parameters["algorithm"]
             prec = self.parameters["preconditioner"]
             if self.parameters["use_custom_preconditioner"]:
+                self._prec_matrix = assemble(self._prec,
+                                             **self._annotate_kwargs)
                 solver = KrylovSolver(alg, prec)
                 solver.parameters.update(self.parameters["krylov_solver"])
                 solver.set_operators(self._lhs_matrix, self._prec_matrix)
@@ -323,7 +329,6 @@ class MonodomainSolver(BasicMonodomainSolver):
         params.add("theta", 0.5)
         params.add("polynomial_degree", 1)
         params.add("default_timestep", 1.0)
-        params.add("mass_lumping", 0., 0., 1.0)
 
         # Set default solver type to be iterative
         params.add("linear_solver_type", "iterative")
@@ -347,83 +352,40 @@ class MonodomainSolver(BasicMonodomainSolver):
 
         return params
 
+    def variational_forms(self, k_n):
+        """Create the variational forms corresponding to the given
+        discretization of the given system of equations.
 
-    def assemble_basic_matrices_and_forms(self, k_n):
-        """
-        Assembles and store the system matrices of the given problem
-        """
-        debug("Preassembling monodomain matrix (and initializing vector)")
+        *Arguments*
+          k_n (:py:class:`ufl.Expr` or float)
+            The time step
 
-        # Extract conductivities
+        *Returns*
+          (lhs, rhs, prec) (:py:class:`tuple` of :py:class:`ufl.Form`)
+
+        """
+
+        # Extract theta parameter and conductivities
+        theta = self.parameters["theta"]
         M_i = self._M_i
 
         # Define variational formulation
         v = TrialFunction(self.V)
         w = TestFunction(self.V)
 
-        # Get integration domain and rhs form
-        (dz, rhs) = rhs_with_markerwise_field(self._I_s, self._mesh, w)
-
         # Set-up variational problem
-        parabolic = inner(M_i*grad(v), grad(w))*dz
-        
-        # Assemble stiffnes matrix
-        self._K = assemble(parabolic, **self._annotate_kwargs)
-        
-        # Assemble mass matrix
-        self._M = assemble(v*w*dz, **self._annotate_kwargs)
-        self._M_lumped =self._M.copy()
-        self._M_lumped.zero()
-        self._M_lumped.set_diagonal(assemble(action(v*w*dz, Constant(1)), \
-                                             **self._annotate_kwargs))
+        Dt_v_k_n = (v - self.v_)
+        v_mid = theta*v + (1.0 - theta)*self.v_
 
-        # Init rhs vector
-        self._rhs_vector = Vector(self._mesh.mpi_comm(), self._K.size(0))
-        self._K.init_vector(self._rhs_vector, 0)
+        (dz, rhs) = rhs_with_markerwise_field(self._I_s, self._mesh, w)
+        theta_parabolic = inner(M_i*grad(v_mid), grad(w))*dz()
+        G = Dt_v_k_n*w*dz + k_n*theta_parabolic - k_n*rhs
 
-        # Create stimulation form
+        # Define preconditioner based on educated(?) guess by Marie
+        prec = (v*w + k_n/2.0*inner(M_i*grad(v), grad(w)))*dz
 
-        # Add applied stimulus as source in parabolic equation if
-        # applicable
-        self._stim_form = k_n*rhs if isinstance(rhs, ufl.Form) else None
-
-        # Create basic matices
-        self._lhs_matrix =  self._M.copy()
-        self._rhs_matrix =  self._M.copy()
-        self._prec_matrix = self._M.copy()
-
-        # Update the linear system
-        self.update_linear_system(k_n)
-
-    def update_linear_system(self, k_n, update_prec=True):
-
-        mass_lumping = self.parameters["mass_lumping"]
-        theta = self.parameters["theta"]
-        
-        # Create lhs and rhs system matrices
-        self._lhs_matrix.zero()
-        if theta > DOLFIN_EPS:
-            self._lhs_matrix.axpy(theta*float(k_n), self._K, True)
-        if mass_lumping > DOLFIN_EPS:
-            self._lhs_matrix.axpy(mass_lumping, self._M_lumped, True)
-        if 1.-mass_lumping > DOLFIN_EPS:
-            self._lhs_matrix.axpy(1-mass_lumping, self._M, True)
-        
-        self._rhs_matrix.zero()
-        if 1.-theta > DOLFIN_EPS:
-            self._rhs_matrix.axpy(-(1.0-theta)*float(k_n), self._K, True)
-        if mass_lumping > DOLFIN_EPS:
-            self._rhs_matrix.axpy(mass_lumping, self._M_lumped, True)
-        if 1.-mass_lumping > DOLFIN_EPS:
-            self._rhs_matrix.axpy(1.-mass_lumping, self._M, True)
-
-        if update_prec and self.parameters["use_custom_preconditioner"]:
-            self._prec_matrix.zero()
-            self._prec_matrix.axpy(0.5*float(k_n), self._K, True)
-            if mass_lumping > DOLFIN_EPS:
-                self._prec_matrix.axpy(mass_lumping, self._M_lumped, True)
-            if 1-mass_lumping > DOLFIN_EPS:
-                self._prec_matrix.axpy(1-mass_lumping, self._M, True)
+        (a, L) = system(G)
+        return (a, L, prec)
 
     def step(self, interval):
         """
@@ -451,13 +413,10 @@ class MonodomainSolver(BasicMonodomainSolver):
         timestep_unchanged = (abs(dt - float(self._timestep)) < 1.e-12)
         self._update_solver(timestep_unchanged, dt)
 
-        # Compute right-hand-side
-        self._rhs_matrix.mult(self.v_.vector(), self._rhs_vector)
-
         # Assemble right-hand-side
-        if self._stim_form is not None:
-            assemble(self._stim_form, tensor=self._rhs_vector, add_values=True,
-                     **self._annotate_kwargs)
+        timer0 = Timer("Assemble rhs")
+        assemble(self._rhs, tensor=self._rhs_vector, **self._annotate_kwargs)
+        del timer0
 
         # Solve problem
         self.linear_solver.solve(self.v.vector(), self._rhs_vector,
@@ -481,9 +440,9 @@ class MonodomainSolver(BasicMonodomainSolver):
             # FIXME: dolfin_adjoint still can't annotate constant assignment.
             self._timestep.assign(Constant(dt))#, annotate=annotate)
 
-            # Update system matrices
-            self.update_linear_system(self._timestep, update_prec=False)
-
+            # Reassemble matrix
+            assemble(self._lhs, tensor=self._lhs_matrix,
+                     **self._annotate_kwargs)
 
     def _update_krylov_solver(self, timestep_unchanged, dt):
         """Helper function for updating a KrylovSolver depending on
@@ -503,10 +462,16 @@ class MonodomainSolver(BasicMonodomainSolver):
             # Update stored timestep
             self._timestep.assign(Constant(dt))
 
-            # Update system matrices
-            self.update_linear_system(self._timestep, update_prec=True)
+            # Reassemble matrix
+            assemble(self._lhs, tensor=self._lhs_matrix,
+                     **self._annotate_kwargs)
+
+            # Reassemble preconditioner
+            if self.parameters["use_custom_preconditioner"]:
+                assemble(self._prec, tensor=self._prec_matrix,
+                         **self._annotate_kwargs)
 
         # Set nonzero initial guess if it indeed is nonzero
-        if (self.v.vector().norm("l2") > 1.e-12):
-            debug("Initial guess is non-zero.")
-            self.linear_solver.parameters["nonzero_initial_guess"] = True
+        #if (self.v.vector().norm("l2") > 1.e-12):
+        #    debug("Initial guess is non-zero.")
+        #    self.linear_solver.parameters["nonzero_initial_guess"] = True
