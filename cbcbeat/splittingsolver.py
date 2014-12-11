@@ -316,14 +316,14 @@ class BasicSplittingSolver:
         t = t0 + theta*dt
 
         # Compute tentative membrane potential and state (vs_star)
-        begin("Tentative ODE step")
+        begin(PROGRESS, "Tentative ODE step")
         # Assumes that its vs_ is in the correct state, gives its vs
         # in the current state
         self.ode_solver.step((t0, t))
         end()
 
         # Compute tentative potentials vu = (v, u)
-        begin("PDE step")
+        begin(PROGRESS, "PDE step")
         # Assumes that its vs_ is in the correct state, gives vur in
         # the current state
         self.pde_solver.step((t0, t1))
@@ -339,7 +339,7 @@ class BasicSplittingSolver:
             return
 
         # Otherwise, we do another ode_step:
-        begin("Corrective ODE step")
+        begin(PROGRESS, "Corrective ODE step")
 
         # Assumes that the v part of its vur and the s part of its vs
         # are in the correct state, provides input argument (in this
@@ -365,7 +365,7 @@ class BasicSplittingSolver:
         """
         timer = Timer("Merge step")
 
-        begin("Merging")
+        begin(PROGRESS, "Merging")
         if self.parameters["pde_solver"] == "bidomain":
             v = self.vur.sub(0)
         else:
