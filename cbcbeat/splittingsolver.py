@@ -289,7 +289,7 @@ class BasicSplittingSolver:
             # Yield solutions
             yield (t0, t1), self.solution_fields()
 
-            # FIXME: This eventually breaks in parallel!?
+            # Update previous solution
             self.vs_.assign(self.vs)
 
     def step(self, interval):
@@ -350,6 +350,7 @@ class BasicSplittingSolver:
         # the correct state
         self.ode_solver.step((t, t1))
 
+        timer.stop()
 
         end()
 
@@ -362,6 +363,8 @@ class BasicSplittingSolver:
           solution (:py:class:`dolfin.Function`)
             Function holding the combined result
         """
+        timer = Timer("Merge step")
+
         begin("Merging")
         if self.parameters["pde_solver"] == "bidomain":
             v = self.vur.sub(0)
@@ -369,6 +372,8 @@ class BasicSplittingSolver:
             v = self.vur
         self.merger.assign(solution.sub(0), v)
         end()
+
+        timer.stop()
 
 class SplittingSolver(BasicSplittingSolver):
 
