@@ -350,8 +350,6 @@ class BasicSplittingSolver:
         # the correct state
         self.ode_solver.step((t, t1))
 
-        timer.stop()
-
         end()
 
     def merge(self, solution):
