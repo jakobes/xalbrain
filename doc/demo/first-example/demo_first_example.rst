@@ -20,7 +20,7 @@ First example for cbcbeat
   M_i = 1.0
   M_e = 1.0
   cell_models = FitzHughNagumoManual()
-  stimulus = {0: Expression("10*t*x[0]", t=time)}
+  stimulus = Expression("10*t*x[0]", t=time)
   cardiac_model = CardiacModel(mesh, time, M_i, M_e, cell_models, stimulus)
   
   # Initialize the solver

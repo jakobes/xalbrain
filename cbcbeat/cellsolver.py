@@ -10,7 +10,6 @@ from dolfinimport import *
 from cbcbeat import CardiacCellModel
 from cbcbeat.markerwisefield import *
 from cbcbeat.utils import state_space, TimeStepper, splat
-import ufl.classes
 
 class BasicCardiacODESolver(object):
     """A basic, non-optimised solver for systems of ODEs typically
@@ -302,6 +301,7 @@ class CardiacODESolver(object):
     def __init__(self, mesh, time, num_states, F, I_ion,
                  I_s=None, params=None):
 
+        import ufl.classes
         # Store input
         self._mesh = mesh
         self._num_states = num_states
