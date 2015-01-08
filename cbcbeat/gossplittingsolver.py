@@ -15,8 +15,8 @@ from dolfin import *
 import goss
 import gotran
 
-if "DOLFINODESystemSolver" not in goss.__dict__:
-    raise ImportError("goss could not import DOLFINODESystemSolver")
+#if "DOLFINODESystemSolver" not in goss.__dict__:
+#    raise ImportError("goss could not import DOLFINODESystemSolver")
 
 # Beatadjoint imports
 from cbcbeat.bidomainsolver import BidomainSolver
