@@ -36,10 +36,10 @@ def main():
 
     # Initialize model and assign stimulus
     #model = Beeler_reuter_1977()
-    model = Grandi_pasqualini_bers_2010()
+    #model = Grandi_pasqualini_bers_2010()
     #model = FitzHughNagumoManual()
     #model = Fitzhughnagumo()
-    #model = Tentusscher_2004_mcell()
+    model = Tentusscher_2004_mcell()
     time = Constant(0.0)
     model.stimulus = Stimulus(time)
 
