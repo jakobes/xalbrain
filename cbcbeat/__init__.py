@@ -21,7 +21,7 @@ from cbcbeat.markerwisefield import *
 # Solver imports
 from cbcbeat.splittingsolver import BasicSplittingSolver
 from cbcbeat.splittingsolver import SplittingSolver
-from cbcbeat.cellsolver import BasicSingleCellSolver
+from cbcbeat.cellsolver import BasicSingleCellSolver, SingleCellSolver
 from cbcbeat.cellsolver import BasicCardiacODESolver, CardiacODESolver
 from cbcbeat.bidomainsolver import BasicBidomainSolver
 from cbcbeat.bidomainsolver import BidomainSolver
