@@ -1,0 +1,19 @@
+
+TODO
+
+1.1 Check that forward model runs in serial and gives comparable
+   results as before (say around 2012). (Check)
+
+1.2 Understand why BasicCardiacODESolver and CardiacODESolver gives
+   pretty different results. (Check.)
+
+1.3 Check sanity of cardiac ode solver results. [TODO]
+
+2. Improve storage format (using hdf5) (Check)
+
+3. Modify stimulus to that forward model runs in parallel. Check that
+   results are as before when running in parallel.
+
+4. Set-up code for Taylor test for (shortened) forward simulation
+
+5. ...
