@@ -339,11 +339,12 @@ class CardiacODESolver(object):
         # If we have a as_vector expression
         F_exprs_q = zero()
         if isinstance(F_exprs, ufl.classes.ListTensor):
-            for i, expr_i in enumerate(F_exprs.operands()):
+            #for i, expr_i in enumerate(F_exprs.operands()):
+            for i, expr_i in enumerate(F_exprs.ufl_operands):
                 F_exprs_q += expr_i*q[i]
         else:
             F_exprs_q = F_exprs*q
-            
+
         #inner(self._I_ion(v, s, self._time), w)
         rhs = F_exprs_q - self._I_ion(v, s, self._time)*w
 
