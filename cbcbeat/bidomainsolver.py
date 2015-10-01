@@ -361,12 +361,7 @@ class BidomainSolver(BasicBidomainSolver):
 
             # Set null space: v = 0, u = constant
             debug("Setting null space")
-            null_vector = Vector(self.vur.vector())
-            self.VUR.sub(1).dofmap().set(null_vector, 1.0)
-            null_vector *= 1.0/null_vector.norm("l2")
-
-            null_space = VectorSpaceBasis([null_vector])
-            solver.set_nullspace(null_space)
+            self._set_nullspace(self._lhs_matrix)
 
             # We happen to know that the transpose nullspace is the
             # same (easy to prove from matrix structure)
@@ -378,6 +373,13 @@ class BidomainSolver(BasicBidomainSolver):
             error("Unknown linear_solver_type given: %s" % solver_type)
 
         return (solver, update_routine)
+
+    def _set_nullspace(self, A):
+        null_vector = Vector(self.vur.vector())
+        self.VUR.sub(1).dofmap().set(null_vector, 1.0)
+        null_vector *= 1.0/null_vector.norm("l2")
+        null_space = VectorSpaceBasis([null_vector])
+        as_backend_type(A).set_nullspace(null_space)
 
     @staticmethod
     def default_parameters():
@@ -404,7 +406,7 @@ class BidomainSolver(BasicBidomainSolver):
         # Set default iterative solver choices (used if iterative
         # solver is invoked)
         params.add("algorithm", "cg")
-        params.add("preconditioner", "jacobi")
+        params.add("preconditioner", "amg")
 
         # Add default parameters from both LU and Krylov solvers
         params.add(LUSolver.default_parameters())
@@ -527,6 +529,9 @@ class BidomainSolver(BasicBidomainSolver):
             # Reassemble matrix
             assemble(self._lhs, tensor=self._lhs_matrix,
                      **self._annotate_kwargs)
+
+            # Reset nullspace
+            self._set_nullspace(self._lhs_matrix)
 
     def _update_krylov_solver(self, timestep_unchanged, dt):
         """Helper function for updating a KrylovSolver depending on
