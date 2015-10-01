@@ -362,7 +362,7 @@ class BidomainSolver(BasicBidomainSolver):
 
             # Set null space: v = 0, u = constant
             debug("Setting null space")
-            self._set_nullspace(self._lhs_matrix)
+            null_space = self._set_nullspace(self._lhs_matrix)
 
             # We happen to know that the transpose nullspace is the
             # same (easy to prove from matrix structure)
@@ -381,6 +381,7 @@ class BidomainSolver(BasicBidomainSolver):
         null_vector *= 1.0/null_vector.norm("l2")
         null_space = VectorSpaceBasis([null_vector])
         as_backend_type(A).set_nullspace(null_space)
+        return null_space
 
     @staticmethod
     def default_parameters():
@@ -407,7 +408,7 @@ class BidomainSolver(BasicBidomainSolver):
         # Set default iterative solver choices (used if iterative
         # solver is invoked)
         params.add("algorithm", "cg")
-        params.add("preconditioner", "amg")
+        params.add("preconditioner", "petsc_amg")
 
         # Add default parameters from both LU and Krylov solvers
         params.add(LUSolver.default_parameters())
