@@ -54,7 +54,7 @@ class TestBidomainSolversAdjoint(object):
             params.linear_solver_type = solver_type
             params.enable_adjoint = enable_adjoint
             if solver_type == "iterative":
-                params.krylov_solver.relative_tolerance = 1e-12
+                params.petsc_krylov_solver.relative_tolerance = 1e-12
             else:
                 params.use_avg_u_constraint = True  # NOTE: In contrast to iterative
                     # solvers, the direct solver does not handle nullspaces consistently,
