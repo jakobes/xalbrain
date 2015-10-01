@@ -407,7 +407,7 @@ class BidomainSolver(BasicBidomainSolver):
         # Set default iterative solver choices (used if iterative
         # solver is invoked)
         params.add("algorithm", "cg")
-        params.add("preconditioner", "amg")
+        params.add("preconditioner", "petsc_amg")
 
         # Add default parameters from both LU and Krylov solvers
         params.add(LUSolver.default_parameters())
