@@ -49,7 +49,7 @@ class TestBidomainSolversAdjoint(object):
             params.linear_variational_solver.linear_solver = \
                             "gmres" if solver_type == "iterative" else "lu"
             params.linear_variational_solver.krylov_solver.relative_tolerance = 1e-12
-            params.linear_variational_solver.preconditioner = 'jacobi'
+            params.linear_variational_solver.preconditioner = 'ilu'
         else:
             params.linear_solver_type = solver_type
             params.enable_adjoint = enable_adjoint
@@ -89,7 +89,7 @@ class TestBidomainSolversAdjoint(object):
     @parametrize(("Solver", "solver_type", "tol"), [
         (BasicBidomainSolver, "direct", 0.),
         (BasicBidomainSolver, "iterative", 0.),
-        (BidomainSolver, "direct", 0.),
+        (BidomainSolver, "direct", 1e-10),
         (BidomainSolver, "iterative", 1e-10),  # NOTE: The replay is not exact because
             # dolfin-adjoint's overloaded Krylov method is not constent with DOLFIN's
             # (it orthogonalizes the rhs vector as an additional step)
