@@ -19,7 +19,7 @@ from cbcbeat import BasicBidomainSolver, BidomainSolver, \
 
 
 class TestBidomainSolversAdjoint(object):
-    """Test adjoint functionality for the basic bidomain solver."""
+    """Test adjoint functionality for the bidomain solver."""
 
     def setup(self):
         self.mesh = UnitCubeMesh(5, 5, 5)
