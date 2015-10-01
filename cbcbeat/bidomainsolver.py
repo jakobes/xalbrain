@@ -333,7 +333,7 @@ class BidomainSolver(BasicBidomainSolver):
     @property
     def linear_solver(self):
         """The linear solver (:py:class:`dolfin.LUSolver` or
-        :py:class:`dolfin.KrylovSolver`)."""
+        :py:class:`dolfin.PETScKrylovSolver`)."""
         return self._linear_solver
 
     def _create_linear_solver(self):
@@ -355,8 +355,9 @@ class BidomainSolver(BasicBidomainSolver):
             # Initialize KrylovSolver with matrix and preconditioner
             alg = self.parameters["algorithm"]
             prec = self.parameters["preconditioner"]
-            solver = KrylovSolver(alg, prec)
-            solver.parameters.update(self.parameters["krylov_solver"])
+            solver = PETScKrylovSolver(alg, prec)
+            solver.parameters.convergence_norm_type = "preconditioned" # work around DOLFIN bug #583
+            solver.parameters.update(self.parameters["petsc_krylov_solver"])
             solver.set_operators(self._lhs_matrix, self._prec_matrix)
 
             # Set null space: v = 0, u = constant
@@ -410,13 +411,13 @@ class BidomainSolver(BasicBidomainSolver):
 
         # Add default parameters from both LU and Krylov solvers
         params.add(LUSolver.default_parameters())
-        params.add(KrylovSolver.default_parameters())
+        params.add(PETScKrylovSolver.default_parameters())
 
         # Customize default parameters for LUSolver
         params["lu_solver"]["same_nonzero_pattern"] = True
 
-        # Customize default parameters for KrylovSolver
-        params["krylov_solver"]["preconditioner"]["structure"] = "same"
+        # Customize default parameters for PETScKrylovSolver
+        params["petsc_krylov_solver"]["preconditioner"]["structure"] = "same"
 
         return params
 
