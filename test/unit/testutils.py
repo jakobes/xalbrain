@@ -15,6 +15,7 @@ slow = pytest.mark.slow
 adjoint = pytest.mark.adjoint
 parametrize = pytest.mark.parametrize
 disabled = pytest.mark.disabled
+xfail = pytest.mark.xfail
 
 # Assertions
 def assert_almost_equal(a, b, tolerance):
