@@ -412,7 +412,9 @@ class BidomainSolver(BasicBidomainSolver):
 
         # Add default parameters from both LU and Krylov solvers
         params.add(LUSolver.default_parameters())
-        params.add(PETScKrylovSolver.default_parameters())
+        petsc_params = PETScKrylovSolver.default_parameters()
+        petsc_params.convergence_norm_type = "preconditioned" # work around DOLFIN bug #583
+        params.add(petsc_params)
 
         # Customize default parameters for LUSolver
         params["lu_solver"]["same_nonzero_pattern"] = True
