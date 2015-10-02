@@ -337,7 +337,7 @@ class MonodomainSolver(BasicMonodomainSolver):
         # Set default iterative solver choices (used if iterative
         # solver is invoked)
         params.add("algorithm", "cg")
-        params.add("preconditioner", "jacobi")
+        params.add("preconditioner", "petsc_amg")
         params.add("use_custom_preconditioner", True)
 
         # Add default parameters from both LU and Krylov solvers

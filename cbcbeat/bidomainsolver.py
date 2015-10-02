@@ -94,6 +94,8 @@ class BasicBidomainSolver(object):
         assert isinstance(params, Parameters) or params is None, \
             "Expecting params to be a Parameters instance (or None)"
 
+        self._null_space_basis = None
+
         # Store input
         self._mesh = mesh
         self._time = time
@@ -360,14 +362,11 @@ class BidomainSolver(BasicBidomainSolver):
             solver.parameters.update(self.parameters["petsc_krylov_solver"])
             solver.set_operators(self._lhs_matrix, self._prec_matrix)
 
-            # Set null space: v = 0, u = constant
-            debug("Setting null space")
-            null_space = self._set_nullspace(self._lhs_matrix)
-
             # We happen to know that the transpose nullspace is the
             # same (easy to prove from matrix structure)
+            solver.set_nullspace(self.null_space)
             if hasattr(solver, "set_transpose_nullspace"):
-                solver.set_transpose_nullspace(null_space)
+                solver.set_transpose_nullspace(self.null_space)
 
             update_routine = self._update_krylov_solver
         else:
@@ -375,13 +374,14 @@ class BidomainSolver(BasicBidomainSolver):
 
         return (solver, update_routine)
 
-    def _set_nullspace(self, A):
-        null_vector = Vector(self.vur.vector())
-        self.VUR.sub(1).dofmap().set(null_vector, 1.0)
-        null_vector *= 1.0/null_vector.norm("l2")
-        null_space = VectorSpaceBasis([null_vector])
-        as_backend_type(A).set_nullspace(null_space)
-        return null_space
+    @property
+    def null_space(self):
+        if self._null_space_basis is None:
+            null_vector = Vector(self.vur.vector())
+            self.VUR.sub(1).dofmap().set(null_vector, 1.0)
+            null_vector *= 1.0/null_vector.norm("l2")
+            self._null_space_basis = VectorSpaceBasis([null_vector])
+        return self._null_space_basis
 
     @staticmethod
     def default_parameters():
@@ -507,6 +507,13 @@ class BidomainSolver(BasicBidomainSolver):
         # Assemble right-hand-side
         assemble(self._rhs, tensor=self._rhs_vector, **self._annotate_kwargs)
 
+        # Set null space: v = 0, u = constant
+        debug("Setting null space")
+        self.null_space.orthogonalize(self._rhs_vector)
+
+        if not timestep_unchanged:
+            as_backend_type(self._lhs_matrix).set_nullspace(self.null_space)
+
         # Solve problem
         self.linear_solver.solve(self.vur.vector(), self._rhs_vector,
                                  **self._annotate_kwargs)
@@ -531,9 +538,6 @@ class BidomainSolver(BasicBidomainSolver):
             # Reassemble matrix
             assemble(self._lhs, tensor=self._lhs_matrix,
                      **self._annotate_kwargs)
-
-            # Reset nullspace
-            self._set_nullspace(self._lhs_matrix)
 
     def _update_krylov_solver(self, timestep_unchanged, dt):
         """Helper function for updating a KrylovSolver depending on
