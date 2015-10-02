@@ -116,7 +116,7 @@ class TestCardiacODESolverAdjoint(object):
             return assemble(form(vs))
 
         # Stop annotating
-        solver.parameters["enable_adjoint"] = False
+        parameters["adjoint"]["stop_annotating"] = True
 
         m = Control(vs)
         return J, Jhat, m, Jics
@@ -227,6 +227,9 @@ class TestCardiacODESolverAdjoint(object):
 
         # Seed for taylor test
         seed = seed_collection_tlm.get(cell_model.__class__)
+
+        # Stop annotating
+        parameters["adjoint"]["stop_annotating"] = True
 
         # Check TLM correctness
         info_green("Computing gradient")
