@@ -63,12 +63,12 @@ def generate_solver(Solver, solver_type, ics=None, enable_adjoint=True):
             if Solver == SplittingSolver:
                 params.enable_adjoint = enable_adjoint
                 params.BidomainSolver.linear_solver_type = solver_type
-                params.BidomainSolver.krylov_solver.relative_tolerance = 1e-12
+                params.BidomainSolver.petsc_krylov_solver.relative_tolerance = 1e-12
             else:
                 params.BasicBidomainSolver.linear_variational_solver.linear_solver = \
                                 "gmres" if solver_type == "iterative" else "lu"
                 params.BasicBidomainSolver.linear_variational_solver.krylov_solver.relative_tolerance = 1e-12
-                params.BasicBidomainSolver.linear_variational_solver.preconditioner = 'jacobi'
+                params.BasicBidomainSolver.linear_variational_solver.preconditioner = 'ilu'
 
 
             self.solver = Solver(self.cardiac_model, params=params)
@@ -129,7 +129,7 @@ class TestSplittingSolverAdjoint(object):
             (BasicSplittingSolver, "iterative", 0.),
             (SplittingSolver, "direct", 0.),
             (SplittingSolver, "iterative", 1e-10),  # NOTE: The replay is not exact because
-            # dolfin-adjoint's overloaded Krylov method is not constent with DOLFIN's
+            # dolfin-adjoint's overloaded Krylov method is not consistent with DOLFIN's
             # (it orthogonalizes the rhs vector as an additional step)
             ])
     def test_ReplayOfSplittingSolver_IsExact(self, Solver, solver_type, tol):
