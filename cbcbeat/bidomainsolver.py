@@ -312,7 +312,7 @@ class BidomainSolver(BasicBidomainSolver):
 
         # Create variational forms
         self._timestep = Constant(self.parameters["default_timestep"])
-        (self._lhs, self._rhs, self._prec) \
+        (self._lhs, self._rhs) \
             = self.variational_forms(self._timestep)
 
         # Preassemble left-hand side (will be updated if time-step
@@ -347,18 +347,36 @@ class BidomainSolver(BasicBidomainSolver):
 
         elif solver_type == "iterative":
 
-            # Preassemble preconditioner (will be updated if time-step
-            # changes)
-            debug("Preassembling preconditioner")
-            self._prec_matrix = assemble(self._prec, **self._annotate_kwargs)
-
             # Initialize KrylovSolver with matrix and preconditioner
             alg = self.parameters["algorithm"]
             prec = self.parameters["preconditioner"]
-            solver = PETScKrylovSolver(alg, prec)
+            # Argh. DOLFIN won't let you construct a PETScKrylovSolver with fieldsplit. Sigh ..
+            solver = PETScKrylovSolver()
             solver.parameters.convergence_norm_type = "preconditioned" # work around DOLFIN bug #583
             solver.parameters.update(self.parameters["petsc_krylov_solver"])
-            solver.set_operators(self._lhs_matrix, self._prec_matrix)
+            solver.set_operator(self._lhs_matrix)
+            ksp = solver.ksp()
+            ksp.setType(alg)
+            ksp.pc.setType(prec)
+            ksp.setOptionsPrefix("bidomain_") # it's really stupid, solver.set_options_prefix() doesn't work
+
+            # Set various options (by default) for the fieldsplit approach to solving the bidomain equations.
+            if prec == "fieldsplit":
+                from petsc4py import PETSc
+
+                # I believe that the fieldsplit index sets should already be set from
+                # the assembled matrix.
+
+                # Now let's set some default options for the solver.
+                opts = PETSc.Options("bidomain_")
+                if "pc_fieldsplit_type"    not in opts: opts["pc_fieldsplit_type"] = "symmetric_multiplicative"
+                if "fieldsplit_0_ksp_type" not in opts: opts["fieldsplit_0_ksp_type"] = "preonly"
+                if "fieldsplit_1_ksp_type" not in opts: opts["fieldsplit_1_ksp_type"] = "preonly"
+                if "fieldsplit_0_pc_type"  not in opts: opts["fieldsplit_0_pc_type"] = "hypre"
+                if "fieldsplit_1_pc_type"  not in opts: opts["fieldsplit_1_pc_type"] = "hypre"
+
+            ksp.setFromOptions()
+            ksp.setUp()
 
             # Set null space: v = 0, u = constant
             debug("Setting null space")
@@ -408,7 +426,7 @@ class BidomainSolver(BasicBidomainSolver):
         # Set default iterative solver choices (used if iterative
         # solver is invoked)
         params.add("algorithm", "cg")
-        params.add("preconditioner", "petsc_amg")
+        params.add("preconditioner", "fieldsplit")
 
         # Add default parameters from both LU and Krylov solvers
         params.add(LUSolver.default_parameters())
@@ -431,7 +449,7 @@ class BidomainSolver(BasicBidomainSolver):
             The time step
 
         *Returns*
-          (lhs, rhs, prec) (:py:class:`tuple` of :py:class:`ufl.Form`)
+          (lhs, rhs) (:py:class:`tuple` of :py:class:`ufl.Form`)
 
         """
 
@@ -471,12 +489,8 @@ class BidomainSolver(BasicBidomainSolver):
         if self._I_a:
             G -= k_n*self._I_a*q*dz()
 
-        # Define preconditioner based on educated(?) guess by Marie
-        prec = (v*w + k_n/2.0*inner(M_i*grad(v), grad(w)))*dz()  \
-            + (u*q + k_n/2.0*inner((M_i + M_e)*grad(u), grad(q)))*dz()
-
         (a, L) = system(G)
-        return (a, L, prec)
+        return (a, L)
 
     def step(self, interval):
         """
@@ -554,10 +568,6 @@ class BidomainSolver(BasicBidomainSolver):
 
             # Reassemble matrix
             assemble(self._lhs, tensor=self._lhs_matrix,
-                     **self._annotate_kwargs)
-
-            # Reassemble preconditioner
-            assemble(self._prec, tensor=self._prec_matrix,
                      **self._annotate_kwargs)
 
         # Set nonzero initial guess if it indeed is nonzero
