@@ -94,9 +94,9 @@ class TestBidomainSolversAdjoint(object):
     @adjoint
     @fast
     @parametrize(("Solver", "solver_type", "tol"), [
-        (BasicBidomainSolver, "direct", 1e-16),
-        (BasicBidomainSolver, "iterative", 1e-16),
-        (BidomainSolver, "direct", 1e-16),
+        (BasicBidomainSolver, "direct", 1e-15),
+        (BasicBidomainSolver, "iterative", 1e-15),
+        (BidomainSolver, "direct", 1e-15),
         (BidomainSolver, "iterative", 1e-10),  # NOTE: The replay is not exact because
             # dolfin-adjoint's overloaded Krylov method is not constent with DOLFIN's
             # (it orthogonalizes the rhs vector as an additional step)

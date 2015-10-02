@@ -63,12 +63,12 @@ def generate_solver(Solver, solver_type, ics=None, enable_adjoint=True):
             if Solver == SplittingSolver:
                 params.enable_adjoint = enable_adjoint
                 params.BidomainSolver.linear_solver_type = solver_type
-                params.BidomainSolver.krylov_solver.relative_tolerance = 1e-12
+                params.BidomainSolver.petsc_krylov_solver.relative_tolerance = 1e-12
             else:
                 params.BasicBidomainSolver.linear_variational_solver.linear_solver = \
                                 "gmres" if solver_type == "iterative" else "lu"
                 params.BasicBidomainSolver.linear_variational_solver.krylov_solver.relative_tolerance = 1e-12
-                params.BasicBidomainSolver.linear_variational_solver.preconditioner = 'jacobi'
+                params.BasicBidomainSolver.linear_variational_solver.preconditioner = 'ilu'
 
 
             self.solver = Solver(self.cardiac_model, params=params)
