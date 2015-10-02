@@ -17,9 +17,9 @@ def annotate_kwargs(ba_parameters):
     if not dolfin_adjoint:
         return {}
     if not ba_parameters["enable_adjoint"]:
-        return {}
+        return {"annotate": False}
     if parameters["adjoint"]["stop_annotating"]:
-        return {}
+        return {"annotate": False}
 
     return {"annotate": True}
 
