@@ -231,7 +231,7 @@ class TestBidomainSolver(object):
         # Create solver and solve using iterative means
         params = BidomainSolver.default_parameters()
         params["default_timestep"] = self.dt
-        params["krylov_solver"]["monitor_convergence"] = True
+        params["petsc_krylov_solver"]["monitor_convergence"] = True
         solver = BidomainSolver(self.mesh, self.time,
                                 self.M_i, self.M_e,
                                 I_s=self.stimulus,

@@ -129,7 +129,7 @@ class TestSplittingSolverAdjoint(object):
             (BasicSplittingSolver, "iterative", 0.),
             (SplittingSolver, "direct", 0.),
             (SplittingSolver, "iterative", 1e-10),  # NOTE: The replay is not exact because
-            # dolfin-adjoint's overloaded Krylov method is not constent with DOLFIN's
+            # dolfin-adjoint's overloaded Krylov method is not consistent with DOLFIN's
             # (it orthogonalizes the rhs vector as an additional step)
             ])
     def test_ReplayOfSplittingSolver_IsExact(self, Solver, solver_type, tol):
