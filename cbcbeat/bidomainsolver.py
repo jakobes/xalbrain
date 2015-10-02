@@ -508,6 +508,7 @@ class BidomainSolver(BasicBidomainSolver):
         """
 
         timer = Timer("PDE step")
+        solver_type = self.parameters["linear_solver_type"]
 
         # Extract interval and thus time-step
         (t0, t1) = interval
@@ -524,11 +525,12 @@ class BidomainSolver(BasicBidomainSolver):
         assemble(self._rhs, tensor=self._rhs_vector, **self._annotate_kwargs)
 
         # Set null space: v = 0, u = constant
-        debug("Setting null space")
-        self.null_space.orthogonalize(self._rhs_vector)
+        if solver_type == "iterative":
+            debug("Setting null space")
+            self.null_space.orthogonalize(self._rhs_vector)
 
-        if not timestep_unchanged:
-            as_backend_type(self._lhs_matrix).set_nullspace(self.null_space)
+            if not timestep_unchanged:
+                as_backend_type(self._lhs_matrix).set_nullspace(self.null_space)
 
         # Solve problem
         self.linear_solver.solve(self.vur.vector(), self._rhs_vector,
