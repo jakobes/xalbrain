@@ -116,7 +116,7 @@ class TestCardiacODESolverAdjoint(object):
             return assemble(form(vs))
 
         # Stop annotating
-        parameters["adjoint"]["stop_annotating"] = True
+        solver.parameters["enable_adjoint"] = False
 
         m = Control(vs)
         return J, Jhat, m, Jics
@@ -154,7 +154,7 @@ class TestCardiacODESolverAdjoint(object):
             return assemble(form(vs))
 
         # Stop annotating
-        parameters["adjoint"]["stop_annotating"] = True
+        solver.parameters["enable_adjoint"] = False
 
         m = ConstantControl(cell_params[param_name])
         return J, Jhat, m, Jics

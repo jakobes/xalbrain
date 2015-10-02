@@ -428,6 +428,8 @@ class CardiacODESolver(object):
 
         (t0, t1) = interval
         dt = t1 - t0
+
+        self._annotate_kwargs = annotate_kwargs(self.parameters)
         self._pi_solver.step(dt, **self._annotate_kwargs)
 
     def solve(self, interval, dt=None):
