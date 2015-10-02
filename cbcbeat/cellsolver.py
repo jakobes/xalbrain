@@ -9,7 +9,7 @@ __all__ = ["BasicSingleCellSolver",
 from dolfinimport import *
 from cbcbeat import CardiacCellModel
 from cbcbeat.markerwisefield import *
-from cbcbeat.utils import state_space, TimeStepper, splat
+from cbcbeat.utils import state_space, TimeStepper, splat, annotate_kwargs
 
 class BasicCardiacODESolver(object):
     """A basic, non-optimised solver for systems of ODEs typically
@@ -364,6 +364,9 @@ class CardiacODESolver(object):
         Scheme = self._name_to_scheme(name)
         self._scheme = Scheme(self._rhs, self.vs, self._time)
 
+        # Figure out whether we should annotate or not
+        self._annotate_kwargs = annotate_kwargs(self.parameters)
+
         # Initialize solver and update its parameters
         self._pi_solver = PointIntegralSolver(self._scheme)
         self._pi_solver.parameters.update(self.parameters["point_integral_solver"])
@@ -425,7 +428,7 @@ class CardiacODESolver(object):
 
         (t0, t1) = interval
         dt = t1 - t0
-        self._pi_solver.step(dt)
+        self._pi_solver.step(dt, **self._annotate_kwargs)
 
     def solve(self, interval, dt=None):
         """
