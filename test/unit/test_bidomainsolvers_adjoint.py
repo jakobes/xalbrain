@@ -9,7 +9,7 @@ import pytest
 from testutils import assert_equal, fast, slow, \
         adjoint, parametrize, assert_greater
 
-from cbcbeat.dolfinimport import info_green, info_red
+from cbcbeat.dolfinimport import info_green, info_red, parameters
 from cbcbeat import BasicBidomainSolver, BidomainSolver, \
         UnitCubeMesh, Constant, Expression, inner, dx, dt, \
         assemble, parameters, Control, \
@@ -17,6 +17,13 @@ from cbcbeat import BasicBidomainSolver, BidomainSolver, \
         compute_gradient_tlm, compute_gradient, \
         taylor_test, Function
 
+import sys
+args = sys.argv[:1] + """
+                      --petsc.bidomain_ksp_monitor_true_residual
+                      --petsc.bidomain_ksp_view
+                      --petsc.ksp_view
+                      """.split()
+parameters.parse(args)
 
 class TestBidomainSolversAdjoint(object):
     """Test adjoint functionality for the bidomain solver."""

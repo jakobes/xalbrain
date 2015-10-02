@@ -8,11 +8,19 @@ __all__ = []
 
 import pytest
 
-from cbcbeat.dolfinimport import Expression, Constant, UnitSquareMesh
+from cbcbeat.dolfinimport import Expression, Constant, UnitSquareMesh, parameters
 from cbcbeat import BidomainSolver, errornorm
 from cbcbeat.utils import convergence_rate
 
 from testutils import medium
+
+import sys
+args = sys.argv[:1] + """
+                      --petsc.bidomain_ksp_monitor_true_residual
+                      --petsc.bidomain_ksp_viewx
+                      --petsc.bidomain_ksp_type cg
+                      """.split()
+parameters.parse(args)
 
 def main(N, dt, T, theta):
 
