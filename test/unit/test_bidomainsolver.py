@@ -37,6 +37,7 @@ def main(N, dt, T, theta):
     params["theta"] = theta
     params["linear_solver_type"] = "direct"
     params["use_avg_u_constraint"] =  True
+    params["enable_adjoint"] =  False
     solver = BidomainSolver(mesh, time, M_i, M_e, I_s=stimulus, params=params)
 
     # Define exact solution (Note: v is returned at end of time
