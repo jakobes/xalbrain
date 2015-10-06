@@ -8,7 +8,7 @@ __all__ = []
 
 import pytest
 
-from cbcbeat.dolfinimport import Expression, Constant, UnitSquareMesh, parameters, plot
+from cbcbeat.dolfinimport import Expression, Constant, UnitSquareMesh, parameters
 from cbcbeat import BidomainSolver, errornorm
 from cbcbeat.utils import convergence_rate
 
@@ -52,7 +52,6 @@ def main(N, dt, T, theta):
     # Solve
     solutions = solver.solve((0, T), dt)
     for (interval, fields) in solutions:
-        plot(vu.split(deepcopy=True)[1], interactive=True)
         continue
 
     # Compute errors
@@ -88,7 +87,7 @@ def test_spatial_convergence():
     assert all(u > 1.99 for u in u_rates), "Failed convergence for u"
 
 @medium
-def xtest_spatial_and_temporal_convergence():
+def test_spatial_and_temporal_convergence():
     v_errors = []
     u_errors = []
     dts = []
