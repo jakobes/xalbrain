@@ -382,12 +382,13 @@ class BidomainSolver(BasicBidomainSolver):
 
             # We happen to know that the transpose nullspace is the
             # same (easy to prove from matrix structure)
-            try:
-                solver.set_nullspace(self.null_space)
-            except RuntimeError:
-                pass
-            if hasattr(solver, "set_transpose_nullspace"):
-                solver.set_transpose_nullspace(self.null_space)
+            if not self.parameters["use_avg_u_constraint"]:
+                try:
+                    solver.set_nullspace(self.null_space)
+                except RuntimeError:
+                    pass
+                if hasattr(solver, "set_transpose_nullspace"):
+                    solver.set_transpose_nullspace(self.null_space)
 
             update_routine = self._update_krylov_solver
         else:
