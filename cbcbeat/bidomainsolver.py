@@ -94,7 +94,7 @@ class BasicBidomainSolver(object):
         assert isinstance(params, Parameters) or params is None, \
             "Expecting params to be a Parameters instance (or None)"
 
-        self._null_space_basis = None
+        self._nullspace_basis = None
 
         # Store input
         self._mesh = mesh
@@ -312,20 +312,19 @@ class BidomainSolver(BasicBidomainSolver):
                                      I_s=I_s, I_a=I_a, v_=v_,
                                      params=params)
 
-        # Create variational forms
-        self._timestep = Constant(self.parameters["default_timestep"])
-        (self._lhs, self._rhs) \
-            = self.variational_forms(self._timestep)
-
-        # Preassemble left-hand side (will be updated if time-step
-        # changes)
-        debug("Preassembling bidomain matrix (and initializing vector)")
+        # Check consistency of parameters first
         if self.parameters["enable_adjoint"] and not dolfin_adjoint:
             warning("'enable_adjoint' is set to True, but no "\
                     "dolfin_adjoint installed.")
 
-        self._lhs_matrix = assemble(self._lhs, **self._annotate_kwargs)
+        # Create variational forms
+        self._timestep = Constant(self.parameters["default_timestep"])
+        (self._lhs, self._rhs) = self.variational_forms(self._timestep)
 
+        # Preassemble left-hand side (will be updated if time-step
+        # changes) and initialize right-hand side vector
+        debug("Preassembling bidomain matrix (and initializing vector)")
+        self._lhs_matrix = assemble(self._lhs, **self._annotate_kwargs)
         self._rhs_vector = Vector(mesh.mpi_comm(), self._lhs_matrix.size(0))
         self._lhs_matrix.init_vector(self._rhs_vector, 0)
 
@@ -349,25 +348,31 @@ class BidomainSolver(BasicBidomainSolver):
 
         elif solver_type == "iterative":
 
-            # Initialize KrylovSolver with matrix and preconditioner
+            # Initialize KrylovSolver with matrix
             alg = self.parameters["algorithm"]
             prec = self.parameters["preconditioner"]
             # Argh. DOLFIN won't let you construct a PETScKrylovSolver with fieldsplit. Sigh ..
             solver = PETScKrylovSolver()
-            solver.parameters.convergence_norm_type = "preconditioned" # work around DOLFIN bug #583
+            # FIXME: work around DOLFIN bug #583. Just deleted this when fixed.
+            solver.parameters.convergence_norm_type = "preconditioned"
             solver.parameters.update(self.parameters["petsc_krylov_solver"])
             solver.set_operator(self._lhs_matrix)
+
+            # Initialize the KSP directly:
             ksp = solver.ksp()
             ksp.setType(alg)
             ksp.pc.setType(prec)
             ksp.setOptionsPrefix("bidomain_") # it's really stupid, solver.set_options_prefix() doesn't work
 
-            # Set various options (by default) for the fieldsplit approach to solving the bidomain equations.
+            # Set various options (by default) for the fieldsplit
+            # approach to solving the bidomain equations.
             if prec == "fieldsplit":
+
+                # FIXME: This needs a try
                 from petsc4py import PETSc
 
-                # I believe that the fieldsplit index sets should already be set from
-                # the assembled matrix.
+                # Patrick believes that the fieldsplit index sets
+                # should already be set from the assembled matrix.
 
                 # Now let's set some default options for the solver.
                 opts = PETSc.Options("bidomain_")
@@ -380,15 +385,23 @@ class BidomainSolver(BasicBidomainSolver):
             ksp.setFromOptions()
             ksp.setUp()
 
-            # We happen to know that the transpose nullspace is the
-            # same (easy to prove from matrix structure)
-            if not self.parameters["use_avg_u_constraint"]:
-                try:
-                    solver.set_nullspace(self.null_space)
-                except RuntimeError:
-                    pass
-                if hasattr(solver, "set_transpose_nullspace"):
-                    solver.set_transpose_nullspace(self.null_space)
+            # Set nullspace if present. We happen to know that the
+            # transpose nullspace is the same as the nullspace (easy
+            # to prove from matrix structure).
+            if self.parameters["use_avg_u_constraint"]:
+                # Nothing to do, no null space
+                pass
+
+            else:
+                # If dolfin-adjoint is enabled and installled: set the solver nullspace
+                if dolfin_adjoint:
+                    solver.set_nullspace(self.nullspace)
+                    solver.set_transpose_nullspace(self.nullspace)
+                # Otherwise, set the nullspace in the operator
+                # directly.
+                else:
+                    A = as_backend_type(self._lhs_matrix)
+                    A.set_nullspace(self.nullspace)
 
             update_routine = self._update_krylov_solver
         else:
@@ -397,13 +410,13 @@ class BidomainSolver(BasicBidomainSolver):
         return (solver, update_routine)
 
     @property
-    def null_space(self):
-        if self._null_space_basis is None:
+    def nullspace(self):
+        if self._nullspace_basis is None:
             null_vector = Vector(self.vur.vector())
             self.VUR.sub(1).dofmap().set(null_vector, 1.0)
             null_vector *= 1.0/null_vector.norm("l2")
-            self._null_space_basis = VectorSpaceBasis([null_vector])
-        return self._null_space_basis
+            self._nullspace_basis = VectorSpaceBasis([null_vector])
+        return self._nullspace_basis
 
     @staticmethod
     def default_parameters():
@@ -435,7 +448,8 @@ class BidomainSolver(BasicBidomainSolver):
         # Add default parameters from both LU and Krylov solvers
         params.add(LUSolver.default_parameters())
         petsc_params = PETScKrylovSolver.default_parameters()
-        petsc_params.convergence_norm_type = "preconditioned" # work around DOLFIN bug #583
+        # FIXME: work around DOLFIN bug #583. Just deleted this when fixed.
+        petsc_params.convergence_norm_type = "preconditioned"
         params.add(petsc_params)
 
         # Customize default parameters for LUSolver
@@ -521,19 +535,12 @@ class BidomainSolver(BasicBidomainSolver):
         t = t0 + theta*dt
         self.time.assign(t)
 
-        # Update matrix and linear solvers etc as needed
-        timestep_unchanged = (abs(dt - float(self._timestep)) < 1.e-12)
-        self._update_solver(timestep_unchanged, dt)
-
         # Assemble right-hand-side
         assemble(self._rhs, tensor=self._rhs_vector, **self._annotate_kwargs)
 
-        # Set null space: v = 0, u = constant
-        if solver_type == "iterative":
-            debug("Setting null space")
-
-            if not timestep_unchanged:
-                as_backend_type(self._lhs_matrix).set_nullspace(self.null_space)
+        # Update matrix and linear solvers etc as needed
+        timestep_unchanged = (abs(dt - float(self._timestep)) < 1.e-12)
+        self._update_solver(timestep_unchanged, dt)
 
         # Solve problem
         self.linear_solver.solve(self.vur.vector(), self._rhs_vector,
@@ -578,8 +585,10 @@ class BidomainSolver(BasicBidomainSolver):
             self._timestep.assign(Constant(dt))
 
             # Reassemble matrix
-            assemble(self._lhs, tensor=self._lhs_matrix,
-                     **self._annotate_kwargs)
+            assemble(self._lhs, tensor=self._lhs_matrix, **self._annotate_kwargs)
+
+            # Make new Krylov solver
+            (self._linear_solver, dummy) = self._create_linear_solver()
 
         # Set nonzero initial guess if it indeed is nonzero
         if (self.vur.vector().norm("l2") > 1.e-12):
