@@ -530,7 +530,6 @@ class BidomainSolver(BasicBidomainSolver):
         # Set null space: v = 0, u = constant
         if solver_type == "iterative":
             debug("Setting null space")
-            self.null_space.orthogonalize(self._rhs_vector)
 
             if not timestep_unchanged:
                 as_backend_type(self._lhs_matrix).set_nullspace(self.null_space)
