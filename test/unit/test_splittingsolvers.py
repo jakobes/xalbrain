@@ -80,6 +80,7 @@ class TestSplittingSolver(object):
         # Create optimised solver with direct solution algorithm
         params = SplittingSolver.default_parameters()
         params["BidomainSolver"]["linear_solver_type"] = solver_type
+        params["enable_adjoint"] = False
         if solver_type == "direct":
             params["BidomainSolver"]["use_avg_u_constraint"] = True
         solver = SplittingSolver(self.cardiac_model, params=params)
