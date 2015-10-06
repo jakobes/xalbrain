@@ -535,12 +535,12 @@ class BidomainSolver(BasicBidomainSolver):
         t = t0 + theta*dt
         self.time.assign(t)
 
-        # Assemble right-hand-side
-        assemble(self._rhs, tensor=self._rhs_vector, **self._annotate_kwargs)
-
         # Update matrix and linear solvers etc as needed
         timestep_unchanged = (abs(dt - float(self._timestep)) < 1.e-12)
         self._update_solver(timestep_unchanged, dt)
+
+        # Assemble right-hand-side
+        assemble(self._rhs, tensor=self._rhs_vector, **self._annotate_kwargs)
 
         # Solve problem
         self.linear_solver.solve(self.vur.vector(), self._rhs_vector,
