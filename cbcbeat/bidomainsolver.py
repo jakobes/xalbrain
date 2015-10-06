@@ -317,19 +317,8 @@ class BidomainSolver(BasicBidomainSolver):
             warning("'enable_adjoint' is set to True, but no "\
                     "dolfin_adjoint installed.")
 
-        # Create variational forms
-        self._timestep = Constant(self.parameters["default_timestep"])
-        (self._lhs, self._rhs) = self.variational_forms(self._timestep)
-
-        # Preassemble left-hand side (will be updated if time-step
-        # changes) and initialize right-hand side vector
-        debug("Preassembling bidomain matrix (and initializing vector)")
-        self._lhs_matrix = assemble(self._lhs, **self._annotate_kwargs)
-        self._rhs_vector = Vector(mesh.mpi_comm(), self._lhs_matrix.size(0))
-        self._lhs_matrix.init_vector(self._rhs_vector, 0)
-
-        # Create linear solver (based on parameter choices)
-        self._linear_solver, self._update_solver = self._create_linear_solver()
+        # Mark the timestep as unset
+        self._timestep = None
 
     @property
     def linear_solver(self):
@@ -344,6 +333,7 @@ class BidomainSolver(BasicBidomainSolver):
         if solver_type == "direct":
             solver = LUSolver(self._lhs_matrix)
             solver.parameters.update(self.parameters["lu_solver"])
+            solver.parameters["reuse_factorization"] = True
             update_routine = self._update_lu_solver
 
         elif solver_type == "iterative":
@@ -355,6 +345,7 @@ class BidomainSolver(BasicBidomainSolver):
             solver = PETScKrylovSolver()
             # FIXME: work around DOLFIN bug #583. Just deleted this when fixed.
             solver.parameters.convergence_norm_type = "preconditioned"
+            solver.parameters["preconditioner"]["structure"] = "same"
             solver.parameters.update(self.parameters["petsc_krylov_solver"])
             solver.set_operator(self._lhs_matrix)
 
@@ -434,7 +425,6 @@ class BidomainSolver(BasicBidomainSolver):
         params.add("enable_adjoint", True)
         params.add("theta", 0.5)
         params.add("polynomial_degree", 1)
-        params.add("default_timestep", 1.0)
 
         # Set default solver type to be iterative
         params.add("linear_solver_type", "iterative")
@@ -536,8 +526,21 @@ class BidomainSolver(BasicBidomainSolver):
         self.time.assign(t)
 
         # Update matrix and linear solvers etc as needed
-        timestep_unchanged = (abs(dt - float(self._timestep)) < 1.e-12)
-        self._update_solver(timestep_unchanged, dt)
+        if self._timestep is None:
+            self._timestep = Constant(dt)
+            (self._lhs, self._rhs) = self.variational_forms(self._timestep)
+
+            # Preassemble left-hand side and initialize right-hand side vector
+            debug("Preassembling bidomain matrix (and initializing vector)")
+            self._lhs_matrix = assemble(self._lhs, **self._annotate_kwargs)
+            self._rhs_vector = Vector(self._mesh.mpi_comm(), self._lhs_matrix.size(0))
+            self._lhs_matrix.init_vector(self._rhs_vector, 0)
+
+            # Create linear solver (based on parameter choices)
+            self._linear_solver, self._update_solver = self._create_linear_solver()
+        else:
+            timestep_unchanged = (abs(dt - float(self._timestep)) < 1.e-12)
+            self._update_solver(timestep_unchanged, dt)
 
         # Assemble right-hand-side
         assemble(self._rhs, tensor=self._rhs_vector, **self._annotate_kwargs)
@@ -554,10 +557,10 @@ class BidomainSolver(BasicBidomainSolver):
         # changes in timestep
         if timestep_unchanged:
             debug("Timestep is unchanged, reusing LU factorization")
-            self.linear_solver.parameters["reuse_factorization"] = True
         else:
             debug("Timestep has changed, updating LU factorization")
-            self.linear_solver.parameters["reuse_factorization"] = False
+            if dolfin_adjoint and self.parameters["enable_adjoint"]:
+                raise ValueError("dolfin-adjoint doesn't support changing timestep (yet)")
 
             # Update stored timestep
             # FIXME: dolfin_adjoint still can't annotate constant assignment.
@@ -567,6 +570,8 @@ class BidomainSolver(BasicBidomainSolver):
             assemble(self._lhs, tensor=self._lhs_matrix,
                      **self._annotate_kwargs)
 
+            (self._linear_solver, dummy) = self._create_linear_solver()
+
     def _update_krylov_solver(self, timestep_unchanged, dt):
         """Helper function for updating a KrylovSolver depending on
         whether timestep has changed."""
@@ -575,14 +580,13 @@ class BidomainSolver(BasicBidomainSolver):
         # changes in timestep
         if timestep_unchanged:
             debug("Timestep is unchanged, reusing preconditioner")
-            self.linear_solver.parameters["preconditioner"]["structure"] = "same"
         else:
             debug("Timestep has changed, updating preconditioner")
-            self.linear_solver.parameters["preconditioner"]["structure"] = \
-                                                        "same_nonzero_pattern"
+            if dolfin_adjoint and self.parameters["enable_adjoint"]:
+                raise ValueError("dolfin-adjoint doesn't support changing timestep (yet)")
 
             # Update stored timestep
-            self._timestep.assign(Constant(dt))
+            self._timestep.assign(Constant(dt))#, annotate=annotate)
 
             # Reassemble matrix
             assemble(self._lhs, tensor=self._lhs_matrix, **self._annotate_kwargs)

@@ -182,7 +182,6 @@ class TestBidomainSolver(object):
         params = BidomainSolver.default_parameters()
         params["linear_solver_type"] = "direct"
         params["use_avg_u_constraint"] = True
-        params["default_timestep"] = self.dt
         solver = BidomainSolver(self.mesh, self.time,
                                 self.M_i, self.M_e,
                                 I_s=self.stimulus,
@@ -216,7 +215,6 @@ class TestBidomainSolver(object):
         params = BidomainSolver.default_parameters()
         params["linear_solver_type"] = "direct"
         params["use_avg_u_constraint"] = True
-        params["default_timestep"] = self.dt
         solver = BidomainSolver(self.mesh, self.time,
                                 self.M_i, self.M_e,
                                 I_s=self.stimulus,
@@ -230,7 +228,6 @@ class TestBidomainSolver(object):
 
         # Create solver and solve using iterative means
         params = BidomainSolver.default_parameters()
-        params["default_timestep"] = self.dt
         params["petsc_krylov_solver"]["monitor_convergence"] = True
         solver = BidomainSolver(self.mesh, self.time,
                                 self.M_i, self.M_e,
@@ -283,7 +280,6 @@ class TestMonodomainSolver(object):
         # Create solver and solve
         params = MonodomainSolver.default_parameters()
         params["linear_solver_type"] = "direct"
-        params["default_timestep"] = self.dt
         solver = MonodomainSolver(self.mesh, self.time,
                                   self.M_i, I_s=self.stimulus,
                                   params=params)
@@ -313,7 +309,6 @@ class TestMonodomainSolver(object):
         # Create solver and solve
         params = MonodomainSolver.default_parameters()
         params["linear_solver_type"] = "direct"
-        params["default_timestep"] = self.dt
         solver = MonodomainSolver(self.mesh, self.time,
                                   self.M_i, I_s=self.stimulus,
                                   params=params)
@@ -324,7 +319,6 @@ class TestMonodomainSolver(object):
 
         # Create solver and solve using iterative means
         params = MonodomainSolver.default_parameters()
-        params["default_timestep"] = self.dt
         params["linear_solver_type"] = "iterative"
         params["krylov_solver"]["monitor_convergence"] = True
         solver = MonodomainSolver(self.mesh, self.time,
