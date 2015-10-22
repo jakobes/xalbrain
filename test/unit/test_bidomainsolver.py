@@ -8,11 +8,19 @@ __all__ = []
 
 import pytest
 
-from cbcbeat.dolfinimport import Expression, Constant, UnitSquareMesh
+from cbcbeat.dolfinimport import Expression, Constant, UnitSquareMesh, parameters
 from cbcbeat import BidomainSolver, errornorm
 from cbcbeat.utils import convergence_rate
 
 from testutils import medium
+
+import sys
+args = sys.argv[:1] + """
+                      --petsc.bidomain_ksp_monitor_true_residual
+                      --petsc.bidomain_ksp_viewx
+                      --petsc.bidomain_ksp_type cg
+                      """.split()
+parameters.parse(args)
 
 def main(N, dt, T, theta):
 
@@ -27,6 +35,9 @@ def main(N, dt, T, theta):
     # Set-up solver
     params = BidomainSolver.default_parameters()
     params["theta"] = theta
+    params["linear_solver_type"] = "direct"
+    params["use_avg_u_constraint"] =  True
+    params["enable_adjoint"] =  False
     solver = BidomainSolver(mesh, time, M_i, M_e, I_s=stimulus, params=params)
 
     # Define exact solution (Note: v is returned at end of time
@@ -45,7 +56,7 @@ def main(N, dt, T, theta):
         continue
 
     # Compute errors
-    (v, u) = vu.split(deepcopy=True)
+    (v, u) = vu.split(deepcopy=True)[0:2]
     v_error = errornorm(v_exact, v, "L2", degree_rise=2)
     u_error = errornorm(u_exact, u, "L2", degree_rise=2)
     return [v_error, u_error, mesh.hmin(), dt, T]

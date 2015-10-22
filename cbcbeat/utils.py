@@ -17,9 +17,9 @@ def annotate_kwargs(ba_parameters):
     if not dolfin_adjoint:
         return {}
     if not ba_parameters["enable_adjoint"]:
-        return {}
+        return {"annotate": False}
     if parameters["adjoint"]["stop_annotating"]:
-        return {}
+        return {"annotate": False}
 
     return {"annotate": True}
 
@@ -144,6 +144,7 @@ class TimeStepper:
         """
         Return an iterator over time intervals
         """
+        eps = 1e-10
 
         while True:
 
@@ -154,7 +155,7 @@ class TimeStepper:
             yield self.t0, t1
 
             # Break if this is the last step
-            if abs(t1-self.T1) < dolfin.DOLFIN_EPS:
+            if abs(t1-self.T1) < eps:
                 if self.annotate and dolfin_adjoint:
                     dolfin_adjoint.adj_inc_timestep(time=t1, finished=True)
                 break

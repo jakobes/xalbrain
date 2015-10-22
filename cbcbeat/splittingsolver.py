@@ -66,7 +66,7 @@ from cbcbeat import CardiacModel
 from cbcbeat.cellsolver import BasicCardiacODESolver, CardiacODESolver
 from cbcbeat.bidomainsolver import BasicBidomainSolver, BidomainSolver
 from cbcbeat.monodomainsolver import BasicMonodomainSolver, MonodomainSolver
-from cbcbeat.utils import state_space, TimeStepper
+from cbcbeat.utils import state_space, TimeStepper, annotate_kwargs
 
 class BasicSplittingSolver:
     """
@@ -138,6 +138,8 @@ class BasicSplittingSolver:
 
         self.merger = FunctionAssigner(self.VS.sub(0), V)
 
+        self._annotate_kwargs = annotate_kwargs(self.parameters)
+
     def _create_ode_solver(self):
         """Helper function to initialize a suitable ODE solver from
         the cardiac model."""
@@ -153,6 +155,10 @@ class BasicSplittingSolver:
 
         # Extract ode solver parameters
         params = self.parameters["BasicCardiacODESolver"]
+        # Propagate enable_adjoint to Bidomain solver
+        if params.has_key("enable_adjoint"):
+            params["enable_adjoint"] = self.parameters["enable_adjoint"]
+
         solver = BasicCardiacODESolver(self._domain, self._time,
                                        cell_model.num_states(),
                                        cell_model.F,
@@ -368,7 +374,7 @@ class BasicSplittingSolver:
             v = self.vur.sub(0)
         else:
             v = self.vur
-        self.merger.assign(solution.sub(0), v)
+        self.merger.assign(solution.sub(0), v, **self._annotate_kwargs)
         end()
 
         timer.stop()
@@ -433,12 +439,16 @@ class SplittingSolver(BasicSplittingSolver):
             stimulus = self._model.stimulus()
 
         Solver = eval(self.parameters["ode_solver_choice"])
+        params = self.parameters[Solver.__name__]
+        if params.has_key("enable_adjoint"):
+            params["enable_adjoint"] = self.parameters["enable_adjoint"]
+
         solver = Solver(self._domain, self._time,
                         cell_model.num_states(),
                         cell_model.F,
                         cell_model.I,
                         I_s=stimulus,
-                        params=self.parameters[Solver.__name__])
+                        params=params)
 
         return solver
 
