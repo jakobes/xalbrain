@@ -9,7 +9,7 @@ import pytest
 from testutils import assert_equal, fast, slow, \
         adjoint, parametrize, assert_greater
 
-from cbcbeat.dolfinimport import info_green, info_red
+from cbcbeat.dolfinimport import info_green, info_red, parameters
 from cbcbeat import BasicBidomainSolver, BidomainSolver, \
         UnitCubeMesh, Constant, Expression, inner, dx, dt, \
         assemble, parameters, Control, \
@@ -17,9 +17,16 @@ from cbcbeat import BasicBidomainSolver, BidomainSolver, \
         compute_gradient_tlm, compute_gradient, \
         taylor_test, Function
 
+import sys
+args = sys.argv[:1] + """
+                      --petsc.bidomain_ksp_monitor_true_residual
+                      --petsc.bidomain_ksp_view
+                      --petsc.ksp_view
+                      """.split()
+parameters.parse(args)
 
 class TestBidomainSolversAdjoint(object):
-    """Test adjoint functionality for the basic bidomain solver."""
+    """Test adjoint functionality for the bidomain solver."""
 
     def setup(self):
         self.mesh = UnitCubeMesh(5, 5, 5)
@@ -47,14 +54,14 @@ class TestBidomainSolversAdjoint(object):
 
         if Solver == BasicBidomainSolver:
             params.linear_variational_solver.linear_solver = \
-                            "gmres" if solver_type == "iterative" else "lu"
+                            "cg" if solver_type == "iterative" else "lu"
             params.linear_variational_solver.krylov_solver.relative_tolerance = 1e-12
-            params.linear_variational_solver.preconditioner = 'jacobi'
+            params.linear_variational_solver.preconditioner = 'ilu'
         else:
             params.linear_solver_type = solver_type
             params.enable_adjoint = enable_adjoint
             if solver_type == "iterative":
-                params.krylov_solver.relative_tolerance = 1e-12
+                params.petsc_krylov_solver.relative_tolerance = 1e-12
             else:
                 params.use_avg_u_constraint = True  # NOTE: In contrast to iterative
                     # solvers, the direct solver does not handle nullspaces consistently,
@@ -87,9 +94,9 @@ class TestBidomainSolversAdjoint(object):
     @adjoint
     @fast
     @parametrize(("Solver", "solver_type", "tol"), [
-        (BasicBidomainSolver, "direct", 0.),
-        (BasicBidomainSolver, "iterative", 0.),
-        (BidomainSolver, "direct", 0.),
+        (BasicBidomainSolver, "direct", 1e-15),
+        (BasicBidomainSolver, "iterative", 1e-15),
+        (BidomainSolver, "direct", 1e-15),
         (BidomainSolver, "iterative", 1e-10),  # NOTE: The replay is not exact because
             # dolfin-adjoint's overloaded Krylov method is not constent with DOLFIN's
             # (it orthogonalizes the rhs vector as an additional step)

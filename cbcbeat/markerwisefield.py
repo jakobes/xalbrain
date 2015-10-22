@@ -1,10 +1,10 @@
 # Copyright (C) 2014 Marie E. Rognes (meg@simula.no)
 # Use and modify at will
-# Last changed: 2014-11-12
+# Last changed: 2015-09-30
 
 __all__ = ["Markerwise", "handle_markerwise", "rhs_with_markerwise_field"]
 
-from dolfinimport import dx, Measure
+from dolfinimport import dx, Measure, error
 
 def handle_markerwise(g, classtype):
     # Handle stimulus

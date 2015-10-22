@@ -94,6 +94,8 @@ class BasicBidomainSolver(object):
         assert isinstance(params, Parameters) or params is None, \
             "Expecting params to be a Parameters instance (or None)"
 
+        self._nullspace_basis = None
+
         # Store input
         self._mesh = mesh
         self._time = time
@@ -310,30 +312,18 @@ class BidomainSolver(BasicBidomainSolver):
                                      I_s=I_s, I_a=I_a, v_=v_,
                                      params=params)
 
-        # Create variational forms
-        self._timestep = Constant(self.parameters["default_timestep"])
-        (self._lhs, self._rhs, self._prec) \
-            = self.variational_forms(self._timestep)
-
-        # Preassemble left-hand side (will be updated if time-step
-        # changes)
-        debug("Preassembling bidomain matrix (and initializing vector)")
+        # Check consistency of parameters first
         if self.parameters["enable_adjoint"] and not dolfin_adjoint:
             warning("'enable_adjoint' is set to True, but no "\
                     "dolfin_adjoint installed.")
 
-        self._lhs_matrix = assemble(self._lhs, **self._annotate_kwargs)
-
-        self._rhs_vector = Vector(mesh.mpi_comm(), self._lhs_matrix.size(0))
-        self._lhs_matrix.init_vector(self._rhs_vector, 0)
-
-        # Create linear solver (based on parameter choices)
-        self._linear_solver, self._update_solver = self._create_linear_solver()
+        # Mark the timestep as unset
+        self._timestep = None
 
     @property
     def linear_solver(self):
         """The linear solver (:py:class:`dolfin.LUSolver` or
-        :py:class:`dolfin.KrylovSolver`)."""
+        :py:class:`dolfin.PETScKrylovSolver`)."""
         return self._linear_solver
 
     def _create_linear_solver(self):
@@ -343,41 +333,81 @@ class BidomainSolver(BasicBidomainSolver):
         if solver_type == "direct":
             solver = LUSolver(self._lhs_matrix)
             solver.parameters.update(self.parameters["lu_solver"])
+            solver.parameters["reuse_factorization"] = True
             update_routine = self._update_lu_solver
 
         elif solver_type == "iterative":
 
-            # Preassemble preconditioner (will be updated if time-step
-            # changes)
-            debug("Preassembling preconditioner")
-            self._prec_matrix = assemble(self._prec, **self._annotate_kwargs)
-
-            # Initialize KrylovSolver with matrix and preconditioner
+            # Initialize KrylovSolver with matrix
             alg = self.parameters["algorithm"]
             prec = self.parameters["preconditioner"]
-            solver = KrylovSolver(alg, prec)
-            solver.parameters.update(self.parameters["krylov_solver"])
-            solver.set_operators(self._lhs_matrix, self._prec_matrix)
+            # Argh. DOLFIN won't let you construct a PETScKrylovSolver with fieldsplit. Sigh ..
+            solver = PETScKrylovSolver()
+            # FIXME: work around DOLFIN bug #583. Just deleted this when fixed.
+            solver.parameters.convergence_norm_type = "preconditioned"
+            solver.parameters["preconditioner"]["structure"] = "same"
+            solver.parameters.update(self.parameters["petsc_krylov_solver"])
+            solver.set_operator(self._lhs_matrix)
 
-            # Set null space: v = 0, u = constant
-            debug("Setting null space")
-            null_vector = Vector(self.vur.vector())
-            self.VUR.sub(1).dofmap().set(null_vector, 1.0)
-            null_vector *= 1.0/null_vector.norm("l2")
+            # Initialize the KSP directly:
+            ksp = solver.ksp()
+            ksp.setType(alg)
+            ksp.pc.setType(prec)
+            ksp.setOptionsPrefix("bidomain_") # it's really stupid, solver.set_options_prefix() doesn't work
 
-            null_space = VectorSpaceBasis([null_vector])
-            solver.set_nullspace(null_space)
+            # Set various options (by default) for the fieldsplit
+            # approach to solving the bidomain equations.
+            if prec == "fieldsplit":
 
-            # We happen to know that the transpose nullspace is the
-            # same (easy to prove from matrix structure)
-            if hasattr(solver, "set_transpose_nullspace"):
-                solver.set_transpose_nullspace(null_space)
+                # FIXME: This needs a try
+                from petsc4py import PETSc
+
+                # Patrick believes that the fieldsplit index sets
+                # should already be set from the assembled matrix.
+
+                # Now let's set some default options for the solver.
+                opts = PETSc.Options("bidomain_")
+                if "pc_fieldsplit_type"    not in opts: opts["pc_fieldsplit_type"] = "symmetric_multiplicative"
+                if "fieldsplit_0_ksp_type" not in opts: opts["fieldsplit_0_ksp_type"] = "preonly"
+                if "fieldsplit_1_ksp_type" not in opts: opts["fieldsplit_1_ksp_type"] = "preonly"
+                if "fieldsplit_0_pc_type"  not in opts: opts["fieldsplit_0_pc_type"] = "hypre"
+                if "fieldsplit_1_pc_type"  not in opts: opts["fieldsplit_1_pc_type"] = "hypre"
+
+            ksp.setFromOptions()
+            ksp.setUp()
+
+            # Set nullspace if present. We happen to know that the
+            # transpose nullspace is the same as the nullspace (easy
+            # to prove from matrix structure).
+            if self.parameters["use_avg_u_constraint"]:
+                # Nothing to do, no null space
+                pass
+
+            else:
+                # If dolfin-adjoint is enabled and installled: set the solver nullspace
+                if dolfin_adjoint:
+                    solver.set_nullspace(self.nullspace)
+                    solver.set_transpose_nullspace(self.nullspace)
+                # Otherwise, set the nullspace in the operator
+                # directly.
+                else:
+                    A = as_backend_type(self._lhs_matrix)
+                    A.set_nullspace(self.nullspace)
 
             update_routine = self._update_krylov_solver
         else:
             error("Unknown linear_solver_type given: %s" % solver_type)
 
         return (solver, update_routine)
+
+    @property
+    def nullspace(self):
+        if self._nullspace_basis is None:
+            null_vector = Vector(self.vur.vector())
+            self.VUR.sub(1).dofmap().set(null_vector, 1.0)
+            null_vector *= 1.0/null_vector.norm("l2")
+            self._nullspace_basis = VectorSpaceBasis([null_vector])
+        return self._nullspace_basis
 
     @staticmethod
     def default_parameters():
@@ -395,7 +425,6 @@ class BidomainSolver(BasicBidomainSolver):
         params.add("enable_adjoint", True)
         params.add("theta", 0.5)
         params.add("polynomial_degree", 1)
-        params.add("default_timestep", 1.0)
 
         # Set default solver type to be iterative
         params.add("linear_solver_type", "iterative")
@@ -404,17 +433,20 @@ class BidomainSolver(BasicBidomainSolver):
         # Set default iterative solver choices (used if iterative
         # solver is invoked)
         params.add("algorithm", "cg")
-        params.add("preconditioner", "jacobi")
+        params.add("preconditioner", "fieldsplit")
 
         # Add default parameters from both LU and Krylov solvers
         params.add(LUSolver.default_parameters())
-        params.add(KrylovSolver.default_parameters())
+        petsc_params = PETScKrylovSolver.default_parameters()
+        # FIXME: work around DOLFIN bug #583. Just deleted this when fixed.
+        petsc_params.convergence_norm_type = "preconditioned"
+        params.add(petsc_params)
 
         # Customize default parameters for LUSolver
         params["lu_solver"]["same_nonzero_pattern"] = True
 
-        # Customize default parameters for KrylovSolver
-        params["krylov_solver"]["preconditioner"]["structure"] = "same"
+        # Customize default parameters for PETScKrylovSolver
+        params["petsc_krylov_solver"]["preconditioner"]["structure"] = "same"
 
         return params
 
@@ -427,7 +459,7 @@ class BidomainSolver(BasicBidomainSolver):
             The time step
 
         *Returns*
-          (lhs, rhs, prec) (:py:class:`tuple` of :py:class:`ufl.Form`)
+          (lhs, rhs) (:py:class:`tuple` of :py:class:`ufl.Form`)
 
         """
 
@@ -467,12 +499,8 @@ class BidomainSolver(BasicBidomainSolver):
         if self._I_a:
             G -= k_n*self._I_a*q*dz()
 
-        # Define preconditioner based on educated(?) guess by Marie
-        prec = (v*w + k_n/2.0*inner(M_i*grad(v), grad(w)))*dz()  \
-            + (u*q + k_n/2.0*inner((M_i + M_e)*grad(u), grad(q)))*dz()
-
         (a, L) = system(G)
-        return (a, L, prec)
+        return (a, L)
 
     def step(self, interval):
         """
@@ -488,6 +516,7 @@ class BidomainSolver(BasicBidomainSolver):
         """
 
         timer = Timer("PDE step")
+        solver_type = self.parameters["linear_solver_type"]
 
         # Extract interval and thus time-step
         (t0, t1) = interval
@@ -497,8 +526,21 @@ class BidomainSolver(BasicBidomainSolver):
         self.time.assign(t)
 
         # Update matrix and linear solvers etc as needed
-        timestep_unchanged = (abs(dt - float(self._timestep)) < 1.e-12)
-        self._update_solver(timestep_unchanged, dt)
+        if self._timestep is None:
+            self._timestep = Constant(dt)
+            (self._lhs, self._rhs) = self.variational_forms(self._timestep)
+
+            # Preassemble left-hand side and initialize right-hand side vector
+            debug("Preassembling bidomain matrix (and initializing vector)")
+            self._lhs_matrix = assemble(self._lhs, **self._annotate_kwargs)
+            self._rhs_vector = Vector(self._mesh.mpi_comm(), self._lhs_matrix.size(0))
+            self._lhs_matrix.init_vector(self._rhs_vector, 0)
+
+            # Create linear solver (based on parameter choices)
+            self._linear_solver, self._update_solver = self._create_linear_solver()
+        else:
+            timestep_unchanged = (abs(dt - float(self._timestep)) < 1.e-12)
+            self._update_solver(timestep_unchanged, dt)
 
         # Assemble right-hand-side
         assemble(self._rhs, tensor=self._rhs_vector, **self._annotate_kwargs)
@@ -515,10 +557,10 @@ class BidomainSolver(BasicBidomainSolver):
         # changes in timestep
         if timestep_unchanged:
             debug("Timestep is unchanged, reusing LU factorization")
-            self.linear_solver.parameters["reuse_factorization"] = True
         else:
             debug("Timestep has changed, updating LU factorization")
-            self.linear_solver.parameters["reuse_factorization"] = False
+            if dolfin_adjoint and self.parameters["enable_adjoint"]:
+                raise ValueError("dolfin-adjoint doesn't support changing timestep (yet)")
 
             # Update stored timestep
             # FIXME: dolfin_adjoint still can't annotate constant assignment.
@@ -528,6 +570,8 @@ class BidomainSolver(BasicBidomainSolver):
             assemble(self._lhs, tensor=self._lhs_matrix,
                      **self._annotate_kwargs)
 
+            (self._linear_solver, dummy) = self._create_linear_solver()
+
     def _update_krylov_solver(self, timestep_unchanged, dt):
         """Helper function for updating a KrylovSolver depending on
         whether timestep has changed."""
@@ -536,22 +580,19 @@ class BidomainSolver(BasicBidomainSolver):
         # changes in timestep
         if timestep_unchanged:
             debug("Timestep is unchanged, reusing preconditioner")
-            self.linear_solver.parameters["preconditioner"]["structure"] = "same"
         else:
             debug("Timestep has changed, updating preconditioner")
-            self.linear_solver.parameters["preconditioner"]["structure"] = \
-                                                        "same_nonzero_pattern"
+            if dolfin_adjoint and self.parameters["enable_adjoint"]:
+                raise ValueError("dolfin-adjoint doesn't support changing timestep (yet)")
 
             # Update stored timestep
-            self._timestep.assign(Constant(dt))
+            self._timestep.assign(Constant(dt))#, annotate=annotate)
 
             # Reassemble matrix
-            assemble(self._lhs, tensor=self._lhs_matrix,
-                     **self._annotate_kwargs)
+            assemble(self._lhs, tensor=self._lhs_matrix, **self._annotate_kwargs)
 
-            # Reassemble preconditioner
-            assemble(self._prec, tensor=self._prec_matrix,
-                     **self._annotate_kwargs)
+            # Make new Krylov solver
+            (self._linear_solver, dummy) = self._create_linear_solver()
 
         # Set nonzero initial guess if it indeed is nonzero
         if (self.vur.vector().norm("l2") > 1.e-12):

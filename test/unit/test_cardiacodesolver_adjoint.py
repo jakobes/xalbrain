@@ -7,7 +7,7 @@ __all__ = ["TestCardiacODESolverAdjoint"]
 
 import pytest
 from testutils import assert_true, assert_greater, slow, \
-        adjoint, cell_model, parametrize, disabled
+        adjoint, cell_model, parametrize, xfail
 
 from cbcbeat.dolfinimport import UnitIntervalMesh, info_green
 from cbcbeat import CardiacODESolver, \
@@ -154,7 +154,7 @@ class TestCardiacODESolverAdjoint(object):
             return assemble(form(vs))
 
         # Stop annotating
-        parameters["adjoint"]["stop_annotating"] = True
+        solver.parameters["enable_adjoint"] = False
 
         m = ConstantControl(cell_params[param_name])
         return J, Jhat, m, Jics
@@ -213,7 +213,8 @@ class TestCardiacODESolverAdjoint(object):
 
     @adjoint
     @slow
-    @disabled
+    @xfail  #  dolfin-adjoint does not support differentiating with respect to
+            # ODE parameters yet
     @parametrize(("Scheme"), supported_schemes)
     def test_tlm_cell_model_parameter(self, cell_model, Scheme):
         if Scheme == "ForwardEuler":
@@ -226,6 +227,9 @@ class TestCardiacODESolverAdjoint(object):
 
         # Seed for taylor test
         seed = seed_collection_tlm.get(cell_model.__class__)
+
+        # Stop annotating
+        parameters["adjoint"]["stop_annotating"] = True
 
         # Check TLM correctness
         info_green("Computing gradient")
@@ -263,7 +267,8 @@ class TestCardiacODESolverAdjoint(object):
 
     @adjoint
     @slow
-    @disabled
+    @xfail  #  dolfin-adjoint does not support differentiating with respect to
+            # ODE parameters yet
     @parametrize(("Scheme"), supported_schemes)
     def test_adjoint_cell_model_parameter(self, cell_model, Scheme):
         """ Test that the gradient computed with the adjoint model is correct. """

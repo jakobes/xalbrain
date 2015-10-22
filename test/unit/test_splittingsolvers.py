@@ -5,7 +5,7 @@ Unit tests for various types of bidomain solver
 __author__ = "Marie E. Rognes (meg@simula.no), 2013"
 __all__ = ["TestSplittingSolver"]
 
-from testutils import assert_almost_equal, medium
+from testutils import assert_almost_equal, medium, parametrize
 
 from dolfin import info, set_log_level, WARNING
 from cbcbeat import CardiacModel, \
@@ -52,7 +52,8 @@ class TestSplittingSolver(object):
 
 
     @medium
-    def test_basic_and_optimised_splitting_solver_exact(self):
+    @parametrize(("solver_type"), ["direct", "iterative"])
+    def test_basic_and_optimised_splitting_solver_exact(self, solver_type):
         """Test that basic and optimised splitting solvers yield
         very comparative results when configured identically."""
 
@@ -78,8 +79,10 @@ class TestSplittingSolver(object):
 
         # Create optimised solver with direct solution algorithm
         params = SplittingSolver.default_parameters()
-        params["BidomainSolver"]["linear_solver_type"] = "direct"
-        params["BidomainSolver"]["use_avg_u_constraint"] = True
+        params["BidomainSolver"]["linear_solver_type"] = solver_type
+        params["enable_adjoint"] = False
+        if solver_type == "direct":
+            params["BidomainSolver"]["use_avg_u_constraint"] = True
         solver = SplittingSolver(self.cardiac_model, params=params)
 
         (vs_, vs, vur) = solver.solution_fields()
