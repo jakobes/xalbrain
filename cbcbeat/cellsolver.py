@@ -4,7 +4,8 @@ __author__ = "Marie E. Rognes (meg@simula.no), 2012--2013"
 
 __all__ = ["BasicSingleCellSolver",
            "BasicCardiacODESolver",
-           "CardiacODESolver"]
+           "CardiacODESolver",
+           "SingleCellSolver"]
 
 from dolfinimport import *
 from cbcbeat import CardiacCellModel
@@ -543,3 +544,32 @@ class BasicSingleCellSolver(BasicCardiacODESolver):
                                        model.I,
                                        I_s=model.stimulus,
                                        params=params)
+
+class SingleCellSolver(CardiacODESolver):
+    def __init__(self, model, time, params=None):
+        "Create solver from given cell model and optional parameters."
+        
+        assert isinstance(model, CardiacCellModel), \
+            "Expecting model to be a CardiacCellModel, not %r" % model
+        assert (isinstance(time, Constant)), \
+            "Expecting time to be a Constant instance, not %r" % time
+        assert isinstance(params, Parameters) or params is None, \
+            "Expecting params to be a Parameters (or None), not %r" % params
+        
+        # Store model
+        self._model = model
+        
+        # Define carefully chosen dummy mesh
+        mesh = UnitIntervalMesh(1)
+
+        # Extract information from cardiac cell model and ship off to
+        # super-class.
+        CardiacODESolver.__init__(self,
+                                  mesh,
+                                  time,
+                                  model.num_states(),
+                                  model.F,
+                                  model.I,
+                                  I_s=model.stimulus,
+                                  params=params)
+        
