@@ -123,7 +123,7 @@ def setup_cardiac_model(application_parameters):
     pulse.t = time        # ms
 
     # Initialize cardiac model with the above input
-    heart = CardiacModel(mesh, time, M_i, M_e, cell_model, stimulus={0:pulse})
+    heart = CardiacModel(mesh, time, M_i, M_e, cell_model, stimulus=pulse)
     return (heart, gs)
 
 def main(store_solutions=True):
@@ -148,17 +148,10 @@ def main(store_solutions=True):
     begin("Setting up splitting solver")
     params = SplittingSolver.default_parameters()
     params["theta"] = 1.0
-    params["CardiacODESolver"]["scheme"] = "BackwardEuler"
-    ns_params = params["CardiacODESolver"]["point_integral_solver"]["newton_solver"]
-    #ns_params["always_recompute_jacobian"] = True
-    #ns_params["recompute_jacobian_for_linear_problems"] = True
-    #ns_params["recompute_jacobian_each_solve"] = True
-    ns_params["relative_tolerance"] = 1.e-5
-    ns_params["maximum_iterations"] = 40
-    ns_params["report"] = True
+    params["CardiacODESolver"]["scheme"] = "GRL1"
 
-    params["BidomainSolver"]["linear_solver_type"] = "direct"
-    params["BidomainSolver"]["default_timestep"] = k_n
+    #params["BidomainSolver"]["linear_solver_type"] = "direct"
+    #params["BidomainSolver"]["default_timestep"] = k_n
     solver = SplittingSolver(heart, params=params)
     end()
 
@@ -166,7 +159,7 @@ def main(store_solutions=True):
     (vs_, vs, vu) = solver.solution_fields()
 
     # Extract and assign initial condition
-    vs_.assign(heart.cell_model().initial_conditions(), solver.VS)
+    vs_.assign(heart.cell_models().initial_conditions(), solver.VS)
 
     # Store parameters (FIXME: arbitrary ls whether this works in parallel!)
     directory = application_parameters["directory"]
@@ -181,9 +174,9 @@ def main(store_solutions=True):
     solutions = solver.solve((0, T), k_n)
 
     # Set up storage
-    mpi_comm = heart.domain.mpi_comm()
-    vs_timeseries = TimeSeriesHDF5(mpi_comm, "%s/vs" % directory)
-    u_timeseries = TimeSeriesHDF5(mpi_comm, "%s/u" % directory)
+    mpi_comm = heart.domain().mpi_comm()
+    vs_timeseries = TimeSeries(mpi_comm, "%s/vs" % directory)
+    u_timeseries = TimeSeries(mpi_comm, "%s/u" % directory)
 
     # Store initial solutions:
     if store_solutions:
