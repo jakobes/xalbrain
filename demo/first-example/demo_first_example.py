@@ -24,10 +24,10 @@ cardiac_model = CardiacModel(mesh, time, M_i, M_e, cell_models, stimulus)
 # Initialize the solver
 
 # Illustrate how to set parameters
-#ps = SplitingSolver.default_parameters()
+ps = SplittingSolver.default_parameters()
 #ps["BidomainSolver"]["linear_solver_type"] = "direct"
 #ps["BidomainSolver"]["use_avg_u_constraint"] = True
-solver = SplittingSolver(cardiac_model, params=params)
+solver = SplittingSolver(cardiac_model, params=ps)
 
 # Extract the solution fields and set the initial conditions
 (vs_, vs, vur) = solver.solution_fields()
