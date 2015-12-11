@@ -12,7 +12,7 @@ __author__ = "Marie E. Rognes (meg@simula.no), 2013"
 import math
 import pylab
 from cbcbeat import *
-
+import time as systime
 # For easier visualization of the variables
 parameters["reorder_dofs_serial"] = False
 
@@ -32,19 +32,29 @@ class Stimulus(Expression):
         else:
             value[0] = 0.0
 
+class StimulusBR(Expression):
+    "Some self-defined stimulus."
+    def __init__(self, t):
+        self.t = t
+    def eval(self, value, x):
+        if float(self.t) >= 0 and float(self.t) <= 1:
+            value[0] = -0.2*(-200)
+        else:
+            value[0] = 0.0
+
 def main():
     "Solve a single cell model on some time frame."
 
     # Initialize model and assign stimulus
-    #model = Beeler_reuter_1977()
+    model = Beeler_reuter_1977()
     #model = Grandi_pasqualini_bers_2010()
     #model = FitzHughNagumoManual()
     #model = Fitzhughnagumo()
     #model = Tentusscher_2004_mcell()
     #model=Fenton_karma_1998_BR_altered()
-    model=Fenton_karma_1998_MLR1_altered()
+    #model=Fenton_karma_1998_MLR1_altered()
     time = Constant(0.0)
-    model.stimulus = Stimulus(time)
+    model.stimulus = StimulusBR(time)
 
     # Initialize solver
     """
@@ -72,7 +82,7 @@ def main():
     times = []
     values = []
     for ((t0, t1), vs) in solutions:
-        print "Current time: %g" % t1
+        #print "Current time: %g" % t1
         times.append(t1)
         values.append(vs.vector().array())
 
@@ -103,6 +113,9 @@ def plot_results(times, values, show=True):
         pylab.show()
 
 if __name__ == "__main__":
-
+    tic= systime.time()
     (times, values) = main()
+    print systime.time()-tic
     plot_results(times, values, show=False)
+    
+    
