@@ -2,8 +2,8 @@
 This module contains splitting solvers for CardiacModel objects. In
 particular, the classes
 
-  * BasicSplittingSolver
   * SplittingSolver
+  * BasicSplittingSolver
 
 These solvers solve the bidomain (or monodomain) equations on the
 form: find the transmembrane potential :math:`v = v(x, t)` in mV, the
@@ -59,7 +59,7 @@ testing or debugging purposes primarily.
 # Use and modify at will
 # Last changed: 2013-04-15
 
-__all__ = ["BasicSplittingSolver", "SplittingSolver"]
+__all__ = ["SplittingSolver", "BasicSplittingSolver",]
 
 from dolfinimport import *
 from cbcbeat import CardiacModel
@@ -98,7 +98,7 @@ class BasicSplittingSolver:
     *Arguments*
       model (:py:class:`cbcbeat.cardiacmodels.CardiacModel`)
         a CardiacModel object describing the simulation set-up
-      parameters (:py:class:`dolfin.Parameters`, optional)
+      params (:py:class:`dolfin.Parameters`, optional)
         a Parameters object controlling solver parameters
 
     *Assumptions*
@@ -216,6 +216,7 @@ class BasicSplittingSolver:
         To inspect all the default parameters, do::
 
           info(BasicSplittingSolver.default_parameters(), True)
+
         """
 
         params = Parameters("BasicSplittingSolver")
@@ -380,6 +381,77 @@ class BasicSplittingSolver:
         timer.stop()
 
 class SplittingSolver(BasicSplittingSolver):
+    """
+
+    An optimised solver for the bidomain equations based on the
+    operator splitting scheme described in Sundnes et al 2006, p. 78
+    ff.
+
+    The solver computes as solutions:
+
+      * "vs" (:py:class:`dolfin.Function`) representing the solution
+        for the transmembrane potential and any additional state
+        variables, and
+      * "vur" (:py:class:`dolfin.Function`) representing the
+        transmembrane potential in combination with the extracellular
+        potential and an additional Lagrange multiplier.
+
+    The algorithm can be controlled by a number of parameters. In
+    particular, the splitting algorithm can be controlled by the
+    parameter "theta": "theta" set to 1.0 corresponds to a (1st order)
+    Godunov splitting while "theta" set to 0.5 to a (2nd order) Strang
+    splitting.
+
+    *Arguments*
+      model (:py:class:`cbcbeat.cardiacmodels.CardiacModel`)
+        a CardiacModel object describing the simulation set-up
+      params (:py:class:`dolfin.Parameters`, optional)
+        a Parameters object controlling solver parameters
+
+    *Example of usage*::
+
+      from cbcbeat import *
+
+      # Describe the cardiac model
+      mesh = UnitSquareMesh(100, 100)
+      time = Constant(0.0)
+      cell_model = FitzHughNagumoManual()
+      stimulus = Expression("10*t*x[0]", t=time)
+      cm = CardiacModel(mesh, time, 1.0, 1.0, cell_model, stimulus)
+
+      # Extract default solver parameters
+      ps = SplittingSolver.default_parameters()
+
+      # Examine the default parameters
+      info(ps, True)
+
+      # Update parameter dictionary
+      ps["theta"] = 1.0 # Use first order splitting
+      ps["CardiacODESolver"]["scheme"] = "GRL1" # Use Generalized Rush-Larsen scheme
+
+      ps["pde_solver"] = "monodomain"                         # Use monodomain equations as the PDE model
+      ps["MonodomainSolver"]["linear_solver_type"] = "direct" # Use direct linear solver of the PDEs
+      ps["MonodomainSolver"]["theta"] = 1.0                   # Use backward Euler for temporal discretization for the PDEs
+
+      solver = SplittingSolver(cm, params=ps)
+
+      # Extract the solution fields and set the initial conditions
+      (vs_, vs, vur) = solver.solution_fields()
+      vs_.assign(cell_model.initial_conditions())
+
+      # Solve
+      dt = 0.1
+      T = 1.0
+      interval = (0.0, T)
+      for (timestep, fields) in solver.solve(interval, dt):
+          (vs_, vs, vur) = fields
+          # Do something with the solutions
+
+
+    *Assumptions*
+      * The cardiac conductivities do not vary in time
+
+    """
 
     def __init__(self, model, params=None):
         BasicSplittingSolver.__init__(self, model, params)
@@ -390,9 +462,9 @@ class SplittingSolver(BasicSplittingSolver):
         splitting solver
 
         *Returns*
-          A set of parameters (:py:class:`dolfin.Parameters`)
+          The set of default parameters (:py:class:`dolfin.Parameters`)
 
-        To inspect all the default parameters, do::
+        *Example of usage*::
 
           info(SplittingSolver.default_parameters(), True)
         """
@@ -406,7 +478,7 @@ class SplittingSolver(BasicSplittingSolver):
 
         # Add default parameters from ODE solver
         ode_solver_params = CardiacODESolver.default_parameters()
-        ode_solver_params["scheme"] = "CN2"
+        ode_solver_params["scheme"] = "RL1"
         params.add(ode_solver_params)
 
         # Add default parameters from ODE solver
