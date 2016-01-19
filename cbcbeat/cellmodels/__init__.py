@@ -27,8 +27,8 @@ supported_cell_models = (FitzHughNagumoManual,
                          Tentusscher_2004_mcell,
                          Tentusscher_panfilov_2006_epi_cell,
                          Fenton_karma_1998_MLR1_altered,
-                         Fenton_karma_1998_BR_altered,
-                         Grandi_pasqualini_bers_2010)
+                         Fenton_karma_1998_BR_altered),
+                         #Grandi_pasqualini_bers_2010)
 
 # Iterate over modules and collect CardiacCellModels
 #supported_cell_models = set()
