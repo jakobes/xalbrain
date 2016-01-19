@@ -11,12 +11,14 @@ import sys
 
 from cbcbeat import *
 
-# Set FFC parameters
+# Set FFC some parameters
 parameters["form_compiler"]["cpp_optimize"] = True
 flags = ["-O3", "-ffast-math", "-march=native"]
 parameters["form_compiler"]["cpp_optimize_flags"] = " ".join(flags)
 parameters["form_compiler"]["quadrature_degree"] = 3
 
+# Customize petsc_amg (GAMG) parameters via the oh-so-readable petsc
+# command-line interface
 args = [sys.argv[0]] + """
                        --petsc.ksp_monitor_cancel
                        --petsc.ksp_monitor
@@ -32,7 +34,7 @@ args = [sys.argv[0]] + """
                        --petsc.mg_levels_ksp_max_it 3
                        --petsc.mg_levels_pc_type sor
                        """.split()
-#parameters.parse(argv=args)
+parameters.parse(argv=args)
 
 # MER says: should use compiled c++ expression here for vastly
 # improved efficiency.
@@ -150,7 +152,7 @@ def run_splitting_solver(domain, dt, T):
     total.stop()
 
     # Plot result (as sanity check)
-    plot(vs[0], interactive=True)
+    #plot(vs[0], interactive=True)
 
     # Stop timer and list timings
     if MPI.rank(mpi_comm_world()) == 0:
@@ -165,7 +167,7 @@ if __name__ == "__main__":
     Lx = 20.0; Ly = 7.0; Lz = 3.0  # mm
 
     # Define discretization resolutions
-    dx = 0.1
+    dx = 0.2
     dt = 0.01
 
     T = 10*dt
@@ -174,5 +176,48 @@ if __name__ == "__main__":
     x0 = Point(numpy.array((0.0, 0.0, 0.0)))
     x1 = Point(numpy.array((Lx, Ly, Lz)))
     mesh = BoxMesh(x0, x1, N(Lx/dx), N(Ly/dx), N(Lz/dx))
-
     run_splitting_solver(mesh, dt, T)
+
+"""
+Some data (Marie's laptop):
+
+With fancy petsc gamg parameters:
+T = 10*dt, dt = 0.01
+
+[MPI_AVG] Summary of timings      |     reps    wall avg    wall tot
+--------------------------------------------------------------------
+dx = 0.2
+--------------------------------------------------------------------
+ODE step                          |       20     0.53433      10.687
+PDE Step                          |       10     0.32857      3.2857
+PETSc Krylov solver               |       11     0.12121      1.3333
+PointIntegralSolver::step         |       20     0.53142      10.628
+XXX Total cbcbeat solver time     |        1      14.023      14.023
+--------------------------------------------------------------------
+dx = 0.1
+ODE step                          |       20      4.0598      81.196
+PDE Step                          |       10      2.5294      25.294
+PETSc Krylov solver               |       10     0.64789      6.4789
+PointIntegralSolver::step         |       20      4.0369      80.737
+XXX Total cbcbeat solver time     |        1      106.81      106.81
+
+
+--------------------------------------------------------------------
+Without fancy petsc gamg parameters:
+--------------------------------------------------------------------
+dx = 0.2
+--------------------------------------------------------------------
+ODE step                          |       20     0.63962      12.792
+PDE Step                          |       10     0.47144      4.7144
+PETSc Krylov solver               |       10     0.16147      1.6147
+PointIntegralSolver::step         |       20     0.63661      12.732
+XXX Total cbcbeat solver time     |        1       17.56       17.56
+--------------------------------------------------------------------
+dx = 0.1
+--------------------------------------------------------------------
+ODE step                          |       20      4.2569      85.138
+PDE Step                          |       10      3.0711      30.711
+PETSc Krylov solver               |       10      1.1654      11.654
+PointIntegralSolver::step         |       20      4.2332      84.664
+XXX Total cbcbeat solver time     |        1      116.18      116.18
+"""
