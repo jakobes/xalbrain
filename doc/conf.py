@@ -97,7 +97,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'cbcbeat'
-copyright = u'2014, cbcbeat-authors'
+copyright = u'2014--2016, ME Rognes, J Hake, PE Farrell, SW Funke'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -317,7 +317,7 @@ texinfo_documents = [
 epub_title = u'cbcbeat'
 epub_author = u'cbcbeat-authors'
 epub_publisher = u'cbcbeat-authors'
-epub_copyright = u'2014, cbcbeat-authors'
+epub_copyright = u'2014--2016, ME Rognes, J Hake, PE Farrell, SW Funke'
 
 # The basename for the epub file. It defaults to the project name.
 #epub_basename = u'cbcbeat'

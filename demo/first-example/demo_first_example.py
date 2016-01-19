@@ -9,7 +9,7 @@
 # cbcbeat.
 #
 # First example for cbcbeat
-# =============================
+# =========================
 
 # Import the cbcbeat module
 from cbcbeat import *
