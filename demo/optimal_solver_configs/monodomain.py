@@ -106,7 +106,7 @@ def setup_model(cellmodel, domain):
 
     # Store input parameters in cardiac model
     I_s = Markerwise((stim,), (1,), markers)
-    heart = CardiacModel(domain, time, M, None, cellmodel, I_s)
+    heart = CardiacModel(domain, time, M, M, cellmodel, I_s)
     return heart
 
 def run_splitting_solver(domain, dt, T):

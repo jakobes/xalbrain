@@ -117,8 +117,10 @@ class BasicBidomainSolver(object):
         use_R = self.parameters["use_avg_u_constraint"]
         if use_R:
             R = FunctionSpace(self._mesh, "R", 0)
+            #self.VUR = FunctionSpace(mesh, MixedElement((V, U, R)))
             self.VUR = MixedFunctionSpace((V, U, R))
         else:
+            #self.VUR = FunctionSpace(mesh, MixedElement((V, U)))
             self.VUR = MixedFunctionSpace((V, U))
 
         self.V = V
@@ -341,23 +343,26 @@ class BidomainSolver(BasicBidomainSolver):
             # Initialize KrylovSolver with matrix
             alg = self.parameters["algorithm"]
             prec = self.parameters["preconditioner"]
-            # Argh. DOLFIN won't let you construct a PETScKrylovSolver with fieldsplit. Sigh ..
-            solver = PETScKrylovSolver()
-            # FIXME: work around DOLFIN bug #583. Just deleted this when fixed.
-            solver.parameters.convergence_norm_type = "preconditioned"
-            solver.parameters["preconditioner"]["structure"] = "same"
-            solver.parameters.update(self.parameters["petsc_krylov_solver"])
-            solver.set_operator(self._lhs_matrix)
 
-            # Initialize the KSP directly:
-            ksp = solver.ksp()
-            ksp.setType(alg)
-            ksp.pc.setType(prec)
-            ksp.setOptionsPrefix("bidomain_") # it's really stupid, solver.set_options_prefix() doesn't work
-
-            # Set various options (by default) for the fieldsplit
-            # approach to solving the bidomain equations.
+            debug("Creating PETSCKrylovSolver with %s and %s" % (alg, prec))
             if prec == "fieldsplit":
+
+                # Argh. DOLFIN won't let you construct a PETScKrylovSolver with fieldsplit. Sigh ..
+                solver = PETScKrylovSolver()
+                # FIXME: work around DOLFIN bug #583. Just deleted this when fixed.
+                solver.parameters.convergence_norm_type = "preconditioned"
+                #solver.parameters["preconditioner"]["structure"] = "same" # MER this should be set by user, and is below
+                solver.parameters.update(self.parameters["petsc_krylov_solver"])
+                solver.set_operator(self._lhs_matrix)
+
+                # Initialize the KSP directly:
+                ksp = solver.ksp()
+                ksp.setType(alg)
+                ksp.pc.setType(prec)
+                ksp.setOptionsPrefix("bidomain_") # it's really stupid, solver.set_options_prefix() doesn't work
+
+                # Set various options (by default) for the fieldsplit
+                # approach to solving the bidomain equations.
 
                 # FIXME: This needs a try
                 from petsc4py import PETSc
@@ -373,8 +378,15 @@ class BidomainSolver(BasicBidomainSolver):
                 if "fieldsplit_0_pc_type"  not in opts: opts["fieldsplit_0_pc_type"] = "hypre"
                 if "fieldsplit_1_pc_type"  not in opts: opts["fieldsplit_1_pc_type"] = "hypre"
 
-            ksp.setFromOptions()
-            ksp.setUp()
+                ksp.setFromOptions()
+                ksp.setUp()
+
+            else:
+                solver = PETScKrylovSolver(alg, prec)
+                solver.set_operator(self._lhs_matrix)
+                # Still waiting for that bug fix:
+                solver.parameters.convergence_norm_type = "preconditioned"
+                solver.parameters.update(self.parameters["petsc_krylov_solver"])
 
             # Set nullspace if present. We happen to know that the
             # transpose nullspace is the same as the nullspace (easy
