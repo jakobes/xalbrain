@@ -160,7 +160,6 @@ class MultiCellModel(CardiacCellModel):
         self._cell_models = models
         self._keys = keys
         self._key_to_cell_model = dict(zip(keys, range(len(keys))))
-        print "self._key_to_cell_model = ", self._key_to_cell_model
         self._markers = markers
 
         self._num_states = max(c.num_states() for c in self._cell_models)
