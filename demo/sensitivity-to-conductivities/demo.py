@@ -199,7 +199,7 @@ def main(store_solutions=True):
     timer.stop()
 
     # List timings
-    list_timings()
+    list_timings(TimingClear_keep, [TimingType_wall,])
     return (gs, solver)
 
 if __name__ == "__main__":
