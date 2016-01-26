@@ -22,11 +22,8 @@ def forward():
     mesh = UnitSquareMesh(N, N)
     time = Constant(0.0)
 
-    # Choose your favorite cell model and extract some info
+    # Choose your favorite cell model
     model = Tentusscher_2004_mcell()
-    num_states = model.num_states()
-    F = model.F
-    I = model.I
 
     # Add some forces
     stimulus = Expression("100*t", t=time)
@@ -34,7 +31,7 @@ def forward():
     params = Solver.default_parameters()
     if Solver == CardiacODESolver:
         params["scheme"] = "CN"
-    solver = Solver(mesh, time, num_states, F, I, I_s=stimulus, params=params)
+    solver = Solver(mesh, time, model, I_s=stimulus, params=params)
 
     # Set-up initial conditions
     (vs_, vs) = solver.solution_fields()

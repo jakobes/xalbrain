@@ -2,7 +2,7 @@
 from __future__ import division
 
 __author__ = "Marie E. Rognes (meg@simula.no), 2012--2013"
-__all__ = ["CardiacCellModel"]
+__all__ = ["CardiacCellModel", "MultiCellModel"]
 
 from cbcbeat.dolfinimport import Parameters, Expression, error, GenericFunction
 from collections import OrderedDict
@@ -141,3 +141,52 @@ class CardiacCellModel:
     def __str__(self):
         "Return string representation of class."
         return "Some cardiac cell model"
+
+class MultiCellModel(CardiacCellModel):
+    """
+    MultiCellModel
+    """
+
+    def __init__(self, models, keys, markers):
+        """
+        *Arguments*
+        models (tuple)
+          tuple of existing CardiacCellModels
+        keys (tuple)
+          integers demarking the domain for each cell model
+        markers (:py:class:`dolfin.MeshFunction`)
+          MeshFunction defining the partitioning of the mesh (which model where)
+        """
+        self._cell_models = models
+        self._keys = keys
+        self._key_to_cell_model = dict(zip(keys, range(len(keys))))
+        print "self._key_to_cell_model = ", self._key_to_cell_model
+        self._markers = markers
+
+        self._num_states = max(c.num_states() for c in self._cell_models)
+
+    def num_states(self):
+        """Return number of state variables (in addition to the
+        membrane potential)."""
+        return self._num_states
+
+    def F(self, v, s, time=None, domain_index=None):
+        if domain_index is None:
+            error("Domain index must be specified for multi cell models")
+
+        # Extract which cell model index (given by index in incoming tuple)
+        i = self._key_to_cell_model[domain_index]
+
+        return self._cell_models[i].F(v, s, time)
+
+
+# from dolfin import *
+# from cbcbeat import *
+
+# mesh = UnitSquareMesh(20, 20)
+# markers = CellFunction("uint", mesh, 0)
+# markers.array()[::2] = 1
+# c0 = Beeler_reuter_1977()
+# c1 = FitzHughNagumoManual()
+# cell_model = MultiCellModel((c0, c1), (0, 1), markers)
+# print cell_model.num_states()
