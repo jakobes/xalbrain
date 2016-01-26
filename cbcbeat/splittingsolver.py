@@ -159,10 +159,7 @@ class BasicSplittingSolver:
         if params.has_key("enable_adjoint"):
             params["enable_adjoint"] = self.parameters["enable_adjoint"]
 
-        solver = BasicCardiacODESolver(self._domain, self._time,
-                                       cell_model.num_states(),
-                                       cell_model.F,
-                                       cell_model.I,
+        solver = BasicCardiacODESolver(self._domain, self._time, cell_model,
                                        I_s=stimulus,
                                        params=params)
         return solver
@@ -474,7 +471,8 @@ class SplittingSolver(BasicSplittingSolver):
         params.add("theta", 0.5, 0, 1)
         params.add("apply_stimulus_current_to_pde", False)
         params.add("pde_solver", "bidomain", ["bidomain", "monodomain"])
-        params.add("ode_solver_choice", "CardiacODESolver", ["BasicCardiacODESolver", "CardiacODESolver"])
+        params.add("ode_solver_choice", "CardiacODESolver",
+                   ["BasicCardiacODESolver", "CardiacODESolver"])
 
         # Add default parameters from ODE solver
         ode_solver_params = CardiacODESolver.default_parameters()
@@ -515,10 +513,7 @@ class SplittingSolver(BasicSplittingSolver):
         if params.has_key("enable_adjoint"):
             params["enable_adjoint"] = self.parameters["enable_adjoint"]
 
-        solver = Solver(self._domain, self._time,
-                        cell_model.num_states(),
-                        cell_model.F,
-                        cell_model.I,
+        solver = Solver(self._domain, self._time, cell_model,
                         I_s=stimulus,
                         params=params)
 

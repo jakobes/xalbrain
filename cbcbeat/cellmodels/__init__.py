@@ -5,7 +5,7 @@ import types
 
 # Base class for cardiac cell models
 #import cardiaccellmodel
-from cardiaccellmodel import CardiacCellModel
+from cardiaccellmodel import CardiacCellModel, MultiCellModel
 
 from beeler_reuter_1977 import Beeler_reuter_1977
 from fitzhughnagumo_manual import FitzHughNagumoManual

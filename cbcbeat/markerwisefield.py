@@ -1,6 +1,6 @@
 # Copyright (C) 2014 Marie E. Rognes (meg@simula.no)
 # Use and modify at will
-# Last changed: 2015-09-30
+# Last changed: 2016-01-26
 
 __all__ = ["Markerwise", "handle_markerwise", "rhs_with_markerwise_field"]
 
@@ -35,11 +35,6 @@ class Markerwise(object):
     objects combined with a mesh function defining mesh domains and a
     map between the these.
 
-    Example: Given (g0, g1), (2, 5) and markers, let
-
-      g = g0 on domains marked by 2 in markers
-      g = g1 on domains marked by 5 in markers
-
     *Arguments*
       objects (tuple)
         the different objects
@@ -47,6 +42,17 @@ class Markerwise(object):
         a map from the objects to the domains marked in markers
       markers (:py:class:`dolfin.MeshFunction`)
         a mesh function mapping which domains the mesh consist of
+
+    *Example of usage*
+
+    Given (g0, g1), (2, 5) and markers, let
+
+      g = g0 on domains marked by 2 in markers
+      g = g1 on domains marked by 5 in markers
+
+    letting::
+
+      g = Markerwise((g0, g1), (2, 5), markers)
 
     """
     def __init__(self, objects, keys, markers):

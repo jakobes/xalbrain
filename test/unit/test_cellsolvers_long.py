@@ -59,8 +59,7 @@ class TestCardiacODESolver(object):
         # Initialize solver
         params = CardiacODESolver.default_parameters()
         params["scheme"] = Scheme
-        solver = CardiacODESolver(mesh, time, model.num_states(),
-                                  model.F, model.I, I_s=stim, params=params)
+        solver = CardiacODESolver(mesh, time, model, I_s=stim, params=params)
 
         # Create scheme
         info_green("\nTesting %s with %s scheme" % (model, Scheme))

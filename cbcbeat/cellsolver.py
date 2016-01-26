@@ -48,16 +48,8 @@ class BasicCardiacODESolver(object):
         A constant holding the current time. If None is given, time is
         created for you, initialized to zero.
 
-      num_states (int)
-        The number of state variables (length of s)
-
-      F (:py:func:`lambda`)
-        A (non-)linear lambda vector function describing the evolution
-        of the state variables (s)
-
-      I_ion (:py:func:`lambda`)
-        A (non-)linear lambda scalar function describing the evolution
-        of the variable v
+      model (CardiacCellModel)
+        A representation of the cardiac cell model(s)
 
       I_s (optional) A typically time-dependent external stimulus
         given as a :py:class:`dolfin.GenericFunction` or a
@@ -67,14 +59,17 @@ class BasicCardiacODESolver(object):
       params (:py:class:`dolfin.Parameters`, optional)
         Solver parameters
     """
-    def __init__(self, mesh, time, num_states, F, I_ion, I_s=None, params=None):
+    def __init__(self, mesh, time, model, I_s=None, params=None):
 
         # Store input
         self._mesh = mesh
         self._time = time
-        self._num_states = num_states
-        self._F = F
-        self._I_ion = I_ion
+        self._model = model
+
+        # Extract some information from cell model
+        self._F = self._model.F
+        self._I_ion = self._model.I
+        self._num_states = self._model.num_states()
 
         # Handle stimulus
         self._I_s = handle_markerwise(I_s, GenericFunction)
@@ -230,6 +225,7 @@ class BasicCardiacODESolver(object):
         s_mid = theta*s + (1.0 - theta)*s_
 
         # Evaluate currents at averaged v and s. Note sign for I_theta
+
         F_theta = self._F(v_mid, s_mid, time=self.time)
         I_theta = - self._I_ion(v_mid, s_mid, time=self.time)
 
@@ -299,15 +295,20 @@ class CardiacODESolver(object):
         Solver parameters
 
     """
-    def __init__(self, mesh, time, num_states, F, I_ion,
-                 I_s=None, params=None):
+    def __init__(self, mesh, time, model, I_s=None, params=None):
 
         import ufl.classes
+
         # Store input
         self._mesh = mesh
-        self._num_states = num_states
-        self._F = F
-        self._I_ion = I_ion
+        self._time = time
+        self._model = model
+
+        # Extract some information from cell model
+        self._F = self._model.F
+        self._I_ion = self._model.I
+        self._num_states = self._model.num_states()
+
         self._I_s = handle_markerwise(I_s, GenericFunction)
 
         # Create time if not given, otherwise use given time
@@ -542,40 +543,28 @@ class BasicSingleCellSolver(BasicCardiacODESolver):
 
         # Extract information from cardiac cell model and ship off to
         # super-class.
-        BasicCardiacODESolver.__init__(self,
-                                       mesh,
-                                       time,
-                                       model.num_states(),
-                                       model.F,
-                                       model.I,
+        BasicCardiacODESolver.__init__(self, mesh, time, model,
                                        I_s=model.stimulus,
                                        params=params)
 
 class SingleCellSolver(CardiacODESolver):
     def __init__(self, model, time, params=None):
         "Create solver from given cell model and optional parameters."
-        
+
         assert isinstance(model, CardiacCellModel), \
             "Expecting model to be a CardiacCellModel, not %r" % model
         assert (isinstance(time, Constant)), \
             "Expecting time to be a Constant instance, not %r" % time
         assert isinstance(params, Parameters) or params is None, \
             "Expecting params to be a Parameters (or None), not %r" % params
-        
+
         # Store model
         self._model = model
-        
+
         # Define carefully chosen dummy mesh
         mesh = UnitIntervalMesh(1)
 
         # Extract information from cardiac cell model and ship off to
         # super-class.
-        CardiacODESolver.__init__(self,
-                                  mesh,
-                                  time,
-                                  model.num_states(),
-                                  model.F,
-                                  model.I,
-                                  I_s=model.stimulus,
-                                  params=params)
-        
+        CardiacODESolver.__init__(self, mesh, time, model,
+                                  I_s=model.stimulus, params=params)
