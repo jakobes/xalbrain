@@ -1,5 +1,4 @@
-"""
-This script solves the Niederer et al 2011 benchmark
+"""This scripts solves the Niederer et al 2011 benchmark
 Phil.Trans. R. Soc. A 369,
 """
 
@@ -165,7 +164,6 @@ def run_splitting_solver(domain, dt, T, theta=1.0):
     # Set-up solver
     ps = SplittingSolver.default_parameters()
     ps["pde_solver"] = "monodomain"
-    ps["MonodomainSolver"]["linear_solver_type"] = "direct"
     ps["MonodomainSolver"]["theta"] = theta
 
     ps["theta"] = theta
@@ -213,7 +211,7 @@ def run_splitting_solver(domain, dt, T, theta=1.0):
         activation_time_pvd << activation_timer.activation_time
     total.stop()
 
-    list_timings()
+    list_timings(TimingClear_keep, [TimingType_wall])
     interactive()
 
     return activation_timer.activation_time
@@ -221,7 +219,8 @@ def run_splitting_solver(domain, dt, T, theta=1.0):
 
 if __name__ == "__main__":
 
-    T = 70.0 # mS 500.0
+    #T = 70.0 # mS 500.0
+    T = 5.0 # mS 500.0
 
     # Define geometry parameters
     Lx = 20. # mm
@@ -237,8 +236,9 @@ if __name__ == "__main__":
             # Create computational domain [0, Lx] x [0, Ly] x [0, Lz]
             # with resolution prescribed by benchmark
             N = lambda v: int(numpy.rint(v))
-            domain = BoxMesh(0.0, 0.0, 0.0, Lx, Ly, Lz,
-                             N(Lx/dx), N(Ly/dx), N(Lz/dx))
+            x0 = Point(numpy.array((0.0, 0.0, 0.0)))
+            x1 = Point(numpy.array((Lx, Ly, Lz)))
+            domain = BoxMesh(x0, x1, N(Lx/dx), N(Ly/dx), N(Lz/dx))
 
             # Run solver
             activation_time = run_splitting_solver(domain, dt, T, theta)
