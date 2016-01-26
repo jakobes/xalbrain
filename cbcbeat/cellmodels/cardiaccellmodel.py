@@ -4,7 +4,7 @@ from __future__ import division
 __author__ = "Marie E. Rognes (meg@simula.no), 2012--2013"
 __all__ = ["CardiacCellModel", "MultiCellModel"]
 
-from cbcbeat.dolfinimport import Parameters, Expression, error, GenericFunction
+from cbcbeat.dolfinimport import Parameters, Expression, error, GenericFunction, VectorFunctionSpace, Function, DirichletBC, TrialFunction, TestFunction, solve, Measure, inner
 from collections import OrderedDict
 
 class CardiacCellModel:
@@ -52,9 +52,9 @@ class CardiacCellModel:
         Create cardiac cell model
 
         *Arguments*
-         params (dict, :py:class:`dolfin.Mesh`, optional)
+         params (dict or  :py:class:`dolfin.Parameters`, optional)
            optional model parameters
-         init_conditions (dict, :py:class:`dolfin.Mesh`, optional)
+         init_conditions (dict, optional)
            optional initial conditions
         """
 
@@ -165,20 +165,66 @@ class MultiCellModel(CardiacCellModel):
 
         self._num_states = max(c.num_states() for c in self._cell_models)
 
+    def models(self):
+        return self._cell_models
+
+    def markers(self):
+        return self._markers
+
+    def keys(self):
+        return self._keys
+
+    def mesh(self):
+        return self._markers.mesh()
+
+    def num_models(self):
+        return len(self._cell_models)
+
     def num_states(self):
         """Return number of state variables (in addition to the
         membrane potential)."""
         return self._num_states
 
-    def F(self, v, s, time=None, domain_index=None):
-        if domain_index is None:
-            error("Domain index must be specified for multi cell models")
-
+    def F(self, v, s, time=None, index=None):
+        if index is None:
+            error("(Domain) index must be specified for multi cell models")
         # Extract which cell model index (given by index in incoming tuple)
-        i = self._key_to_cell_model[domain_index]
+        k = self._key_to_cell_model[index]
+        return self._cell_models[k].F(v, s, time)
 
-        return self._cell_models[i].F(v, s, time)
+    def I(self, v, s, time=None, index=None):
+        if index is None:
+            error("(Domain) index must be specified for multi cell models")
+        # Extract which cell model index (given by index in incoming tuple)
+        k = self._key_to_cell_model[index]
+        return self._cell_models[k].I(v, s, time)
 
+    def initial_conditions(self):
+        "Return initial conditions for v and s as a dolfin.GenericFunction."
+
+        n = self.num_states() # (Maximal) Number of states in MultiCellModel
+        VS = VectorFunctionSpace(self.mesh(), "DG", 0, n+1)
+        vs = Function(VS)
+
+        markers = self.markers()
+        u = TrialFunction(VS)
+        v = TestFunction(VS)
+
+        dy = Measure("dx", domain=self.mesh(), subdomain_data=markers)
+
+        # Define projection into multiverse
+        a = inner(u, v)*dy()
+
+        Ls = list()
+        for (k, model) in enumerate(self.models()):
+            ic = model.initial_conditions() # Extract initial conditions
+            n_k = model.num_states() # Extract number of local states
+            i_k = self.keys()[k] # Extract domain index of cell model k
+            L_k = sum(ic[j]*v[j]*dy(i_k) for j in range(n_k))
+            Ls.append(L_k)
+        L = sum(Ls)
+        solve(a == L, vs)
+        return vs
 
 # from dolfin import *
 # from cbcbeat import *

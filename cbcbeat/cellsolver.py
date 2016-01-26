@@ -8,7 +8,7 @@ __all__ = ["BasicSingleCellSolver",
            "SingleCellSolver"]
 
 from dolfinimport import *
-from cbcbeat import CardiacCellModel
+from cbcbeat import CardiacCellModel, MultiCellModel
 from cbcbeat.markerwisefield import *
 from cbcbeat.utils import state_space, TimeStepper, splat, annotate_kwargs
 
@@ -48,7 +48,7 @@ class BasicCardiacODESolver(object):
         A constant holding the current time. If None is given, time is
         created for you, initialized to zero.
 
-      model (CardiacCellModel)
+      model (:py:class:`cbcbeat.CardiacCellModel`)
         A representation of the cardiac cell model(s)
 
       I_s (optional) A typically time-dependent external stimulus
@@ -224,16 +224,61 @@ class BasicCardiacODESolver(object):
         v_mid = theta*v + (1.0 - theta)*v_
         s_mid = theta*s + (1.0 - theta)*s_
 
-        # Evaluate currents at averaged v and s. Note sign for I_theta
+        if isinstance(self._model, MultiCellModel):
+            #assert(model.mesh() == self._mesh)
 
-        F_theta = self._F(v_mid, s_mid, time=self.time)
-        I_theta = - self._I_ion(v_mid, s_mid, time=self.time)
+            model = self._model
+            mesh = model.mesh()
+            dy = Measure("dx", domain=mesh, subdomain_data=model.markers())
 
-        # Handle possible markerwise definition of the stimulus
-        (dz, rhs) = rhs_with_markerwise_field(self._I_s, self._mesh, w)
+            # Only allowing trivial forcing functions here
+            if isinstance(self._I_s, Markerwise):
+                error("Not implemented")
+            rhs = self._I_s*w*dy()
+
+            n = model.num_states() # Extract number of global states
+
+            # Collect contributions to lhs by iterating over the different cell models
+            domains = self._model.keys()
+            lhs = list()
+            for (k, model_k) in enumerate(model.models()):
+                n_k = model_k.num_states() # Extract number of local (non-trivial) states
+
+                # Extract right components of coefficients and test functions
+                # () is not the same as (1,)
+                if n_k == 1:
+                    s_mid_k = s_mid[0]
+                    r_k = r[0]
+                    Dt_s_k = Dt_s[0]
+                else:
+                    s_mid_k = as_vector(tuple(s_mid[j] for j in range(n_k)))
+                    r_k = as_vector(tuple(r[j] for j in range(n_k)))
+                    Dt_s_k = as_vector(tuple(Dt_s[j] for j in range(n_k)))
+
+                i_k = domains[k] # Extract domain index of cell model k
+
+                # Extract right currents and ion channel expressions
+                F_theta_k = self._F(v_mid, s_mid_k, time=self.time, index=i_k)
+                I_theta_k = -self._I_ion(v_mid, s_mid_k, time=self.time, index=i_k)
+
+                # Variational contribution over the relevant domain
+                a_k = ((Dt_v - I_theta_k)*w + inner(Dt_s_k, r_k) + inner(- F_theta_k, r_k))*dy(i_k)
+
+                # Add s_trivial = 0 on Omega_{i_k} in variational form:
+                a_k += sum(s[j]*r[j] for j in range(n_k, n))*dy(i_k)
+                lhs.append(a_k)
+            lhs = sum(lhs)
+
+        else:
+            (dz, rhs) = rhs_with_markerwise_field(self._I_s, self._mesh, w)
+
+            # Evaluate currents at averaged v and s. Note sign for I_theta
+            F_theta = self._F(v_mid, s_mid, time=self.time)
+            I_theta = - self._I_ion(v_mid, s_mid, time=self.time)
+            lhs = (Dt_v - I_theta)*w*dz + inner(Dt_s - F_theta, r)*dz
 
         # Set-up system of equations
-        G = (Dt_v - I_theta)*w*dz + inner(Dt_s - F_theta, r)*dz - rhs
+        G = lhs - rhs
 
         # Solve system
         pde = NonlinearVariationalProblem(G, self.vs, J=derivative(G, self.vs))
@@ -275,16 +320,8 @@ class CardiacODESolver(object):
         A constant holding the current time. If None is given, time is
         created for you, initialized to zero.
 
-      num_states (int)
-        The number of state variables (length of s)
-
-      F (:py:func:`lambda`)
-        A (non-)linear lambda vector function describing the evolution
-        of the state variables (s)
-
-      I_ion (:py:func:`lambda`)
-        A (non-)linear lambda scalar function describing the evolution
-        of the variable v
+      model (:py:class:`cbcbeat.CardiacCellModel`)
+        A representation of the cardiac cell model(s)
 
       I_s (:py:class:`dolfin.Expression`, optional)
         A typically time-dependent external stimulus. NB: it is
