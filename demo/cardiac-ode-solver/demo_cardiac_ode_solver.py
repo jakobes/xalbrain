@@ -6,13 +6,11 @@ __author__ = "Marie E. Rognes (meg@simula.no), 2013"
 from cbcbeat import *
 
 # For computing faster
+parameters["form_compiler"]["representation"] = "uflacs"
 parameters["form_compiler"]["cpp_optimize"] = True
 flags = "-O3 -ffast-math -march=native"
 parameters["form_compiler"]["cpp_optimize_flags"] = flags
-parameters["form_compiler"]["quadrature_degree"] = 2
-
-# Choose your favorite solver here
-Solver = BasicCardiacODESolver
+parameters["form_compiler"]["quadrature_degree"] = 4
 
 def forward():
     info_green("Running forward model")
@@ -24,13 +22,13 @@ def forward():
 
     # Choose your favorite cell model
     model = Tentusscher_2004_mcell()
+    model.set_parameters(K_mNa=Expression("40*sin(pi*x[0])"))
 
     # Add some forces
     stimulus = Expression("100*t", t=time)
 
+    Solver = CardiacODESolver
     params = Solver.default_parameters()
-    if Solver == CardiacODESolver:
-        params["scheme"] = "CN"
     solver = Solver(mesh, time, model, I_s=stimulus, params=params)
 
     # Set-up initial conditions
@@ -50,6 +48,7 @@ def forward():
     for ((t0, t1), vs) in solutions:
         times.append(t1)
         print vs.vector().array()
+    plot(vs[0], interactive=True, title="v")
 
 def replay():
     info_green("Replaying forward model")
