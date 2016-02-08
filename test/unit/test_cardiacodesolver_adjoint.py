@@ -191,7 +191,7 @@ class TestCardiacODESolverAdjoint(object):
         "Test that we can compute the gradient for some given functional"
 
         if Scheme == "ForwardEuler":
-            pytest.xfail("RK4 is unstable for some models with this timestep (0.01)")
+            pytest.xfail("Forward Euler is unstable for some models with this timestep (0.01)")
 
         if isinstance(cell_model, fails_with_RK4) and Scheme == "RK4":
             pytest.xfail("RK4 is unstable for some models with this timestep (0.01)")
@@ -217,7 +217,7 @@ class TestCardiacODESolverAdjoint(object):
     @parametrize(("Scheme"), supported_schemes)
     def test_tlm_cell_model_parameter(self, cell_model, Scheme):
         if Scheme == "ForwardEuler":
-            pytest.xfail("RK4 is unstable for some models with this timestep (0.01)")
+            pytest.xfail("Forward Euler is unstable for some models with this timestep (0.01)")
 
         if isinstance(cell_model, fails_with_RK4) and Scheme == "RK4":
             pytest.xfail("RK4 is unstable for some models with this timestep (0.01)")
