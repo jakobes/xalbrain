@@ -375,6 +375,7 @@ class CardiacODESolver(object):
         # works for scalar expressions
         F_exprs = self._F(v, s, self._time)
 
+        # MER: This looks much more complicated than it needs to be!
         # If we have a as_vector expression
         F_exprs_q = zero()
         if isinstance(F_exprs, ufl.classes.ListTensor):
@@ -384,7 +385,6 @@ class CardiacODESolver(object):
         else:
             F_exprs_q = F_exprs*q
 
-        #inner(self._I_ion(v, s, self._time), w)
         rhs = F_exprs_q - self._I_ion(v, s, self._time)*w
 
         # Handle stimulus: only handle single function case for now
