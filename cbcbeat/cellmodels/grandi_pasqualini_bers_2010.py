@@ -728,7 +728,7 @@ class Grandi_pasqualini_bers_2010(CardiacCellModel):
         F_expressions[31] = J_na_slmyo*(Na_sl - Na_i)/Vmyo
 
         # Expressions for the K Concentration component
-        F_expressions[34] = 0
+        F_expressions[34] = Constant(0.0)
 
         # Expressions for the Ca Concentrations component
         I_Ca_tot_junc = I_pca_junc + I_cabk_junc + I_Ca_junc - 2*I_ncx_junc
