@@ -458,7 +458,7 @@ class BidomainSolver(BasicBidomainSolver):
         params["lu_solver"]["same_nonzero_pattern"] = True
 
         # Customize default parameters for PETScKrylovSolver
-        params["petsc_krylov_solver"]["preconditioner"]["structure"] = "same"
+        #params["petsc_krylov_solver"]["preconditioner"]["structure"] = "same"
 
         return params
 

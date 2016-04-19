@@ -348,7 +348,7 @@ class MonodomainSolver(BasicMonodomainSolver):
         params["lu_solver"]["same_nonzero_pattern"] = True
 
         # Customize default parameters for KrylovSolver
-        params["krylov_solver"]["preconditioner"]["structure"] = "same"
+        #params["krylov_solver"]["preconditioner"]["structure"] = "same"
 
         return params
 
@@ -453,11 +453,11 @@ class MonodomainSolver(BasicMonodomainSolver):
         # changes in timestep
         if timestep_unchanged:
             debug("Timestep is unchanged, reusing preconditioner")
-            self.linear_solver.parameters["preconditioner"]["structure"] = "same"
+            #self.linear_solver.parameters["preconditioner"]["structure"] = "same"
         else:
             debug("Timestep has changed, updating preconditioner")
-            self.linear_solver.parameters["preconditioner"]["structure"] = \
-                                                        "same_nonzero_pattern"
+            #self.linear_solver.parameters["preconditioner"]["structure"] = \
+            #                                            "same_nonzero_pattern"
 
             # Update stored timestep
             self._timestep.assign(Constant(dt))
