@@ -67,9 +67,6 @@ class TestBasicSingleCellSolver(object):
         if Model == supported_cell_models[3] and theta > 0:
             pytest.xfail("failing configuration (but should work)")
 
-        if Model == supported_cell_models[5] and theta > 0:
-            pytest.xfail("failing configuration")
-
         model.stimulus = Expression("1000*t", t=time)
 
         info_green("\nTesting %s" % model)
