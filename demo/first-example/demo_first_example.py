@@ -14,10 +14,6 @@
 # Import the cbcbeat module
 from cbcbeat import *
 
-# NB: Workaround for FEniCS 1.7.0dev
-import ufl
-ufl.algorithms.apply_derivatives.CONDITIONAL_WORKAROUND = True
-
 # Turn on FFC/FEniCS optimizations
 parameters["form_compiler"]["representation"] = "uflacs"
 parameters["form_compiler"]["cpp_optimize"] = True
