@@ -31,6 +31,10 @@ from cbcbeat.monodomainsolver import MonodomainSolver
 # Various utility functions, mainly for internal use
 import cbcbeat.utils
 
+# NB: Workaround for FEniCS 1.7.0dev
+import ufl
+ufl.algorithms.apply_derivatives.CONDITIONAL_WORKAROUND = True
+
 # Set-up some global parameters
 beat_parameters = dolfinimport.Parameters("beat-parameters")
 beat_parameters.add("enable_adjoint", True)

@@ -14,7 +14,12 @@
 # Import the cbcbeat module
 from cbcbeat import *
 
+# NB: Workaround for FEniCS 1.7.0dev
+import ufl
+ufl.algorithms.apply_derivatives.CONDITIONAL_WORKAROUND = True
+
 # Turn on FFC/FEniCS optimizations
+parameters["form_compiler"]["representation"] = "uflacs"
 parameters["form_compiler"]["cpp_optimize"] = True
 flags = ["-O3", "-ffast-math", "-march=native"]
 parameters["form_compiler"]["cpp_optimize_flags"] = " ".join(flags)
@@ -35,7 +40,7 @@ M_e = 1.0
 cell_model = Tentusscher_panfilov_2006_epi_cell()
 
 # Define some external stimulus
-stimulus = Expression("10*t*x[0]", t=time)
+stimulus = Expression("10*t*x[0]", t=time, degree=1)
 
 # Collect this information into the CardiacModel class
 cardiac_model = CardiacModel(mesh, time, M_i, M_e, cell_model, stimulus)
