@@ -6,7 +6,7 @@ scenarios.
 
 # Copyright (C) 2012 Marie E. Rognes (meg@simula.no)
 # Use and modify at will
-# Last changed: 2014-11-12
+# Last changed: 2016-04-21
 
 __all__ = ["CardiacModel"]
 

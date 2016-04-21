@@ -1,6 +1,6 @@
 # Copyright (C) 2014 Marie E. Rognes (meg@simula.no)
 # Use and modify at will
-# Last changed: 2016-01-26
+# Last changed: 2016-04-21
 
 __all__ = ["Markerwise", "handle_markerwise", "rhs_with_markerwise_field"]
 
@@ -10,7 +10,8 @@ def handle_markerwise(g, classtype):
     # Handle stimulus
     if (g is None \
         or isinstance(g, classtype) \
-        or isinstance(g, Markerwise)):
+        or isinstance(g, Markerwise) \
+        or isinstance(g, object)): ## HAHAHA
         return g
     else:
         msg = "Expecting stimulus to be a %s or Markerwise, not %r " \
