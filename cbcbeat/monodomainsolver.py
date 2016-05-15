@@ -298,13 +298,15 @@ class MonodomainSolver(BasicMonodomainSolver):
             if self.parameters["use_custom_preconditioner"]:
                 self._prec_matrix = assemble(self._prec,
                                              **self._annotate_kwargs)
-                solver = KrylovSolver(alg, prec)
+                solver = PETScKrylovSolver(alg, prec)
                 solver.parameters.update(self.parameters["krylov_solver"])
                 solver.set_operators(self._lhs_matrix, self._prec_matrix)
+                solver.ksp().setFromOptions()
             else:
-                solver = KrylovSolver(alg, prec)
+                solver = PETScKrylovSolver(alg, prec)
                 solver.parameters.update(self.parameters["krylov_solver"])
                 solver.set_operator(self._lhs_matrix)
+                solver.ksp().setFromOptions()
 
             update_routine = self._update_krylov_solver
         else:
