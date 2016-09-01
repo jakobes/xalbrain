@@ -47,7 +47,8 @@ class TestCompilationCorrectness:
         mesh = UnitSquareMesh(10, 10)
         V = FunctionSpace(mesh, "CG", 1)
         S = state_space(mesh, model.num_states())
-        VS = V*S
+        Me = MixedElement((V.ufl_element(), S.ufl_element()))
+        VS = FunctionSpace(mesh, Me)
         vs = Function(VS)
         vs.assign(project(model.initial_conditions(), VS))
         (v, s) = split(vs)
