@@ -40,7 +40,7 @@ cbcbeat depends in particular on the following software components
   solution of partial differential equations using finite element
   methods.
 
-  Version: 1.6+ (> Nov 1 2015)
+  Version: 2016.1.0
 
 * dolfin-adjoint: www.dolfin-adjoint.org
 
