@@ -156,7 +156,7 @@ def closure_long_run(Scheme, dt_org, abs_tol, rel_tol):
 for Scheme, dt_org, abs_tol, rel_tol in [("BackwardEuler", 0.1, 1e-1, 1e-1),
                                          ("CrankNicolson", 0.125, 1e-0, 1e-1),
                                          ("ESDIRK3", 0.125, 1e-0, 1e-1),
-                                         ("ESDIRK4", 0.25, 1e-0, 1e-1),
+                                         ("ESDIRK4", 0.125, 1e-0, 1e-1),
                                          ]:
 
     func = closure_long_run(Scheme, dt_org, abs_tol, rel_tol)
