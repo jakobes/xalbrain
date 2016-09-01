@@ -111,17 +111,18 @@ class BasicBidomainSolver(object):
 
         # Set-up function spaces
         k = self.parameters["polynomial_degree"]
+        Ve = FiniteElement("CG", self._mesh.ufl_cell(), k)
         V = FunctionSpace(self._mesh, "CG", k)
+        Ue = FiniteElement("CG", self._mesh.ufl_cell(), k)
         U = FunctionSpace(self._mesh, "CG", k)
 
         use_R = self.parameters["use_avg_u_constraint"]
         if use_R:
+            Re = FiniteElement("R", self._mesh.ufl_cell(), 0)
             R = FunctionSpace(self._mesh, "R", 0)
-            #self.VUR = FunctionSpace(mesh, MixedElement((V, U, R)))
-            self.VUR = MixedFunctionSpace((V, U, R))
+            self.VUR = FunctionSpace(mesh, MixedElement((Ve, Ue, Re)))
         else:
-            #self.VUR = FunctionSpace(mesh, MixedElement((V, U)))
-            self.VUR = MixedFunctionSpace((V, U))
+            self.VUR = FunctionSpace(mesh, MixedElement((Ve, Ue)))
 
         self.V = V
 

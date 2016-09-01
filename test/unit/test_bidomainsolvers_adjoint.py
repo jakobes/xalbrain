@@ -69,8 +69,8 @@ class TestBidomainSolversAdjoint(object):
                     # testes would not pass.
 
         self.solver = Solver(self.mesh, self.time, self.M_i, self.M_e,
-                        I_s=self.stimulus,
-                        I_a=self.applied_current, params=params)
+                             I_s=self.stimulus,
+                             I_a=self.applied_current, params=params)
 
 
     def _solve(self, ics=None):
