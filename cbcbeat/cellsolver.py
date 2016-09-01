@@ -91,7 +91,8 @@ class BasicCardiacODESolver(object):
         else:
             V = FunctionSpace(self._mesh, v_family, v_degree)
             S = state_space(self._mesh, self._num_states, s_family, s_degree)
-            self.VS = FunctionSpace(self._mesh, V.element()*S.element())
+            Mx = MixedElement(V.ufl_element(), S.ufl_element())
+            self.VS = FunctionSpace(self._mesh, Mx)
 
         # Initialize solution fields
         self.vs_ = Function(self.VS, name="vs_")
