@@ -81,7 +81,7 @@ class TestCardiacODESolverAdjoint(object):
         solver._pi_solver.parameters.reset_stage_solutions = True
         solver._pi_solver.parameters.newton_solver.reset_each_step = True
         solver._pi_solver.parameters.newton_solver.relative_tolerance = 1.0e-10
-        solver._pi_solver.parameters.newton_solver.recompute_jacobian_for_linear_problems = True
+        solver._pi_solver.parameters.newton_solver.always_recompute_jacobian = True
         solutions = solver.solve((0.0, T), dt)
         for ((t0, t1), vs) in solutions:
             pass
@@ -95,7 +95,7 @@ class TestCardiacODESolverAdjoint(object):
         model = Model(params=params)
 
         solver = self._setup_solver(model, Scheme, mesh)
-        ics = Function(project(model.initial_conditions(), solver.VS), name="ics")
+        ics = project(model.initial_conditions(), solver.VS).copy(deepcopy=True, name="ics")
 
         info_green("Running forward %s with %s (setup)" % (model, Scheme))
         self._run(solver, ics)

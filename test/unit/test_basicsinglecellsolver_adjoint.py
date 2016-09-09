@@ -40,8 +40,7 @@ def basic_single_cell_closure(theta, Model):
 
         info_green("Running %s with theta %g" % (model, theta))
 
-        ics = Function(project(model.initial_conditions(), solver.VS),
-                       name="ics")
+        ics = project(model.initial_conditions(), solver.VS).copy(deepcopy=True, name="ics")
         self._run(solver, model, ics)
 
         info_green("Replaying")
