@@ -17,6 +17,7 @@ from cbcbeat import *
 parameters["reorder_dofs_serial"] = False
 
 # For computing faster
+parameters["form_compiler"]["representation"] = "uflacs"
 parameters["form_compiler"]["cpp_optimize"] = True
 flags = "-O3 -ffast-math -march=native"
 parameters["form_compiler"]["cpp_optimize_flags"] = flags
@@ -36,10 +37,17 @@ def main():
 
     # Initialize model and assign stimulus
     #model = Beeler_reuter_1977()
+    k = 0.00004; Vrest = -85.; Vthreshold = -70.;
+    Vpeak = 40.; k = 0.00004; l = 0.63; b = 0.013; v_amp = Vpeak - Vrest
+    cell_parameters = {"c_1": k*v_amp**2, "c_2": k*v_amp, "c_3": b/l,
+                       "a": (Vthreshold - Vrest)/v_amp, "b": l,
+                       "v_rest": Vrest, "v_peak": Vpeak}
+    #model = FitzHughNagumoManual(cell_parameters)
+    #model = Tentusscher_2004_mcell()
+    model = Tentusscher_panfilov_2006_epi_cell()
     #model = Grandi_pasqualini_bers_2010()
     #model = FitzHughNagumoManual()
     #model = Fitzhughnagumo()
-    model = Tentusscher_2004_mcell()
     time = Constant(0.0)
     model.stimulus = Stimulus(time)
 
@@ -74,8 +82,8 @@ def plot_results(times, values, show=True):
     pylab.figure(figsize=(20, 10))
 
     rows = int(math.ceil(math.sqrt(len(variables))))
-    for (i, var) in enumerate(variables):
-        pylab.subplot(rows, rows, i+1)
+    for (i, var) in enumerate([variables[0],]):
+        #pylab.subplot(rows, rows, i+1)
         pylab.plot(times, var, '*-')
         pylab.title("Var. %d" % i)
         pylab.xlabel("t")
@@ -89,4 +97,4 @@ def plot_results(times, values, show=True):
 if __name__ == "__main__":
 
     (times, values) = main()
-    plot_results(times, values, show=False)
+    plot_results(times, values, show=True)

@@ -14,10 +14,10 @@ def test_solver_with_domains():
     mesh = UnitCubeMesh(5, 5, 5)
     time = Constant(0.0)
 
-    stimulus = Expression("2.0*t", t=time)
+    stimulus = Expression("2.0*t", t=time, degree=1)
 
     # Create ac
-    applied_current = Expression("sin(2*pi*x[0])*t", t=time)
+    applied_current = Expression("sin(2*pi*x[0])*t", t=time, degree=3)
 
     # Create conductivity "tensors"
     M_i = 1.0
