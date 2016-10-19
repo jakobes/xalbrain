@@ -30,10 +30,11 @@ def generate_solver(Solver, solver_type, ics=None, enable_adjoint=True):
             self.time = Constant(0.0)
 
             # Create stimulus
-            self.stimulus = Expression("2.0*t", t=self.time)
+            self.stimulus = Expression("2.0*t", t=self.time, degree=1)
 
             # Create ac
-            self.applied_current = Expression("sin(2*pi*x[0])*t", t=self.time)
+            self.applied_current = Expression("sin(2*pi*x[0])*t", t=self.time,
+                                              degree=3)
 
             # Create conductivity "tensors"
             self.M_i = 1.0
