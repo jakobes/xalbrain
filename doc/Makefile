@@ -57,7 +57,11 @@ build_examples:
 	mkdir -p $(EXAMPLES_OUT)/first-example
 	bin/pylit.py --overwrite yes $(EXAMPLES_IN)/first-example/demo_first_example.py $(EXAMPLES_OUT)/first-example/demo_first_example.rst
 
-html: build_examples
+generate_api_docs:
+	sphinx-apidoc -o . ../cbcbeat/
+
+
+html: generate_api_docs build_examples
 	$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) $(BUILDDIR)/html
 	@echo
 	@echo "Build finished. The HTML pages are in $(BUILDDIR)/html."
