@@ -1,6 +1,6 @@
 # Copyright (C) 2014 Marie E. Rognes (meg@simula.no)
 # Use and modify at will
-# Last changed: 2016-04-21
+# Last changed: 2016-10-19
 
 __all__ = ["Markerwise", "handle_markerwise", "rhs_with_markerwise_field"]
 
@@ -86,8 +86,8 @@ class Markerwise(object):
 if __name__ == "__main__":
 
     from dolfin import *
-    g1 = Expression("1.0")
-    g5 = Expression("sin(pi*x[0])")
+    g1 = Expression("1.0", degree=1)
+    g5 = Expression("sin(pi*x[0])", degree=3)
 
     mesh = UnitSquareMesh(16, 16)
 
