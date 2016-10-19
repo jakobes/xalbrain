@@ -35,7 +35,7 @@ class CardiacCellModel:
     If a stimulus is provided via
 
       cell = CardiacCellModel()
-      cell.stimulus = Expression("I_s(t)")
+      cell.stimulus = Expression("I_s(t)", degree=1)
 
     then I_s is added to the right-hand side of (*), which thus reads
 
@@ -118,7 +118,7 @@ class CardiacCellModel:
 
     def initial_conditions(self):
         "Return initial conditions for v and s as an Expression."
-        return Expression(self._initial_conditions.keys(), \
+        return Expression(self._initial_conditions.keys(), degree=1,
                           **self._initial_conditions)
 
     def parameters(self):

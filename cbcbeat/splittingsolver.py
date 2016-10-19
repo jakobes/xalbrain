@@ -413,7 +413,7 @@ class SplittingSolver(BasicSplittingSolver):
       mesh = UnitSquareMesh(100, 100)
       time = Constant(0.0)
       cell_model = FitzHughNagumoManual()
-      stimulus = Expression("10*t*x[0]", t=time)
+      stimulus = Expression("10*t*x[0]", t=time, degree=1)
       cm = CardiacModel(mesh, time, 1.0, 1.0, cell_model, stimulus)
 
       # Extract default solver parameters
