@@ -85,12 +85,14 @@ def test_fitzhugh():
     ps["BasicCardiacODESolver"]["V_polynomial_degree"] = 1
     solver = BasicSplittingSolver(heart, ps)
 
-    # Define end-time and (constant) timestep
+    # Define end-time and (constant) timesteps
     dt = 0.25 # mS
     T = 1.0# + 1.e-6  # mS
 
     # Define initial condition(s)
-    ic = InitialCondition()
+    ic = InitialCondition(degree=1) # Should use degree=0 here for
+                                    # correctness, but to match
+                                    # reference, using 1
     vs0 = project(ic, solver.VS)
     (vs_, vs, u) = solver.solution_fields()
     vs_.assign(vs0)
