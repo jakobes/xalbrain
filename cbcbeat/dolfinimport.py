@@ -6,7 +6,7 @@ __author__ = "Johan Hake (hake.dev@gmail.com), 2013"
 
 # FIXME: This is here for readthedocs Mock purposes. Better fix would
 # be, duh, better.
-from dolfin import Parameters, Mesh, Constant, Expression, assemble, LUSolver, KrylovSolver, PETScKrylovSolver, error, GenericFunction, dx, Measure, parameters
+from dolfin import Parameters, Mesh, Constant, Expression, assemble, LUSolver, KrylovSolver, PETScKrylovSolver, error, GenericFunction, dx, Measure, parameters, VectorFunctionSpace, Function, DirichletBC, TrialFunction, TestFunction, solve, inner
 
 from dolfin import *
 import dolfin

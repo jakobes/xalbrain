@@ -45,7 +45,7 @@ API documentation:
 .. toctree::
    :maxdepth: 2
 
-   demo/*
+   demo/first-example/demo_first_example
    cbcbeat
 
 
