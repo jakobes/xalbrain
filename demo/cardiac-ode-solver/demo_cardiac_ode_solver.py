@@ -22,10 +22,10 @@ def forward():
 
     # Choose your favorite cell model
     model = Tentusscher_2004_mcell()
-    model.set_parameters(K_mNa=Expression("40*sin(pi*x[0])"))
+    model.set_parameters(K_mNa=Expression("40*sin(pi*x[0])", degree=4))
 
     # Add some forces
-    stimulus = Expression("100*t", t=time)
+    stimulus = Expression("100*t", t=time, degree=1)
 
     Solver = CardiacODESolver
     params = Solver.default_parameters()
