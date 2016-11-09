@@ -1,3 +1,11 @@
+Installation with docker
+------------------------
+1. Install docker: https://docs.docker.com/engine/installation/
+2. Build docker container with
+       `docker build -t cbcbeat .`
+3. Start docker container with
+       `docker run -i -t cbcbeat`
+
 Installation:
 -------------
 
