@@ -287,6 +287,7 @@ class BasicCardiacODESolver(object):
         solver_params = self.parameters["nonlinear_variational_solver"]
         solver.parameters.update(solver_params)
         solver.solve()
+        timer.stop()
 
 
 class CardiacODESolver(object):
@@ -471,6 +472,7 @@ class CardiacODESolver(object):
 
         self._annotate_kwargs = annotate_kwargs(self.parameters)
         self._pi_solver.step(dt, **self._annotate_kwargs)
+        timer.stop()
 
     def solve(self, interval, dt=None):
         """
