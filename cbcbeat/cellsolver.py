@@ -465,13 +465,17 @@ class CardiacODESolver(object):
         # initial condition in vs_ to vs:
 
         timer = Timer("ODE step")
+        timer_assign = Timer("ODE step assign")
         self.vs.assign(self.vs_)
+        timer_assign.stop()
 
         (t0, t1) = interval
         dt = t1 - t0
 
         self._annotate_kwargs = annotate_kwargs(self.parameters)
+        timer_pi = Timer("ODE step pi solve")
         self._pi_solver.step(dt, **self._annotate_kwargs)
+        timer_pi.stop()
         timer.stop()
 
     def solve(self, interval, dt=None):
