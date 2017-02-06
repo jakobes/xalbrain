@@ -25,8 +25,8 @@ class TestBasicSingleCellSolver:
         2006."""
 
         class Stimulus(Expression):
-            def __init__(self, t):
-                self.t = t
+            def __init__(self, **kwargs):
+                self.t = kwargs["t"]
             def eval(self, value, x):
                 if float(self.t) >= 50 and float(self.t) < 60:
                     v_amp = 125
@@ -40,7 +40,7 @@ class TestBasicSingleCellSolver:
 
         cell = FitzHughNagumoManual()
         time = Constant(0.0)
-        cell.stimulus = Stimulus(time)
+        cell.stimulus = Stimulus(t=time, degree=0)
         solver = BasicSingleCellSolver(cell, time)
 
         # Setup initial condition
