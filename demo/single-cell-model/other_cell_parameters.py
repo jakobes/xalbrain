@@ -1,4 +1,5 @@
-"""
+"""Illustrate changing cell model parameters following the Arevalo et
+al, Nature Communications, 2016 set-up
 """
 
 __author__ = "Marie E. Rognes (meg@simula.no), 2017"
@@ -36,10 +37,10 @@ def main(scenario="default"):
     # Initialize model and assign stimulus
     params = Tentusscher_panfilov_2006_epi_cell.default_parameters()
     if scenario is not "default":
-        new = {"g_Na": params["g_Na"]*(1-0.62),
-               "g_CaL": params["g_CaL"]*(1-0.69),
-               "g_Kr": params["g_Kr"]*(1-0.70),
-               "g_K1": params["g_K1"]*(1-0.80)}
+        new = {"g_Na": params["g_Na"]*0.38,
+               "g_CaL": params["g_CaL"]*0.31,
+               "g_Kr": params["g_Kr"]*0.30,
+               "g_Ks": params["g_Ks"]*0.20}
         model = Tentusscher_panfilov_2006_epi_cell(params=new)
     else:
         model = Tentusscher_panfilov_2006_epi_cell()
@@ -57,8 +58,8 @@ def main(scenario="default"):
     vs_.assign(model.initial_conditions())
 
     # Solve and extract values
-    dt = 0.1
-    interval = (0.0, 800.0)
+    dt = 0.05
+    interval = (0.0, 600.0)
 
     solutions = solver.solve(interval, dt)
     times = []
