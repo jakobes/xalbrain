@@ -8,6 +8,8 @@ import pytest
 from cbcbeat.cellmodels import *
 from cbcbeat.utils import state_space
 
+from cbcbeat import parameters
+
 # Marks
 fast = pytest.mark.fast
 medium = pytest.mark.medium

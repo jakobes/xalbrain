@@ -16,7 +16,7 @@ from cbcbeat import supported_cell_models, \
         Constant, Expression, Function, Functional, \
         project, inner, assemble, dx, dt, FINISH_TIME, \
         parameters, compute_gradient_tlm, compute_gradient, \
-        taylor_test, compute_adjoint
+        taylor_test, compute_adjoint, parameters
 
 def set_dolfin_parameters():
     parameters["form_compiler"]["cpp_optimize"] = True

@@ -94,6 +94,12 @@ class BasicCardiacODESolver(object):
             Mx = MixedElement(V.ufl_element(), S.ufl_element())
             self.VS = FunctionSpace(self._mesh, Mx)
 
+        try:
+            self._update_cell_model = self._model.update
+        except AttributeError:
+            self._update_cell_model = lambda x: 1
+            
+
         # Initialize solution fields
         self.vs_ = Function(self.VS, name="vs_")
         self.vs = Function(self.VS, name="vs")
@@ -287,6 +293,9 @@ class BasicCardiacODESolver(object):
         solver_params = self.parameters["nonlinear_variational_solver"]
         solver.parameters.update(solver_params)
         solver.solve()
+
+        #self._update_cell_model(self.vs)
+
         timer.stop()
 
 
@@ -412,6 +421,11 @@ class CardiacODESolver(object):
         self._pi_solver = PointIntegralSolver(self._scheme)
         self._pi_solver.parameters.update(self.parameters["point_integral_solver"])
 
+        try:
+            self._update_cell_model = self._model.update
+        except AttributeError:
+            self._update_cell_model = lambda x: 1
+
     def _name_to_scheme(self, name):
         """Return scheme class with given name
 
@@ -472,6 +486,8 @@ class CardiacODESolver(object):
 
         self._annotate_kwargs = annotate_kwargs(self.parameters)
         self._pi_solver.step(dt, **self._annotate_kwargs)
+
+        #self._update_cell_model(self.vs)
         timer.stop()
 
     def solve(self, interval, dt=None):

@@ -15,7 +15,8 @@ from cbcbeat import CardiacODESolver, \
         Constant, Expression, Function, Functional, \
         project, inner, assemble, dx, dt, FINISH_TIME, \
         parameters, compute_gradient_tlm, compute_gradient, \
-        taylor_test, ConstantControl
+        taylor_test, ConstantControl, parameters
+
 from cbcbeat.cellmodels import *
 
 supported_schemes = ["CrankNicolson",

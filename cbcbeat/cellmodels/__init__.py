@@ -16,6 +16,7 @@ from tentusscher_panfilov_2006_epi_cell import Tentusscher_panfilov_2006_epi_cel
 from fenton_karma_1998_BR_altered import Fenton_karma_1998_BR_altered
 from fenton_karma_1998_MLR1_altered import Fenton_karma_1998_MLR1_altered
 from grandi_pasqualini_bers_2010 import Grandi_pasqualini_bers_2010
+from adex import AdExManual
 
 # Only add supported cell model here if it is tested to actually run
 # with some multistage discretization

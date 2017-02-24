@@ -13,6 +13,7 @@ from dolfin import info, info_red, info_green, UnitIntervalMesh
 from cbcbeat import supported_cell_models, \
     CardiacODESolver, BasicSingleCellSolver, \
     Constant, Expression
+
 from cbcbeat.cellmodels import *
 
 

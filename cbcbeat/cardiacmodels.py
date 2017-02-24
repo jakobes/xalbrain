@@ -55,14 +55,17 @@ class CardiacModel(object):
 
     """
     def __init__(self, domain, time, M_i, M_e, cell_models,
-                 stimulus=None, applied_current=None):
+                 stimulus=None, applied_current=None,
+                 cell_domains=None, facet_domains=None):
         "Create CardiacModel from given input."
 
         self._handle_input(domain, time, M_i, M_e, cell_models,
-                           stimulus, applied_current)
+                           stimulus, applied_current,
+                           facet_domains, cell_domains)
 
     def _handle_input(self, domain, time, M_i, M_e, cell_models,
-                      stimulus=None, applied_current=None):
+                      stimulus=None, applied_current=None,
+                      facet_domains=None, cell_domains=None):
 
         # Check input and store attributes
         msg = "Expecting domain to be a Mesh instance, not %r" % domain
@@ -75,6 +78,9 @@ class CardiacModel(object):
 
         self._intracellular_conductivity = M_i
         self._extracellular_conductivity = M_e
+
+        self._cell_domains = cell_domains
+        self._facet_domains = facet_domains
 
         # Handle cell_models
         self._cell_models = handle_markerwise(cell_models, CardiacCellModel)
@@ -122,6 +128,14 @@ class CardiacModel(object):
     def domain(self):
         "The spatial domain (:py:class:`dolfin.Mesh`)."
         return self._domain
+
+    def cell_domains(self):
+        "Marked volume"
+        return self._cell_domains
+
+    def facet_domains(self):
+        "Marked area"
+        return self._facet_domains
 
     def cell_models(self):
         "Return the cell models"
