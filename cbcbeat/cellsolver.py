@@ -294,7 +294,7 @@ class BasicCardiacODESolver(object):
         solver.parameters.update(solver_params)
         solver.solve()
 
-        #self._update_cell_model(self.vs)
+        self._update_cell_model(self.vs)
 
         timer.stop()
 
@@ -487,7 +487,7 @@ class CardiacODESolver(object):
         self._annotate_kwargs = annotate_kwargs(self.parameters)
         self._pi_solver.step(dt, **self._annotate_kwargs)
 
-        #self._update_cell_model(self.vs)
+        self._update_cell_model(self.vs)
         timer.stop()
 
     def solve(self, interval, dt=None):
