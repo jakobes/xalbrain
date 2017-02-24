@@ -15,7 +15,7 @@ from cbcbeat import BasicBidomainSolver, BidomainSolver, \
         assemble, parameters, Control, \
         replay_dolfin, Functional, FINISH_TIME, \
         compute_gradient_tlm, compute_gradient, \
-        taylor_test, Function
+        taylor_test, Function, parameters
 
 import sys
 args = sys.argv[:1] + """

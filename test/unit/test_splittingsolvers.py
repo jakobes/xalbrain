@@ -12,7 +12,7 @@ from cbcbeat import CardiacModel, \
         BasicSplittingSolver, SplittingSolver, BasicCardiacODESolver, \
         FitzHughNagumoManual, \
         Constant, Expression, UnitCubeMesh, \
-        dolfin_adjoint, adj_reset
+        dolfin_adjoint, adj_reset, parameters
 
 set_log_level(WARNING)
 
@@ -106,3 +106,9 @@ class TestSplittingSolver(object):
         # solves.
         assert_almost_equal(a, b, tolerance=1.)
         assert_almost_equal(c, d, tolerance=1.)
+
+if __name__ == "__main__":
+    tss = TestSplittingSolver()
+    tss.setup()
+    for solver in "direct", "iterative":
+        tss.test_basic_and_optimised_splitting_solver_exact(solver)

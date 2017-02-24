@@ -76,7 +76,6 @@ class TestCardiacODESolver(object):
 def closure_long_run(Scheme, dt_org, abs_tol, rel_tol):
 
     def long_run_compare(self):
-
         mesh = UnitIntervalMesh(5)
 
         # FIXME: We need to make this run in paralell.

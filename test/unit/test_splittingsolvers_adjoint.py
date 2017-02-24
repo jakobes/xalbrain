@@ -15,7 +15,8 @@ from cbcbeat import CardiacModel, \
     Constant, Expression, UnitCubeMesh, \
     replay_dolfin, Functional, assemble, \
     inner, dx, dt, FINISH_TIME, Control, parameters, \
-    compute_gradient_tlm, compute_gradient, taylor_test
+    compute_gradient_tlm, compute_gradient, taylor_test, \
+    parameters
 
 set_log_level(INFO)
 

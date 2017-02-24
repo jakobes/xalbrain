@@ -6,11 +6,11 @@ __author__ = "Marie E. Rognes (meg@simula.no), 2013"
 __all__ = ["TestSplittingSolver"]
 
 from testutils import fast
-from cbcbeat import UnitCubeMesh, Constant, Expression, CardiacModel, FitzHughNagumoManual, SplittingSolver
+from cbcbeat import UnitCubeMesh, Constant, Expression, CardiacModel, FitzHughNagumoManual, \
+    SplittingSolver, parameters
 
 @fast
 def test_solver_with_domains():
-
     mesh = UnitCubeMesh(5, 5, 5)
     time = Constant(0.0)
 

@@ -35,7 +35,7 @@ __all__ = ["BasicBidomainSolver", "BidomainSolver"]
 
 from dolfinimport import *
 from cbcbeat.markerwisefield import *
-from cbcbeat.utils import end_of_time, annotate_kwargs
+from cbcbeat.utils import end_of_time, annotate_kwargs, transmembrane
 
 class BasicBidomainSolver(object):
     """This solver is based on a theta-scheme discretization in time
@@ -84,7 +84,7 @@ class BasicBidomainSolver(object):
 
       """
     def __init__(self, mesh, time, M_i, M_e, I_s=None, I_a=None, v_=None,
-                 params=None):
+                 cell_domains=None, facet_domains=None, params=None):
 
         # Check some input
         assert isinstance(mesh, Mesh), \
@@ -99,10 +99,6 @@ class BasicBidomainSolver(object):
         # Store input
         self._mesh = mesh
         self._time = time
-        self._M_i = M_i
-        self._M_e = M_e
-        self._I_s = I_s
-        self._I_a = I_a
 
         # Initialize and update parameters if given
         self.parameters = self.default_parameters()
@@ -125,6 +121,32 @@ class BasicBidomainSolver(object):
             self.VUR = FunctionSpace(mesh, MixedElement((Ve, Ue)))
 
         self.V = V
+
+        if cell_domains is None:
+            cell_domains = CellFunction("size_t", mesh)
+            cell_domains.set_all(0)
+        self._cell_domains = cell_domains
+
+        if facet_domains is None:
+            facet_domains = FacetFunction("size_t", mesh)
+            facet_domains.set_all(0)
+        self._facet_domains = facet_domains
+
+        if not isinstance(M_i, dict):
+            M_i = {0: M_i}
+        self._M_i = M_i
+
+        if not isinstance(M_e, dict):
+            M_e = {0: M_e}
+        self._M_e = M_e
+
+        if not isinstance(I_s, dict):
+            I_s = {0: I_s}
+        self._I_s = I_s
+
+        if not isinstance(I_a, dict):
+            I_a = {0: I_a}
+        self._I_a = I_a
 
         # Set-up solution fields:
         if v_ is None:
@@ -246,33 +268,44 @@ class BasicBidomainSolver(object):
              (v, u) = TrialFunctions(self.VUR)
              (w, q) = TestFunctions(self.VUR)
 
-        Dt_v = (v - self.v_)/k_n
-        v_mid = theta*v + (1.0 - theta)*self.v_
+        v_ = transmembrane(self.v_)
+        Dt_v = (v - v_)/k_n
+        v_mid = theta*v + (1.0 - theta)*v_
 
         # Set time
         t = t0 + theta*(t1 - t0)
         self.time.assign(t)
 
         # Define spatial integration domains:
-        (dz, rhs) = rhs_with_markerwise_field(self._I_s, self._mesh, w)
+        # (dz, rhs) = rhs_with_markerwise_field(self._I_s, self._mesh, w)
 
-        theta_parabolic = (inner(M_i*grad(v_mid), grad(w))*dz()
-                           + inner(M_i*grad(u), grad(w))*dz())
-        theta_elliptic = (inner(M_i*grad(v_mid), grad(q))*dz()
-                          + inner((M_i + M_e)*grad(u), grad(q))*dz())
-        G = Dt_v*w*dz() + theta_parabolic + theta_elliptic
+        dz = Measure("dx", domain=self._mesh, subdomain_data=self._cell_domains)
+        tags = set(self._cell_domains.array())
 
-        if use_R:
-            G += (lamda*u + l*q)*dz()
-
-        # Add applied current as source in elliptic equation if
-        # applicable
-        if self._I_a:
-            G -= self._I_a*q*dz()
-
-        # Add applied stimulus as source in parabolic equation if
-        # applicable
-        G -= rhs
+        G = 0
+        for key in tags:
+            if not self._I_s[key] is None:
+                rhs = self._I_s[key]*w*dz(key)
+            else:
+                rhs = Constant(0)*w*dz(key)
+    
+            theta_parabolic = (inner(M_i[key]*grad(v_mid), grad(w))*dz(key)
+                               + inner(M_i[key]*grad(u), grad(w))*dz(key))
+            theta_elliptic = (inner(M_i[key]*grad(v_mid), grad(q))*dz(key)
+                              + inner((M_i[key] + M_e[key])*grad(u), grad(q))*dz(key))
+            G += Dt_v*w*dz(key) + theta_parabolic + theta_elliptic
+    
+            if use_R:
+                G += (lamda*u + l*q)*dz(key)
+    
+            # Add applied current as source in elliptic equation if
+            # applicable
+            if self._I_a[key]:
+                G -= self._I_a[key]*q*dz(key)
+    
+            # Add applied stimulus as source in parabolic equation if
+            # applicable
+            G -= rhs
 
         # Define variational problem
         a, L = system(G)
@@ -308,11 +341,12 @@ class BidomainSolver(BasicBidomainSolver):
     __doc__ = BasicBidomainSolver.__doc__
 
     def __init__(self, mesh, time, M_i, M_e, I_s=None, I_a=None, v_=None,
-                 params=None):
+                 cell_domains=None, facet_domains=None, params=None):
 
         # Call super-class
         BasicBidomainSolver.__init__(self, mesh, time, M_i, M_e,
                                      I_s=I_s, I_a=I_a, v_=v_,
+                                     cell_domains=None, facet_domains=None,
                                      params=params)
 
         # Check consistency of parameters first
@@ -460,7 +494,7 @@ class BidomainSolver(BasicBidomainSolver):
         params["lu_solver"]["same_nonzero_pattern"] = True
 
         # Customize default parameters for PETScKrylovSolver
-        #params["petsc_krylov_solver"]["preconditioner"]["structure"] = "same"
+        # params["petsc_krylov_solver"]["preconditioner"]["structure"] = "same"
 
         return params
 
@@ -492,26 +526,65 @@ class BidomainSolver(BasicBidomainSolver):
              (w, q) = TestFunctions(self.VUR)
 
         # Set-up measure and rhs from stimulus
-        (dz, rhs) = rhs_with_markerwise_field(self._I_s, self._mesh, w)
+        # (dz, rhs) = rhs_with_markerwise_field(self._I_s, self._mesh, w)
+        dz = Measure("dx", domain=self._mesh, subdomain_data=self._cell_domains)
+        tags = set(self._cell_domains.array())
+
+        v_ = transmembrane(self.v_)
+        Dt_v_k_n = (v - v_)
+        v_mid = theta*v + (1.0 - theta)*v_
 
         # Set-up variational problem
-        Dt_v_k_n = (v - self.v_)
-        v_mid = theta*v + (1.0 - theta)*self.v_
-        theta_parabolic = (inner(M_i*grad(v_mid), grad(w))*dz()
-                           + inner(M_i*grad(u), grad(w))*dz())
-        theta_elliptic = (inner(M_i*grad(v_mid), grad(q))*dz()
-                          + inner((M_i + M_e)*grad(u), grad(q))*dz())
+        G = 0
+        for key in tags:
+            if not self._I_s[key] is None:
+                rhs = self._I_s[key]*w*dz(key)
+            else:
+                rhs = Constant(0)*w*dz(key)
 
-        G = (Dt_v_k_n*w*dz() + k_n*theta_parabolic + k_n*theta_elliptic
+            theta_parabolic = (inner(M_i[key]*grad(v_mid), grad(w))*dz(key)
+                               + inner(M_i[key]*grad(u), grad(w))*dz(key))
+            theta_elliptic = (inner(M_i[key]*grad(v_mid), grad(q))*dz(key)
+                              + inner((M_i[key] + M_e[key])*grad(u), grad(q))*dz(key))
+
+            G += (Dt_v_k_n*w*dz(0) + k_n*theta_parabolic + k_n*theta_elliptic
+                 - k_n*rhs)
+
+            if use_R:
+                G += k_n*(lamda*u + l*q)*dz(key)
+
+            # Add applied current as source in elliptic equation if
+            # applicable
+            if self._I_a[key]:
+                G -= k_n*self._I_a[key]*q*dz()
+
+
+        """
+        if not self._I_s[0] is None:
+            rhs = self._I_s[0]*w*dz(0)
+        else:
+            rhs = Constant(0)*w*dz(0)
+
+        v_ = transmembrane(self.v_)
+        Dt_v_k_n = (v - v_)
+        v_mid = theta*v + (1.0 - theta)*v_
+
+        theta_parabolic = (inner(M_i[0]*grad(v_mid), grad(w))*dz(0)
+                           + inner(M_i[0]*grad(u), grad(w))*dz(0))
+        theta_elliptic = (inner(M_i[0]*grad(v_mid), grad(q))*dz(0)
+                          + inner((M_i[0] + M_e[0])*grad(u), grad(q))*dz(0))
+
+        G = (Dt_v_k_n*w*dz(0) + k_n*theta_parabolic + k_n*theta_elliptic
              - k_n*rhs)
 
         if use_R:
-            G += k_n*(lamda*u + l*q)*dz()
+            G += k_n*(lamda*u + l*q)*dz(0)
 
         # Add applied current as source in elliptic equation if
         # applicable
-        if self._I_a:
-            G -= k_n*self._I_a*q*dz()
+        if self._I_a[0]:
+            G -= k_n*self._I_a[0]*q*dz()
+        """
 
         (a, L) = system(G)
         return (a, L)

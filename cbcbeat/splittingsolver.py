@@ -187,7 +187,8 @@ class BasicSplittingSolver:
             params = self.parameters["BasicBidomainSolver"]
             args = (self._domain, self._time, M_i, M_e)
             kwargs = dict(I_s=stimulus, I_a=applied_current,
-                          v_=self.vs[0], params=params)
+                          v_=self.vs, cell_domains=self._model.cell_domains(),
+                          facet_domains=self._model.facet_domains(), params=params)
         else:
             PDESolver = BasicMonodomainSolver
             params = self.parameters["BasicMonodomainSolver"]
@@ -541,7 +542,8 @@ class SplittingSolver(BasicSplittingSolver):
             params = self.parameters["BidomainSolver"]
             args = (self._domain, self._time, M_i, M_e)
             kwargs = dict(I_s=stimulus, I_a=applied_current,
-                          v_=self.vs[0], params=params)
+                          v_=self.vs, cell_domains=self._model.cell_domains(),
+                          facet_domains=self._model.facet_domains(), params=params)
         else:
             PDESolver = MonodomainSolver
             params = self.parameters["MonodomainSolver"]

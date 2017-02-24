@@ -87,7 +87,6 @@ class TestBasicSingleCellSolver:
 
     @slow
     def test_fitz_hugh_nagumo_modified(self):
-
         k = 0.00004
         Vrest = -85.
         Vthreshold = -70.
