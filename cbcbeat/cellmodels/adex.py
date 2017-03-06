@@ -12,7 +12,11 @@ __all__ = ["AdExManual"]
 from collections import OrderedDict
 from cbcbeat.dolfinimport import Parameters, Expression
 from cbcbeat.cellmodels import CardiacCellModel
-from dolfin import exp
+
+from dolfin import exp, assign
+
+import numpy as np
+
 
 class AdExManual(CardiacCellModel):
     """
@@ -89,14 +93,13 @@ class AdExManual(CardiacCellModel):
         b = self._parameters["b"]
         v, s = vs.split(deepcopy=True)
         v_idx = v.vector().array() > spike
+        print "----> ", vs.vector().array().max()
         if np.sum(v_idx) > 0:
-            print "halla"
+            print " *** Spike ***"
             v.vector()[v_idx] = E_L
             s.vector()[v_idx] += b
             assign(vs.sub(0), v)
             assign(vs.sub(1), s)
-            assert np.sum(self.vs.vector().array()[::2] > 20) == 0
-        assert np.sum(self.vs.vector().array()[::2] > 20) == 0
 
     def __str__(self):
         "Return string representation of class."

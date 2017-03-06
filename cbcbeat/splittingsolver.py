@@ -68,6 +68,8 @@ from cbcbeat.bidomainsolver import BasicBidomainSolver, BidomainSolver
 from cbcbeat.monodomainsolver import BasicMonodomainSolver, MonodomainSolver
 from cbcbeat.utils import state_space, TimeStepper, annotate_kwargs
 
+import numpy as np
+
 class BasicSplittingSolver:
     """
 
@@ -351,10 +353,11 @@ class BasicSplittingSolver:
         # case self.vs_) in its correct state
         self.merge(self.vs_)
 
+        # assign(self.vs_.sub(0), self.vur.sub(0))
+
         # Assumes that its vs_ is in the correct state, provides vs in
         # the correct state
         self.ode_solver.step((t, t1))
-
         end()
 
     def merge(self, solution):

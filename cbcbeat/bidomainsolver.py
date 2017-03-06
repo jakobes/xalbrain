@@ -37,6 +37,8 @@ from dolfinimport import *
 from cbcbeat.markerwisefield import *
 from cbcbeat.utils import end_of_time, annotate_kwargs, transmembrane
 
+import numpy as np
+
 class BasicBidomainSolver(object):
     """This solver is based on a theta-scheme discretization in time
     and CG_1 x CG_1 (x R) elements in space.
@@ -141,11 +143,11 @@ class BasicBidomainSolver(object):
         self._M_e = M_e
 
         if not isinstance(I_s, dict):
-            I_s = {0: I_s}
+            I_s = {i: I_s for i in set(self._cell_domains.array())}
         self._I_s = I_s
 
         if not isinstance(I_a, dict):
-            I_a = {0: I_a}
+           I_a = {i: I_a for i in set(self._cell_domains.array())}
         self._I_a = I_a
 
         # Set-up solution fields:
@@ -346,7 +348,7 @@ class BidomainSolver(BasicBidomainSolver):
         # Call super-class
         BasicBidomainSolver.__init__(self, mesh, time, M_i, M_e,
                                      I_s=I_s, I_a=I_a, v_=v_,
-                                     cell_domains=None, facet_domains=None,
+                                     cell_domains=cell_domains, facet_domains=facet_domains,
                                      params=params)
 
         # Check consistency of parameters first
@@ -605,6 +607,8 @@ class BidomainSolver(BasicBidomainSolver):
         timer = Timer("PDE step")
         solver_type = self.parameters["linear_solver_type"]
 
+
+
         # Extract interval and thus time-step
         (t0, t1) = interval
         dt = t1 - t0
@@ -635,6 +639,7 @@ class BidomainSolver(BasicBidomainSolver):
         # Solve problem
         self.linear_solver.solve(self.vur.vector(), self._rhs_vector,
                                  **self._annotate_kwargs)
+
 
     def _update_lu_solver(self, timestep_unchanged, dt):
         """Helper function for updating an LUSolver depending on
