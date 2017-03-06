@@ -225,6 +225,9 @@ class MultiCellModel(CardiacCellModel):
         solve(a == L, vs)
         return vs
 
+    def update(self, vs):
+        pass
+
 # from dolfin import *
 # from cbcbeat import *
 
