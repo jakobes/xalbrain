@@ -372,15 +372,15 @@ class CardiacODESolver(object):
 
         # Create (vector) function space for potential + states
         self.VS = VectorFunctionSpace(self._mesh, "CG", 1,
-                                      dim=self._num_states+1)
+                                      dim=self._num_states + 1)
 
         # Initialize solution field
         self.vs_ = Function(self.VS, name="vs_")
         self.vs = Function(self.VS, name="vs")
 
         # Initialize scheme
-        (v, s) = splat(self.vs, self._num_states+1)
-        (w, q) = splat(TestFunction(self.VS), self._num_states+1)
+        (v, s) = splat(self.vs, self._num_states + 1)
+        (w, q) = splat(TestFunction(self.VS), self._num_states + 1)
 
         # Workaround to get algorithm in RL schemes working as it only
         # works for scalar expressions
@@ -409,7 +409,6 @@ class CardiacODESolver(object):
         # we had only one integral...
         self._rhs = rhs*dP()
 
-        #sys.exit()
         name = self.parameters["scheme"]
         Scheme = self._name_to_scheme(name)
         self._scheme = Scheme(self._rhs, self.vs, self._time)

@@ -13,7 +13,7 @@ from collections import OrderedDict
 from cbcbeat.dolfinimport import Parameters, Expression
 from cbcbeat.cellmodels import CardiacCellModel
 
-from dolfin import exp, assign
+from dolfin import exp, assign, conditional, lt
 
 import numpy as np
 
@@ -56,9 +56,13 @@ class AdExManual(CardiacCellModel):
         E_L = self._parameters["E_L"]
         V_T = self._parameters["V_T"]
         Delta_T = self._parameters["Delta_T"]
-        b = self._parameters["b"]
+        spike = self._parameters["spike"]
 
-        I = 1./C*(g_L*Delta_T*exp((V - V_T)/Delta_T) - g_L*(V - E_L) - w)
+        tol = 0
+
+        #I = 1./C*(g_L*Delta_T*exp((V - V_T)/Delta_T) - g_L*(V - E_L) - w)
+        I = conditional(lt(V, spike + tol), 1./C*(g_L*Delta_T*exp((V - V_T)/Delta_T) -
+                                                  g_L*(V - E_L) - w), 0)
         return -I
 
     def F(self, V, w, time=None):
@@ -67,13 +71,12 @@ class AdExManual(CardiacCellModel):
         # Extract parameters
 
         a = self._parameters["a"]
-        b = self._parameters["b"]
         E_L = self._parameters["E_L"]
         tau_w = self._parameters["tau_w"]
 
         # Define model
         F = 1./tau_w*(a*(V - E_L) - w)
-        return F
+        return -F
 
     #@staticmethod
     def default_initial_conditions(self):
@@ -93,9 +96,8 @@ class AdExManual(CardiacCellModel):
         b = self._parameters["b"]
         v, s = vs.split(deepcopy=True)
         v_idx = v.vector().array() > spike
-        print "----> ", vs.vector().array().max()
         if np.sum(v_idx) > 0:
-            print " *** Spike ***"
+            print " *** Spike *** "
             v.vector()[v_idx] = E_L
             s.vector()[v_idx] += b
             assign(vs.sub(0), v)
