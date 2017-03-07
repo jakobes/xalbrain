@@ -327,6 +327,8 @@ class BasicSplittingSolver:
         # Assumes that its vs_ is in the correct state, gives its vs
         # in the current state
         self.ode_solver.step((t0, t))
+
+        assert not np.isnan(self.vs.vector().array()).any()
         end()
 
         # Compute tentative potentials vu = (v, u)

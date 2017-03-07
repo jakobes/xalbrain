@@ -281,8 +281,9 @@ class BasicBidomainSolver(object):
 
         G = 0
         for key in tags:
-            if not self._I_s[key] is None:
-                rhs = self._I_s[key]*w*dz(key)
+            key = int(key)
+            if not self._I_s is None:
+                rhs = self._I_s*w*dz(key)
             else:
                 rhs = Constant(0)*w*dz(key)
     
@@ -297,8 +298,8 @@ class BasicBidomainSolver(object):
     
             # Add applied current as source in elliptic equation if
             # applicable
-            if self._I_a[key]:
-                G -= self._I_a[key]*q*dz(key)
+            if self._I_a:
+                G -= self._I_a*q*dz(key)
     
             # Add applied stimulus as source in parabolic equation if
             # applicable
@@ -526,7 +527,6 @@ class BidomainSolver(BasicBidomainSolver):
         # (dz, rhs) = rhs_with_markerwise_field(self._I_s, self._mesh, w)
         dz = Measure("dx", domain=self._mesh, subdomain_data=self._cell_domains)
         tags = set(self._cell_domains.array())
-        assert tags == set([0, 1])
 
         v_ = transmembrane(self.v_)
         Dt_v_k_n = (v - v_)
@@ -534,7 +534,7 @@ class BidomainSolver(BasicBidomainSolver):
 
         G = Dt_v_k_n*w*dz()
         for key in tags:
-            ky = int(key)       # NB! np.uint64 does not work
+            key = int(key)       # NB! np.uint64 does not work
             G += k_n*inner(M_i[key]*grad(v_mid), grad(w))*dz(key) +\
                      inner(M_i[key]*grad(u), grad(w))*dz(key)
             G += k_n*inner(M_i[key]*grad(v_mid), grad(q))*dz(key) +\
