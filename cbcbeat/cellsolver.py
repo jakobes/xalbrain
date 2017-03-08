@@ -87,18 +87,15 @@ class BasicCardiacODESolver(object):
 
         if (v_family == s_family and s_degree == v_degree):
             self.VS = VectorFunctionSpace(self._mesh, v_family, v_degree,
-                                          dim=self._num_states+1)
+                                          dim=self._num_states + 1)
         else:
             V = FunctionSpace(self._mesh, v_family, v_degree)
             S = state_space(self._mesh, self._num_states, s_family, s_degree)
             Mx = MixedElement(V.ufl_element(), S.ufl_element())
             self.VS = FunctionSpace(self._mesh, Mx)
 
-        try:
-            self._update_cell_model = self._model.update
-        except AttributeError:
-            self._update_cell_model = lambda x: 1
-            
+        # Update routine called in `step`
+        self._update_cell_model = self._model.update
 
         # Initialize solution fields
         self.vs_ = Function(self.VS, name="vs_")
@@ -210,12 +207,12 @@ class BasicCardiacODESolver(object):
         k_n = Constant(t1 - t0)
 
         # Extract previous solution(s)
-        (v_, s_) = splat(self.vs_, self._num_states+1)
+        (v_, s_) = splat(self.vs_, self._num_states + 1)
 
         # Set-up current variables
-        self.vs.assign(self.vs_) # Start with good guess
-        (v, s) = splat(self.vs, self._num_states+1)
-        (w, r) = splat(TestFunction(self.VS), self._num_states+1)
+        self.vs.assign(self.vs_)     # Start with good guess
+        (v, s) = splat(self.vs, self._num_states + 1)
+        (w, r) = splat(TestFunction(self.VS), self._num_states + 1)
 
         # Define equation based on cell model
         Dt_v = (v - v_)/k_n
@@ -223,8 +220,7 @@ class BasicCardiacODESolver(object):
 
         theta = self.parameters["theta"]
 
-        # Set time (propagates to time-dependent variables defined via
-        # self.time)
+        # Set time (propagates to time-dependent variables defined via self.time)
         t = t0 + theta*(t1 - t0)
         self.time.assign(t)
 
@@ -232,8 +228,6 @@ class BasicCardiacODESolver(object):
         s_mid = theta*s + (1.0 - theta)*s_
 
         if isinstance(self._model, MultiCellModel):
-            #assert(model.mesh() == self._mesh)
-
             model = self._model
             mesh = model.mesh()
             dy = Measure("dx", domain=mesh, subdomain_data=model.markers())
@@ -243,7 +237,7 @@ class BasicCardiacODESolver(object):
                 error("Not implemented")
             rhs = self._I_s*w*dy()
 
-            n = model.num_states() # Extract number of global states
+            n = model.num_states()      # Extract number of global states
 
             # Collect contributions to lhs by iterating over the different cell models
             domains = self._model.keys()
@@ -295,7 +289,6 @@ class BasicCardiacODESolver(object):
         solver.solve()
 
         self._update_cell_model(self.vs)
-
         timer.stop()
 
 
@@ -420,10 +413,7 @@ class CardiacODESolver(object):
         self._pi_solver = PointIntegralSolver(self._scheme)
         self._pi_solver.parameters.update(self.parameters["point_integral_solver"])
 
-        try:
-            self._update_cell_model = self._model.update
-        except AttributeError:
-            self._update_cell_model = lambda x: 1
+        self._update_cell_model = self._model.update
 
     def _name_to_scheme(self, name):
         """Return scheme class with given name
@@ -486,7 +476,7 @@ class CardiacODESolver(object):
         self._annotate_kwargs = annotate_kwargs(self.parameters)
         self._pi_solver.step(dt, **self._annotate_kwargs)
 
-        self._update_cell_model(self.vs)
+        self._update_cell_model(self.vs)    # TODO: profile this
         timer.stop()
 
     def solve(self, interval, dt=None):

@@ -135,14 +135,20 @@ class BasicBidomainSolver(object):
         self._facet_domains = facet_domains
 
         if not isinstance(M_i, dict):
-            M_i = {0: M_i}
+            M_i = {int(i): M_i for i in set(self._cell_domains.array())}
+        assert set(M_i.keysys()) == set(self._cell_domains.array())
         self._M_i = M_i
 
         if not isinstance(M_e, dict):
-            M_e = {0: M_e}
+            M_e = {int(i): M_e for i in set(self._cell_domains.array())}
+        assert set(M_e.keysys()) == set(self._cell_domains.array())
         self._M_e = M_e
 
+        # Store source terms
+        msg = "Source terms must be defined on the whole domains"
+        assert not isinstance(I_s, dict), msg
         self._I_s = I_s
+        assert not isinstance(I_s, dict), msg
         self._I_a = I_a
 
         # Set-up solution fields:
@@ -212,8 +218,8 @@ class BasicBidomainSolver(object):
         t0 = T0
         t1 = T0 + dt
 
-       # Step through time steps until at end time
-        while (True) :
+        # Step through time steps until at end time
+        while(True):
             info("Solving on t = (%g, %g)" % (t0, t1))
             self.step((t0, t1))
 
@@ -281,8 +287,8 @@ class BasicBidomainSolver(object):
 
         G = 0
         for key in tags:
-            key = int(key)
-            if not self._I_s is None:
+            key = int(key)      # NB! np.uint64 does not work
+            if self._I_s is not None:
                 rhs = self._I_s*w*dz(key)
             else:
                 rhs = Constant(0)*w*dz(key)
@@ -296,13 +302,10 @@ class BasicBidomainSolver(object):
             if use_R:
                 G += (lamda*u + l*q)*dz(key)
     
-            # Add applied current as source in elliptic equation if
-            # applicable
+            # Add applied current as source in elliptic equation if applicable
             if self._I_a:
                 G -= self._I_a*q*dz(key)
     
-            # Add applied stimulus as source in parabolic equation if
-            # applicable
             G -= rhs
 
         # Define variational problem
@@ -344,7 +347,8 @@ class BidomainSolver(BasicBidomainSolver):
         # Call super-class
         BasicBidomainSolver.__init__(self, mesh, time, M_i, M_e,
                                      I_s=I_s, I_a=I_a, v_=v_,
-                                     cell_domains=cell_domains, facet_domains=facet_domains,
+                                     cell_domains=cell_domains, 
+                                     facet_domains=facet_domains,
                                      params=params)
 
         # Check consistency of parameters first
@@ -479,7 +483,6 @@ class BidomainSolver(BasicBidomainSolver):
         # solver is invoked)
         params.add("algorithm", "cg")
         params.add("preconditioner", "petsc_amg")
-        #params.add("preconditioner", "fieldsplit") # This seg faults
 
         # Add default parameters from both LU and Krylov solvers
         params.add(LUSolver.default_parameters())
@@ -524,34 +527,33 @@ class BidomainSolver(BasicBidomainSolver):
              (w, q) = TestFunctions(self.VUR)
 
         # Set-up measure and rhs from stimulus
-        # (dz, rhs) = rhs_with_markerwise_field(self._I_s, self._mesh, w)
         dz = Measure("dx", domain=self._mesh, subdomain_data=self._cell_domains)
         tags = set(self._cell_domains.array())
 
         v_ = transmembrane(self.v_)
-        Dt_v_k_n = (v - v_)
+        Dt_v = (v - v_)/k_n
         v_mid = theta*v + (1.0 - theta)*v_
 
-        G = Dt_v_k_n*w*dz()
+        G = Dt_v*w*dz()
         for key in tags:
             key = int(key)       # NB! np.uint64 does not work
-            G += k_n*inner(M_i[key]*grad(v_mid), grad(w))*dz(key) +\
-                     inner(M_i[key]*grad(u), grad(w))*dz(key)
-            G += k_n*inner(M_i[key]*grad(v_mid), grad(q))*dz(key) +\
-                     inner((M_i[key] + M_e[key])*grad(u), grad(q))*dz(key)
+            G += inner(M_i[key]*grad(v_mid), grad(w))*dz(key) + \
+                 inner(M_i[key]*grad(u), grad(w))*dz(key)
+            G += inner(M_i[key]*grad(v_mid), grad(q))*dz(key) + \
+                 inner((M_i[key] + M_e[key])*grad(u), grad(q))*dz(key)
 
             if not self._I_s is None:
                 rhs = self._I_s*w*dz(key)
             else:
                 rhs = Constant(0)*w*dz(key)
 
-            G -= k_n*rhs
+            G -= rhs
 
             if use_R:
-                G += k_n*(lamda*u + l*q)*dz(key)
+                G += (lamda*u + l*q)*dz(key)
                 
             if self._I_a:
-                G -= k_n*self._I_a*q*dz(key)
+                G -= self._I_a*q*dz(key)
 
         (a, L) = system(G)
         return (a, L)
@@ -571,8 +573,6 @@ class BidomainSolver(BasicBidomainSolver):
 
         timer = Timer("PDE step")
         solver_type = self.parameters["linear_solver_type"]
-
-
 
         # Extract interval and thus time-step
         (t0, t1) = interval
