@@ -25,6 +25,8 @@ class AdExManual(CardiacCellModel):
     This is a model containing two nonlinear, ODEs for the evolution
     of the transmembrane potential v and one additional state variable
     w.
+
+    TODO: Update routine might be slow
     """
     def __init__(self, params=None, init_conditions=None):
         "Create neuronal cell model, optionally from given parameters."
@@ -46,9 +48,6 @@ class AdExManual(CardiacCellModel):
 
     def I(self, V, w, time=None):
         "Return the ionic current."
-        # TODO: Check sign
-        # FIXME: Add input current
-
 
         # Extract parameters
         C = self._parameters["C"]
@@ -57,10 +56,9 @@ class AdExManual(CardiacCellModel):
         V_T = self._parameters["V_T"]
         Delta_T = self._parameters["Delta_T"]
         spike = self._parameters["spike"]
-
         tol = 0
 
-        #I = 1./C*(g_L*Delta_T*exp((V - V_T)/Delta_T) - g_L*(V - E_L) - w)
+        # Add set I to 0 if V -> \infty, this will still trigger a reset
         I = conditional(lt(V, spike + tol), 1./C*(g_L*Delta_T*exp((V - V_T)/Delta_T) -
                                                   g_L*(V - E_L) - w), 0)
         return -I
@@ -96,12 +94,14 @@ class AdExManual(CardiacCellModel):
         b = self._parameters["b"]
         v, s = vs.split(deepcopy=True)
         v_idx = v.vector().array() > spike
+
+        v.vector()[v_idx] = E_L
+        s.vector()[v_idx] += b
+        assign(vs.sub(0), v)
+        assign(vs.sub(1), s)
+
         if np.sum(v_idx) > 0:
             print " *** Spike *** "
-            v.vector()[v_idx] = E_L
-            s.vector()[v_idx] += b
-            assign(vs.sub(0), v)
-            assign(vs.sub(1), s)
 
     def __str__(self):
         "Return string representation of class."
