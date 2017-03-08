@@ -189,7 +189,7 @@ class BasicSplittingSolver:
             params = self.parameters["BasicBidomainSolver"]
             args = (self._domain, self._time, M_i, M_e)
             kwargs = dict(I_s=stimulus, I_a=applied_current,
-                          v_=self.vs, cell_domains=self._model.cell_domains(),
+                          v_=self.vs[0], cell_domains=self._model.cell_domains(),
                           facet_domains=self._model.facet_domains(), params=params)
         else:
             PDESolver = BasicMonodomainSolver
@@ -328,6 +328,7 @@ class BasicSplittingSolver:
         # in the current state
         self.ode_solver.step((t0, t))
 
+        # Abort if linear solver diverges
         assert not np.isnan(self.vs.vector().array()).any()
         end()
 
@@ -353,9 +354,7 @@ class BasicSplittingSolver:
         # Assumes that the v part of its vur and the s part of its vs
         # are in the correct state, provides input argument (in this
         # case self.vs_) in its correct state
-        self.merge(self.vs_)
-
-        # assign(self.vs_.sub(0), self.vur.sub(0))
+        self.merge(self.vs_)    # self.vs_.sub(0) <- self.vur.sub(0)
 
         # Assumes that its vs_ is in the correct state, provides vs in
         # the correct state
@@ -547,7 +546,7 @@ class SplittingSolver(BasicSplittingSolver):
             params = self.parameters["BidomainSolver"]
             args = (self._domain, self._time, M_i, M_e)
             kwargs = dict(I_s=stimulus, I_a=applied_current,
-                          v_=self.vs, cell_domains=self._model.cell_domains(),
+                          v_=self.vs[0], cell_domains=self._model.cell_domains(),
                           facet_domains=self._model.facet_domains(), params=params)
         else:
             PDESolver = MonodomainSolver

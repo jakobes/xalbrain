@@ -24,29 +24,6 @@ def annotate_kwargs(ba_parameters):
     return {"annotate": True}
 
 
-def transmembrane(vs):
-    """Extract the component for the transmembrane potential.
-
-    Return the Transmembrane potential. If vs is scalar, return vs. Otherwise, return the first
-    component of vs.
-
-    Args:
-        vs (Function): The transmembrane Potential and possibly state variables
-
-    Returns:
-        Function: The transmembrane potential.
-    """
-    dim = vs.ufl_element().value_size()
-    if dim > 1:
-        components = split(vs)
-        # components = vs.split()
-        v = components[0]
-    else:
-        v = vs
-
-    return v
-
-
 def splat(vs, dim):
 
     if vs.function_space().ufl_element().num_sub_elements()==dim:

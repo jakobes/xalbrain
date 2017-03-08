@@ -35,7 +35,7 @@ __all__ = ["BasicBidomainSolver", "BidomainSolver"]
 
 from dolfinimport import *
 from cbcbeat.markerwisefield import *
-from cbcbeat.utils import end_of_time, annotate_kwargs, transmembrane
+from cbcbeat.utils import end_of_time, annotate_kwargs
 
 import numpy as np
 
@@ -136,12 +136,10 @@ class BasicBidomainSolver(object):
 
         if not isinstance(M_i, dict):
             M_i = {int(i): M_i for i in set(self._cell_domains.array())}
-        assert set(M_i.keysys()) == set(self._cell_domains.array())
         self._M_i = M_i
 
         if not isinstance(M_e, dict):
             M_e = {int(i): M_e for i in set(self._cell_domains.array())}
-        assert set(M_e.keysys()) == set(self._cell_domains.array())
         self._M_e = M_e
 
         # Store source terms
@@ -530,7 +528,8 @@ class BidomainSolver(BasicBidomainSolver):
         dz = Measure("dx", domain=self._mesh, subdomain_data=self._cell_domains)
         tags = set(self._cell_domains.array())
 
-        v_ = transmembrane(self.v_)
+        #v_ = transmembrane(self.v_)
+        v_ = self.v_
         Dt_v = (v - v_)/k_n
         v_mid = theta*v + (1.0 - theta)*v_
 
