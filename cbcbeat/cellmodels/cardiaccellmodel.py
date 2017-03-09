@@ -142,6 +142,9 @@ class CardiacCellModel:
         "Return string representation of class."
         return "Some cardiac cell model"
 
+    def update(self, vs):
+        pass
+
 class MultiCellModel(CardiacCellModel):
     """
     MultiCellModel
