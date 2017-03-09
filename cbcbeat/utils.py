@@ -6,7 +6,7 @@ __all__ = ["state_space", "end_of_time", "convergence_rate",
            "Projecter"]
 
 import math
-from dolfinimport import dolfin, dolfin_adjoint, split
+from dolfinimport import dolfin, dolfin_adjoint
 if dolfin_adjoint:
     from dolfin_adjoint import assemble, LUSolver, KrylovSolver
     from dolfin import parameters
@@ -22,29 +22,6 @@ def annotate_kwargs(ba_parameters):
         return {"annotate": False}
 
     return {"annotate": True}
-
-
-def transmembrane(vs):
-    """Extract the component for the transmembrane potential.
-
-    Return the Transmembrane potential. If vs is scalar, return vs. Otherwise, return the first
-    component of vs.
-
-    Args:
-        vs (Function): The transmembrane Potential and possibly state variables
-
-    Returns:
-        Function: The transmembrane potential.
-    """
-    dim = vs.ufl_element().value_size()
-    if dim > 1:
-        components = split(vs)
-        # components = vs.split()
-        v = components[0]
-    else:
-        v = vs
-
-    return v
 
 
 def splat(vs, dim):
