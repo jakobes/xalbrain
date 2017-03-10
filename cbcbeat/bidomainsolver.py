@@ -269,9 +269,8 @@ class BasicBidomainSolver(object):
              (v, u) = TrialFunctions(self.VUR)
              (w, q) = TestFunctions(self.VUR)
 
-        v_ = transmembrane(self.v_)
-        Dt_v = (v - v_)/k_n
-        v_mid = theta*v + (1.0 - theta)*v_
+        Dt_v = (v - self.v_)/k_n
+        v_mid = theta*v + (1.0 - theta)*self.v_
 
         # Set time
         t = t0 + theta*(t1 - t0)
@@ -528,10 +527,8 @@ class BidomainSolver(BasicBidomainSolver):
         dz = Measure("dx", domain=self._mesh, subdomain_data=self._cell_domains)
         tags = set(self._cell_domains.array())
 
-        #v_ = transmembrane(self.v_)
-        v_ = self.v_
-        Dt_v = (v - v_)/k_n
-        v_mid = theta*v + (1.0 - theta)*v_
+        Dt_v = (v - self.v_)/k_n
+        v_mid = theta*v + (1.0 - theta)*self.v_
 
         G = Dt_v*w*dz()
         for key in tags:
