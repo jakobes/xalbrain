@@ -8,10 +8,8 @@ To import the module, type::
 
 """
 
-import dolfinimport
-
 # Import all of dolfin with possibly dolfin-adjoint on top
-from dolfinimport import *
+from cbcbeat.dolfinimport import *
 
 # Model imports
 from cbcbeat.cardiacmodels import CardiacModel

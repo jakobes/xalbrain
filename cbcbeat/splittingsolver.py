@@ -61,7 +61,7 @@ testing or debugging purposes primarily.
 
 __all__ = ["SplittingSolver", "BasicSplittingSolver",]
 
-from dolfinimport import *
+from cbcbeat.dolfinimport import *
 from cbcbeat import CardiacModel
 from cbcbeat.cellsolver import BasicCardiacODESolver, CardiacODESolver
 from cbcbeat.bidomainsolver import BasicBidomainSolver, BidomainSolver

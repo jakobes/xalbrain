@@ -101,7 +101,7 @@ class AdExManual(CardiacCellModel):
         assign(vs.sub(1), s)
 
         if np.sum(v_idx) > 0:
-            print " *** Spike *** "
+            print(" *** Spike *** ")
 
     def __str__(self):
         "Return string representation of class."

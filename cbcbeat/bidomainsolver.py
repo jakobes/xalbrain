@@ -33,7 +33,7 @@ for u.
 
 __all__ = ["BasicBidomainSolver", "BidomainSolver"]
 
-from dolfinimport import *
+from cbcbeat.dolfinimport import *
 from cbcbeat.markerwisefield import *
 from cbcbeat.utils import end_of_time, annotate_kwargs
 
