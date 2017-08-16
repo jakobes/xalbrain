@@ -7,7 +7,7 @@ __all__ = ["BasicSingleCellSolver",
            "CardiacODESolver",
            "SingleCellSolver"]
 
-from dolfinimport import *
+from cbcbeat.dolfinimport import *
 from cbcbeat import CardiacCellModel, MultiCellModel
 from cbcbeat.markerwisefield import *
 from cbcbeat.utils import state_space, TimeStepper, splat, annotate_kwargs
@@ -410,7 +410,7 @@ class CardiacODESolver(object):
         self._annotate_kwargs = annotate_kwargs(self.parameters)
 
         # Initialize solver and update its parameters
-        self._pi_solver = PointIntegralSolver(self._scheme)
+        self._pi_solver = AdexPointIntegralSolver(self._scheme)
         self._pi_solver.parameters.update(self.parameters["point_integral_solver"])
 
         self._update_cell_model = self._model.update
@@ -473,10 +473,12 @@ class CardiacODESolver(object):
         (t0, t1) = interval
         dt = t1 - t0
 
-        self._annotate_kwargs = annotate_kwargs(self.parameters)
-        self._pi_solver.step(dt, **self._annotate_kwargs)
+        # self._annotate_kwargs = annotate_kwargs(self.parameters)
+        # self._pi_solver.step(dt, **self._annotate_kwargs)
+        # FIXME: Is dolfin adjoint doing something with the function signature?
+        self._pi_solver.step(dt)
 
-        self._update_cell_model(self.vs)    # TODO: profile this
+        # self._update_cell_model(self.vs)    # TODO: profile this
         timer.stop()
 
     def solve(self, interval, dt=None):

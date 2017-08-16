@@ -4,7 +4,7 @@
 
 __all__ = ["Markerwise", "handle_markerwise", "rhs_with_markerwise_field"]
 
-from dolfinimport import dx, Measure, error
+from cbcbeat.dolfinimport import dx, Measure, error
 
 def handle_markerwise(g, classtype):
     # Handle stimulus

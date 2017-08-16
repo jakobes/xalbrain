@@ -6,7 +6,7 @@ __all__ = ["state_space", "end_of_time", "convergence_rate",
            "Projecter"]
 
 import math
-from dolfinimport import dolfin, dolfin_adjoint
+from cbcbeat.dolfinimport import dolfin, dolfin_adjoint
 if dolfin_adjoint:
     from dolfin_adjoint import assemble, LUSolver, KrylovSolver
     from dolfin import parameters

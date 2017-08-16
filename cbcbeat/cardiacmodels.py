@@ -10,9 +10,9 @@ scenarios.
 
 __all__ = ["CardiacModel"]
 
-from dolfinimport import Parameters, Mesh, Constant, GenericFunction, error
-from markerwisefield import Markerwise, handle_markerwise
-from cellmodels import *
+from cbcbeat.dolfinimport import Parameters, Mesh, Constant, GenericFunction, error
+from cbcbeat.markerwisefield import Markerwise, handle_markerwise
+from .cellmodels import *
 
 # ------------------------------------------------------------------------------
 # Cardiac models

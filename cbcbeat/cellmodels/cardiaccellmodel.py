@@ -118,7 +118,7 @@ class CardiacCellModel:
 
     def initial_conditions(self):
         "Return initial conditions for v and s as an Expression."
-        return Expression(self._initial_conditions.keys(), degree=1,
+        return Expression(tuple(self._initial_conditions.keys()), degree=1,
                           **self._initial_conditions)
 
     def parameters(self):

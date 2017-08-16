@@ -5,18 +5,20 @@ import types
 
 # Base class for cardiac cell models
 #import cardiaccellmodel
-from cardiaccellmodel import CardiacCellModel, MultiCellModel
+from .cardiaccellmodel import CardiacCellModel, MultiCellModel
 
-from beeler_reuter_1977 import Beeler_reuter_1977
-from fitzhughnagumo_manual import FitzHughNagumoManual
-from nocellmodel import NoCellModel
-from rogers_mcculloch_manual import RogersMcCulloch
-from tentusscher_2004_mcell import Tentusscher_2004_mcell
-from tentusscher_panfilov_2006_epi_cell import Tentusscher_panfilov_2006_epi_cell
-from fenton_karma_1998_BR_altered import Fenton_karma_1998_BR_altered
-from fenton_karma_1998_MLR1_altered import Fenton_karma_1998_MLR1_altered
-from grandi_pasqualini_bers_2010 import Grandi_pasqualini_bers_2010
-from adex import AdExManual
+from .beeler_reuter_1977 import Beeler_reuter_1977
+from .fitzhughnagumo_manual import FitzHughNagumoManual
+from .nocellmodel import NoCellModel
+from .rogers_mcculloch_manual import RogersMcCulloch
+from .tentusscher_2004_mcell import Tentusscher_2004_mcell
+from .tentusscher_panfilov_2006_epi_cell import Tentusscher_panfilov_2006_epi_cell
+from .fenton_karma_1998_BR_altered import Fenton_karma_1998_BR_altered
+from .fenton_karma_1998_MLR1_altered import Fenton_karma_1998_MLR1_altered
+from .grandi_pasqualini_bers_2010 import Grandi_pasqualini_bers_2010
+from .adex import AdExManual
+
+from .test_adex import Test_adex
 
 # Only add supported cell model here if it is tested to actually run
 # with some multistage discretization

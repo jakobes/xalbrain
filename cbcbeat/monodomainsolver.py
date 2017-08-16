@@ -27,7 +27,7 @@ assumes pure homogeneous Neumann boundary conditions for :math:`v`.
 
 __all__ = ["BasicMonodomainSolver", "MonodomainSolver"]
 
-from dolfinimport import *
+from cbcbeat.dolfinimport import *
 from cbcbeat.markerwisefield import *
 from cbcbeat.utils import end_of_time, annotate_kwargs
 
@@ -340,7 +340,7 @@ class MonodomainSolver(BasicMonodomainSolver):
         # solver is invoked)
         params.add("algorithm", "cg")
         params.add("preconditioner", "petsc_amg")
-        params.add("use_custom_preconditioner", True)
+        params.add("use_custom_preconditioner", False)
 
         # Add default parameters from both LU and Krylov solvers
         params.add(LUSolver.default_parameters())
