@@ -19,10 +19,10 @@ import gotran
 #    raise ImportError("goss could not import DOLFINODESystemSolver")
 
 # Beatadjoint imports
-from cbcbeat.bidomainsolver import BidomainSolver
-from cbcbeat.monodomainsolver import MonodomainSolver
-from cbcbeat.cardiacmodels import CardiacModel
-from cbcbeat.utils import TimeStepper, Projecter
+from xalbrain.bidomainsolver import BidomainSolver
+from xalbrain.monodomainsolver import MonodomainSolver
+from xalbrain.cardiacmodels import CardiacModel
+from xalbrain.utils import TimeStepper, Projecter
 
         
 class GOSSplittingSolver:

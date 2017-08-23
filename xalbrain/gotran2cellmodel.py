@@ -18,7 +18,7 @@ from gotran.common.options import parameters as gotran_parameters
 from gotran.codegeneration.algorithmcomponents import componentwise_derivative
 from gotran.codegeneration.codecomponent import CodeComponent
 
-from cbcbeat.gotran2dolfin import DOLFINCodeGenerator
+from xalbrain.gotran2dolfin import DOLFINCodeGenerator
 
 _class_template = """
 \"\"\"This module contains a {ModelName} cardiac cell model
@@ -29,8 +29,8 @@ from __future__ import division
 from collections import OrderedDict
 import ufl
 
-from cbcbeat.dolfinimport import *
-from cbcbeat.cellmodels import CardiacCellModel
+from xalbrain.dolfinimport import *
+from xalbrain.cellmodels import CardiacCellModel
 
 class {ModelName}(CardiacCellModel):
     def __init__(self, params=None, init_conditions=None):
@@ -96,7 +96,7 @@ _class_form = dict(
 
 class CellModelGenerator(DOLFINCodeGenerator):
     """
-    Convert a Gotran model to a cbcbeat compatible cell model
+    Convert a Gotran model to a xalbrain compatible cell model
     """
     def __init__(self, ode, membrane_potential):
 
@@ -113,7 +113,7 @@ class CellModelGenerator(DOLFINCodeGenerator):
         self.name = name if name[0].isupper() else name[0].upper() + \
                     (name[1:] if len(name) > 1 else "")
 
-        # Set cbcbeat compatible gotran code generation parameters
+        # Set xalbrain compatible gotran code generation parameters
         generation_params = gotran_parameters.generation.copy()
         generation_params.code.default_arguments = "stp"
         generation_params.code.time.name = "time"

@@ -4,7 +4,7 @@ from __future__ import division
 __author__ = "Marie E. Rognes (meg@simula.no), 2012--2013"
 __all__ = ["CardiacCellModel", "MultiCellModel"]
 
-from cbcbeat.dolfinimport import Parameters, Expression, error, GenericFunction, VectorFunctionSpace, Function, DirichletBC, TrialFunction, TestFunction, solve, Measure, inner
+from xalbrain.dolfinimport import Parameters, Expression, error, GenericFunction, VectorFunctionSpace, Function, DirichletBC, TrialFunction, TestFunction, solve, Measure, inner
 from collections import OrderedDict
 
 class CardiacCellModel:
@@ -232,7 +232,7 @@ class MultiCellModel(CardiacCellModel):
         pass
 
 # from dolfin import *
-# from cbcbeat import *
+# from xalbrain import *
 
 # mesh = UnitSquareMesh(20, 20)
 # markers = CellFunction("uint", mesh, 0)

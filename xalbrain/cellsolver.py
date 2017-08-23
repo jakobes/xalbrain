@@ -7,10 +7,10 @@ __all__ = ["BasicSingleCellSolver",
            "CardiacODESolver",
            "SingleCellSolver"]
 
-from cbcbeat.dolfinimport import *
-from cbcbeat import CardiacCellModel, MultiCellModel
-from cbcbeat.markerwisefield import *
-from cbcbeat.utils import state_space, TimeStepper, splat, annotate_kwargs
+from xalbrain.dolfinimport import *
+from xalbrain import CardiacCellModel, MultiCellModel
+from xalbrain.markerwisefield import *
+from xalbrain.utils import state_space, TimeStepper, splat, annotate_kwargs
 
 class BasicCardiacODESolver(object):
     """A basic, non-optimised solver for systems of ODEs typically
@@ -48,7 +48,7 @@ class BasicCardiacODESolver(object):
         A constant holding the current time. If None is given, time is
         created for you, initialized to zero.
 
-      model (:py:class:`cbcbeat.CardiacCellModel`)
+      model (:py:class:`xalbrain.CardiacCellModel`)
         A representation of the cardiac cell model(s)
 
       I_s (optional) A typically time-dependent external stimulus
@@ -324,7 +324,7 @@ class CardiacODESolver(object):
         A constant holding the current time. If None is given, time is
         created for you, initialized to zero.
 
-      model (:py:class:`cbcbeat.CardiacCellModel`)
+      model (:py:class:`xalbrain.CardiacCellModel`)
         A representation of the cardiac cell model(s)
 
       I_s (:py:class:`dolfin.Expression`, optional)
@@ -563,7 +563,7 @@ class BasicSingleCellSolver(BasicCardiacODESolver):
        simulation.
 
     *Arguments*
-      model (:py:class:`~cbcbeat.cellmodels.cardiaccellmodel.CardiacCellModel`)
+      model (:py:class:`~xalbrain.cellmodels.cardiaccellmodel.CardiacCellModel`)
         A cardiac cell model
       time (:py:class:`~dolfin.Constant` or None)
         A constant holding the current time.

@@ -43,12 +43,12 @@ pure Neumann boundary conditions for :math:`v` and :math:`u` and
 enforce the additional average value zero constraint for u.
 
 The solvers take as input a
-:py:class:`~cbcbeat.cardiacmodels.CardiacModel` providing the
+:py:class:`~xalbrain.cardiacmodels.CardiacModel` providing the
 required input specification of the problem. In particular, the
 applied current :math:`I_a` is extracted from the
-:py:attr:`~cbcbeat.cardiacmodels.CardiacModel.applied_current`
+:py:attr:`~xalbrain.cardiacmodels.CardiacModel.applied_current`
 attribute, while the stimulus :math:`I_s` is extracted from the
-:py:attr:`~cbcbeat.cardiacmodels.CardiacModel.stimulus` attribute.
+:py:attr:`~xalbrain.cardiacmodels.CardiacModel.stimulus` attribute.
 
 It should be possible to use the solvers interchangably. However, note
 that the BasicSplittingSolver is not optimised and should be used for
@@ -61,12 +61,12 @@ testing or debugging purposes primarily.
 
 __all__ = ["SplittingSolver", "BasicSplittingSolver",]
 
-from cbcbeat.dolfinimport import *
-from cbcbeat import CardiacModel
-from cbcbeat.cellsolver import BasicCardiacODESolver, CardiacODESolver
-from cbcbeat.bidomainsolver import BasicBidomainSolver, BidomainSolver
-from cbcbeat.monodomainsolver import BasicMonodomainSolver, MonodomainSolver
-from cbcbeat.utils import state_space, TimeStepper, annotate_kwargs
+from xalbrain.dolfinimport import *
+from xalbrain import CardiacModel
+from xalbrain.cellsolver import BasicCardiacODESolver, CardiacODESolver
+from xalbrain.bidomainsolver import BasicBidomainSolver, BidomainSolver
+from xalbrain.monodomainsolver import BasicMonodomainSolver, MonodomainSolver
+from xalbrain.utils import state_space, TimeStepper, annotate_kwargs
 
 import numpy as np
 
@@ -95,10 +95,10 @@ class BasicSplittingSolver:
     This solver has not been optimised for computational efficiency
     and should therefore primarily be used for debugging purposes. For
     an equivalent, but more efficient, solver, see
-    :py:class:`cbcbeat.splittingsolver.SplittingSolver`.
+    :py:class:`xalbrain.splittingsolver.SplittingSolver`.
 
     *Arguments*
-      model (:py:class:`cbcbeat.cardiacmodels.CardiacModel`)
+      model (:py:class:`xalbrain.cardiacmodels.CardiacModel`)
         a CardiacModel object describing the simulation set-up
       params (:py:class:`dolfin.Parameters`, optional)
         a Parameters object controlling solver parameters
@@ -405,14 +405,14 @@ class SplittingSolver(BasicSplittingSolver):
     splitting.
 
     *Arguments*
-      model (:py:class:`cbcbeat.cardiacmodels.CardiacModel`)
+      model (:py:class:`xalbrain.cardiacmodels.CardiacModel`)
         a CardiacModel object describing the simulation set-up
       params (:py:class:`dolfin.Parameters`, optional)
         a Parameters object controlling solver parameters
 
     *Example of usage*::
 
-      from cbcbeat import *
+      from xalbrain import *
 
       # Describe the cardiac model
       mesh = UnitSquareMesh(100, 100)

@@ -33,9 +33,9 @@ for u.
 
 __all__ = ["BasicBidomainSolver", "BidomainSolver"]
 
-from cbcbeat.dolfinimport import *
-from cbcbeat.markerwisefield import *
-from cbcbeat.utils import end_of_time, annotate_kwargs
+from xalbrain.dolfinimport import *
+from xalbrain.markerwisefield import *
+from xalbrain.utils import end_of_time, annotate_kwargs
 
 import numpy as np
 

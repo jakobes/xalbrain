@@ -43,7 +43,7 @@ supported_cell_models = (FitzHughNagumoManual,
 #     module_str = os.path.basename(module_path)[:-3]
 #     if module_str in ["__init__", "cardiaccellmodel"]:
 #         continue
-#     module = importlib.import_module("cbcbeat.cellmodels."+module_str)
+#     module = importlib.import_module("xalbrain.cellmodels."+module_str)
 #     for name, attr in module.__dict__.items():
 #         if isinstance(attr, types.ClassType) and issubclass(attr, CardiacCellModel):
 #             supported_cell_models.add(attr)

@@ -27,9 +27,9 @@ assumes pure homogeneous Neumann boundary conditions for :math:`v`.
 
 __all__ = ["BasicMonodomainSolver", "MonodomainSolver"]
 
-from cbcbeat.dolfinimport import *
-from cbcbeat.markerwisefield import *
-from cbcbeat.utils import end_of_time, annotate_kwargs
+from xalbrain.dolfinimport import *
+from xalbrain.markerwisefield import *
+from xalbrain.utils import end_of_time, annotate_kwargs
 
 class BasicMonodomainSolver(object):
     """This solver is based on a theta-scheme discretization in time

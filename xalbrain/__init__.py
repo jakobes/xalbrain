@@ -1,33 +1,33 @@
 """
-The cbcbeat Python module is a problem and solver collection for
+The xalbrain Python module is a problem and solver collection for
 cardiac electrophysiology models.
 
 To import the module, type::
 
-  from cbcbeat import *
+  from xalbrain import *
 
 """
 
 # Import all of dolfin with possibly dolfin-adjoint on top
-from cbcbeat.dolfinimport import *
+from xalbrain.dolfinimport import *
 
 # Model imports
-from cbcbeat.cardiacmodels import CardiacModel
-from cbcbeat.cellmodels import *
-from cbcbeat.markerwisefield import *
+from xalbrain.cardiacmodels import CardiacModel
+from xalbrain.cellmodels import *
+from xalbrain.markerwisefield import *
 
 # Solver imports
-from cbcbeat.splittingsolver import BasicSplittingSolver
-from cbcbeat.splittingsolver import SplittingSolver
-from cbcbeat.cellsolver import BasicSingleCellSolver, SingleCellSolver
-from cbcbeat.cellsolver import BasicCardiacODESolver, CardiacODESolver
-from cbcbeat.bidomainsolver import BasicBidomainSolver
-from cbcbeat.bidomainsolver import BidomainSolver
-from cbcbeat.monodomainsolver import BasicMonodomainSolver
-from cbcbeat.monodomainsolver import MonodomainSolver
+from xalbrain.splittingsolver import BasicSplittingSolver
+from xalbrain.splittingsolver import SplittingSolver
+from xalbrain.cellsolver import BasicSingleCellSolver, SingleCellSolver
+from xalbrain.cellsolver import BasicCardiacODESolver, CardiacODESolver
+from xalbrain.bidomainsolver import BasicBidomainSolver
+from xalbrain.bidomainsolver import BidomainSolver
+from xalbrain.monodomainsolver import BasicMonodomainSolver
+from xalbrain.monodomainsolver import MonodomainSolver
 
 # Various utility functions, mainly for internal use
-import cbcbeat.utils
+import xalbrain.utils
 
 # NB: Workaround for FEniCS 1.7.0dev
 import ufl

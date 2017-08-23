@@ -10,8 +10,8 @@ __author__ = "Jakob E. Schrein (jakob@xal.no), 2017"
 __all__ = ["AdExManual"]
 
 from collections import OrderedDict
-from cbcbeat.dolfinimport import Parameters, Expression
-from cbcbeat.cellmodels import CardiacCellModel
+from xalbrain.dolfinimport import Parameters, Expression
+from xalbrain.cellmodels import CardiacCellModel
 
 from dolfin import exp, assign, conditional, lt
 
