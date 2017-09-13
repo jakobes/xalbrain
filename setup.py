@@ -17,7 +17,6 @@ setup(
     """,
     author = "Marie Rognes, Johan Hake",
     author_email = "meg@simula.no",
-    packages = ["cbcbeat", "cbcbeat.cellmodels",],
-    package_dir = {"cbcbeat": "cbcbeat"},
-    scripts = scripts,
+    packages = ["xalbrain", "xalbrain.cellmodels",],
+    package_dir = {"xalbrain": "xalbrain"}
 )

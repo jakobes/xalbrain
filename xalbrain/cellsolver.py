@@ -119,7 +119,7 @@ class BasicCardiacODESolver(object):
         params.add("V_polynomial_family", "DG")
         params.add("S_polynomial_degree", 0)
         params.add("S_polynomial_family", "DG")
-        params.add("enable_adjoint", True)
+        params.add("enable_adjoint", False)
 
         # Use iterative solver as default.
         params.add(NonlinearVariationalSolver.default_parameters())
@@ -337,7 +337,6 @@ class CardiacODESolver(object):
 
     """
     def __init__(self, mesh, time, model, I_s=None, params=None):
-
         import ufl.classes
 
         # Store input
@@ -411,6 +410,7 @@ class CardiacODESolver(object):
 
         # Initialize solver and update its parameters
         self._pi_solver = AdexPointIntegralSolver(self._scheme)
+        # self._pi_solver = PointIntegralSolver(self._scheme)
         self._pi_solver.parameters.update(self.parameters["point_integral_solver"])
 
         self._update_cell_model = self._model.update
@@ -436,8 +436,9 @@ class CardiacODESolver(object):
         """
         params = Parameters("CardiacODESolver")
         params.add("scheme", "BackwardEuler")
-        params.add(PointIntegralSolver.default_parameters())
-        params.add("enable_adjoint", True)
+        params.add(AdexPointIntegralSolver.default_parameters())
+        # params.add(PointIntegralSolver.default_parameters())
+        params.add("enable_adjoint", False)
 
         return params
 
@@ -478,7 +479,7 @@ class CardiacODESolver(object):
         # FIXME: Is dolfin adjoint doing something with the function signature?
         self._pi_solver.step(dt)
 
-        # self._update_cell_model(self.vs)    # TODO: profile this
+        self._update_cell_model(self.vs)    # TODO: profile this
         timer.stop()
 
     def solve(self, interval, dt=None):

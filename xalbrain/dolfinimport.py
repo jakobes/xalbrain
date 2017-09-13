@@ -26,8 +26,11 @@ except:
 from dolfin import *
 
 try:
-    from dolfin_adjoint import *
-    import dolfin_adjoint
+    # from dolfin_adjoint import *
+    # import dolfin_adjoint
+    # FIXME: Should we raise some sort of warning?
+    dolfin_adjoint = None
+    pass
 
 except:
     # FIXME: Should we raise some sort of warning?
