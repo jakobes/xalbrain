@@ -4,8 +4,23 @@ from __future__ import division
 __author__ = "Marie E. Rognes (meg@simula.no), 2012--2013"
 __all__ = ["CardiacCellModel", "MultiCellModel"]
 
-from xalbrain.dolfinimport import Parameters, Expression, error, GenericFunction, VectorFunctionSpace, Function, DirichletBC, TrialFunction, TestFunction, solve, Measure, inner
+from xalbrain.dolfinimport import (
+    Parameters,
+    Expression,
+    error,
+    GenericFunction,
+    VectorFunctionSpace,
+    Function,
+    DirichletBC,
+    TrialFunction,
+    TestFunction,
+    solve,
+    Measure,
+    inner
+)
+
 from collections import OrderedDict
+
 
 class CardiacCellModel:
     """

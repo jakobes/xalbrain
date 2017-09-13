@@ -6,6 +6,9 @@ from dolfin import exp
 from collections import OrderedDict
 
 
+__author__ = "Jakob E. Schrein (jakob@xal.no), 2017"
+
+
 class Adex(CardiacCellModel):
     def __init__(self, params=None, init_conditions=None):
         "Create neuronal cell model, optionally from given parameters."
@@ -19,6 +22,8 @@ class Adex(CardiacCellModel):
         E_L = self._parameters["E_L"]
         V_T = self._parameters["V_T"]
         Delta_T = self._parameters["Delta_T"]
+        b = self._parameters["b"]
+        spike = self._parameters["V_T"]
 
         # FIXME: Add stimulus?
         I = (g_L*Delta_T*exp((V - V_T)/Delta_T) - g_L*(V - E_L) - w)/C
@@ -38,7 +43,8 @@ class Adex(CardiacCellModel):
 
     @staticmethod
     def default_parameters():
-        "Set-up and return default parameters."
+        """Set-up and return default parameters."""
+        # TODO: Why am I using OrderedDict?
         params = OrderedDict([
             ("C", 59),            # Membrane capacitance (pF)
             ("g_L", 2.9),         # Leak conductance (nS)
@@ -55,6 +61,7 @@ class Adex(CardiacCellModel):
     #@staticmethod
     def default_initial_conditions(self):
         """Return default intial conditions. FIXME: I have no idea about values."""
+        # TODO: Why am I using OrderedDict?
         ic = OrderedDict([
             ("V", self._parameters["E_L"]),
             ("w", 0.0)
@@ -71,4 +78,4 @@ class Adex(CardiacCellModel):
 
     def __str__(self):
         "Return string representation of class."
-        return "(Manual) AdEx neuronal cell model"
+        return "Adex (Manual) -- NB! requires AdexPointIntegralSolver"
