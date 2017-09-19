@@ -11,7 +11,7 @@ from collections import OrderedDict
 from xalbrain.dolfinimport import Expression
 from xalbrain.cellmodels import CardiacCellModel
 
-from dolfin import exp, assign
+from dolfin import exp, assign, as_backend_type
 
 import numpy as np
 
@@ -82,6 +82,24 @@ class AdexManual(CardiacCellModel):
         return 1
 
     def update(self, vs):
+        """Update solution if V > spike."""
+        # Thanks to Miro
+        functionSpace = vs.function_space()
+        Vdofs = functionSpace.sub(0).dofmap().dofs()
+        Wdofs = functionSpace.sub(1).dofmap().dofs()
+    
+        # Will do the manips via petsc
+        vs_vec = as_backend_type(vs.vector()).vec()
+    
+        # fvec.array_r should be the read accessor
+        toflip = np.where(vs_vec.array_r[Vdofs] > self._parameters["spike"])[0]
+    
+        # I want to make the first component its absolute value
+        # NOTE that there are no copies of data underlying f
+        vs_vec.array_w[Vdofs[toflip]] = self._parameters["E_L"]
+        vs_vec.array_w[Wdofs[toflip]] += self._parameters["b"]
+
+        """
         v, s = vs.split(deepcopy=True)
         v_idx = v.vector().array() > self._parameters["spike"]
 
@@ -89,6 +107,7 @@ class AdexManual(CardiacCellModel):
         s.vector()[v_idx] += self._parameters["b"]
         assign(vs.sub(0), v)
         assign(vs.sub(1), s)
+        """
 
     def __str__(self):
         """Return string representation of class."""

@@ -46,15 +46,15 @@ class Adex(CardiacCellModel):
         """Set-up and return default parameters."""
         # TODO: Why am I using OrderedDict?
         params = OrderedDict([
-            ("C", 59),            # Membrane capacitance (pF)
+            ("C", 59.0),            # Membrane capacitance (pF)
             ("g_L", 2.9),         # Leak conductance (nS)
             ("E_L", -62.0),       # Leak reversal potential (mV)
             ("V_T", -42.0),       # Spike threshold (mV)
             ("Delta_T", 3.0),     # Slope factor (mV)
             ("a", 16.0),          # Subthreshold adaptation (nS)
-            ("tau_w", 144),       # Adaptation time constant (ms)
+            ("tau_w", 144.0),       # Adaptation time constant (ms)
             ("b", 0.061),         # Spike-triggered adaptation (nA)
-            ("spike", 20)         # When to reset (mV)
+            ("spike", 20.0)         # When to reset (mV)
         ])
         return params
 

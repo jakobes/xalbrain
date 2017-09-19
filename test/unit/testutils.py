@@ -10,6 +10,7 @@ from xalbrain import parameters
 from xalbrain.cellmodels import *
 from xalbrain.utils import state_space
 
+
 # Marks
 fast = pytest.mark.fast
 medium = pytest.mark.medium
