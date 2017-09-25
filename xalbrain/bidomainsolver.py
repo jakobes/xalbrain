@@ -86,7 +86,7 @@ class BasicBidomainSolver(object):
 
       """
     def __init__(self, mesh, time, M_i, M_e, I_s=None, I_a=None, v_=None,
-                 cell_domains=None, facet_domains=None, params=None):
+                 cell_domains=None, facet_domains=None, params=None) -> None:
 
         # Check some input
         assert isinstance(mesh, Mesh), \
@@ -238,16 +238,15 @@ class BasicBidomainSolver(object):
             t1 = t0 + dt
 
     def step(self, interval):
-        """
-        Solve on the given time interval (t0, t1).
+        """Solve on the given time interval (t0, t1).
 
-        *Arguments*
-          interval (:py:class:`tuple`)
-            The time interval (t0, t1) for the step
+        Arguments:
+            interval (:py:class:`tuple`)
+                The time interval (t0, t1) for the step
 
         *Invariants*
-          Assuming that v\_ is in the correct state for t0, gives
-          self.vur in correct state at t1.
+            Assuming that v\_ is in the correct state for t0, gives
+            self.vur in correct state at t1.
         """
 
         timer = Timer("PDE step")
@@ -290,10 +289,10 @@ class BasicBidomainSolver(object):
             else:
                 rhs = Constant(0)*w*dz(key)
     
-            theta_parabolic = (inner(M_i[key]*grad(v_mid), grad(w))*dz(key)
-                               + inner(M_i[key]*grad(u), grad(w))*dz(key))
-            theta_elliptic = (inner(M_i[key]*grad(v_mid), grad(q))*dz(key)
-                              + inner((M_i[key] + M_e[key])*grad(u), grad(q))*dz(key))
+            theta_parabolic = inner(M_i[key]*grad(v_mid), grad(w))*dz(key) \
+                            + inner(M_i[key]*grad(u), grad(w))*dz(key)
+            theta_elliptic = inner(M_i[key]*grad(v_mid), grad(q))*dz(key) \
+                           + inner((M_i[key] + M_e[key])*grad(u), grad(q))*dz(key)
             G += Dt_v*w*dz(key) + theta_parabolic + theta_elliptic
     
             if use_R:
@@ -342,16 +341,23 @@ class BidomainSolver(BasicBidomainSolver):
                  cell_domains=None, facet_domains=None, params=None):
 
         # Call super-class
-        BasicBidomainSolver.__init__(self, mesh, time, M_i, M_e,
-                                     I_s=I_s, I_a=I_a, v_=v_,
-                                     cell_domains=cell_domains, 
-                                     facet_domains=facet_domains,
-                                     params=params)
+        BasicBidomainSolver.__init__(
+            self,
+            mesh,
+            time,
+            M_i,
+            M_e,
+            I_s=I_s,
+            I_a=I_a,
+            v_=v_,
+            cell_domains=cell_domains, 
+            facet_domains=facet_domains,
+            params=params
+        )
 
         # Check consistency of parameters first
         if self.parameters["enable_adjoint"] and not dolfin_adjoint:
-            warning("'enable_adjoint' is set to True, but no "\
-                    "dolfin_adjoint installed.")
+            warning("'enable_adjoint' is set to True, but no dolfin_adjoint installed.")
 
         # Mark the timestep as unset
         self._timestep = None

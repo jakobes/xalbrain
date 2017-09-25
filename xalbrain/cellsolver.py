@@ -58,7 +58,7 @@ class BasicCardiacODESolver(object):
       params (:py:class:`dolfin.Parameters`, optional)
         Solver parameters
     """
-    def __init__(self, mesh, time, model, I_s=None, params=None, adex=True):
+    def __init__(self, mesh, time, model, I_s=None, params=None, adex=False):
         # Store input
         self._mesh = mesh
         self._time = time
@@ -424,8 +424,9 @@ class CardiacODESolver(object):
 
         # Initialize solver and update its parameters
         if self.parameters["adex_solver"]:
-            module = load_module("AdexPointIntegralSolver", force_recompile=True)
-            self._pi_solver = module.AdexPointIntegralSolver(self._scheme)
+            self._pi_solver = AdexPointIntegralSolver(self._scheme)
+            # module = load_module("AdexPointIntegralSolver", force_recompile=True)
+            # self._pi_solver = module.AdexPointIntegralSolver(self._scheme)
         else:
             self._pi_solver = PointIntegralSolver(self._scheme)
         self._pi_solver.parameters.update(self.parameters["point_integral_solver"])
@@ -469,7 +470,7 @@ class CardiacODESolver(object):
         params = Parameters("CardiacODESolver")
         params.add("scheme", "BackwardEuler")
         params.add("adex_solver", True)
-        params.add(AdexPointIntegralSolver.default_parameters())
+        params.add(PointIntegralSolver.default_parameters())
         params.add("enable_adjoint", False)
 
         return params

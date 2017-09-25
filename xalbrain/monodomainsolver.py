@@ -72,7 +72,7 @@ class BasicMonodomainSolver(object):
 
       """
     def __init__(self, mesh, time, M_i, I_s=None, v_=None,
-                 params=None):
+                 params=None) -> None:
 
         # Check some input
         assert isinstance(mesh, Mesh), \
@@ -244,7 +244,7 @@ class BasicMonodomainSolver(object):
         params = Parameters("BasicMonodomainSolver")
         params.add("theta", 0.5)
         params.add("polynomial_degree", 1)
-        params.add("enable_adjoint", True)
+        params.add("enable_adjoint", False)
 
         params.add(LinearVariationalSolver.default_parameters())
         return params

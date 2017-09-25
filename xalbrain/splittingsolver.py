@@ -285,11 +285,13 @@ class BasicSplittingSolver:
         """
 
         # Create timestepper
-        time_stepper = TimeStepper(interval, dt, \
-                                   annotate=self.parameters["enable_adjoint"])
+        time_stepper = TimeStepper(
+            interval,
+            dt,
+            annotate=self.parameters["enable_adjoint"]
+        )
 
         for t0, t1 in time_stepper:
-
             info_blue("Solving on t = (%g, %g)" % (t0, t1))
             self.step((t0, t1))
 
@@ -318,8 +320,8 @@ class BasicSplittingSolver:
         theta = self.parameters["theta"]
 
         # Extract time domain
-        (t0, t1) = interval
-        dt = (t1 - t0)
+        t0, t1 = interval
+        dt = t1 - t0
         t = t0 + theta*dt
 
         # Compute tentative membrane potential and state (vs_star)
@@ -327,9 +329,6 @@ class BasicSplittingSolver:
         # Assumes that its vs_ is in the correct state, gives its vs
         # in the current state
         self.ode_solver.step((t0, t))
-
-        # Abort if linear solver diverges
-        assert not np.isnan(self.vs.vector().array()).any()
         end()
 
         # Compute tentative potentials vu = (v, u)
