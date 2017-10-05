@@ -29,9 +29,12 @@ jobs:
       #       sudo python3.6 get-pip.py
 
       - run:
- 	      name: install python3-venv 
+ 	      name: install system-dependencies
 	      command: |
 	        sudo apt-get install -y python3-venv
+
+      - restore_cache:
+          key: dependencies-{{ .Branch }}-{{checksum "requirements-dev.txt"}}
 
       - run:
           name: install-python-requirements
@@ -39,6 +42,7 @@ jobs:
             python3 -m venv venv
             . venv/bin/activate
             pip3 install pytest --upgrade
+            pip3 install pytest-xdist
             pip3 install -Ur requirements-dev.txt
 
       - run:
@@ -61,11 +65,16 @@ jobs:
             python3 -c "import xalbrain"
             . venv/bin/activate
 
+      - save_cache:
+          key: dependencies-{{ .Branch }}-{{checksum "requirements-dev.txt"}}
+          paths:
+            - venv
+
       - run:
           name: Unit tests
           command: | 
             . venv/bin/activate
-            python3 -m pytest -v test/unit
+            python3 -m pytest -v -n 4 test/unit
   
       - store_artifacts:
           path: /tmp/circle
