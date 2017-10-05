@@ -6,7 +6,7 @@ from dolfin import *
 import numpy.linalg
 import pytest
 
-from xalbrain import parameters
+from xalbrain.dolfinimport import parameters
 from xalbrain.cellmodels import *
 from xalbrain.utils import state_space
 

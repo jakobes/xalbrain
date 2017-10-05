@@ -68,14 +68,12 @@ def main(N: int, dt: float, T: float, theta: float) -> \
 
 def test_analytic_mondomain() -> None:
     """Test errors vs reference"""
-    level = 0
-    N = 10*(2**level)
-    dt = 1e-2/(2**level)
-    T = 0.1
+    N = 20
+    dt = 1e-6
+    T = 10*dt
 
-    (v_error, h, dt, T) = main(N, dt, T, 0.5)
-    
-    v_reference = 0.023929959286580083
+    v_error, h, dt, T = main(N, dt, T, 0.5)
+    v_reference = 4.203505851866419e-08  
     v_diff = abs(v_error - v_reference)
     tol = 1e-9
 
@@ -90,13 +88,13 @@ def test_spatial_and_temporal_convergence() -> None:
     dts = []
     hs = []
 
-    T = 0.1
-    dt = 0.01
+    dt = 1e-3 
     theta = 0.5
-    N = 10
+    N = 5
 
-    for level in (0, 1, 2):
+    for level in range(3):
         a = dt/(2**level)
+        T = 10*a
         v_error, h, a, T = main(N*(2**level), a, T, theta)
         v_errors.append(v_error)
         dts.append(a)

@@ -10,8 +10,18 @@ scenarios.
 
 __all__ = ["CardiacModel"]
 
-from xalbrain.dolfinimport import Parameters, Mesh, Constant, GenericFunction, error
-from xalbrain.markerwisefield import Markerwise, handle_markerwise
+from xalbrain.dolfinimport import (
+    Parameters,
+    Mesh,
+    Constant,
+    GenericFunction,
+    error,
+)
+
+from xalbrain.markerwisefield import (
+    Markerwise,
+    handle_markerwise,
+)
 from .cellmodels import *
 
 # ------------------------------------------------------------------------------

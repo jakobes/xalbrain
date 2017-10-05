@@ -1,6 +1,5 @@
-"""
-This module contains splitting solvers for CardiacModel objects. In
-particular, the classes
+"""This module contains splitting solvers for CardiacModel objects. 
+In particular, the classes
 
   * SplittingSolver
   * BasicSplittingSolver
@@ -63,16 +62,33 @@ __all__ = ["SplittingSolver", "BasicSplittingSolver",]
 
 from xalbrain.dolfinimport import *
 from xalbrain import CardiacModel
-from xalbrain.cellsolver import BasicCardiacODESolver, CardiacODESolver
-from xalbrain.bidomainsolver import BasicBidomainSolver, BidomainSolver
-from xalbrain.monodomainsolver import BasicMonodomainSolver, MonodomainSolver
-from xalbrain.utils import state_space, TimeStepper, annotate_kwargs
+
+from xalbrain.cellsolver import (
+    BasicCardiacODESolver,
+    CardiacODESolver,
+)
+
+from xalbrain.bidomainsolver import (
+    BasicBidomainSolver,
+    BidomainSolver,
+)
+
+from xalbrain.monodomainsolver import (
+    BasicMonodomainSolver,
+    MonodomainSolver,
+)
+
+from xalbrain.utils import (
+    state_space,
+    TimeStepper,
+    annotate_kwargs,
+)
 
 import numpy as np
 
+
 class BasicSplittingSolver:
     """
-
     A non-optimised solver for the bidomain equations based on the
     operator splitting scheme described in Sundnes et al 2006, p. 78
     ff.

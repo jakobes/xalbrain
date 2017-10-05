@@ -4,10 +4,16 @@
 
 __all__ = ["Markerwise", "handle_markerwise", "rhs_with_markerwise_field"]
 
-from xalbrain.dolfinimport import dx, Measure, error
+
+from xalbrain.dolfinimport import (
+    dx,
+    Measure,
+    error,
+)
+
 
 def handle_markerwise(g, classtype):
-    # Handle stimulus
+    """Handle stimulus."""
     if (g is None \
         or isinstance(g, classtype) \
         or isinstance(g, Markerwise) \
@@ -17,6 +23,7 @@ def handle_markerwise(g, classtype):
         msg = "Expecting stimulus to be a %s or Markerwise, not %r " \
               % (str(classtype), g)
         error(msg)
+
 
 def rhs_with_markerwise_field(g, mesh, v):
     if g is None:
@@ -30,6 +37,7 @@ def rhs_with_markerwise_field(g, mesh, v):
         dz = dx
         rhs = g*v*dz()
     return (dz, rhs)
+
 
 class Markerwise(object):
     """A container class representing an object defined by a number of
@@ -83,9 +91,10 @@ class Markerwise(object):
         "The objects"
         return self._objects[key]
 
+
 if __name__ == "__main__":
 
-    from dolfin import *
+    from xalbrain.dolfinimport import *
     g1 = Expression("1.0", degree=1)
     g5 = Expression("sin(pi*x[0])", degree=3)
 

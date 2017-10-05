@@ -5,10 +5,20 @@ __author__ = "Marie E. Rognes (meg@simula.no), 2012--2013"
 
 
 from xalbrain.dolfinimport import *
-from xalbrain import CardiacCellModel, MultiCellModel
 from xalbrain.extension_modules import load_module
 from xalbrain.markerwisefield import *
-from xalbrain.utils import state_space, TimeStepper, splat, annotate_kwargs
+
+from xalbrain import (
+    CardiacCellModel,
+    MultiCellModel,
+)
+
+from xalbrain.utils import (
+    state_space,
+    TimeStepper,
+    splat,
+    annotate_kwargs,
+)
 
 
 class BasicCardiacODESolver(object):

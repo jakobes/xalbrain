@@ -40,7 +40,6 @@ def main(N: int, dt: float, T: float, theta: float) -> \
     time = Constant(0.0)
     cell_model = NoCellModel()
 
-
     ac_str = "cos(t)*cos(2*pi*x[0])*cos(2*pi*x[1]) + 4*pow(pi, 2)*cos(2*pi*x[0])*cos(2*pi*x[1])*sin(t)"
     stimulus = Expression(ac_str, t=time, degree=3)
     heart = CardiacModel(mesh, time, 1.0, 1.0, cell_model, stimulus=stimulus)

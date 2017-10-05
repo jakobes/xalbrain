@@ -9,8 +9,7 @@ potential :math:`u = u(x, t)` such that
 
    \mathrm{div} (G_i v + (G_i + G_e) u) = I_a
 
-where the subscript :math:`t` denotes the time derivative; :math:`G_x`
-denotes a weighted gradient: :math:`G_x = M_x \mathrm{grad}(v)` for
+where the subscript :math:`t` denotes the time derivative; :math:`G_x` denotes a weighted gradient: :math:`G_x = M_x \mathrm{grad}(v)` for
 :math:`x \in \{i, e\}`, where :math:`M_i` and :math:`M_e` are the
 intracellular and extracellular cardiac conductivity tensors,
 respectively; :math:`I_s` and :math:`I_a` are prescribed input. In
@@ -31,15 +30,23 @@ for u.
 # Use and modify at will
 # Last changed: 2013-04-18
 
-__all__ = ["BasicBidomainSolver", "BidomainSolver"]
-
 from xalbrain.dolfinimport import *
 from xalbrain.markerwisefield import *
 from xalbrain.utils import end_of_time, annotate_kwargs
 
 import numpy as np
 
-class BasicBidomainSolver(object):
+from typing import (
+    Dict,
+    Tuple,
+    Union,
+    Callable,
+)
+
+# TODO: Make custom types
+
+
+class BasicBidomainSolver:
     """This solver is based on a theta-scheme discretization in time
     and CG_1 x CG_1 (x R) elements in space.
 
@@ -84,10 +91,20 @@ class BasicBidomainSolver(object):
       params (:py:class:`dolfin.Parameters`, optional)
         Solver parameters
 
-      """
-    def __init__(self, mesh, time, M_i, M_e, I_s=None, I_a=None, v_=None,
-                 cell_domains=None, facet_domains=None, params=None) -> None:
-
+    """
+    def __init__(
+            self,
+            mesh: Mesh, 
+            time: Constant,
+            M_i: Union[Expression, Dict[int, Expression]],
+            M_e: Union[Expression, Dict[int, Expression]],
+            I_s: Union[Expression, Dict[int, Expression]]=None,
+            I_a: Union[Expression, Dict[int, Expression]]=None,
+            v_: Function=None,
+            cell_domains: MeshFunction=None,
+            facet_domains: MeshFunction=None,
+            params: Parameters=None
+    ) -> None:
         # Check some input
         assert isinstance(mesh, Mesh), \
             "Expecting mesh to be a Mesh instance, not %r" % mesh
@@ -163,11 +180,11 @@ class BasicBidomainSolver(object):
         self._annotate_kwargs = annotate_kwargs(self.parameters)
 
     @property
-    def time(self):
+    def time(self) -> Constant:
         "The internal time of the solver."
         return self._time
 
-    def solution_fields(self):
+    def solution_fields(self) -> Tuple[Function, Function]:
         """
         Return tuple of previous and current solution objects.
 
@@ -180,7 +197,7 @@ class BasicBidomainSolver(object):
         """
         return (self.v_, self.vur)
 
-    def solve(self, interval, dt=None):
+    def solve(self, interval: Tuple[float, float], dt: float=None) -> None:
         """
         Solve the discretization on a given time interval (t0, t1)
         with a given timestep dt and return generator for a tuple of
@@ -210,7 +227,7 @@ class BasicBidomainSolver(object):
 
         # Initial set-up
         # Solve on entire interval if no interval is given.
-        (T0, T) = interval
+        T0, T = interval
         if dt is None:
             dt = (T - T0)
         t0 = T0
@@ -237,7 +254,7 @@ class BasicBidomainSolver(object):
             t0 = t1
             t1 = t0 + dt
 
-    def step(self, interval):
+    def step(self, interval: Tuple[float, float]) -> None:
         """Solve on the given time interval (t0, t1).
 
         Arguments:
@@ -252,7 +269,7 @@ class BasicBidomainSolver(object):
         timer = Timer("PDE step")
 
         # Extract interval and thus time-step
-        (t0, t1) = interval
+        t0, t1 = interval
         k_n = Constant(t1 - t0)
         theta = self.parameters["theta"]
 
@@ -262,11 +279,11 @@ class BasicBidomainSolver(object):
         # Define variational formulation
         use_R = self.parameters["use_avg_u_constraint"]
         if use_R:
-             (v, u, l) = TrialFunctions(self.VUR)
-             (w, q, lamda) = TestFunctions(self.VUR)
+            v, u, l = TrialFunctions(self.VUR)
+            w, q, lamda = TestFunctions(self.VUR)
         else:
-             (v, u) = TrialFunctions(self.VUR)
-             (w, q) = TestFunctions(self.VUR)
+            v, u = TrialFunctions(self.VUR)
+            w, q = TestFunctions(self.VUR)
 
         Dt_v = (v - self.v_)/k_n
         v_mid = theta*v + (1.0 - theta)*self.v_
@@ -314,7 +331,7 @@ class BasicBidomainSolver(object):
         solver.solve()
 
     @staticmethod
-    def default_parameters():
+    def default_parameters() -> Parameters:
         """Initialize and return a set of default parameters
 
         *Returns*
@@ -326,20 +343,50 @@ class BasicBidomainSolver(object):
         """
 
         params = Parameters("BasicBidomainSolver")
-        params.add("enable_adjoint", True)
+        params.add("enable_adjoint", False)
         params.add("theta", 0.5)
         params.add("polynomial_degree", 1)
         params.add("use_avg_u_constraint", True)
 
+        # Set default solver type to be iterative
+        params.add("linear_solver_type", "iterative")
+
+        # Set default iterative solver choices (used if iterative
+        # solver is invoked)
+        params.add("algorithm", "cg")
+        params.add("preconditioner", "petsc_amg")
+
+        # Add default parameters from both LU and Krylov solvers
+        params.add(LUSolver.default_parameters())
+        petsc_params = PETScKrylovSolver.default_parameters()
+
+        # FIXME: work around DOLFIN bug #583. Just deleted this when fixed.
+        petsc_params.convergence_norm_type = "preconditioned"
+        params.add(petsc_params)
+
+        # Customize default parameters for LUSolver
+        params["lu_solver"]["same_nonzero_pattern"] = True
+
         params.add(LinearVariationalSolver.default_parameters())
         return params
+
 
 class BidomainSolver(BasicBidomainSolver):
     __doc__ = BasicBidomainSolver.__doc__
 
-    def __init__(self, mesh, time, M_i, M_e, I_s=None, I_a=None, v_=None,
-                 cell_domains=None, facet_domains=None, params=None):
-
+    def __init__(
+            self,
+            mesh: Mesh, 
+            time: Constant,
+            M_i: Union[Expression, Dict[int, Expression]],
+            M_e: Union[Expression, Dict[int, Expression]],
+            I_s: Union[Expression, Dict[int, Expression]]=None,
+            I_a: Union[Expression, Dict[int, Expression]]=None,
+            v_: Function=None,
+            cell_domains: MeshFunction=None,
+            facet_domains: MeshFunction=None,
+            params: Parameters=None
+    ) -> None:
         # Call super-class
         BasicBidomainSolver.__init__(
             self,
@@ -363,7 +410,7 @@ class BidomainSolver(BasicBidomainSolver):
         self._timestep = None
 
     @property
-    def linear_solver(self):
+    def linear_solver(self) -> Union[LinearVariationalSolver, PETScKrylovSolver]:
         """The linear solver (:py:class:`dolfin.LUSolver` or
         :py:class:`dolfin.PETScKrylovSolver`)."""
         return self._linear_solver
@@ -453,7 +500,7 @@ class BidomainSolver(BasicBidomainSolver):
         return (solver, update_routine)
 
     @property
-    def nullspace(self):
+    def nullspace(self) -> VectorSpaceBasis:
         if self._nullspace_basis is None:
             null_vector = Vector(self.vur.vector())
             self.VUR.sub(1).dofmap().set(null_vector, 1.0)
@@ -462,7 +509,7 @@ class BidomainSolver(BasicBidomainSolver):
         return self._nullspace_basis
 
     @staticmethod
-    def default_parameters():
+    def default_parameters() -> Parameters:
         """Initialize and return a set of default parameters
 
         *Returns*
@@ -474,7 +521,7 @@ class BidomainSolver(BasicBidomainSolver):
         """
 
         params = Parameters("BidomainSolver")
-        params.add("enable_adjoint", True)
+        params.add("enable_adjoint", False)
         params.add("theta", 0.5)
         params.add("polynomial_degree", 1)
 
@@ -502,7 +549,7 @@ class BidomainSolver(BasicBidomainSolver):
 
         return params
 
-    def variational_forms(self, k_n):
+    def variational_forms(self, k_n: Constant) -> Tuple[lhs, rhs]:
         """Create the variational forms corresponding to the given
         discretization of the given system of equations.
 
@@ -560,7 +607,7 @@ class BidomainSolver(BasicBidomainSolver):
         (a, L) = system(G)
         return (a, L)
 
-    def step(self, interval):
+    def step(self, interval: Tuple[float, float]) -> None:
         """
         Solve on the given time step (t0, t1).
 
@@ -586,7 +633,7 @@ class BidomainSolver(BasicBidomainSolver):
         # Update matrix and linear solvers etc as needed
         if self._timestep is None:
             self._timestep = Constant(dt)
-            (self._lhs, self._rhs) = self.variational_forms(self._timestep)
+            self._lhs, self._rhs = self.variational_forms(self._timestep)
 
             # Preassemble left-hand side and initialize right-hand side vector
             debug("Preassembling bidomain matrix (and initializing vector)")
@@ -597,18 +644,20 @@ class BidomainSolver(BasicBidomainSolver):
             # Create linear solver (based on parameter choices)
             self._linear_solver, self._update_solver = self._create_linear_solver()
         else:
-            timestep_unchanged = (abs(dt - float(self._timestep)) < 1.e-12)
+            timestep_unchanged = abs(dt - float(self._timestep)) < 1.e-12
             self._update_solver(timestep_unchanged, dt)
 
         # Assemble right-hand-side
         assemble(self._rhs, tensor=self._rhs_vector, **self._annotate_kwargs)
 
         # Solve problem
-        self.linear_solver.solve(self.vur.vector(), self._rhs_vector,
-                                 **self._annotate_kwargs)
+        self.linear_solver.solve(
+            self.vur.vector(),
+            self._rhs_vector,
+           **self._annotate_kwargs
+        )
 
-
-    def _update_lu_solver(self, timestep_unchanged, dt):
+    def _update_lu_solver(self, timestep_unchanged: Constant, dt: Constant) -> None:
         """Helper function for updating an LUSolver depending on
         whether timestep has changed."""
 
@@ -631,7 +680,7 @@ class BidomainSolver(BasicBidomainSolver):
 
             (self._linear_solver, dummy) = self._create_linear_solver()
 
-    def _update_krylov_solver(self, timestep_unchanged, dt):
+    def _update_krylov_solver(self, timestep_unchanged: Constant, dt: Constant):
         """Helper function for updating a KrylovSolver depending on
         whether timestep has changed."""
 

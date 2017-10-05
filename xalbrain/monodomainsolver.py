@@ -25,13 +25,26 @@ assumes pure homogeneous Neumann boundary conditions for :math:`v`.
 # Use and modify at will
 # Last changed: 2013-04-18
 
-__all__ = ["BasicMonodomainSolver", "MonodomainSolver"]
+__all__ = [
+    "BasicMonodomainSolver",
+    "MonodomainSolver"
+]
 
 from xalbrain.dolfinimport import *
 from xalbrain.markerwisefield import *
-from xalbrain.utils import end_of_time, annotate_kwargs
 
-class BasicMonodomainSolver(object):
+from xalbrain.utils import (
+    end_of_time,
+    annotate_kwargs,
+)
+
+from typing import (
+    Union,
+    Dict,
+)
+
+
+class BasicMonodomainSolver:
     """This solver is based on a theta-scheme discretization in time
     and CG_1 elements in space.
 
@@ -70,10 +83,16 @@ class BasicMonodomainSolver(object):
       params (:py:class:`dolfin.Parameters`, optional)
         Solver parameters
 
-      """
-    def __init__(self, mesh, time, M_i, I_s=None, v_=None,
-                 params=None) -> None:
-
+    """
+    def __init__(
+            self,
+            mesh: Mesh,
+            time: Constant,
+            M_i: Union[Expression, Dict[int, Expression]],
+            I_s: Union[Expression, Dict[int, Expression]]=None,
+            v_: Function=None,
+            params: Parameters=None
+    ) -> None:
         # Check some input
         assert isinstance(mesh, Mesh), \
             "Expecting mesh to be a Mesh instance, not %r" % mesh
@@ -117,8 +136,7 @@ class BasicMonodomainSolver(object):
         return self._time
 
     def solution_fields(self):
-        """
-        Return tuple of previous and current solution objects.
+        """Return tuple of previous and current solution objects.
 
         Modifying these will modify the solution objects of the solver
         and thus provides a way for setting initial conditions for
@@ -127,7 +145,7 @@ class BasicMonodomainSolver(object):
         *Returns*
           (previous v, current v) (:py:class:`tuple` of :py:class:`dolfin.Function`)
         """
-        return (self.v_, self.v)
+        return self.v_, self.v
 
     def solve(self, interval, dt=None):
         """
@@ -158,14 +176,14 @@ class BasicMonodomainSolver(object):
 
         # Initial set-up
         # Solve on entire interval if no interval is given.
-        (T0, T) = interval
+        T0, T = interval
         if dt is None:
-            dt = (T - T0)
+            dt = T - T0
         t0 = T0
         t1 = T0 + dt
 
         # Step through time steps until at end time
-        while (True) :
+        while True:
             info("Solving on t = (%g, %g)" % (t0, t1))
             self.step((t0, t1))
 
@@ -186,8 +204,7 @@ class BasicMonodomainSolver(object):
             t1 = t0 + dt
 
     def step(self, interval):
-        """
-        Solve on the given time interval (t0, t1).
+        """Solve on the given time interval (t0, t1).
 
         *Arguments*
           interval (:py:class:`tuple`)
@@ -199,7 +216,7 @@ class BasicMonodomainSolver(object):
         """
 
         # Extract interval and thus time-step
-        (t0, t1) = interval
+        t0, t1 = interval
         k_n = Constant(t1 - t0)
         theta = self.parameters["theta"]
 
@@ -216,7 +233,7 @@ class BasicMonodomainSolver(object):
         Dt_v = (v - self.v_)/k_n
         v_mid = theta*v + (1.0 - theta)*self.v_
 
-        (dz, rhs) = rhs_with_markerwise_field(self._I_s, self._mesh, w)
+        dz, rhs = rhs_with_markerwise_field(self._I_s, self._mesh, w)
         theta_parabolic = inner(M_i*grad(v_mid), grad(w))*dz()
         G = Dt_v*w*dz() + theta_parabolic - rhs
 
@@ -245,6 +262,24 @@ class BasicMonodomainSolver(object):
         params.add("theta", 0.5)
         params.add("polynomial_degree", 1)
         params.add("enable_adjoint", False)
+        params.add("default_timestep", 1.0)
+
+        # Set default solver type to be iterative
+        params.add("linear_solver_type", "iterative")
+        params.add("lu_type", "default")
+
+        # Set default iterative solver choices (used if iterative
+        # solver is invoked)
+        params.add("algorithm", "cg")
+        params.add("preconditioner", "petsc_amg")
+        params.add("use_custom_preconditioner", False)
+
+        # Add default parameters from both LU and Krylov solvers
+        params.add(LUSolver.default_parameters())
+        params.add(KrylovSolver.default_parameters())
+
+        # Customize default parameters for LUSolver
+        params["lu_solver"]["same_nonzero_pattern"] = True
 
         params.add(LinearVariationalSolver.default_parameters())
         return params
@@ -252,8 +287,15 @@ class BasicMonodomainSolver(object):
 class MonodomainSolver(BasicMonodomainSolver):
     __doc__ = BasicMonodomainSolver.__doc__
 
-    def __init__(self, mesh, time, M_i, I_s=None, v_=None, params=None):
-
+    def __init__(
+            self,
+            mesh: Mesh,
+            time: Constant,
+            M_i: Union[Expression, Dict[int, Expression]],
+            I_s: Union[Expression, Dict[int, Expression]]=None,
+            v_: Function=None,
+            params: Parameters=None
+    ) -> None:
         # Call super-class
         BasicMonodomainSolver.__init__(self, mesh, time, M_i, I_s=I_s,
                                        v_=v_, params=params)
@@ -310,8 +352,7 @@ class MonodomainSolver(BasicMonodomainSolver):
 
             update_routine = self._update_krylov_solver
         else:
-            error("Unknown linear_solver_type given: %s" % solver_type)
-
+            error("Unknown linear_solver_type given: %s" % solver_type) 
         return (solver, update_routine)
 
     @staticmethod
@@ -327,7 +368,7 @@ class MonodomainSolver(BasicMonodomainSolver):
         """
 
         params = Parameters("MonodomainSolver")
-        params.add("enable_adjoint", True)
+        params.add("enable_adjoint", False)
         params.add("theta", 0.5)
         params.add("polynomial_degree", 1)
         params.add("default_timestep", 1.0)
@@ -340,7 +381,7 @@ class MonodomainSolver(BasicMonodomainSolver):
         # solver is invoked)
         params.add("algorithm", "cg")
         params.add("preconditioner", "petsc_amg")
-        params.add("use_custom_preconditioner", False)
+        params.add("use_custom_preconditioner", True)
 
         # Add default parameters from both LU and Krylov solvers
         params.add(LUSolver.default_parameters())
@@ -378,8 +419,9 @@ class MonodomainSolver(BasicMonodomainSolver):
         # Set-up variational problem
         Dt_v_k_n = (v - self.v_)
         v_mid = theta*v + (1.0 - theta)*self.v_
+         
+        dz, rhs = rhs_with_markerwise_field(self._I_s, self._mesh, w)
 
-        (dz, rhs) = rhs_with_markerwise_field(self._I_s, self._mesh, w)
         theta_parabolic = inner(M_i*grad(v_mid), grad(w))*dz()
         G = Dt_v_k_n*w*dz + k_n*theta_parabolic - k_n*rhs
 
@@ -421,8 +463,11 @@ class MonodomainSolver(BasicMonodomainSolver):
         del timer0
 
         # Solve problem
-        self.linear_solver.solve(self.v.vector(), self._rhs_vector,
-                                 **self._annotate_kwargs)
+        self.linear_solver.solve(
+            self.v.vector(),
+            self._rhs_vector,
+            **self._annotate_kwargs
+        )
         timer.stop()
 
     def _update_lu_solver(self, timestep_unchanged, dt):

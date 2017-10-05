@@ -1,39 +1,114 @@
-"""This module handles all dolfin import in xalbrain. Here dolfin and
-dolfin_adjoint gets imported. If dolfin_adjoint is not present it will not
-be imported."""
+"""Allow for * import from dolfin with some degree of control."""
 
-__author__ = "Johan Hake (hake.dev@gmail.com), 2013"
-
-"""
-# FIXME: This is here for readthedocs Mock purposes. Better fix would
-# be, duh, better.
-from dolfin import Parameters, Mesh, Constant, Expression, assemble, LUSolver, KrylovSolver, \
-    PETScKrylovSolver, error, GenericFunction, dx, Measure, parameters, VectorFunctionSpace, \
-    Function, DirichletBC, TrialFunction, TestFunction, solve, inner
-
-from dolfin import *
 import dolfin
 
+from dolfin import (
+    Mesh,
+    Constant,
+    Parameters,
+    FacetFunction,
+    lhs,
+    rhs,
+    debug,
+    Expression,
+    Function,
+    VectorSpaceBasis,
+    LinearVariationalProblem,
+    inner,
+    grad,
+    LinearVariationalSolver,
+    Measure,
+    assemble,
+    system,
+    TrialFunction,
+    TestFunction,
+    PETScKrylovSolver,
+    LUSolver,
+    TrialFunctions,
+    TestFunctions,
+    FunctionAssigner,
+    Timer,
+    info,
+    MeshFunction,
+    FiniteElement,
+    FunctionSpace,
+    MixedElement,
+    CellFunction,
+    dx,
+    error,
+    GenericFunction,
+    VectorFunctionSpace,
+    DirichletBC,
+    solve,
+    parameters,
+    NonlinearVariationalSolver,
+    NonlinearVariationalProblem,
+    KrylovSolver,
+    info_blue,
+    begin,
+    end,
+    PROGRESS,
+    derivative,
+    Vector,
+    as_backend_type,
+)
+
+
 try:
-    from dolfin_adjoint import *
     import dolfin_adjoint
-
 except:
-    # FIXME: Should we raise some sort of warning?
     dolfin_adjoint = None
-    pass
-"""
-from dolfin import *
 
-try:
-    # from dolfin_adjoint import *
-    # import dolfin_adjoint
-    # FIXME: Should we raise some sort of warning?
-    dolfin_adjoint = None
-    pass
 
-except:
-    # FIXME: Should we raise some sort of warning?
-    dolfin_adjoint = None
-    pass
-
+__all__ = [
+    "dolfin",
+    "Mesh",
+    "Constant",
+    "Parameters",
+    "FacetFunction",
+    "lhs",
+    "rhs",
+    "debug",
+    "Expression",
+    "Function",
+    "VectorSpaceBasis",
+    "LinearVariationalProblem",
+    "inner",
+    "grad",
+    "LinearVariationalSolver",
+    "Measure",
+    "assemble",
+    "system",
+    "TrialFunction",
+    "TestFunction",
+    "PETScKrylovSolver",
+    "LUSolver",
+    "TrialFunctions",
+    "TestFunctions",
+    "FunctionAssigner",
+    "Timer",
+    "info",
+    "MeshFunction",
+    "FiniteElement",
+    "FunctionSpace",
+    "MixedElement",
+    "CellFunction",
+    "dx",
+    "error",
+    "GenericFunction",
+    "VectorFunctionSpace",
+    "DirichletBC",
+    "solve",
+    "parameters",
+    "NonlinearVariationalSolver",
+    "NonlinearVariationalProblem",
+    "KrylovSolver",
+    "info_blue",
+    "begin",
+    "end",
+    "PROGRESS",
+    "derivative",
+    "Vector",
+    "dolfin_adjoint",
+    "as_backend_type",
+]

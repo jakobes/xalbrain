@@ -6,14 +6,21 @@ __all__ = ["state_space", "end_of_time", "convergence_rate",
            "Projecter"]
 
 import math
-from xalbrain.dolfinimport import dolfin, dolfin_adjoint
+
+from xalbrain.dolfinimport import dolfin_adjoint
+
+import dolfin
+
 if dolfin_adjoint:
     from dolfin_adjoint import assemble, LUSolver, KrylovSolver
     from dolfin import parameters
 else:
     from dolfin import assemble, LUSolver, KrylovSolver, parameters
 
-def annotate_kwargs(ba_parameters):
+from typing import Dict
+
+
+def annotate_kwargs(ba_parameters: parameters) -> Dict[str, bool]:
     if not dolfin_adjoint:
         return {}
     if not ba_parameters["enable_adjoint"]:
@@ -25,7 +32,6 @@ def annotate_kwargs(ba_parameters):
 
 
 def splat(vs, dim):
-
     if vs.function_space().ufl_element().num_sub_elements()==dim:
         v = vs[0]
         if dim == 2:
@@ -34,10 +40,11 @@ def splat(vs, dim):
             s = dolfin.as_vector([vs[i] for i in range(1, dim)])
     else:
         v, s = dolfin.split(vs)
-
     return v, s
 
-def state_space(domain, d, family=None, k=1):
+
+def state_space(domain: dolfin.Mesh, d: int, family: str=None, k: int=1) -> \
+        dolfin.FunctionSpace:
     """Return function space for the state variables.
 
     *Arguments*
@@ -61,12 +68,14 @@ def state_space(domain, d, family=None, k=1):
         S = dolfin.FunctionSpace(domain, family, k)
     return S
 
-def end_of_time(T, t0, t1, dt):
+
+def end_of_time(T: float, t0: float, t1: float, dt: float) -> bool:
     """
     Return True if the interval (t0, t1) is the last before the end
     time T, otherwise False.
     """
     return (t1 + dt) > (T + dolfin.DOLFIN_EPS)
+
 
 class TimeStepper:
     """
@@ -181,6 +190,7 @@ class TimeStepper:
         self._dt_ind += 1
         return time_to_switch_dt
 
+
 def convergence_rate(hs, errors):
     """
     Compute and return rates of convergence :math:`r_i` such that
@@ -197,6 +207,7 @@ def convergence_rate(hs, errors):
 
     # Return convergence rates
     return rates
+
 
 class Projecter(object):
     """Customized class for repeated projection.

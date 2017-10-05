@@ -4,7 +4,6 @@ verify the correctness of the BidomainSolver.
 """
 
 __author__ = "Marie E. Rognes (meg@simula.no), 2013"
-__all__ = []
 
 import pytest
 
@@ -12,15 +11,19 @@ from dolfin import (
     Expression,
     Constant,
     UnitSquareMesh,
-    parameters
+    parameters,
+    errornorm,
 )
 
 from xalbrain import (
     BidomainSolver,
-    errornorm
 )
 
 from xalbrain.utils import convergence_rate
+
+from typing import (
+    Tuple,
+)
 
 from testutils import medium
 
@@ -34,7 +37,8 @@ args = sys.argv[:1] + """
 parameters.parse(args)
 
 
-def main(N, dt, T, theta):
+def main(N: int, dt: float, T: float, theta: float) -> \
+        Tuple[float, float, float, float, float]:
     # Create data
     mesh = UnitSquareMesh(N, N)
     time = Constant(0.0)
@@ -47,8 +51,8 @@ def main(N, dt, T, theta):
     params = BidomainSolver.default_parameters()
     params["theta"] = theta
     params["linear_solver_type"] = "direct"
-    params["use_avg_u_constraint"] =  True
-    params["enable_adjoint"] =  False
+    params["use_avg_u_constraint"] = True
+    params["enable_adjoint"] = False
     solver = BidomainSolver(mesh, time, M_i, M_e, I_s=stimulus, params=params)
 
     # Define exact solution (Note: v is returned at end of time
@@ -62,18 +66,18 @@ def main(N, dt, T, theta):
     )
 
     # Define initial condition(s)
-    (v_, vu) = solver.solution_fields()
+    v_, vu = solver.solution_fields()
 
     # Solve
     solutions = solver.solve((0, T), dt)
-    for (interval, fields) in solutions:
+    for interval, fields in solutions:
         continue
 
     # Compute errors
-    (v, u) = vu.split(deepcopy=True)[0:2]
+    v, u = vu.split(deepcopy=True)[0:2]
     v_error = errornorm(v_exact, v, "L2", degree_rise=2)
     u_error = errornorm(u_exact, u, "L2", degree_rise=2)
-    return [v_error, u_error, mesh.hmin(), dt, T]
+    return v_error, u_error, mesh.hmin(), dt, T
 
 
 @medium
@@ -85,7 +89,7 @@ def test_spatial_convergence() -> None:
     dt = 0.001
     T = 10*dt
     for N in (5, 10, 20, 40):
-        v_error, u_error, h, dt, T = main(N, dt, T, 0.5)
+        v_error, u_error, h, dt_, T = main(N, dt, T, 0.5)   # theta = 0.5
         v_errors.append(v_error)
         u_errors.append(u_error)
         hs.append(h)
@@ -114,7 +118,7 @@ def test_spatial_and_temporal_convergence() -> None:
     N = 5
     for level in (0, 1, 2, 3):
         a = dt/(2**level)
-        v_error, u_error, h, a, T = main(N*(2**level), a, T, theta)
+        v_error, u_error, h, a, T = main(N*2**level, a, T, theta)
         v_errors.append(v_error)
         u_errors.append(u_error)
         dts.append(a)
