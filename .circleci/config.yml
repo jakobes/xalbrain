@@ -19,65 +19,65 @@
 version: 2
 
 jobs:
-    build:
-        docker:
-            - image: quay.io/fenicsproject/stable
-                user: fenics
-                environment:
-                    LD_LIBRARY_PATH: /home/fenics/local/lib
-                    CMAKE_PREFIX_PATH: /home/fenics/local
-        working_directory: /home/fenics/xalbrin
+  build:
+    docker:
+      - image: quay.io/fenicsproject/stable
+        user: fenics
+        environment:
+          LD_LIBRARY_PATH: /home/fenics/local/lib
+          CMAKE_PREFIX_PATH: /home/fenics/local
+    working_directory: /home/fenics/xalbrin
 
-        steps:
-            - checkout
+    steps:
+      - checkout
 
-            - run:
-                name: Environment and FEniCS version info
-                command: |
-                    echo $USER $HOME $PWD $PATH $LD_LIBRARY_PATH $CMAKE_PREFIX_PATH
-                    python3 -c "import ffc; print(ffc.git_commit_hash(), ffc.ufc_signature())"
-                    python3 -c "import dolfin; print(dolfin.git_commit_hash())"
-      
-            - run:
-                name: Install FENaPack
-                command: |
-                    pip3 install -v --user .
-      
-            - run:
-                name: Import xalbrain first time (JIT)
-                command: python3 -c "import xalbrain"
-    
-    test:
-        docker:
-            - image: quay.io/fenicsproject/stable
-                user: fenics
-                environment:
-                    LD_LIBRARY_PATH: /home/fenics/local/lib
-                    CMAKE_PREFIX_PATH: /home/fenics/local
-        working_directory: /home/fenics/xalbrin
-    
-        steps: 
-            -checkout
-    
-            - run:
-                name: Unit tests
-                command: py.test-3 test/unit
-    
-            - store_artifacts:
-                path: /tmp/circle
-                destination: build
-    
-            - store_test_results:
-                  path: /tmp/circle
+      - run:
+        name: Environment and FEniCS version info
+        command: |
+          echo $USER $HOME $PWD $PATH $LD_LIBRARY_PATH $CMAKE_PREFIX_PATH
+          python3 -c "import ffc; print(ffc.git_commit_hash(), ffc.ufc_signature())"
+          python3 -c "import dolfin; print(dolfin.git_commit_hash())"
+  
+      - run:
+        name: Install FENaPack
+        command: |
+          pip3 install -v --user .
+  
+      - run:
+        name: Import xalbrain first time (JIT)
+        command: python3 -c "import xalbrain"
+  
+  test:
+    docker:
+      - image: quay.io/fenicsproject/stable
+        user: fenics
+        environment:
+          LD_LIBRARY_PATH: /home/fenics/local/lib
+          CMAKE_PREFIX_PATH: /home/fenics/local
+    working_directory: /home/fenics/xalbrin
+  
+    steps: 
+      -checkout
+  
+      - run:
+        name: Unit tests
+        command: py.test-3 test/unit
+  
+      - store_artifacts:
+        path: /tmp/circle
+        destination: build
+  
+      - store_test_results:
+        path: /tmp/circle
 
 workflows:
-    version: 2
-    build_and_test:
-        jobs:
-            - build
-            - test:
-                requires:
-                    - build
-                filters:
-                    branches:
-                        only: master
+  version: 2
+  build_and_test:
+    jobs:
+      - build
+      - test:
+        requires:
+          - build
+        filters:
+          branches:
+            only: master
