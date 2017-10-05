@@ -18,9 +18,9 @@ jobs:
       - checkout
 
       - run:
- 	      name: install system-dependencies
-	      command: |
-	        sudo apt-get install -y python3-venv
+          name: install system dependencies
+          command: |
+            sudo apt-get install -y python3-venv
 
       - restore_cache:
           key: dependencies-{{ .Branch }}-{{checksum "requirements-dev.txt"}}
