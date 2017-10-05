@@ -1,2 +1,2 @@
 codecov==2.0.9
-py.test>=3.2.2
+py.test==3.2.2
