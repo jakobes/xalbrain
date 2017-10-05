@@ -11,6 +11,17 @@ jobs:
 
     steps:
       - checkout
+
+      - restore_cache:
+          key: dependencies-{{ .Branch }}-{{checksum "all_requirements.txt"}}
+
+      - run:
+          name: install-python-requirements
+          command: |
+              python3 -m venv venv
+              . venv/bin/activate
+              pip install -Ur requirements-dev.txt
+
       - run:
           name: Environment and FEniCS version info
           command: |
@@ -37,3 +48,8 @@ jobs:
   
       - store_test_results:
           path: /tmp/circle
+
+
+
+
+
