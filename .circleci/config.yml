@@ -18,29 +18,15 @@ jobs:
       - checkout
 
       - run:
-          name: install system dependencies
-          command: |
-            sudo add-apt-repository -y ppa:jonathonf/python-3.5
-            sudo apt-get update
-            sudo apt install -y python3.5-dev
-            sudo apt-get install -y python3-venv
-
-      - restore_cache:
-          key: dependencies-{{ .Branch }}-{{checksum "requirements-dev.txt"}}
-
-      - run:
           name: install-python-requirements
           command: |
-            python3 -m venv venv
-            . venv/bin/activate
-            pip3 install pytest --upgrade
-            pip3 install pytest-xdist
+            pip3 install -U pytest --upgrade
+            pip3 install -U pytest-xdist
             pip3 install -Ur requirements-dev.txt
 
       - run:
           name: Environment and FEniCS version info
           command: |
-            . venv/bin/activate
             echo $USER $HOME $PWD $PATH $LD_LIBRARY_PATH $CMAKE_PREFIX_PATH
             python3 -c "import ffc; print(ffc.git_commit_hash(), ffc.ufc_signature())"
             python3 -c "import dolfin; print(dolfin.git_commit_hash())"
@@ -48,24 +34,16 @@ jobs:
       - run:
           name: Install xalbrain
           command: |
-            . venv/bin/activate
             python3 setup.py install
 
       - run:
           name: Import xalbrain first time (JIT)
           command: |
             python3 -c "import xalbrain"
-            . venv/bin/activate
-
-      - save_cache:
-          key: dependencies-{{ .Branch }}-{{checksum "requirements-dev.txt"}}
-          paths:
-            - venv
 
       - run:
           name: Unit tests
           command: | 
-            . venv/bin/activate
             python3 -m pytest -v -n 4 test/unit
   
       - store_artifacts:
@@ -73,4 +51,4 @@ jobs:
           destination: build
   
       - store_test_results:
-          path: /tmp/circle
+          iath: /tmp/circle
