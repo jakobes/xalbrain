@@ -19,7 +19,7 @@ from typing import (
     Any
 )
 
-SUPPORTED_CELL_MODELS_STR = list(map(str, SUPPORTED_CELL_MODELS))
+SUPPORTED_CELL_MODELS_STR = list(map(lambda x: x.__name__, SUPPORTED_CELL_MODELS))
 
 # TODO: import these in the tests
 # Marks
