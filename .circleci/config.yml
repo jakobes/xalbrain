@@ -1,4 +1,9 @@
 version: 2
+
+dependencies:
+  pre:
+    - sudo apt-get install python3-venv 
+
 jobs:
   build:
     docker:
