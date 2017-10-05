@@ -18,7 +18,7 @@ jobs:
       - checkout
 
       - restore_cache:
-          key: dependencies-{{ .Branch }}-{{checksum "all_requirements.txt"}}
+          key: dependencies-{{ .Branch }}-{{checksum "requirements-dev.txt"}}
 
       - run:
           name: install-python-requirements
