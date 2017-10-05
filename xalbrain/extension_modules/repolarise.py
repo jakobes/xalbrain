@@ -1,4 +1,5 @@
-from fenics import *
+from xalbrain.dolfinimport import *
+
 import instant
 import os
 import time
@@ -26,13 +27,6 @@ def _get_cpp_module(source_dir, header_files, source_files, force_recompile=Fals
     if force_recompile:
         header_sources.append('// %s \n' % time.time())
 
-    # def _readSourceFile(filepath):
-    #     with open(os.path.join(source_dir, filepath), "r") as _source_file:
-    #         return _source_file.read()
-    #
-    #
-    # code = "\n\n\n".join(map(_readSourceFile, source_files))
-    
     try:
         module = compile_extension_module(
             code='\n\n\n'.join(header_sources),
@@ -41,10 +35,6 @@ def _get_cpp_module(source_dir, header_files, source_files, force_recompile=Fals
             include_dirs=[".", source_dir]
         )
 
-        # module = compile_extension_module(
-        #     code,       # Header
-        #     additional_system_headers=additional_headers
-        # )
     except RuntimeError as e:
         try:
             with open(e.__str__().split("'")[-2]) as errfile:
