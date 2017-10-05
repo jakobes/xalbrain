@@ -12,11 +12,9 @@ minor = 1
 setup(
     name = "xalbrain",
     version = "{0}.{1}".format(major, minor),
-    description = """
-    An adjointable bi-domain equation solver
-    """,
-    author = "Marie Rognes, Johan Hake",
-    author_email = "meg@simula.no",
+    description = """An adjointable bi-domain equation solver""",
+    author = "Jakob E. Schreiner",
+    author_email = "jakob@xal.no",
     packages = ["xalbrain", "xalbrain.cellmodels",],
     package_dir = {"xalbrain": "xalbrain"}
 )
