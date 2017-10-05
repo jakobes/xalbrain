@@ -38,7 +38,7 @@ jobs:
 
       - run:
           name: Unit tests
-          command: py.test-3 test/unit
+          command: python3 -m pytest -v test/unit
   
       - store_artifacts:
           path: /tmp/circle
