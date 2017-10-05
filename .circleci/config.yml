@@ -10,5 +10,11 @@ jobs:
     working_directory: /home/fenics/xalbrin
 
     steps:
-       - checkout
-       - run: echo "hello world"
+      - checkout
+      - run:
+        name: Environment and FEniCS version info
+        command: |
+          echo $USER $HOME $PWD $PATH $LD_LIBRARY_PATH $CMAKE_PREFIX_PATH
+          python3 -c "import ffc; print(ffc.git_commit_hash(), ffc.ufc_signature())"
+          python3 -c "import dolfin; print(dolfin.git_commit_hash())"
+
