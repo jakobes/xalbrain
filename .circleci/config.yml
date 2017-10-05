@@ -44,13 +44,15 @@ jobs:
 
       - run:
           name: Import xalbrain first time (JIT)
-          . venv/bin/activate
-          command: python -c "import xalbrain"
+          command: |
+            python -c "import xalbrain"
+            . venv/bin/activate
 
       - run:
           name: Unit tests
-          . venv/bin/activate
-          command: py.test -v test/unit
+          command: | 
+            . venv/bin/activate
+            py.test -v test/unit
   
       - store_artifacts:
           path: /tmp/circle
