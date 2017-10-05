@@ -8,7 +8,7 @@ from xalbrain.dolfinimport import *
 from xalbrain.extension_modules import load_module
 from xalbrain.markerwisefield import *
 
-from xalbrain import (
+from xalbrain.cellmodels import (
     CardiacCellModel,
     MultiCellModel,
 )

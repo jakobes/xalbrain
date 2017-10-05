@@ -17,6 +17,14 @@ supported_cell_models = [
     Adex,
 ]
 
+__all__ = [
+    "NoCellModel",
+    "AdexManual",
+    "Adex",
+    "CardiacCellModel",
+    "MultiCellModel",
+]
+
 try:
     from .beeler_reuter_1977 import Beeler_reuter_1977
     from .fitzhughnagumo_manual import FitzHughNagumoManual
@@ -40,8 +48,15 @@ try:
         Fenton_karma_1998_MLR1_altered,
         Fenton_karma_1998_BR_altered,
     ]
+
+    __all__ += [
+        "Beeler_reuter_1977",
+        "FitzHughNagumoManual",
+        "RogersMcCulloch",
+        "Tentusscher_2004_mcell",
+        "Tentusscher_panfilov_2006_epi_cell",
+        "Fenton_karma_1998_MLR1_altered",
+        "Fenton_karma_1998_BR_altered",
+    ]
 except:
     pass
-
-# Convert to string
-__all__ = list(map(lambda x: x.__name__, supported_cell_models))

@@ -11,6 +11,10 @@ from xalbrain.dolfinimport import parameters
 from xalbrain.cellmodels import *
 from xalbrain.utils import state_space
 
+from typing import (
+    Any
+)
+
 # TODO: import these in the tests
 # Marks
 fast = pytest.mark.fast
