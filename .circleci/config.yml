@@ -47,8 +47,8 @@ jobs:
             python3 -m pytest -v -n 4 test/unit
   
       - store_artifacts:
-          path: /tmp/circle
+          path: ~/shared 
           destination: build
   
       - store_test_results:
-          iath: /tmp/circle
+          iath: ~/shared 
