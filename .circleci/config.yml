@@ -4,7 +4,6 @@ jobs:
   build:
 
     docker:
-      - image: circleci/python:3.6.1
       - image: quay.io/fenicsproject/stable
         user: fenics
         environment:
@@ -15,14 +14,9 @@ jobs:
     steps:
       - checkout
 
-      - restore_cache:
-          key: dependencies-{{ .Branch }}-{{checksum "requirements-dev.txt"}}
-
       - run:
           name: install-python-requirements
           command: |
-              python3 -m venv venv
-              . venv/bin/activate
               pip install -Ur requirements-dev.txt
 
       - run:
@@ -35,13 +29,7 @@ jobs:
       - run:
           name: Install xalbrain
           command: |
-            . venv/bin/activate
-            python setuo.py install
-
-      - save_cache:
-          key: dependencies-{{ .Branch }}-{{checksum "requirements-dev.txt"}}
-          paths:
-            - venv
+            python setup.py install
 
       - run:
           name: Import xalbrain first time (JIT)
