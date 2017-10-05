@@ -44,4 +44,4 @@ except:
     pass
 
 # Convert to string
-__all__ = map(lambda x: x.__name__, supported_cell_models)
+__all__ = list(map(lambda x: x.__name__, supported_cell_models))
