@@ -1,12 +1,10 @@
 version: 2
 
-dependencies:
-  pre:
-    - sudo apt-get install python3-venv 
-
 jobs:
   build:
+
     docker:
+      - image: circleci/python:3.6.1
       - image: quay.io/fenicsproject/stable
         user: fenics
         environment:
