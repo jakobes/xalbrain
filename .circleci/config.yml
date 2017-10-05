@@ -17,6 +17,7 @@ jobs:
       - run:
           name: install-python-requirements
           command: |
+              sudo apt-get update
               sudo pip3 install -Ur requirements-dev.txt
 
       - run:
