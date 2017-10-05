@@ -19,7 +19,7 @@ from typing import (
     Any
 )
 
-SUPPOIRTED_CELL_MODELS_SSTR = list(map(str, SUPPORTED_CELL_MODELS))
+SUPPOIRTED_CELL_MODELS_STR = list(map(str, SUPPORTED_CELL_MODELS))
 
 # TODO: import these in the tests
 # Marks
@@ -59,7 +59,7 @@ def cell_model(request):
     return Model()
 
 
-@pytest.fixture(params=supported_cell_models_str)
+@pytest.fixture(params=SUPPORTED_CELL_MODELS_STR)
 def ode_test_form(request):
     Model = eval(request.param)
     model = Model()
