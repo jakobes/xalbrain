@@ -37,7 +37,13 @@ jobs:
       - run:
           name: Install xalbrain
           command: |
-            pip3 install -v --user .
+            . venv/bin/activate
+            python setuo.py install
+
+      - save_cache:
+          key: dependencies-{{ .Branch }}-{{checksum "requirements-dev.txt"}}
+          paths:
+            - venv
 
       - run:
           name: Import xalbrain first time (JIT)
