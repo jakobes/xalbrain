@@ -7,7 +7,7 @@ jobs:
         environment:
           LD_LIBRARY_PATH: /home/fenics/local/lib
           CMAKE_PREFIX_PATH: /home/fenics/local
-    working_directory: /home/fenics/xalbrin
+    working_directory: /home/fenics/xalbrain
 
     steps:
       - checkout
