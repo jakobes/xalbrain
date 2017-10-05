@@ -2,9 +2,6 @@ version: 2
 
 dependencies:
   pre:
-    - sudo add-apt-repository -y ppa:jonathonf/python-3.6
-    - sudo apt-get update
-    - sudo apt-get install -y python3.6
 
 jobs:
   build:
@@ -21,11 +18,18 @@ jobs:
       - checkout
 
       - run:
+          name: install python3.6
+          command: |
+            sudo add-apt-repository -y ppa:jonathonf/python-3.6
+            sudo apt-get update
+            sudo apt-get install -y python3.6
+
+      - run:
           name: install-python-requirements
           command: |
-              python3 -m venv venv
-              . venv/bin/activate
-              pip3 install -Ur requirements-dev.txt
+            python3 -m venv venv
+            . venv/bin/activate
+            pip3 install -Ur requirements-dev.txt
 
       - run:
           name: Environment and FEniCS version info
