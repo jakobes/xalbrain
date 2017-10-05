@@ -7,39 +7,28 @@ splitting solver.
 __author__ = "Marie E. Rognes (meg@simula.no), 2012--2013"
 __all__ = []
 
-
 import pytest
 
-from xalbrain import (
-    CardiacModel,
-    NoCellModel,
-    BasicSplittingSolver,
-)
+from cbcbeat import CardiacModel, NoCellModel
+from cbcbeat import BasicSplittingSolver
+from cbcbeat import Constant, UnitSquareMesh
+from cbcbeat import Function, Expression, errornorm
+from cbcbeat import dolfin_adjoint, adj_reset
+import dolfin
 
-from dolfin import (
-    Constant,
-    UnitSquareMesh,
-    Function,
-    Expression,
-    errornorm,
-)
-
-from dolfin import __version__ as dolfin_version
-
-from xalbrain.utils import convergence_rate
+from cbcbeat.utils import convergence_rate
 
 from testutils import slow
 
-from typing import Tuple
+def main(N, dt, T, theta):
 
+    if dolfin_adjoint:
+        adj_reset()
 
-def main(N: int, dt: float, T: float, theta: float) -> \
-        Tuple[float, float, float, float, float]:
     # Create cardiac model
     mesh = UnitSquareMesh(N, N)
     time = Constant(0.0)
     cell_model = NoCellModel()
-
     ac_str = "cos(t)*cos(2*pi*x[0])*cos(2*pi*x[1]) + 4*pow(pi, 2)*cos(2*pi*x[0])*cos(2*pi*x[1])*sin(t)"
     stimulus = Expression(ac_str, t=time, degree=3)
     heart = CardiacModel(mesh, time, 1.0, 1.0, cell_model, stimulus=stimulus)
@@ -53,13 +42,9 @@ def main(N: int, dt: float, T: float, theta: float) -> \
     # Define exact solution (Note: v is returned at end of time
     # interval(s), u is computed at somewhere in the time interval
     # depending on theta)
-
-    v_exact =  Expression("cos(2*pi*x[0])*cos(2*pi*x[1])*sin(t)", t=T, degree=3)
-    u_exact = Expression(
-        "-cos(2*pi*x[0])*cos(2*pi*x[1])*sin(t)/2.0",
-        t=T - (1 - theta)*dt,
-        degree=3
-    )
+    v_exact = Expression("cos(2*pi*x[0])*cos(2*pi*x[1])*sin(t)", t=T, degree=3)
+    u_exact = Expression("-cos(2*pi*x[0])*cos(2*pi*x[1])*sin(t)/2.0",
+                         t=T - (1 - theta)*dt, degree=3)
 
     # Define initial condition(s)
     vs0 = Function(solver.VS)
@@ -72,15 +57,15 @@ def main(N: int, dt: float, T: float, theta: float) -> \
         continue
 
     # Compute errors
-    v, s = vs.split(deepcopy=True)
+    (v, s) = vs.split(deepcopy=True)
     v_error = errornorm(v_exact, v, "L2", degree_rise=2)
-    v, u, *r = vur.split(deepcopy=True)
+    (v, u, r) = vur.split(deepcopy=True)
     u_error = errornorm(u_exact, u, "L2", degree_rise=2)
 
     return (v_error, u_error, mesh.hmin(), dt, T)
 
 @slow
-@pytest.mark.xfail(dolfin_version == "2016.2.0", reason="Unknown")
+@pytest.mark.xfail(dolfin.__version__ == "2016.2.0", reason="Unknown")
 def test_analytic_bidomain():
     "Test errors for bidomain solver against reference."
 
@@ -89,7 +74,7 @@ def test_analytic_bidomain():
     N = 10*(2**level)
     dt = 0.01/(2**level)
     T = 0.1
-    v_error, u_error, h, dt, T = main(N, dt, T, 0.5)
+    (v_error, u_error, h, dt, T) = main(N, dt, T, 0.5)
 
     #v_reference = 4.1152719193176370e-03 # with degree = 5 and degree_rise=5
     #u_reference = 2.0271098018943513e-03 # with degree = 5 and degree_rise=5
@@ -108,13 +93,13 @@ def test_analytic_bidomain():
     u_diff = abs(u_error - u_reference)
     tolerance = 1.e-9
     msg = "Maximal %s value does not match reference: diff is %.16e"
-    print("v_error = %.16e" % v_error)
-    print("u_error = %.16e" % u_error)
+    print "v_error = %.16e" % v_error
+    print "u_error = %.16e" % u_error
     assert (v_diff < tolerance), msg % ("v", v_diff)
     assert (u_diff < tolerance), msg % ("u", u_diff)
 
 @slow
-@pytest.mark.xfail(dolfin_version == "2016.2.0", reason="Unknown")
+@pytest.mark.xfail(dolfin.__version__ == "2016.2.0", reason="Unknown")
 def test_spatial_and_temporal_convergence():
     "Test convergence rates for bidomain solver."
     v_errors = []
@@ -127,7 +112,7 @@ def test_spatial_and_temporal_convergence():
     N = 10
     for level in (0, 1, 2):
         a = dt/(2**level)
-        v_error, u_error, h, a, T = main(N*(2**level), a, T, theta)
+        (v_error, u_error, h, a, T) = main(N*(2**level), a, T, theta)
         v_errors.append(v_error)
         u_errors.append(u_error)
         dts.append(a)
@@ -135,15 +120,10 @@ def test_spatial_and_temporal_convergence():
 
     v_rates = convergence_rate(hs, v_errors)
     u_rates = convergence_rate(hs, u_errors)
-    print("v_errors = ", v_errors)
-    print("u_errors = ", u_errors)
-    print("v_rates = ", v_rates)
-    print("u_rates = ", u_rates)
+    print "v_errors = ", v_errors
+    print "u_errors = ", u_errors
+    print "v_rates = ", v_rates
+    print "u_rates = ", u_rates
 
     assert all(v > 1.9 for v in v_rates), "Failed convergence for v"
     assert all(u > 1.9 for u in u_rates), "Failed convergence for u"
-
-
-if __name__ == "__main__":
-    test_analytic_bidomain()
-    # test_spatial_and_temporal_convergence()
