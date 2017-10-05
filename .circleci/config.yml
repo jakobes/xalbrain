@@ -75,7 +75,19 @@ jobs:
       # to provide various information based on the results on
       # its web UI.::
 
-     - run:
+  test:
+    docker:
+      - image: quay.io/fenicsproject/stable
+        user: fenics
+        environment:
+          LD_LIBRARY_PATH: /home/fenics/local/lib
+          CMAKE_PREFIX_PATH: /home/fenics/local
+    working_directory: /home/fenics/xalbrin
+
+    steps: 
+      -checkout
+
+      - run:
           name: Unit tests
           command: py.test-3 test/unit
 
@@ -85,3 +97,15 @@ jobs:
 
       - store_test_results:
           path: /tmp/circle
+
+workflows:
+  version: 2
+  build_and_test:
+    jobs:
+      - build
+      - test:
+          requires:
+            - build
+          filters:
+            branches:
+              only: master
