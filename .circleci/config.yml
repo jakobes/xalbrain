@@ -1,0 +1,87 @@
+## CircleCI configuration
+# ======================
+#
+# This page describes how to setup CircleCI version 2.0
+# for a project built on top of DOLFIN. Tests are run
+# using FEniCS docker images, in particular using an
+# image with the development version of FEniCS. Note that
+# modern FEniCS Docker images have both Python version 2
+# and 3. Hence it is easy to change a Python version of
+# the below commands or even run both versions.
+#
+# Python CircleCI 2.0 configuration file
+#
+# Check https://circleci.com/docs/2.0/language-python/ for more details
+#
+# This config file is borrowed from
+# https://raw.githubusercontent.com/blechta/fenapack/master/circle.yml
+
+version: 2
+
+# ``image`` specifies a Docker image with the stable
+# version of FEniCS. Inside of a container we will be using
+# a user ``fenics`` which has an installation of FEniCS.
+# But we will work in a different directory derived from
+# the name of the project. The ``environment`` needs to
+# be adjusted to allow importing C++ DOLFIN libraries and
+# finding necessary files for just-in-time compilation.
+# This is done because CircleCI bypasses environment setup
+# specified in the FEniCS image.::
+
+# NB: Paths are relative to the docker image
+
+jobs:
+  build:
+    docker:
+      - image: quay.io/fenicsproject/stable
+        user: fenics
+        environment:
+          LD_LIBRARY_PATH: /home/fenics/local/lib
+          CMAKE_PREFIX_PATH: /home/fenics/local
+    working_directory: /home/fenics/xalbrin
+
+    # First step is checking out the source code into
+    # the working directory::
+    steps:
+      - checkout
+
+      # Then print some diagnostic information to a build log::
+      - run:
+          name: Environment and FEniCS version info
+          command: |
+            echo $USER $HOME $PWD $PATH $LD_LIBRARY_PATH $CMAKE_PREFIX_PATH
+            python3 -c'import ffc; print(ffc.git_commit_hash(), ffc.ufc_signature())'
+            python3 -c'import dolfin; print(dolfin.git_commit_hash())'
+
+      - run:
+          name: Install FENaPack
+          command: |
+            pip3 install -v --user .
+
+
+      # Try to import the project. That involves some just-in-time
+      # compilation which we test and measure as a separate build
+      # step.::
+
+      - run:
+          name: Import FENaPack first time (JIT)
+          command: python3 -c "import xalbrain"
+
+      # Run the unit tests using `the pytest framework
+      # <https://pytest.org>`_. By ``-svl`` options we make a test
+      # output more verbose and using ``--junitxml`` we save a
+      # test result in machine-readable format. In a later step
+      # we tell to CircleCI where the result is. CircleCI is able
+      # to provide various information based on the results on
+      # its web UI.::
+
+     - run:
+          name: Unit tests
+          command: py.test-3 test/unit
+
+      - store_artifacts:
+          path: /tmp/circle
+          destination: build
+
+      - store_test_results:
+          path: /tmp/circle
