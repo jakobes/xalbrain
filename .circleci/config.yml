@@ -19,8 +19,10 @@ jobs:
             python3 -c "import dolfin; print(dolfin.git_commit_hash())"
   
       - run:
-          name: Install FENaPack
+          name: Install xalbrain
           command: |
             pip3 install -v --user .
 
-
+      - run:
+          name: Import xalbrain first time (JIT)
+          command: python3 -c "import xalbrain"
