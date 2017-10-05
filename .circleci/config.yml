@@ -17,19 +17,20 @@ jobs:
       - run:
           name: install-python-requirements
           command: |
-              sudo pip install -Ur requirements-dev.txt
+              sudo pip3 install -Ur requirements-dev.txt
 
       - run:
           name: Environment and FEniCS version info
           command: |
             echo $USER $HOME $PWD $PATH $LD_LIBRARY_PATH $CMAKE_PREFIX_PATH
+            which python3
             python3 -c "import ffc; print(ffc.git_commit_hash(), ffc.ufc_signature())"
             python3 -c "import dolfin; print(dolfin.git_commit_hash())"
   
       - run:
           name: Install xalbrain
           command: |
-            python setup.py install
+            sudo python3 setup.py install
 
       - run:
           name: Import xalbrain first time (JIT)
