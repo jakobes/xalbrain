@@ -11,9 +11,15 @@ from xalbrain.dolfinimport import parameters
 from xalbrain.cellmodels import *
 from xalbrain.utils import state_space
 
+from xalbrain.cellmodels import (
+    SUPPORTED_CELL_MODELS,
+)
+
 from typing import (
     Any
 )
+
+SUPPOIRTED_CELL_MODELS_SSTR = list(map(str, SUPPORTED_CELL_MODELS))
 
 # TODO: import these in the tests
 # Marks
@@ -47,18 +53,7 @@ def assert_true(a: Any) -> None:
 def assert_greater(a: float, b: float) -> None:
     assert a > b
 
-
-# TODO: 
-supported_cell_models_str = [
-    Model.__name__ for Model in (
-        FitzHughNagumoManual,
-        Tentusscher_2004_mcell,
-        NoCellModel
-    )
-]
-
-
-@pytest.fixture(params=supported_cell_models_str)
+@pytest.fixture(params=SUPPORTED_CELL_MODELS_STR)
 def cell_model(request):
     Model = eval(request.param)
     return Model()

@@ -11,7 +11,7 @@ from .adex import Adex
 # Only add supported cell model here if it is tested to actually run
 # with some multistage discretization
 # TODO: Enforce this 
-supported_cell_models = [
+SUPPORTED_CELL_MODELS = [
     NoCellModel,
     AdexManual,
     Adex,
@@ -39,7 +39,7 @@ try:
 
     # Only add supported cell model here if it is tested to actually run
     # with some multistage discretization
-    supported_cell_models += [
+    SUPPORTED_CELL_MODELS += [
         Beeler_reuter_1977,
         FitzHughNagumoManual,
         RogersMcCulloch,
