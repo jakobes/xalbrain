@@ -1,23 +1,16 @@
-"""Unit tests for various types of bidomain solver."""
+"""
+Unit tests for various types of bidomain solver
+"""
 
 __author__ = "Marie E. Rognes (meg@simula.no), 2013"
 __all__ = ["TestSplittingSolver"]
 
-
 from testutils import fast
-from xalbrain import (
-    UnitCubeMesh,
-    Constant,
-    Expression,
-    CardiacModel,
-    FitzHughNagumoManual,
-    SplittingSolver,
-    parameters,
-)
-
+from cbcbeat import UnitCubeMesh, Constant, Expression, CardiacModel, FitzHughNagumoManual, \
+    SplittingSolver, parameters
 
 @fast
-def test_solver_with_domains() -> None:
+def test_solver_with_domains():
     mesh = UnitCubeMesh(5, 5, 5)
     time = Constant(0.0)
 
@@ -31,14 +24,8 @@ def test_solver_with_domains() -> None:
     M_e = 2.0
 
     cell_model = FitzHughNagumoManual()
-    cardiac_model = CardiacModel(
-        mesh,
-        time,
-        M_i,
-        M_e,
-        cell_model,stimulus,
-        applied_current
-    )
+    cardiac_model = CardiacModel(mesh, time, M_i, M_e, cell_model,
+                                 stimulus, applied_current)
 
     dt = 0.1
     t0 = 0.0

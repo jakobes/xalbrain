@@ -1,66 +1,48 @@
-"""Basic and more advanced tests for the cell models and their forms."""
+"Basic and more advanced tests for the cell models and their forms."
 
 __author__ = "Marie E. Rognes (meg@simula.no), 2013 -- 2014"
 
 import pytest
 
 from dolfin import *
-from xalbrain.utils import state_space
+from cbcbeat.utils import state_space
 
-from xalbrain.cellmodels import (
-    Adex,
-    AdexManual
-)
-
-from testutils import (
-    fast,
-    slow,
-    parametrize,
-    assert_almost_equal,
-)
-
-from testutils import (
-    cell_model,
-    ode_test_form,
-)
-
+from testutils import fast, slow, parametrize, assert_almost_equal
+from testutils import cell_model, ode_test_form
 
 class TestModelCreation:
-    """Test basic features of cell models."""
+    "Test basic features of cell models."
     def test_create_cell_model_has_ics(self, cell_model):
         "Test that cell model has initial conditions."
         model = cell_model
         ics = model.initial_conditions()
 
-
 class TestFormCompilation:
-    """Test form compilation with different optimizations."""
+    "Test form compilation with different optimizations."
     def test_form_compilation(self, ode_test_form):
-        """Test that form can be compiled by FFC."""
+        "Test that form can be compiled by FFC."
         f = Form(ode_test_form)
 
     @slow
     def test_optimized_form_compilation(self, ode_test_form):
-        """Test that form can be compiled by FFC with optimizations."""
+        "Test that form can be compiled by FFC with optimizations."
         ps = parameters["form_compiler"].copy()
         ps["cpp_optimize"] = True
         f = Form(ode_test_form, form_compiler_parameters=ps)
 
     @slow
     def test_custom_optimized_compilation(self, ode_test_form):
-        """Test that form can be compiled with custom optimizations."""
+        "Test that form can be compiled with custom optimizations."
         ps = parameters["form_compiler"].copy()
         ps["cpp_optimize"] = True
         flags = ["-O3", "-ffast-math", "-march=native"]
         ps["cpp_optimize_flags"] = " ".join(flags)
         f = Form(ode_test_form, form_compiler_parameters=ps)
 
-
 class TestCompilationCorrectness:
-    """Test form compilation results with different optimizations."""
+    "Test form compilation results with different optimizations."
 
-
-    def point_integral_step(self, model, adex=False):
+    def point_integral_step(self, model):
         # Set-up forms
         mesh = UnitSquareMesh(10, 10)
         V = FunctionSpace(mesh, "CG", 1)
@@ -80,10 +62,7 @@ class TestCompilationCorrectness:
         scheme.t().assign(float(time))
 
         # Create and step solver
-        if adex:
-            solver = AdexPointIntegralSolver(scheme)
-        else: 
-            solver = PointIntegralSolver(scheme)
+        solver = PointIntegralSolver(scheme)
         solver.parameters["newton_solver"]["relative_tolerance"] = 1e-6
         solver.parameters["newton_solver"]["report"] = False
         dt = 0.1
@@ -91,38 +70,34 @@ class TestCompilationCorrectness:
         return vs
 
     @slow
-    @pytest.mark.parametrize("adex_model, adex", [
-        (Adex, True),
-        (AdexManual, False)
-    ])
-    def test_point_integral_solver(self, adex_model, adex):
-        """Compare form compilation result with and without optimizations."""
+    def test_point_integral_solver(self, cell_model):
+        "Compare form compilation result with and without optimizations."
 
         parameters["form_compiler"]["representation"] = "quadrature"
         parameters["form_compiler"]["quadrature_degree"] = 2
-        tolerance = 1e-12
+        tolerance = 1.e-12
 
         # Run with no particular optimizations
-        vs = self.point_integral_step(adex_model, adex)
+        vs = self.point_integral_step(cell_model)
         non_opt_result = vs.vector().array()
 
         # Compare with results using aggresssive optimizations
         flags = "-O3 -ffast-math -march=native"
         parameters["form_compiler"]["cpp_optimize"] = True
         parameters["form_compiler"]["cpp_optimize_flags"] = flags
-        vs = self.point_integral_step(adex_model, adex)
+        vs = self.point_integral_step(cell_model)
         assert_almost_equal(non_opt_result, vs.vector().array(), tolerance)
 
         # Compare with results using standard optimizations
         parameters["form_compiler"]["cpp_optimize"] = True
         parameters["form_compiler"]["cpp_optimize_flags"] = "-O2"
-        vs = self.point_integral_step(adex_model, adex)
+        vs = self.point_integral_step(cell_model)
         assert_almost_equal(non_opt_result, vs.vector().array(), tolerance)
 
         # Compare with results using uflacs if installed
         try:
             parameters["form_compiler"]["representation"] = "uflacs"
-            vs = self.point_integral_step(adex_model, adex)
+            vs = self.point_integral_step(cell_model)
             assert_almost_equal(non_opt_result, vs.vector().array(), tolerance)
         except:
             pass

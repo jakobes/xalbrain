@@ -5,11 +5,10 @@ __author__ = "Marie E. Rognes (meg@simula.no), 2014"
 from dolfin import *
 import numpy.linalg
 import pytest
+from cbcbeat.cellmodels import *
+from cbcbeat.utils import state_space
 
-from xalbrain.dolfinimport import parameters
-from xalbrain.cellmodels import *
-from xalbrain.utils import state_space
-
+from cbcbeat import parameters
 
 # Marks
 fast = pytest.mark.fast
@@ -20,7 +19,6 @@ parametrize = pytest.mark.parametrize
 disabled = pytest.mark.disabled
 xfail = pytest.mark.xfail
 
-
 # Assertions
 def assert_almost_equal(a, b, tolerance):
     c = a - b
@@ -30,36 +28,23 @@ def assert_almost_equal(a, b, tolerance):
         c_inf = numpy.linalg.norm(c, numpy.inf)
         assert c_inf < tolerance
 
-
 def assert_equal(a, b):
     assert a == b
-
 
 def assert_true(a):
     assert a is True
 
-
 def assert_greater(a, b):
     assert a > b
 
-
 # Fixtures
-# supported_cell_models_str = [Model.__name__
-#                              for Model in supported_cell_models]
-supported_cell_models_str = [
-    Model.__name__ for Model in (
-        FitzHughNagumoManual,
-        Tentusscher_2004_mcell,
-        NoCellModel
-    )
-]
-
+supported_cell_models_str = [Model.__name__
+                             for Model in supported_cell_models]
 
 @pytest.fixture(params=supported_cell_models_str)
 def cell_model(request):
     Model = eval(request.param)
     return Model()
-
 
 @pytest.fixture(params=supported_cell_models_str)
 def ode_test_form(request):
