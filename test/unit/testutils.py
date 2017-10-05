@@ -2,7 +2,8 @@
 
 __author__ = "Marie E. Rognes (meg@simula.no), 2014"
 
-from dolfin import *
+from xalbrain.dolfinimport import *
+
 import numpy.linalg
 import pytest
 
@@ -10,7 +11,7 @@ from xalbrain.dolfinimport import parameters
 from xalbrain.cellmodels import *
 from xalbrain.utils import state_space
 
-
+# TODO: import these in the tests
 # Marks
 fast = pytest.mark.fast
 medium = pytest.mark.medium
@@ -22,7 +23,7 @@ xfail = pytest.mark.xfail
 
 
 # Assertions
-def assert_almost_equal(a, b, tolerance):
+def assert_almost_equal(a: float, b: float, tolerance: float) -> None:
     c = a - b
     try:
         assert abs(float(c)) < tolerance
@@ -31,21 +32,19 @@ def assert_almost_equal(a, b, tolerance):
         assert c_inf < tolerance
 
 
-def assert_equal(a, b):
+def assert_equal(a: float, b: float) -> None:
     assert a == b
 
 
-def assert_true(a):
+def assert_true(a: Any) -> None:
     assert a is True
 
 
-def assert_greater(a, b):
+def assert_greater(a: float, b: float) -> None:
     assert a > b
 
 
-# Fixtures
-# supported_cell_models_str = [Model.__name__
-#                              for Model in supported_cell_models]
+# TODO: 
 supported_cell_models_str = [
     Model.__name__ for Model in (
         FitzHughNagumoManual,

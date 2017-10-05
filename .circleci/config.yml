@@ -26,3 +26,14 @@ jobs:
       - run:
           name: Import xalbrain first time (JIT)
           command: python3 -c "import xalbrain"
+
+      - run:
+          name: Unit tests
+          command: py.test-3 test/unit
+  
+      - store_artifacts:
+          path: /tmp/circle
+          destination: build
+  
+      - store_test_results:
+          path: /tmp/circle

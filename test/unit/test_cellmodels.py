@@ -4,12 +4,13 @@ __author__ = "Marie E. Rognes (meg@simula.no), 2013 -- 2014"
 
 import pytest
 
-from dolfin import *
+from xalbrain.dolfinimport import *
 from xalbrain.utils import state_space
 
 from xalbrain.cellmodels import (
     Adex,
-    AdexManual
+    AdexManual,
+    CardiacCellModel,
 )
 
 from testutils import (
@@ -28,7 +29,7 @@ from testutils import (
 class TestModelCreation:
     """Test basic features of cell models."""
     def test_create_cell_model_has_ics(self, cell_model):
-        "Test that cell model has initial conditions."
+        """Test that cell model has initial conditions."""
         model = cell_model
         ics = model.initial_conditions()
 
@@ -59,8 +60,7 @@ class TestFormCompilation:
 class TestCompilationCorrectness:
     """Test form compilation results with different optimizations."""
 
-
-    def point_integral_step(self, model, adex=False):
+    def point_integral_step(self, model:CardiacCellModel, adex: bool=False) -> Function:
         # Set-up forms
         mesh = UnitSquareMesh(10, 10)
         V = FunctionSpace(mesh, "CG", 1)
@@ -92,8 +92,8 @@ class TestCompilationCorrectness:
 
     @slow
     @pytest.mark.parametrize("adex_model, adex", [
-        (Adex, True),
-        (AdexManual, False)
+        pytest.param(Adex, True, marks=pytest.mark.xfail),
+        pytest.param(AdexManual, False, marks=pytest.mark.xfail)
     ])
     def test_point_integral_solver(self, adex_model, adex):
         """Compare form compilation result with and without optimizations."""
