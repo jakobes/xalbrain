@@ -5,10 +5,9 @@ __author__ = "Marie E. Rognes (meg@simula.no), 2012--2013"
 
 
 from xalbrain.dolfinimport import *
-from xalbrain.extension_modules import load_module
 from xalbrain.markerwisefield import *
 
-from xalbrain import (
+from xalbrain.cellmodels import (
     CardiacCellModel,
     MultiCellModel,
 )
@@ -435,8 +434,6 @@ class CardiacODESolver(object):
         # Initialize solver and update its parameters
         if self.parameters["adex_solver"]:
             self._pi_solver = AdexPointIntegralSolver(self._scheme)
-            # module = load_module("AdexPointIntegralSolver", force_recompile=True)
-            # self._pi_solver = module.AdexPointIntegralSolver(self._scheme)
         else:
             self._pi_solver = PointIntegralSolver(self._scheme)
         self._pi_solver.parameters.update(self.parameters["point_integral_solver"])

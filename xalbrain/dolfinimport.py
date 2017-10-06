@@ -51,6 +51,16 @@ from dolfin import (
     derivative,
     Vector,
     as_backend_type,
+    UnitSquareMesh,
+    project,
+    split,
+    dP,
+    Form,
+    UnitCubeMesh,
+    PointIntegralSolver,
+    zero,
+    RL1,
+    warning,
 )
 
 
@@ -111,4 +121,14 @@ __all__ = [
     "Vector",
     "dolfin_adjoint",
     "as_backend_type",
+    "UnitSquareMesh",
+    "project",
+    "split",
+    "dP",
+    "Form",
+    "UnitCubeMesh",
+    "PointIntegralSolver",
+    "zero",
+    "RL1",
+    "warning",
 ]

@@ -1,14 +1,47 @@
 version: 2
+
+dependencies:
+  pre:
+
 jobs:
   build:
+
     docker:
       - image: quay.io/fenicsproject/stable
         user: fenics
         environment:
           LD_LIBRARY_PATH: /home/fenics/local/lib
           CMAKE_PREFIX_PATH: /home/fenics/local
-    working_directory: /home/fenics/xalbrin
+    working_directory: /home/fenics/xalbrain
 
     steps:
-       - checkout
-       - run: echo "hello world"
+      - checkout
+
+      - run:
+          name: install-python-requirements
+          command: |
+            sudo pip3 install pytest --upgrade
+            sudo pip3 install pytest-xdist
+            sudo pip3 install -r requirements-dev.txt
+
+      - run:
+          name: Environment and FEniCS version info
+          command: |
+            echo $USER $HOME $PWD $PATH $LD_LIBRARY_PATH $CMAKE_PREFIX_PATH
+            python3 -c "import ffc; print(ffc.git_commit_hash(), ffc.ufc_signature())"
+            python3 -c "import dolfin; print(dolfin.git_commit_hash())"
+  
+      - run:
+          name: Install xalbrain
+          command: |
+            sudo python3 setup.py install
+
+      - run:
+          name: Import xalbrain first time (JIT)
+          command: |
+            python3 -c "import xalbrain"
+
+      - run:
+          name: Unit tests
+          command: | 
+            python3 -m pytest -v -n 4 test/unit

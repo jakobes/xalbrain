@@ -86,6 +86,10 @@ from xalbrain.utils import (
 
 import numpy as np
 
+from typing import (
+    Any,
+)
+
 
 class BasicSplittingSolver:
     """
