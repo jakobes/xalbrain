@@ -45,10 +45,3 @@ jobs:
           name: Unit tests
           command: | 
             python3 -m pytest -v -n 4 test/unit
-  
-      - store_artifacts:
-          path: ~/shared 
-          destination: build
-  
-      - store_test_results:
-          iath: ~/shared 
