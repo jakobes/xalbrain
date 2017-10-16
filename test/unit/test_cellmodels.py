@@ -60,17 +60,20 @@ class TestFormCompilation:
 class TestCompilationCorrectness:
     """Test form compilation results with different optimizations."""
 
-    def point_integral_step(self, model:CardiacCellModel, adex: bool=False) -> Function:
+    def point_integral_step(self, model: CardiacCellModel, adex: bool=False) -> Function:
         # Set-up forms
         mesh = UnitSquareMesh(10, 10)
         V = FunctionSpace(mesh, "CG", 1)
         S = state_space(mesh, model.num_states())
+
         Me = MixedElement((V.ufl_element(), S.ufl_element()))
         VS = FunctionSpace(mesh, Me)
         vs = Function(VS)
+
         vs.assign(project(model.initial_conditions(), VS))
-        (v, s) = split(vs)
-        (w, r) = TestFunctions(VS)
+        v, s = split(vs)
+        w, r = TestFunctions(VS)
+
         rhs = inner(model.F(v, s), r) + inner(- model.I(v, s), w)
         form = rhs*dP
 
@@ -92,8 +95,8 @@ class TestCompilationCorrectness:
 
     @slow
     @pytest.mark.parametrize("adex_model, adex", [
-        pytest.param(Adex, True, marks=pytest.mark.xfail),
-        pytest.param(AdexManual, False, marks=pytest.mark.xfail)
+        # pytest.param(Adex(), True),
+        pytest.param(AdexManual(), False)
     ])
     def test_point_integral_solver(self, adex_model, adex):
         """Compare form compilation result with and without optimizations."""

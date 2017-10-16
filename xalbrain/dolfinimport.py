@@ -61,6 +61,7 @@ from dolfin import (
     zero,
     RL1,
     warning,
+    BackwardEuler,
 )
 
 
@@ -131,4 +132,5 @@ __all__ = [
     "zero",
     "RL1",
     "warning",
+    "BackwardEuler",
 ]
