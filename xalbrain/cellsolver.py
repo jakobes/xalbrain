@@ -346,7 +346,7 @@ class CardiacODESolver(object):
         Solver parameters
 
     """
-    def __init__(self, mesh, time, model, I_s=None, params=None, adex=False):
+    def __init__(self, mesh, time, model, I_s=None, params=None):
         import ufl.classes
 
         # Store input
@@ -368,30 +368,12 @@ class CardiacODESolver(object):
             self._time = time
 
         # Initialize and update parameters if given
-        if adex:
-            self.parameters = self.default_parameters_adex()
-        else:
-            self.parameters = self.default_parameters()
+        self.parameters = self.default_parameters()
         if params is not None:
             self.parameters.update(params)
 
-        if self.parameters["adex_solver"]:
-            # TODO: need better way of updating solver parameters
-            b = self._model._parameters["b"]
-            self.parameters["point_integral_solver"]["b"] = b
-            V_T = self._model._parameters["V_T"]
-            self.parameters["point_integral_solver"]["V_T"] = V_T
-            spike = self._model._parameters["spike"]
-            self.parameters["point_integral_solver"]["spike"] = spike
-
-
         # Create (vector) function space for potential + states
-        self.VS = VectorFunctionSpace(
-            self._mesh,
-            "CG",
-            1,
-            dim=self._num_states + 1
-        )
+        self.VS = VectorFunctionSpace(self._mesh, "CG", 1, dim=self._num_states + 1)
 
         # Initialize solution field
         self.vs_ = Function(self.VS, name="vs_")
@@ -432,10 +414,7 @@ class CardiacODESolver(object):
         self._annotate_kwargs = annotate_kwargs(self.parameters)
 
         # Initialize solver and update its parameters
-        if self.parameters["adex_solver"]:
-            self._pi_solver = AdexPointIntegralSolver(self._scheme)
-        else:
-            self._pi_solver = PointIntegralSolver(self._scheme)
+        self._pi_solver = PointIntegralSolver(self._scheme)
         self._pi_solver.parameters.update(self.parameters["point_integral_solver"])
         
         self._update_cell_model = self._model.update
@@ -462,26 +441,9 @@ class CardiacODESolver(object):
         params = Parameters("CardiacODESolver")
         params.add("scheme", "BackwardEuler")
         params.add(PointIntegralSolver.default_parameters())
-        params.add("adex_solver", False)
         params.add("enable_adjoint", False)
 
         return params
-
-    @staticmethod
-    def default_parameters_adex():
-        """Initialize and return a set of default parameters
-
-        *Returns*
-          A set of parameters (:py:class:`dolfin.Parameters`)
-        """
-        params = Parameters("CardiacODESolver")
-        params.add("scheme", "BackwardEuler")
-        params.add("adex_solver", True)
-        params.add(PointIntegralSolver.default_parameters())
-        params.add("enable_adjoint", False)
-
-        return params
-
 
     def solution_fields(self):
         """
@@ -550,18 +512,16 @@ class CardiacODESolver(object):
         """
 
         # Initial time set-up
-        (T0, T) = interval
+        T0, T = interval
 
         # Solve on entire interval if no interval is given.
         if dt is None:
-            dt = (T - T0)
+            dt = T - T0
 
         # Create timestepper
-        time_stepper = TimeStepper(interval, dt, \
-                                   annotate=self.parameters["enable_adjoint"])
+        time_stepper = TimeStepper(interval, dt, annotate=self.parameters["enable_adjoint"])
 
         for t0, t1 in time_stepper:
-
             info_blue("Solving on t = (%g, %g)" % (t0, t1))
             self.step((t0, t1))
 
@@ -570,6 +530,7 @@ class CardiacODESolver(object):
 
             # FIXME: This eventually breaks in parallel!?
             self.vs_.assign(self.vs)
+
 
 class BasicSingleCellSolver(BasicCardiacODESolver):
     """A basic, non-optimised solver for systems of ODEs typically
@@ -636,8 +597,9 @@ class BasicSingleCellSolver(BasicCardiacODESolver):
                                        I_s=model.stimulus,
                                        params=params, adex=adex)
 
+
 class SingleCellSolver(CardiacODESolver):
-    def __init__(self, model, time, params=None, adex=False):
+    def __init__(self, model, time, params=None):
         "Create solver from given cell model and optional parameters."
 
         assert isinstance(model, CardiacCellModel), \
@@ -655,5 +617,4 @@ class SingleCellSolver(CardiacODESolver):
 
         # Extract information from cardiac cell model and ship off to
         # super-class.
-        CardiacODESolver.__init__(self, mesh, time, model,
-                                  I_s=model.stimulus, params=params, adex=adex)
+        CardiacODESolver.__init__(self, mesh, time, model, I_s=model.stimulus, params=params)

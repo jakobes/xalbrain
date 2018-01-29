@@ -62,8 +62,15 @@ from dolfin import (
     RL1,
     warning,
     BackwardEuler,
+    log,
+    exp,
+    pi,
+    UnitIntervalMesh,
+    RK4,
+    ln,
+    ge,
+    conditional,
 )
-
 
 try:
     import dolfin_adjoint
@@ -133,4 +140,12 @@ __all__ = [
     "RL1",
     "warning",
     "BackwardEuler",
+    "log",
+    "exp",
+    "pi",
+    "UnitIntervalMesh",
+    "RK4",
+    "ln",
+    "ge",
+    "conditional",
 ]

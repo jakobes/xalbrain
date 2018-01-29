@@ -92,8 +92,7 @@ from typing import (
 
 
 class BasicSplittingSolver:
-    """
-    A non-optimised solver for the bidomain equations based on the
+    """A non-optimised solver for the bidomain equations based on the
     operator splitting scheme described in Sundnes et al 2006, p. 78
     ff.
 
@@ -145,12 +144,12 @@ class BasicSplittingSolver:
 
         # Create ODE solver and extract solution fields
         self.ode_solver = self._create_ode_solver()
-        (self.vs_, self.vs) = self.ode_solver.solution_fields()
+        self.vs_, self.vs = self.ode_solver.solution_fields()
         self.VS = self.vs.function_space()
 
         # Create PDE solver and extract solution fields
         self.pde_solver = self._create_pde_solver()
-        (self.v_, self.vur) = self.pde_solver.solution_fields()
+        self.v_, self.vur = self.pde_solver.solution_fields()
 
         # Create function assigner for merging v from self.vur into self.vs[0]
         if self.parameters["pde_solver"] == "bidomain":

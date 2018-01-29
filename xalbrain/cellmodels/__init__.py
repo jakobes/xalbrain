@@ -7,6 +7,7 @@ from .nocellmodel import NoCellModel
 
 from .adex_slow import AdexManual
 from .adex import Adex
+from .Wei_manual import Wei
 
 # Only add supported cell model here if it is tested to actually run
 # with some multistage discretization
@@ -23,8 +24,10 @@ __all__ = [
     "Adex",
     "CardiacCellModel",
     "MultiCellModel",
+    "Wei",
 ]
 
+# TODO: What is this hack?
 try:
     from .beeler_reuter_1977 import Beeler_reuter_1977
     from .fitzhughnagumo_manual import FitzHughNagumoManual

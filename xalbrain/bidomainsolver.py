@@ -9,7 +9,8 @@ potential :math:`u = u(x, t)` such that
 
    \mathrm{div} (G_i v + (G_i + G_e) u) = I_a
 
-where the subscript :math:`t` denotes the time derivative; :math:`G_x` denotes a weighted gradient: :math:`G_x = M_x \mathrm{grad}(v)` for
+where the subscript :math:`t` denotes the time derivative; :math:`G_x` denotes a weighted
+gradient: :math:`G_x = M_x \mathrm{grad}(v)` for
 :math:`x \in \{i, e\}`, where :math:`M_i` and :math:`M_e` are the
 intracellular and extracellular cardiac conductivity tensors,
 respectively; :math:`I_s` and :math:`I_a` are prescribed input. In
@@ -43,11 +44,9 @@ from typing import (
     Callable,
 )
 
-# TODO: Make custom types
-
 
 class BasicBidomainSolver:
-    """This solver is based on a theta-scheme discretization in time
+    r"""This solver is based on a theta-scheme discretization in time
     and CG_1 x CG_1 (x R) elements in space.
 
     .. note::
@@ -60,38 +59,23 @@ class BasicBidomainSolver:
        intended to be set) by modifying the solution fields prior to
        simulation.
 
-    *Arguments*
-      mesh (:py:class:`dolfin.Mesh`)
-        The spatial domain (mesh)
-
-      time (:py:class:`dolfin.Constant` or None)
-        A constant holding the current time. If None is given, time is
-        created for you, initialized to zero.
-
-      M_i (:py:class:`ufl.Expr`)
-        The intracellular conductivity tensor (as an UFL expression)
-
-      M_e (:py:class:`ufl.Expr`)
-        The extracellular conductivity tensor (as an UFL expression)
-
-      I_s (:py:class:`dict`, optional)
-        A typically time-dependent external stimulus given as a dict,
-        with domain markers as the key and a
-        :py:class:`dolfin.Expression` as values. NB: it is assumed
-        that the time dependence of I_s is encoded via the 'time'
-        Constant.
-
-      I_a (:py:class:`dolfin.Expression`, optional)
-        A (typically time-dependent) external applied current
-
-      v\_ (:py:class:`ufl.Expr`, optional)
-        Initial condition for v. A new :py:class:`dolfin.Function`
-        will be created if none is given.
-
-      params (:py:class:`dolfin.Parameters`, optional)
-        Solver parameters
-
+    Arguments:
+        mesh: The spatial domain (mesh)
+        time: A constant holding the current time. If None is given, time is
+            created for you, initialized to zero.
+        M_i: The intracellular conductivity tensor (as an UFL expression).
+        M_e: The extracellular conductivity tensor (as an UFL expression).
+        I_s: A typically time-dependent external stimulus given as a dict,
+          with domain markers as the key and a
+          `dolfin.Expression` as values. NB: it is assumed
+          that the time dependence of I_s is encoded via the 'time'
+          Constant.
+        I_a: A (typically time-dependent) external applied current
+        v\_: Initial condition for v. A new :py:class:`dolfin.Function`
+          will be created if none is given.
+          params: Solver parameters.
     """
+
     def __init__(
             self,
             mesh: Mesh, 
