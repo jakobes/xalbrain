@@ -30,6 +30,8 @@ for u.
 # Use and modify at will
 # Last changed: 2013-04-18
 
+import logging
+
 from xalbrain.dolfinimport import *
 from xalbrain.markerwisefield import *
 from xalbrain.utils import end_of_time, annotate_kwargs
@@ -44,6 +46,7 @@ from typing import (
 )
 
 # TODO: Make custom types
+logger = logging.getLogger(__name__)
 
 
 class BasicBidomainSolver:
@@ -142,12 +145,12 @@ class BasicBidomainSolver:
         self.V = V
 
         if cell_domains is None:
-            cell_domains = CellFunction("size_t", mesh)
+            cell_domains = MeshFunction("size_t", mesh, dim=0)
             cell_domains.set_all(0)
         self._cell_domains = cell_domains
 
         if facet_domains is None:
-            facet_domains = FacetFunction("size_t", mesh)
+            facet_domains = MeshFunction("size_t", mesh, dim=1)
             facet_domains.set_all(0)
         self._facet_domains = facet_domains
 
@@ -171,7 +174,7 @@ class BasicBidomainSolver:
             self.merger = FunctionAssigner(V, self.VUR.sub(0))
             self.v_ = Function(V, name="v_")
         else:
-            debug("Experimental: v_ shipped from elsewhere.")
+            logger.debug("Experimental: v_ shipped from elsewhere.")
             self.merger = None
             self.v_ = v_
         self.vur = Function(self.VUR, name="vur")
@@ -250,7 +253,7 @@ class BasicBidomainSolver:
             if isinstance(self.v_, Function):
                 self.merger.assign(self.v_, self.vur.sub(0))
             else:
-                debug("Assuming that v_ is updated elsewhere. Experimental.")
+                logger.debug("Assuming that v_ is updated elsewhere. Experimental.")
             t0 = t1
             t1 = t0 + dt
 
@@ -431,7 +434,7 @@ class BidomainSolver(BasicBidomainSolver):
             alg = self.parameters["algorithm"]
             prec = self.parameters["preconditioner"]
 
-            debug("Creating PETSCKrylovSolver with %s and %s" % (alg, prec))
+            logger.debug("Creating PETSCKrylovSolver with %s and %s" % (alg, prec))
             if prec == "fieldsplit":
 
                 # Argh. DOLFIN won't let you construct a PETScKrylovSolver with fieldsplit. Sigh ..
@@ -495,7 +498,7 @@ class BidomainSolver(BasicBidomainSolver):
 
             update_routine = self._update_krylov_solver
         else:
-            error("Unknown linear_solver_type given: %s" % solver_type)
+            logger.error("Unknown linear_solver_type given: %s" % solver_type)
 
         return (solver, update_routine)
 
@@ -636,7 +639,7 @@ class BidomainSolver(BasicBidomainSolver):
             self._lhs, self._rhs = self.variational_forms(self._timestep)
 
             # Preassemble left-hand side and initialize right-hand side vector
-            debug("Preassembling bidomain matrix (and initializing vector)")
+            logger.debug("Preassembling bidomain matrix (and initializing vector)")
             self._lhs_matrix = assemble(self._lhs, **self._annotate_kwargs)
             self._rhs_vector = Vector(self._mesh.mpi_comm(), self._lhs_matrix.size(0))
             self._lhs_matrix.init_vector(self._rhs_vector, 0)
@@ -664,9 +667,9 @@ class BidomainSolver(BasicBidomainSolver):
         # Update reuse of factorization parameter in accordance with
         # changes in timestep
         if timestep_unchanged:
-            debug("Timestep is unchanged, reusing LU factorization")
+            logger.debug("Timestep is unchanged, reusing LU factorization")
         else:
-            debug("Timestep has changed, updating LU factorization")
+            logger.debug("Timestep has changed, updating LU factorization")
             if dolfin_adjoint and self.parameters["enable_adjoint"]:
                 raise ValueError("dolfin-adjoint doesn't support changing timestep (yet)")
 
@@ -687,9 +690,9 @@ class BidomainSolver(BasicBidomainSolver):
         # Update reuse of preconditioner parameter in accordance with
         # changes in timestep
         if timestep_unchanged:
-            debug("Timestep is unchanged, reusing preconditioner")
+            logger.debug("Timestep is unchanged, reusing preconditioner")
         else:
-            debug("Timestep has changed, updating preconditioner")
+            logger.debug("Timestep has changed, updating preconditioner")
             if dolfin_adjoint and self.parameters["enable_adjoint"]:
                 raise ValueError("dolfin-adjoint doesn't support changing timestep (yet)")
 
@@ -703,6 +706,6 @@ class BidomainSolver(BasicBidomainSolver):
             (self._linear_solver, dummy) = self._create_linear_solver()
 
         # Set nonzero initial guess if it indeed is nonzero
-        if (self.vur.vector().norm("l2") > 1.e-12):
-            debug("Initial guess is non-zero.")
+        if self.vur.vector().norm("l2") > 1.e-12:
+            logger.debug("Initial guess is non-zero.")
             self.linear_solver.parameters["nonzero_initial_guess"] = True

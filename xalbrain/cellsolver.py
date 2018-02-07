@@ -4,6 +4,8 @@
 __author__ = "Marie E. Rognes (meg@simula.no), 2012--2013"
 
 
+import ufl
+
 from xalbrain.dolfinimport import *
 from xalbrain.markerwisefield import *
 
@@ -18,6 +20,12 @@ from xalbrain.utils import (
     splat,
     annotate_kwargs,
 )
+
+
+import logging
+
+
+logger = logging.getLogger(__name__)
 
 
 class BasicCardiacODESolver(object):
@@ -82,10 +90,7 @@ class BasicCardiacODESolver(object):
         self._I_s = handle_markerwise(I_s, GenericFunction)
 
         # Initialize and update parameters if given
-        if adex:
-            self.parameters = self.default_parameters_adex()
-        else:
-            self.parameters = self.default_parameters()
+        self.parameters = self.default_parameters()
         if params is not None:
             self.parameters.update(params)
 
@@ -188,7 +193,7 @@ class BasicCardiacODESolver(object):
                                    annotate=self.parameters["enable_adjoint"])
         for t0, t1 in time_stepper:
 
-            info_blue("Solving on t = (%g, %g)" % (t0, t1))
+            logger.info("Solving on t = (%g, %g)" % (t0, t1))
             self.step((t0, t1))
 
             # Yield solutions
@@ -407,7 +412,7 @@ class CardiacODESolver(object):
 
         # MER: This looks much more complicated than it needs to be!
         # If we have a as_vector expression
-        F_exprs_q = zero()
+        F_exprs_q = ufl.zero()
         if isinstance(F_exprs, ufl.classes.ListTensor):
             for i, expr_i in enumerate(F_exprs.ufl_operands):
                 F_exprs_q += expr_i*q[i]
@@ -562,7 +567,7 @@ class CardiacODESolver(object):
 
         for t0, t1 in time_stepper:
 
-            info_blue("Solving on t = (%g, %g)" % (t0, t1))
+            logger.info("Solving on t = (%g, %g)" % (t0, t1))
             self.step((t0, t1))
 
             # Yield solutions

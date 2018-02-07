@@ -58,6 +58,8 @@ testing or debugging purposes primarily.
 # Use and modify at will
 # Last changed: 2013-04-15
 
+import logging
+
 __all__ = ["SplittingSolver", "BasicSplittingSolver",]
 
 from xalbrain.dolfinimport import *
@@ -89,6 +91,9 @@ import numpy as np
 from typing import (
     Any,
 )
+
+
+logger = logging.getLogger(__name__)
 
 
 class BasicSplittingSolver:

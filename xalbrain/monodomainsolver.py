@@ -25,6 +25,9 @@ assumes pure homogeneous Neumann boundary conditions for :math:`v`.
 # Use and modify at will
 # Last changed: 2013-04-18
 
+import logging
+
+
 __all__ = [
     "BasicMonodomainSolver",
     "MonodomainSolver"
@@ -42,6 +45,9 @@ from typing import (
     Union,
     Dict,
 )
+
+
+logger = logging.getLogger(__name__)
 
 
 class BasicMonodomainSolver:
@@ -122,7 +128,7 @@ class BasicMonodomainSolver:
         if v_ is None:
             self.v_ = Function(V, name="v_")
         else:
-            debug("Experimental: v_ shipped from elsewhere.")
+            logger.debug("Experimental: v_ shipped from elsewhere.")
             self.v_ = v_
 
         self.v = Function(self.V, name="v")
@@ -198,7 +204,7 @@ class BasicMonodomainSolver:
             if isinstance(self.v_, Function):
                 self.v_.assign(self.v)
             else:
-                debug("Assuming that v_ is updated elsewhere. Experimental.")
+                logger.debug("Assuming that v_ is updated elsewhere. Experimental.")
 
             t0 = t1
             t1 = t0 + dt
@@ -307,7 +313,7 @@ class MonodomainSolver(BasicMonodomainSolver):
 
         # Preassemble left-hand side (will be updated if time-step
         # changes)
-        debug("Preassembling monodomain matrix (and initializing vector)")
+        logger.debug("Preassembling monodomain matrix (and initializing vector)")
         self._lhs_matrix = assemble(self._lhs, **self._annotate_kwargs)
         self._rhs_vector = Vector(mesh.mpi_comm(), self._lhs_matrix.size(0))
         self._lhs_matrix.init_vector(self._rhs_vector, 0)
@@ -333,7 +339,7 @@ class MonodomainSolver(BasicMonodomainSolver):
         elif solver_type == "iterative":
             # Preassemble preconditioner (will be updated if time-step
             # changes)
-            debug("Preassembling preconditioner")
+            logger.debug("Preassembling preconditioner")
             # Initialize KrylovSolver with matrix and preconditioner
             alg = self.parameters["algorithm"]
             prec = self.parameters["preconditioner"]
@@ -352,7 +358,7 @@ class MonodomainSolver(BasicMonodomainSolver):
 
             update_routine = self._update_krylov_solver
         else:
-            error("Unknown linear_solver_type given: %s" % solver_type) 
+            logger.error("Unknown linear_solver_type given: %s" % solver_type) 
         return (solver, update_routine)
 
     @staticmethod
@@ -477,10 +483,10 @@ class MonodomainSolver(BasicMonodomainSolver):
         # Update reuse of factorization parameter in accordance with
         # changes in timestep
         if timestep_unchanged:
-            debug("Timestep is unchanged, reusing LU factorization")
+            logger.debug("Timestep is unchanged, reusing LU factorization")
             self.linear_solver.parameters["reuse_factorization"] = True
         else:
-            debug("Timestep has changed, updating LU factorization")
+            logger.debug("Timestep has changed, updating LU factorization")
             self.linear_solver.parameters["reuse_factorization"] = False
 
             # Update stored timestep
@@ -499,10 +505,10 @@ class MonodomainSolver(BasicMonodomainSolver):
         # Update reuse of preconditioner parameter in accordance with
         # changes in timestep
         if timestep_unchanged:
-            debug("Timestep is unchanged, reusing preconditioner")
+            logger.debug("Timestep is unchanged, reusing preconditioner")
             #self.linear_solver.parameters["preconditioner"]["structure"] = "same"
         else:
-            debug("Timestep has changed, updating preconditioner")
+            logger.debug("Timestep has changed, updating preconditioner")
             #self.linear_solver.parameters["preconditioner"]["structure"] = \
             #                                            "same_nonzero_pattern"
 
@@ -520,5 +526,5 @@ class MonodomainSolver(BasicMonodomainSolver):
 
         # Set nonzero initial guess if it indeed is nonzero
         #if (self.v.vector().norm("l2") > 1.e-12):
-        #    debug("Initial guess is non-zero.")
+        #    logger.debug("Initial guess is non-zero.")
         #    self.linear_solver.parameters["nonzero_initial_guess"] = True

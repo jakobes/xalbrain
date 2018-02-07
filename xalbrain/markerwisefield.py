@@ -5,11 +5,15 @@
 __all__ = ["Markerwise", "handle_markerwise", "rhs_with_markerwise_field"]
 
 
+import logging
+
 from xalbrain.dolfinimport import (
     dx,
     Measure,
-    error,
 )
+
+
+logger = logging.getLogger(__name__)
 
 
 def handle_markerwise(g, classtype):
@@ -22,7 +26,7 @@ def handle_markerwise(g, classtype):
     else:
         msg = "Expecting stimulus to be a %s or Markerwise, not %r " \
               % (str(classtype), g)
-        error(msg)
+        logger.error(msg)
 
 
 def rhs_with_markerwise_field(g, mesh, v):

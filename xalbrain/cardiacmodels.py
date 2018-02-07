@@ -10,12 +10,15 @@ scenarios.
 
 __all__ = ["CardiacModel"]
 
+
+import logging
+
+
 from xalbrain.dolfinimport import (
     Parameters,
     Mesh,
     Constant,
     GenericFunction,
-    error,
 )
 
 from xalbrain.markerwisefield import (
@@ -23,6 +26,10 @@ from xalbrain.markerwisefield import (
     handle_markerwise,
 )
 from .cellmodels import *
+
+
+logger = logging.getLogger(__name__)
+
 
 # ------------------------------------------------------------------------------
 # Cardiac models
@@ -96,7 +103,7 @@ class CardiacModel(object):
         self._cell_models = handle_markerwise(cell_models, CardiacCellModel)
         if isinstance(self._cell_models, Markerwise):
             msg = "Different cell_models are currently not supported."
-            error(msg)
+            logger.error(msg)
 
         # Handle stimulus
         self._stimulus = handle_markerwise(stimulus, GenericFunction)

@@ -5,6 +5,7 @@ from .cardiaccellmodel import (
 
 from .nocellmodel import NoCellModel
 
+from .wei_manual import Wei
 from .adex_slow import AdexManual
 from .adex import Adex
 
@@ -15,6 +16,7 @@ SUPPORTED_CELL_MODELS = [
     NoCellModel,
     AdexManual,
     Adex,
+    Wei,
 ]
 
 __all__ = [
@@ -23,6 +25,7 @@ __all__ = [
     "Adex",
     "CardiacCellModel",
     "MultiCellModel",
+    "Wei",
 ]
 
 try:

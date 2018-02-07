@@ -1,10 +1,12 @@
 """This module provides various utilities for internal use."""
 
+
 __author__ = "Marie E. Rognes (meg@simula.no), 2012--2013"
 
 __all__ = ["state_space", "end_of_time", "convergence_rate",
            "Projecter"]
 
+import logging
 import math
 
 from xalbrain.dolfinimport import dolfin_adjoint
@@ -18,6 +20,9 @@ else:
     from dolfin import assemble, LUSolver, KrylovSolver, parameters
 
 from typing import Dict
+
+
+logger = logging.getLogger(__name__)
 
 
 def annotate_kwargs(ba_parameters: parameters) -> Dict[str, bool]:
@@ -243,13 +248,13 @@ class Projecter(object):
         assert(solver_type == "lu" or solver_type == "cg"),  \
             "Expecting 'linear_solver_type' to be 'lu' or 'cg'"
         if solver_type == "lu":
-            dolfin.debug("Setting up direct solver for projecter")
+            LogLevel.debug("Setting up direct solver for projecter")
             # Customize LU solver (reuse everything)
             solver = LUSolver(self.M)
             solver.parameters["same_nonzero_pattern"] = True
             solver.parameters["reuse_factorization"] = True
         else:
-            dolfin.debug("Setting up iterative solver for projecter")
+            LogLevel.debug("Setting up iterative solver for projecter")
             # Customize Krylov solver (reuse everything)
             solver = KrylovSolver("cg", "ilu")
             solver.set_operator(self.M)

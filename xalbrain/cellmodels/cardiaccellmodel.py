@@ -4,10 +4,11 @@ from __future__ import division
 __author__ = "Marie E. Rognes (meg@simula.no), 2012--2013"
 __all__ = ["CardiacCellModel", "MultiCellModel"]
 
+import logging
+
 from xalbrain.dolfinimport import (
     Parameters,
     Expression,
-    error,
     GenericFunction,
     VectorFunctionSpace,
     Function,
@@ -20,6 +21,9 @@ from xalbrain.dolfinimport import (
 )
 
 from collections import OrderedDict
+
+
+logger = logging.getLogger(__name__)
 
 
 class CardiacCellModel:
@@ -110,12 +114,12 @@ class CardiacCellModel:
         "Update parameters in model"
         for param_name, param_value in params.items():
             if param_name not in self._parameters:
-                error("'%s' is not a parameter in %s" %(param_name, self))
+                logger.error("'%s' is not a parameter in %s" %(param_name, self))
             if not isinstance(param_value, (float, int, GenericFunction)):
-                error("'%s' is not a scalar or a GenericFunction" % param_name)
+                logger.error("'%s' is not a scalar or a GenericFunction" % param_name)
             if isinstance(param_value, GenericFunction) and \
                param_value.value_size() != 1:
-                error("expected the value_size of '%s' to be 1" % param_name)
+                logger.error("expected the value_size of '%s' to be 1" % param_name)
 
             self._parameters[param_name] = param_value
 
@@ -123,12 +127,12 @@ class CardiacCellModel:
         "Update initial_conditions in model"
         for init_name, init_value in init.items():
             if init_name not in self._initial_conditions:
-                error("'%s' is not a parameter in %s" %(init_name, self))
+                logger.error("'%s' is not a parameter in %s" %(init_name, self))
             if not isinstance(init_value, (float, int, GenericFunction)):
-                error("'%s' is not a scalar or a GenericFunction" % init_name)
+                logger.error("'%s' is not a scalar or a GenericFunction" % init_name)
             if isinstance(init_value, GenericFunction) and \
                init_value.value_size() != 1:
-                error("expected the value_size of '%s' to be 1" % init_name)
+                logger.error("expected the value_size of '%s' to be 1" % init_name)
             self._initial_conditions[init_name] = init_value
 
     def initial_conditions(self):
@@ -142,16 +146,16 @@ class CardiacCellModel:
 
     def F(self, v, s, time=None):
         "Return right-hand side for state variable evolution."
-        error("Must define F = F(v, s)")
+        logger.error("Must define F = F(v, s)")
 
     def I(self, v, s, time=None):
         "Return the ionic current."
-        error("Must define I = I(v, s)")
+        logger.error("Must define I = I(v, s)")
 
     def num_states(self):
         """Return number of state variables (in addition to the
         membrane potential)."""
-        error("Must overload num_states")
+        logger.error("Must overload num_states")
 
     def __str__(self):
         "Return string representation of class."
@@ -204,14 +208,14 @@ class MultiCellModel(CardiacCellModel):
 
     def F(self, v, s, time=None, index=None):
         if index is None:
-            error("(Domain) index must be specified for multi cell models")
+            logger.error("(Domain) index must be specified for multi cell models")
         # Extract which cell model index (given by index in incoming tuple)
         k = self._key_to_cell_model[index]
         return self._cell_models[k].F(v, s, time)
 
     def I(self, v, s, time=None, index=None):
         if index is None:
-            error("(Domain) index must be specified for multi cell models")
+            logger.error("(Domain) index must be specified for multi cell models")
         # Extract which cell model index (given by index in incoming tuple)
         k = self._key_to_cell_model[index]
         return self._cell_models[k].I(v, s, time)
