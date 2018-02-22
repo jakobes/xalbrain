@@ -22,7 +22,7 @@ class Wei(CardiacCellModel):
             ("C", 1),           # [muF/cm^2]        Membrane capacitance
             ("G_Na", 30),       # [mS/cm^2]
             ("G_NaL", 0.0247),  # [mS/cm^2]
-            ("G_K", 0.25),      # [mS/cm^2]
+            ("G_K", 25),        # [mS/cm^2]
             ("G_KL", 0.05),     # [mS/cm^2]
             ("G_ClL", 0.1),     # [mS/cm^2]
             ("beta0", 7),       # Ratio of initial extra- and intracellular volume
@@ -48,7 +48,7 @@ class Wei(CardiacCellModel):
             ("h", 0.9994),          # FIXME: What is this
             ("n", 0.0107),          # FIXME: What is this
             ("Nko", 4*volo),        # [mol?] Initial extracellular potassium number
-            ("NKi", 130*vol),       # [mol?] Initial intracellular potassium number
+            ("NKi", 140*vol),       # [mol?] Initial intracellular potassium number
             ("NNao", 144*volo),     # [mol?] Initial extracellular sodium number
             ("NNai", 18*vol),       # [mol?] Initial intracellular sodium number
             ("NClo", 130*volo),     # [mol?] Initial extracellular chloride number
@@ -64,161 +64,178 @@ class Wei(CardiacCellModel):
         ic = self.default_initial_conditions()
 
         volo = (1 + 1/beta0)*ic["vol"] - voli
-        Nao = NNao/volo
-        Nai = NNai/voli
         Ko = NKo/volo
         Ki = NKi/voli
+        Nao = NNao/volo
+        Nai = NNai/voli
         Clo = NClo/volo
         Cli = NCli/voli
 
-        return Nai, Nai, Ko, Ki, Clo, Cli
+        return Nao, Nai, Ko, Ki, Clo, Cli
 
     def _gamma(self, voli):
-        alpha = 4*pi*(3*voli/(4*pi))**(2/3)  # surface area (m^2)
-        F = 9.632e4                          # F = e*NA
-
-        return alpha/(F*voli)*1e-2          # 1e-2: convert from m to cm.  0.0445
-
-    def _I_pump(self, O, Nai, Ko, gamma):
-        rho_max = self._parameters["rho_max"]
-        rho = rho_max/(1 + exp((20 - O)/3))/gamma
-        I_pump = rho/((1 + exp((25 - Nai)/3))*(1 + exp(3.5 - Ko)))
-
-        return I_pump
-
-    def _I_Na(self, V, m, h, Nao, Nai):
-        G_NaL = self._parameters["G_NaL"]
-        G_Na = self._parameters["G_Na"]
-        E_Na = 26.64*ln(Nao/Nai)
-        return G_Na*m**3*h*(V  - E_Na) + G_NaL*(V - E_Na)
+        alpha = 4*pi*(3*voli/(4*pi))**(2/3)
+        F = 96485.33
+        return alpha/(F*voli)*1e-2
 
     def _I_K(self, V, n, Ko, Ki):
-        G_KL = self._parameters["G_KL"]
         G_K = self._parameters["G_K"]
+        G_KL = self._parameters["G_KL"]
+        assert G_K == 25
+        assert G_KL == 0.05
         E_K = 26.64*ln(Ko/Ki)
         return G_K*n**4*(V - E_K) + G_KL*(V - E_K)
 
-    def _I_Cl(self, V, Cli, Clo):
+    def _I_Na(self, V, m, h, Nao, Nai):
+        G_Na = self._parameters["G_Na"]
+        assert G_Na == 30
+        G_NaL = self._parameters["G_NaL"]
+        assert G_NaL == 0.0247
+        E_Na = 26.64*ln(Nao/Nai)
+        return G_Na*m**3*h*(V - E_Na) + G_NaL*(V - E_Na)
+
+    def _I_Cl(self, V, Clo, Cli):
         G_ClL = self._parameters["G_ClL"]
+        assert G_ClL == 0.1
         E_Cl = 26.64*ln(Cli/Clo)
         return G_ClL*(V - E_Cl)
 
+    def _I_pump(self, Nai, Ko, O, gamma):
+        rho_max = self._parameters["rho_max"]
+        assert rho_max == 8e-1       # maximal pump rate
+        rho = rho_max/(1 + exp((20 - O)/3))/gamma
+        return rho/(1 + exp((25 - Nai)/3))*1/(1 + exp(3.5 - Ko))
+
     def I(self, V, s, time=None):
         m, h, n, NKo, NKi, NNao, NNai, NClo, NCli, voli, O = s
-        Nao, Nai, Ko, Ki, Clo, Cli = self._get_concentrations(V, s)
-        ic = self.default_initial_conditions()
-
         O = dolfin.conditional(dolfin.ge(O, 0), O, 0)
-        C = self._parameters["C"]
-        beta0 = self._parameters["beta0"]
+        vol = 1.4368e-15    # unit:m^3, when r=7 um,v=1.4368e-15 m^3
+        beta0 = 7
+        volo = (1 + 1/beta0)*vol - voli     # Extracellular volume
+        C = 1
 
-        volo = (1 + 1/beta0)*ic["vol"] - voli
-        beta =  voli/volo
+        #rKo, rKi, rNao, rNai, rClo, rCli = self._get_concentrations(V, s)
 
-        I_Na = self._I_Na(V, m, h, Nai, Nai)
+        Ko = NKo/volo       # mM
+        Ki = NKi/voli
+        Nao = NNao/volo
+        Nai = NNai/voli
+        Clo = NClo/volo
+        Cli = NCli/voli
+
         I_K = self._I_K(V, n, Ko, Ki)
-        I_Cl = self._I_Cl(V, Cli, Clo)
-
+        I_Na = self._I_Na(V, m, h, Nao, Nai)
+        I_Cl = self._I_Cl(V, Clo, Cli)
         gamma = self._gamma(voli)
-        I_pump = self._I_pump(O, Nai, Ko, gamma)
+        I_pump = self._I_pump(Nai, Ko, O, gamma)
+        return (I_Na + I_K + I_Cl + I_pump)/C
 
-        return -(I_Na + I_K + I_Cl + I_pump/gamma)/C
 
     def F(self, V, s, time=None):
         m, h, n, NKo, NKi, NNao, NNai, NClo, NCli, voli, O = s
         O = dolfin.conditional(dolfin.ge(O, 0), O, 0)
-        Nao, Nai, Ko, Ki, Clo, Cli = self._get_concentrations(V, s)
 
-        ic = self.default_initial_conditions()
+        G_K = 25       # Voltage gated conductance       [mS/mm^2]
+        G_Na = 30       # Voltage gated conductance       [mS/mm^2]
+        G_ClL = 0.1    # leak conductances               [mS/mm^2]
+        G_Kl = 0.05
+        G_NaL = 0.0247
+        C = 1         # Capacitance representing the lipid bilayer
 
-        # Get the parameters
-        C = self._parameters["C"]
-        beta0 = self._parameters["beta0"]
-        rho_max = self._parameters["rho_max"]
-        Obath = self._parameters["Obath"]
-        Kbath = self._parameters["KBath"]
-        eps_K = self._parameters["eps_K"]
-        G_glia = self._parameters["G_glia"]
-        eps_O = self._parameters["eps_O"]
-        Unkcc1 = self._parameters["Unkcc1"]
-        Ukcc2 = self._parameters["Ukcc2"]
-        tau = self._parameters["tau"]
-        G_Na = self._parameters["G_Na"]
-        G_NaL = self._parameters["G_NaL"]
-        G_K = self._parameters["G_K"]
-        G_KL = self._parameters["G_KL"]
-        G_ClL = self._parameters["G_ClL"]
+        # Ion Concentration related Parameters
+        dslp = 0.25     # potassium diffusion coefficient
+        gmag = 5        # maximal glial strength
+        sigma = 0.17    # Oxygen diffusion coefficient
+        Ukcc2 = 3e-1      # maximal KCC2 cotransporteer trength
+        Unkcc1 = 1e-1    # maximal KCC1 cotransporter strength
+        rho = 8e-1       # maximal pump rate
+
+        # Volume 
+        vol = 1.4368e-15    # unit:m^3, when r=7 um,v=1.4368e-15 m^3
+        beta0 = 7
+
+        # Time Constant
+        tau = 1e-3
+        Kbath = 8.5
+        Obath = 32
 
         gamma = self._gamma(voli)
+        volo = (1 + 1/beta0)*vol - voli     # Extracellular volume
+        beta = voli/volo                    # Ratio of intracelluar to extracelluar volume
 
-        volo = (1 + 1/beta0)*ic["vol"] - voli
-        beta =  voli/volo
-        rho = rho_max/(1 + exp((20 - O)/3))/gamma
+        # Gating variables
+        alpha_m = 0.32*(54 + V)/(1 - exp(-(V + 54)/4))
+        beta_m = 0.28*(V + 27)/(exp((V + 27)/5) - 1)
+
+        alpha_h = 0.128*exp(-(V + 50)/18)
+        beta_h = 4/(1 + exp(-(V + 27)/5))
+
+        alpha_n = 0.032*(V + 52)/(1 - exp(-(V + 52)/5))
+        beta_n = 0.5*exp(-(V + 57)/40)
+
+        dotm = alpha_m*(1 - m) - beta_m*m
+        doth = alpha_h*(1 - h) - beta_h*h
+        dotn = alpha_n*(1 - n) - beta_n*n
+
+        Ko = NKo/volo       # mM
+        Ki = NKi/voli
+        Nao = NNao/volo
+        Nai = NNai/voli
+        Clo = NClo/volo
+        Cli = NCli/voli
 
         fo = 1/(1 + exp((2.5 - Obath)/0.2))
         fv = 1/(1 + exp((beta - 20)/2))
-        dslp = eps_K*fo*fv
-        gmag = G_glia*fo
+        dslp *= fo*fv
+        gmag *= fo
 
-        I_glia = gmag/(1.0 + exp((18.0 - Ko)/2.5));
-        I_gliapump = rho/3/(1 + exp(7/3))*1/(1 + exp(3.5 - Ko))
-        I_diff = dslp*(Ko - Kbath) + I_glia + 2*I_gliapump*gamma; 
+        p = rho/(1 + exp((20 - O)/3))/gamma
+        I_glia = gmag/(1 + exp((18 - Ko)/2.5))
+        Igliapump = (p/3/(1 + exp((25 - 18)/3)))*(1/(1 + exp(3.5 - Ko)))
+        I_diff = dslp*(Ko - Kbath) + I_glia + 2*Igliapump*gamma
 
+        I_K = self._I_K(V, n, Ko, Ki)
+        I_Na = self._I_Na(V, m, h, Nao, Nai)
+        I_Cl = self._I_Cl(V, Clo, Cli)
+        I_pump = self._I_pump(Nai, Ko, O, gamma)
+
+        # Cloride transporter (mM/s)
         fKo = 1/(1 + exp(16 - Ko))
         FKCC2 = Ukcc2*ln((Ki*Cli)/(Ko*Clo))
         FNKCC1 = Unkcc1*fKo*(ln((Ki*Cli)/(Ko*Clo)) + ln((Nai*Cli)/(Nao*Clo)))
 
-        alpha_m = 0.32*(V + 54)/(1 - exp(-(V +54)/4))
-        beta_m = 0.28*(V + 27)/(exp((V + 27)/5) - 1)
-        alpha_h = 0.128*exp(-(V + 50)/18)
-        beta_h = 4/(1 + exp(-(V + 27)/5))
-        alpha_n = 0.032*(V + 52)/(1 - exp(-(V + 52)/5))
-        beta_n = 0.5*exp(-(V + 57)/40)
-
-        m = alpha_m*(1 - m) - beta_m*m
-        h = alpha_h*(1 - h) - beta_h*h
-        n = alpha_n*(1 - n) - beta_n*n
-
-        gamma = self._gamma(voli)
-        I_K = self._I_K(V, n, Ko, Ki)
-        I_pump = self._I_pump(O, Nai, Ko, gamma)
-        I_Na = self._I_Na(V, m, h, Nai, Nai)
-        I_Cl = self._I_Cl(C, Cli, Clo)
-
-        dotNKo = tau*(gamma*beta*(I_K -  2.0 * I_pump) -I_diff + FKCC2*beta + FNKCC1*beta)*volo
+        dotNKo = tau*volo*(gamma*beta*(I_K -  2.0*I_pump) - I_diff + FKCC2*beta + FNKCC1*beta)
         dotNKi = -tau*voli*(gamma*(I_K - 2.0*I_pump) + FKCC2 + FNKCC1)
 
-        dotNNao = tau*volo*(gamma*beta*(I_Na + 3.0*I_pump) + FNKCC1*beta)
-        dotNNai = -tau*voli*(gamma*(I_Na + 3.0 * I_pump) + FNKCC1)
+        dotNNao = tau*volo*beta*(gamma*(I_Na + 3.0*I_pump) + FNKCC1)
+        dotNNai = -tau*voli*(gamma*(I_Na + 3.0*I_pump) + FNKCC1)
 
-        dotNCli = tau*voli*(gamma*I_Cl - FKCC2 - 2*FNKCC1)
-        dotNClo = tau*volo*(FKCC2*beta + 2*FNKCC1*beta - gamma*beta*I_Cl)
-        # intracellular volume dynamics
-        r1 = ic["vol"]/voli
-        r2 = 1/beta0*ic["vol"]/((1 + 1/beta0)*ic["vol"] - voli)
+        dotNClo = beta*volo*tau*(FKCC2 - gamma*I_Cl + 2*FNKCC1)
+        dotNCli = voli*tau*(gamma*I_Cl - FKCC2 - 2*FNKCC1)
+
+        r1 = vol/voli
+        r2 = 1/beta0*vol/((1 + 1/beta0)*vol - voli)
         pii = Nai + Cli + Ki + 132*r1
         pio = Nao + Ko + Clo + 18*r2
 
-        vol_hat = ic["vol"]*1.1029*(1 - exp((pio - pii)/20))
-        dotVol = (vol_hat - voli)/0.25*tau
-
-        dotO = tau*(-5.3*(I_pump + I_gliapump)*gamma + eps_O*(Obath - O))
+        vol_hat = vol*(1.1029 - 0.1029*exp((pio - pii)/20))
+        dotVoli = -(voli - vol_hat)/0.25*tau
+        dotO = tau*(-5.3*(I_pump + Igliapump)*gamma + sigma*(Obath - O))
 
         F_expressions = [ufl.zero()]*self.num_states()
-        F_expressions[0] = m
-        F_expressions[1] = h 
-        F_expressions[2] = n
+        F_expressions[0] = dotm
+        F_expressions[1] = doth
+        F_expressions[2] = dotn
         F_expressions[3] = dotNKo
         F_expressions[4] = dotNKi
         F_expressions[5] = dotNNao
         F_expressions[6] = dotNNai
         F_expressions[7] = dotNClo
         F_expressions[8] = dotNCli
-        F_expressions[9] = dotVol
+        F_expressions[9] = dotVoli
         F_expressions[10] = dotO
         return dolfin.as_vector(F_expressions)
 
     def num_states(self):
         "Return number of state variables."
         return 11
-
