@@ -33,9 +33,10 @@ class Wei(CardiacCellModel):
             ("eps_K", 0.25),    # [1/s] Potassium diffusion coefficient
             ("G_glia", 5),      # [mM/s] Maximal glia uptake strength of potassium
             ("eps_O", 0.17),    # [1/s] Oxygen diffusion rate
-            ("KBath", 8.5),     # FIXME: What is this? 
-            ("Obath", 32),      # FIXME: what is this?
-        ])
+            ("KBath", 8.5),     # Extracellular potassium concentration? 
+            ("Obath", 32),      # Extracellular oxygen concentration?
+
+            ])
         return params
 
     def default_initial_conditions(self):
@@ -44,9 +45,9 @@ class Wei(CardiacCellModel):
         volo = 1/beta0*vol
         ic = OrderedDict([
             ("V", -74.30),          # [mV] Membrane potential
-            ("m", 0.0031),          # FIXME: What is this
-            ("h", 0.9994),          # FIXME: What is this
-            ("n", 0.0107),          # FIXME: What is this
+            ("m", 0.0031),          # Voltage gating? 
+            ("h", 0.9994),          # Voltage gating? 
+            ("n", 0.0107),          # Voltage gating? 
             ("Nko", 4*volo),        # [mol?] Initial extracellular potassium number
             ("NKi", 140*vol),       # [mol?] Initial intracellular potassium number
             ("NNao", 144*volo),     # [mol?] Initial extracellular sodium number
@@ -55,7 +56,7 @@ class Wei(CardiacCellModel):
             ("NCli", 6*vol),        # [mol?] Initial intracellular chloride number
             ("vol", vol),           # [m^3] Initial intracellular volume
             ("O", 29.3),            # [mol?] Initial oxygen concentration
-        ])
+            ])
         return ic
 
     def _get_concentrations(self, V, s):
@@ -70,7 +71,6 @@ class Wei(CardiacCellModel):
         Nai = NNai/voli
         Clo = NClo/volo
         Cli = NCli/voli
-
         return Nao, Nai, Ko, Ki, Clo, Cli
 
     def _gamma(self, voli):
@@ -81,30 +81,24 @@ class Wei(CardiacCellModel):
     def _I_K(self, V, n, Ko, Ki):
         G_K = self._parameters["G_K"]
         G_KL = self._parameters["G_KL"]
-        assert G_K == 25
-        assert G_KL == 0.05
         E_K = 26.64*ln(Ko/Ki)
         return G_K*n**4*(V - E_K) + G_KL*(V - E_K)
 
     def _I_Na(self, V, m, h, Nao, Nai):
         G_Na = self._parameters["G_Na"]
-        assert G_Na == 30
         G_NaL = self._parameters["G_NaL"]
-        assert G_NaL == 0.0247
         E_Na = 26.64*ln(Nao/Nai)
         return G_Na*m**3*h*(V - E_Na) + G_NaL*(V - E_Na)
 
     def _I_Cl(self, V, Clo, Cli):
         G_ClL = self._parameters["G_ClL"]
-        assert G_ClL == 0.1
         E_Cl = 26.64*ln(Cli/Clo)
         return G_ClL*(V - E_Cl)
 
     def _I_pump(self, Nai, Ko, O, gamma):
         rho_max = self._parameters["rho_max"]
-        assert rho_max == 8e-1       # maximal pump rate
         rho = rho_max/(1 + exp((20 - O)/3))/gamma
-        return rho/(1 + exp((25 - Nai)/3))*1/(1 + exp(3.5 - Ko))
+        return rho/(1 + exp((25 - Nai)/3))/(1 + exp(3.5 - Ko))
 
     def I(self, V, s, time=None):
         m, h, n, NKo, NKi, NNao, NNai, NClo, NCli, voli, O = s
@@ -114,50 +108,42 @@ class Wei(CardiacCellModel):
         volo = (1 + 1/beta0)*vol - voli     # Extracellular volume
         C = 1
 
-        #rKo, rKi, rNao, rNai, rClo, rCli = self._get_concentrations(V, s)
-
-        Ko = NKo/volo       # mM
-        Ki = NKi/voli
-        Nao = NNao/volo
-        Nai = NNai/voli
-        Clo = NClo/volo
-        Cli = NCli/voli
+        Ko, Ki, Nao, Nai, Clo, Cli = self._get_concentrations(V, s)
 
         I_K = self._I_K(V, n, Ko, Ki)
         I_Na = self._I_Na(V, m, h, Nao, Nai)
         I_Cl = self._I_Cl(V, Clo, Cli)
         gamma = self._gamma(voli)
         I_pump = self._I_pump(Nai, Ko, O, gamma)
-        return (I_Na + I_K + I_Cl + I_pump)/C
-
+        return (I_Na + I_K + I_Cl + I_pump)/C       # Sign is correcct I think
 
     def F(self, V, s, time=None):
         m, h, n, NKo, NKi, NNao, NNai, NClo, NCli, voli, O = s
         O = dolfin.conditional(dolfin.ge(O, 0), O, 0)
 
-        G_K = 25       # Voltage gated conductance       [mS/mm^2]
-        G_Na = 30       # Voltage gated conductance       [mS/mm^2]
-        G_ClL = 0.1    # leak conductances               [mS/mm^2]
-        G_Kl = 0.05
-        G_NaL = 0.0247
-        C = 1         # Capacitance representing the lipid bilayer
+        G_K = self._parameters["G_K"]
+        G_Na = self._parameters["G_Na"]
+        G_ClL = self._parameters["G_ClL"]
+        G_Kl = self._parameters["G_Kl"]
+        G_NaL = self._parameters["G_NaL"]
+        C = self._parameters["C"]
 
         # Ion Concentration related Parameters
-        dslp = 0.25     # potassium diffusion coefficient
-        gmag = 5        # maximal glial strength
-        sigma = 0.17    # Oxygen diffusion coefficient
-        Ukcc2 = 3e-1      # maximal KCC2 cotransporteer trength
-        Unkcc1 = 1e-1    # maximal KCC1 cotransporter strength
-        rho = 8e-1       # maximal pump rate
+        eps_K = self._parameters["eps_K"]
+        G_glia = self._parameters["G_glia"]
+        eps_O = self._parameters["eps_O"]
+        Ukcc2 = self._parameters["Ukcc2"] 
+        Unkcc1 = self._parameters["Unkcc1"]
+        rho_max = self._parameters["rho_max"]
 
         # Volume 
-        vol = 1.4368e-15    # unit:m^3, when r=7 um,v=1.4368e-15 m^3
-        beta0 = 7
+        vol = 1.4368e-15    # unit:m^3, when r=7 um,v=1.4368e-15 m^3    # TODO: add to parameters
+        beta0 = self._parameters["beta0"]
 
         # Time Constant
-        tau = 1e-3
-        Kbath = 8.5
-        Obath = 32
+        tau = self._parameters["tau"]
+        Kbath = self._parameters["Kbath"]
+        Obath = self._parameters["Obath"]
 
         gamma = self._gamma(voli)
         volo = (1 + 1/beta0)*vol - voli     # Extracellular volume
@@ -177,22 +163,17 @@ class Wei(CardiacCellModel):
         doth = alpha_h*(1 - h) - beta_h*h
         dotn = alpha_n*(1 - n) - beta_n*n
 
-        Ko = NKo/volo       # mM
-        Ki = NKi/voli
-        Nao = NNao/volo
-        Nai = NNai/voli
-        Clo = NClo/volo
-        Cli = NCli/voli
+        Ko, Ki, Nao, Nai, Clo, Cli = self._get_concentrations(V, s)
 
         fo = 1/(1 + exp((2.5 - Obath)/0.2))
         fv = 1/(1 + exp((beta - 20)/2))
-        dslp *= fo*fv
-        gmag *= fo
+        eps_K *= fo*fv
+        G_glia *= fo
 
         p = rho/(1 + exp((20 - O)/3))/gamma
-        I_glia = gmag/(1 + exp((18 - Ko)/2.5))
-        Igliapump = (p/3/(1 + exp((25 - 18)/3)))*(1/(1 + exp(3.5 - Ko)))
-        I_diff = dslp*(Ko - Kbath) + I_glia + 2*Igliapump*gamma
+        I_glia = G_glia/(1 + exp((18 - Ko)/2.5))
+        Igliapump = p/3/(1 + exp((25 - 18)/3))/(1 + exp(3.5 - Ko))
+        I_diff = eps_K*(Ko - Kbath) + I_glia + 2*Igliapump*gamma
 
         I_K = self._I_K(V, n, Ko, Ki)
         I_Na = self._I_Na(V, m, h, Nao, Nai)
