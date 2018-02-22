@@ -34,7 +34,7 @@ class Wei(CardiacCellModel):
             ("G_glia", 5),      # [mM/s] Maximal glia uptake strength of potassium
             ("eps_O", 0.17),    # [1/s] Oxygen diffusion rate
             ("KBath", 8.5),     # Extracellular potassium concentration? 
-            ("Obath", 32),      # Extracellular oxygen concentration?
+            ("OBath", 32),      # Extracellular oxygen concentration?
 
             ])
         return params
@@ -124,7 +124,7 @@ class Wei(CardiacCellModel):
         G_K = self._parameters["G_K"]
         G_Na = self._parameters["G_Na"]
         G_ClL = self._parameters["G_ClL"]
-        G_Kl = self._parameters["G_Kl"]
+        G_Kl = self._parameters["G_KL"]
         G_NaL = self._parameters["G_NaL"]
         C = self._parameters["C"]
 
@@ -142,8 +142,8 @@ class Wei(CardiacCellModel):
 
         # Time Constant
         tau = self._parameters["tau"]
-        Kbath = self._parameters["Kbath"]
-        Obath = self._parameters["Obath"]
+        KBath = self._parameters["KBath"]
+        OBath = self._parameters["OBath"]
 
         gamma = self._gamma(voli)
         volo = (1 + 1/beta0)*vol - voli     # Extracellular volume
@@ -165,15 +165,15 @@ class Wei(CardiacCellModel):
 
         Ko, Ki, Nao, Nai, Clo, Cli = self._get_concentrations(V, s)
 
-        fo = 1/(1 + exp((2.5 - Obath)/0.2))
+        fo = 1/(1 + exp((2.5 - OBath)/0.2))
         fv = 1/(1 + exp((beta - 20)/2))
         eps_K *= fo*fv
         G_glia *= fo
 
-        p = rho/(1 + exp((20 - O)/3))/gamma
+        rho = rho_max/(1 + exp((20 - O)/3))/gamma
         I_glia = G_glia/(1 + exp((18 - Ko)/2.5))
-        Igliapump = p/3/(1 + exp((25 - 18)/3))/(1 + exp(3.5 - Ko))
-        I_diff = eps_K*(Ko - Kbath) + I_glia + 2*Igliapump*gamma
+        Igliapump = rho/3/(1 + exp((25 - 18)/3))/(1 + exp(3.5 - Ko))
+        I_diff = eps_K*(Ko - KBath) + I_glia + 2*Igliapump*gamma
 
         I_K = self._I_K(V, n, Ko, Ki)
         I_Na = self._I_Na(V, m, h, Nao, Nai)
@@ -201,7 +201,7 @@ class Wei(CardiacCellModel):
 
         vol_hat = vol*(1.1029 - 0.1029*exp((pio - pii)/20))
         dotVoli = -(voli - vol_hat)/0.25*tau
-        dotO = tau*(-5.3*(I_pump + Igliapump)*gamma + sigma*(Obath - O))
+        dotO = tau*(-5.3*(I_pump + Igliapump)*gamma + eps_O*(OBath - O))
 
         F_expressions = [ufl.zero()]*self.num_states()
         F_expressions[0] = dotm
