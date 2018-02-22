@@ -126,12 +126,12 @@ class BasicBidomainSolver:
         self.V = V
 
         if cell_domains is None:
-            cell_domains = CellFunction("size_t", mesh)
+            cell_domains = MeshFunction("size_t", mesh, dim=1)
             cell_domains.set_all(0)
         self._cell_domains = cell_domains
 
         if facet_domains is None:
-            facet_domains = FacetFunction("size_t", mesh)
+            facet_domains = MeshFunction("size_t", mesh, dim=1)
             facet_domains.set_all(0)
         self._facet_domains = facet_domains
 
