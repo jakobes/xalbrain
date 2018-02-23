@@ -190,7 +190,7 @@ class BasicMonodomainSolver:
 
         # Step through time steps until at end time
         while True:
-            info("Solving on t = (%g, %g)" % (t0, t1))
+            logger.info("solving on t = ({t0}, {t1})")
             self.step((t0, t1))
 
             # Yield solutions

@@ -238,7 +238,7 @@ class BasicBidomainSolver:
 
         # Step through time steps until at end time
         while(True):
-            info("Solving on t = (%g, %g)" % (t0, t1))
+            logger.info(f"Solving on t = ({t0}, {t1})")
             self.step((t0, t1))
 
             # Yield solutions
@@ -364,7 +364,7 @@ class BasicBidomainSolver:
         petsc_params = PETScKrylovSolver.default_parameters()
 
         # FIXME: work around DOLFIN bug #583. Just deleted this when fixed.
-        petsc_params.convergence_norm_type = "preconditioned"
+        # petsc_params.convergence_norm_type = "preconditioned"
         params.add(petsc_params)
 
         # Customize default parameters for LUSolver
@@ -407,7 +407,7 @@ class BidomainSolver(BasicBidomainSolver):
 
         # Check consistency of parameters first
         if self.parameters["enable_adjoint"] and not dolfin_adjoint:
-            warning("'enable_adjoint' is set to True, but no dolfin_adjoint installed.")
+            logger.warning("'enable_adjoint' is set to True, but no dolfin_adjoint installed.")
 
         # Mark the timestep as unset
         self._timestep = None
@@ -475,7 +475,7 @@ class BidomainSolver(BasicBidomainSolver):
                 solver = PETScKrylovSolver(alg, prec)
                 solver.set_operator(self._lhs_matrix)
                 # Still waiting for that bug fix:
-                solver.parameters.convergence_norm_type = "preconditioned"
+                # solver.parameters.convergence_norm_type = "preconditioned"
                 solver.parameters.update(self.parameters["petsc_krylov_solver"])
 
             # Set nullspace if present. We happen to know that the
@@ -541,7 +541,7 @@ class BidomainSolver(BasicBidomainSolver):
         params.add(LUSolver.default_parameters())
         petsc_params = PETScKrylovSolver.default_parameters()
         # FIXME: work around DOLFIN bug #583. Just deleted this when fixed.
-        petsc_params.convergence_norm_type = "preconditioned"
+        # petsc_params.convergence_norm_type = "preconditioned"
         params.add(petsc_params)
 
         # Customize default parameters for LUSolver

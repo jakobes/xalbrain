@@ -175,7 +175,7 @@ class BasicSplittingSolver:
         cell_model = self._model.cell_models()
 
         # Extract stimulus from the cardiac model(!)
-        if self.parameters.apply_stimulus_current_to_pde:
+        if not self.parameters["apply_stimulus_current_to_pde"]:
             stimulus = None
         else:
             stimulus = self._model.stimulus()
@@ -201,7 +201,7 @@ class BasicSplittingSolver:
         # Extract stimulus from the cardiac model if we should apply
         # it to the PDEs (in the other case, it is handled by the ODE
         # solver)
-        if self.parameters.apply_stimulus_current_to_pde:
+        if self.parameters["apply_stimulus_current_to_pde"]:
             stimulus = self._model.stimulus()
         else:
             stimulus = None
@@ -248,7 +248,7 @@ class BasicSplittingSolver:
         params.add("enable_adjoint", True)
         params.add("theta", 0.5, 0., 1.)
         params.add("apply_stimulus_current_to_pde", False)
-        params.add("pde_solver", "bidomain", ["bidomain", "monodomain"])
+        params.add("pde_solver", "bidomain", {"bidomain", "monodomain"})
 
         # Add default parameters from ODE solver, but update for V
         # space
@@ -317,7 +317,7 @@ class BasicSplittingSolver:
         )
 
         for t0, t1 in time_stepper:
-            info_blue("Solving on t = (%g, %g)" % (t0, t1))
+            logger.info(f"Solving on t = ({t0}, {t1})")
             self.step((t0, t1))
 
             # Yield solutions
@@ -350,18 +350,14 @@ class BasicSplittingSolver:
         t = t0 + theta*dt
 
         # Compute tentative membrane potential and state (vs_star)
-        begin(PROGRESS, "Tentative ODE step")
         # Assumes that its vs_ is in the correct state, gives its vs
         # in the current state
         self.ode_solver.step((t0, t))
-        end()
 
         # Compute tentative potentials vu = (v, u)
-        begin(PROGRESS, "PDE step")
         # Assumes that its vs_ is in the correct state, gives vur in
         # the current state
         self.pde_solver.step((t0, t1))
-        end()
 
         # If first order splitting, we need to ensure that self.vs is
         # up to date, but otherwise we are done.
@@ -373,7 +369,6 @@ class BasicSplittingSolver:
             return
 
         # Otherwise, we do another ode_step:
-        begin(PROGRESS, "Corrective ODE step")
 
         # Assumes that the v part of its vur and the s part of its vs
         # are in the correct state, provides input argument (in this
@@ -383,7 +378,6 @@ class BasicSplittingSolver:
         # Assumes that its vs_ is in the correct state, provides vs in
         # the correct state
         self.ode_solver.step((t, t1))
-        end()
 
     def merge(self, solution):
         """
@@ -396,13 +390,11 @@ class BasicSplittingSolver:
         """
         timer = Timer("Merge step")
 
-        begin(PROGRESS, "Merging")
         if self.parameters["pde_solver"] == "bidomain":
             v = self.vur.sub(0)
         else:
             v = self.vur
         self.merger.assign(solution.sub(0), v, **self._annotate_kwargs)
-        end()
 
         timer.stop()
 
@@ -499,9 +491,9 @@ class SplittingSolver(BasicSplittingSolver):
         params.add("enable_adjoint", True)
         params.add("theta", 0.5, 0, 1)
         params.add("apply_stimulus_current_to_pde", False)
-        params.add("pde_solver", "bidomain", ["bidomain", "monodomain"])
+        params.add("pde_solver", "bidomain", {"bidomain", "monodomain"})
         params.add("ode_solver_choice", "CardiacODESolver",
-                   ["BasicCardiacODESolver", "CardiacODESolver"])
+                   {"BasicCardiacODESolver", "CardiacODESolver"})
 
         # Add default parameters from ODE solver
         ode_solver_params = CardiacODESolver.default_parameters()
@@ -532,7 +524,7 @@ class SplittingSolver(BasicSplittingSolver):
         cell_model = self._model.cell_models()
 
         # Extract stimulus from the cardiac model(!)
-        if self.parameters.apply_stimulus_current_to_pde:
+        if not self.parameters["apply_stimulus_current_to_pde"]:
             stimulus = None
         else:
             stimulus = self._model.stimulus()
@@ -557,7 +549,7 @@ class SplittingSolver(BasicSplittingSolver):
         applied_current = self._model.applied_current()
 
         # Extract stimulus from the cardiac model
-        if self.parameters.apply_stimulus_current_to_pde:
+        if self.parameters["apply_stimulus_current_to_pde"]:
             stimulus = self._model.stimulus()
         else:
             stimulus = None

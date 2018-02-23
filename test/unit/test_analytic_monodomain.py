@@ -115,6 +115,6 @@ if __name__ == "__main__":
         "theta": 1.0,
     }
 
-    # main(**args)
-    # test_analytic_mondomain()
+    main(**args)
+    test_analytic_mondomain()
     test_spatial_and_temporal_convergence()

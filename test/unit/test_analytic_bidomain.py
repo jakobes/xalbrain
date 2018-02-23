@@ -146,4 +146,4 @@ def test_spatial_and_temporal_convergence():
 
 if __name__ == "__main__":
     test_analytic_bidomain()
-    # test_spatial_and_temporal_convergence()
+    test_spatial_and_temporal_convergence()

@@ -2,3 +2,5 @@
 *.xml.gz
 .cache/
 Scratch/
+.mypy_cache/
+.pytest_cache/

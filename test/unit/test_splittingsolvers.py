@@ -7,7 +7,7 @@ __all__ = ["TestSplittingSolver"]
 
 from testutils import assert_almost_equal, medium, parametrize
 
-from dolfin import info, set_log_level, WARNING
+from dolfin import info, set_log_level
 
 from xalbrain import (
     CardiacModel,
@@ -21,9 +21,6 @@ from xalbrain import (
     dolfin_adjoint,
     parameters,
 )
-
-
-set_log_level(WARNING)
 
 
 class TestSplittingSolver(object):

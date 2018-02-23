@@ -98,7 +98,8 @@ class TestCompilationCorrectness:
     def test_point_integral_solver(self, adex_model, adex):
         """Compare form compilation result with and without optimizations."""
 
-        parameters["form_compiler"]["representation"] = "quadrature"
+        # parameters["form_compiler"]["representation"] = "quadrature"
+        parameters["form_compiler"]["representation"] = "uflacs"
         parameters["form_compiler"]["quadrature_degree"] = 2
         tolerance = 1e-12
 
