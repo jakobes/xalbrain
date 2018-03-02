@@ -566,10 +566,10 @@ class BidomainSolver(BasicBidomainSolver):
 
         # Extract theta parameter and conductivities
         theta = self.parameters["theta"]
-        M_i = self._M_i
-        M_e = self._M_e
+        theta = 0.5
+        M_i = Constant(1)
+        M_e = Constant(1)
 
-        # Define variational formulation
         use_R = self.parameters["use_avg_u_constraint"]
         if use_R:
             (v, u, l) = TrialFunctions(self.VUR)
@@ -578,33 +578,34 @@ class BidomainSolver(BasicBidomainSolver):
             (v, u) = TrialFunctions(self.VUR)
             (w, q) = TestFunctions(self.VUR)
 
-        # Set-up measure and rhs from stimulus
-        dz = Measure("dx", domain=self._mesh, subdomain_data=self._cell_domains)
-        tags = set(self._cell_domains.array())
+        # # Set-up measure and rhs from stimulus
+        # dz = Measure("dx", domain=self._mesh, subdomain_data=self._cell_domains)
+        # tags = set(self._cell_domains.array())
 
         Dt_v = (v - self.v_)/k_n
         v_mid = theta*v + (1.0 - theta)*self.v_
 
-        G = Dt_v*w*dz()
-        for key in tags:
-            key = int(key)       # NB! np.uint64 does not work
-            G += inner(M_i[key]*grad(v_mid), grad(w))*dz(key) + \
-                 inner(M_i[key]*grad(u), grad(w))*dz(key)
-            G += inner(M_i[key]*grad(v_mid), grad(q))*dz(key) + \
-                 inner((M_i[key] + M_e[key])*grad(u), grad(q))*dz(key)
+        G = Dt_v*w*dx
+        # for key in tags:
+        for i in range(1):
+            # key = int(key)       # NB! np.uint64 does not work
+            G += inner(M_i*grad(v_mid), grad(w))*dx + \
+                 inner(M_i*grad(u), grad(w))*dx
+            G += inner(M_i*grad(v_mid), grad(q))*dx + \
+                 inner((M_i + M_e)*grad(u), grad(q))*dx
 
             if not self._I_s is None:
-                rhs = self._I_s*w*dz(key)
+                rhs = self._I_s*w*dx
             else:
-                rhs = Constant(0)*w*dz(key)
+                rhs = Constant(0)*w*dx
 
             G -= rhs
 
             if use_R:
-                G += (lamda*u + l*q)*dz(key)
+                G += (lamda*u + l*q)*dx
                 
             if self._I_a:
-                G -= self._I_a*q*dz(key)
+                G -= self._I_a*q*dx
         A, b = system(G)
         return A, b
 
@@ -653,10 +654,13 @@ class BidomainSolver(BasicBidomainSolver):
         self._rhs_vector -= self._rhs_vector.sum()/self._rhs_vector.size()
 
         # Solve problem
-        self.linear_solver.solve(
+        self.linear_solver.parameters["monitor_convergence"] = True
+        self.linear_solver.parameters["report"] = True
+        foo = self.linear_solver.solve(
             self.vur.vector(),
             self._rhs_vector
         )
+        print(foo)
 
     def _update_lu_solver(self, timestep_unchanged: Constant, dt: Constant) -> None:
         """Helper function for updating an LUSolver depending on
