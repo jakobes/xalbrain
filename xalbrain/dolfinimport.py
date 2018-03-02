@@ -56,6 +56,9 @@ from dolfin import (
     conditional,
     UnitIntervalMesh,
     RK4,
+    ERK4,
+    mpi_comm_world,
+    MPI,
 )
 
 from dolfin.cpp.function import (
@@ -126,4 +129,7 @@ __all__ = [
     "conditional",
     "UnitIntervalMesh",
     "RK4",
+    "ERK4",
+    "mpi_comm_world",
+    "MPI",
 ]

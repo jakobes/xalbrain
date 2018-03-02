@@ -47,7 +47,8 @@ def main(N: int, dt: float, T: float, theta: float) -> \
     # Set-up solver
     ps = BasicSplittingSolver.default_parameters()
     ps["theta"] = theta
-    ps["BasicBidomainSolver"]["linear_variational_solver"]["linear_solver"] = "direct"
+    ps["BasicBidomainSolver"]["linear_variational_solver"]["linear_solver"] = "gmres"
+    ps["BasicBidomainSolver"]["linear_variational_solver"]["preconditioner"] = "petsc_amg"
     solver = BasicSplittingSolver(heart, params=ps)
 
     # Define exact solution (Note: v is returned at end of time

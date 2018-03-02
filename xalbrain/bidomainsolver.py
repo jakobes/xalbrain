@@ -34,7 +34,7 @@ import logging
 
 from xalbrain.dolfinimport import *
 from xalbrain.markerwisefield import *
-from xalbrain.utils import end_of_time, annotate_kwargs
+from xalbrain.utils import end_of_time
 
 import numpy as np
 
@@ -45,7 +45,6 @@ from typing import (
     Callable,
 )
 
-# TODO: Make custom types
 logger = logging.getLogger(__name__)
 
 
@@ -145,12 +144,12 @@ class BasicBidomainSolver:
         self.V = V
 
         if cell_domains is None:
-            cell_domains = MeshFunction("size_t", mesh, dim=0)
+            cell_domains = MeshFunction("size_t", mesh, 0)  # dim =  
             cell_domains.set_all(0)
         self._cell_domains = cell_domains
 
         if facet_domains is None:
-            facet_domains = MeshFunction("size_t", mesh, dim=1)
+            facet_domains = MeshFunction("size_t", mesh, 1) # dim =
             facet_domains.set_all(0)
         self._facet_domains = facet_domains
 
@@ -180,7 +179,7 @@ class BasicBidomainSolver:
         self.vur = Function(self.VUR, name="vur")
 
         # Figure out whether we should annotate or not
-        self._annotate_kwargs = annotate_kwargs(self.parameters)
+        # self._annotate_kwargs = annotate_kwargs(self.parameters)
 
     @property
     def time(self) -> Constant:
@@ -530,11 +529,11 @@ class BidomainSolver(BasicBidomainSolver):
 
         # Set default solver type to be iterative
         params.add("linear_solver_type", "iterative")
-        params.add("use_avg_u_constraint", False)
+        params.add("use_avg_u_constraint", True)
 
         # Set default iterative solver choices (used if iterative
         # solver is invoked)
-        params.add("algorithm", "cg")
+        params.add("algorithm", "gmres")
         params.add("preconditioner", "petsc_amg")
 
         # Add default parameters from both LU and Krylov solvers
@@ -573,11 +572,11 @@ class BidomainSolver(BasicBidomainSolver):
         # Define variational formulation
         use_R = self.parameters["use_avg_u_constraint"]
         if use_R:
-             (v, u, l) = TrialFunctions(self.VUR)
-             (w, q, lamda) = TestFunctions(self.VUR)
+            (v, u, l) = TrialFunctions(self.VUR)
+            (w, q, lamda) = TestFunctions(self.VUR)
         else:
-             (v, u) = TrialFunctions(self.VUR)
-             (w, q) = TestFunctions(self.VUR)
+            (v, u) = TrialFunctions(self.VUR)
+            (w, q) = TestFunctions(self.VUR)
 
         # Set-up measure and rhs from stimulus
         dz = Measure("dx", domain=self._mesh, subdomain_data=self._cell_domains)
@@ -606,9 +605,8 @@ class BidomainSolver(BasicBidomainSolver):
                 
             if self._I_a:
                 G -= self._I_a*q*dz(key)
-
-        (a, L) = system(G)
-        return (a, L)
+        A, b = system(G)
+        return A, b
 
     def step(self, interval: Tuple[float, float]) -> None:
         """
@@ -640,7 +638,7 @@ class BidomainSolver(BasicBidomainSolver):
 
             # Preassemble left-hand side and initialize right-hand side vector
             logger.debug("Preassembling bidomain matrix (and initializing vector)")
-            self._lhs_matrix = assemble(self._lhs, **self._annotate_kwargs)
+            self._lhs_matrix = assemble(self._lhs)
             self._rhs_vector = Vector(self._mesh.mpi_comm(), self._lhs_matrix.size(0))
             self._lhs_matrix.init_vector(self._rhs_vector, 0)
 
@@ -651,13 +649,13 @@ class BidomainSolver(BasicBidomainSolver):
             self._update_solver(timestep_unchanged, dt)
 
         # Assemble right-hand-side
-        assemble(self._rhs, tensor=self._rhs_vector, **self._annotate_kwargs)
+        assemble(self._rhs, tensor=self._rhs_vector)
+        self._rhs_vector -= self._rhs_vector.sum()/self._rhs_vector.size()
 
         # Solve problem
         self.linear_solver.solve(
             self.vur.vector(),
-            self._rhs_vector,
-           **self._annotate_kwargs
+            self._rhs_vector
         )
 
     def _update_lu_solver(self, timestep_unchanged: Constant, dt: Constant) -> None:
@@ -678,8 +676,7 @@ class BidomainSolver(BasicBidomainSolver):
             self._timestep.assign(Constant(dt))#, annotate=annotate)
 
             # Reassemble matrix
-            assemble(self._lhs, tensor=self._lhs_matrix,
-                     **self._annotate_kwargs)
+            assemble(self._lhs, tensor=self._lhs_matrix)
 
             (self._linear_solver, dummy) = self._create_linear_solver()
 
@@ -700,7 +697,7 @@ class BidomainSolver(BasicBidomainSolver):
             self._timestep.assign(Constant(dt))#, annotate=annotate)
 
             # Reassemble matrix
-            assemble(self._lhs, tensor=self._lhs_matrix, **self._annotate_kwargs)
+            assemble(self._lhs, tensor=self._lhs_matrix)
 
             # Make new Krylov solver
             (self._linear_solver, dummy) = self._create_linear_solver()

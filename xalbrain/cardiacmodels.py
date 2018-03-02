@@ -35,7 +35,7 @@ logger = logging.getLogger(__name__)
 # Cardiac models
 # ------------------------------------------------------------------------------
 
-class CardiacModel(object):
+class CardiacModel:
     """
     A container class for cardiac models. Objects of this class
     represent a specific cardiac simulation set-up and should provide

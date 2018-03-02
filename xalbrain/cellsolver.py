@@ -21,6 +21,8 @@ from xalbrain.utils import (
     annotate_kwargs,
 )
 
+import xalbrain as xb
+
 
 import logging
 
@@ -373,25 +375,12 @@ class CardiacODESolver(object):
             self._time = time
 
         # Initialize and update parameters if given
-        if adex:
-            self.parameters = self.default_parameters_adex()
-        else:
-            self.parameters = self.default_parameters()
+        self.parameters = self.default_parameters()
         if params is not None:
             self.parameters.update(params)
 
-        if self.parameters["adex_solver"]:
-            # TODO: need better way of updating solver parameters
-            b = self._model._parameters["b"]
-            self.parameters["point_integral_solver"]["b"] = b
-            V_T = self._model._parameters["V_T"]
-            self.parameters["point_integral_solver"]["V_T"] = V_T
-            spike = self._model._parameters["spike"]
-            self.parameters["point_integral_solver"]["spike"] = spike
-
-
         # Create (vector) function space for potential + states
-        self.VS = VectorFunctionSpace(
+        self.VS = xb.VectorFunctionSpace(
             self._mesh,
             "CG",
             1,
