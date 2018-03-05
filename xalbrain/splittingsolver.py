@@ -240,7 +240,7 @@ class BasicSplittingSolver:
         """
 
         params = Parameters("BasicSplittingSolver")
-        params.add("enable_adjoint", True)
+        params.add("enable_adjoint", False)
         params.add("theta", 0.5, 0., 1.)
         params.add("apply_stimulus_current_to_pde", False)
         params.add("pde_solver", "bidomain", ["bidomain", "monodomain"])
@@ -491,7 +491,7 @@ class SplittingSolver(BasicSplittingSolver):
         """
 
         params = Parameters("SplittingSolver")
-        params.add("enable_adjoint", True)
+        params.add("enable_adjoint", False)
         params.add("theta", 0.5, 0, 1)
         params.add("apply_stimulus_current_to_pde", False)
         params.add("pde_solver", "bidomain", ["bidomain", "monodomain"])

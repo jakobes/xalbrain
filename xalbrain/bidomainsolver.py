@@ -328,6 +328,7 @@ class BasicBidomainSolver:
         # Set-up solver
         solver = LinearVariationalSolver(pde)
         solver.parameters.update(self.parameters["linear_variational_solver"])
+        solver.parameters["linear_solver"] = self.parameters["linear_solver_type"]
         solver.solve()
 
     @staticmethod
@@ -346,14 +347,14 @@ class BasicBidomainSolver:
         params.add("enable_adjoint", False)
         params.add("theta", 0.5)
         params.add("polynomial_degree", 1)
-        params.add("use_avg_u_constraint", True)
+        params.add("use_avg_u_constraint", False)
 
         # Set default solver type to be iterative
         params.add("linear_solver_type", "iterative")
 
         # Set default iterative solver choices (used if iterative
         # solver is invoked)
-        params.add("algorithm", "cg")
+        params.add("algorithm", "gmres")
         params.add("preconditioner", "petsc_amg")
 
         # Add default parameters from both LU and Krylov solvers
@@ -361,13 +362,15 @@ class BasicBidomainSolver:
         petsc_params = PETScKrylovSolver.default_parameters()
 
         # FIXME: work around DOLFIN bug #583. Just deleted this when fixed.
-        petsc_params.convergence_norm_type = "preconditioned"
-        params.add(petsc_params)
+        # petsc_params.convergence_norm_type = "preconditioned"
+        # params.add(petsc_params)
 
         # Customize default parameters for LUSolver
         params["lu_solver"]["same_nonzero_pattern"] = True
 
         params.add(LinearVariationalSolver.default_parameters())
+        # params["linear_variational_solver"]["linear_solver"] = "gmres"
+        # params["linear_variational_solver"]["preconditioner"] = "petsc_amg"
         return params
 
 
@@ -433,7 +436,6 @@ class BidomainSolver(BasicBidomainSolver):
 
             debug("Creating PETSCKrylovSolver with %s and %s" % (alg, prec))
             if prec == "fieldsplit":
-
                 # Argh. DOLFIN won't let you construct a PETScKrylovSolver with fieldsplit. Sigh ..
                 solver = PETScKrylovSolver()
                 # FIXME: work around DOLFIN bug #583. Just deleted this when fixed.
@@ -467,7 +469,6 @@ class BidomainSolver(BasicBidomainSolver):
 
                 ksp.setFromOptions()
                 ksp.setUp()
-
             else:
                 solver = PETScKrylovSolver(alg, prec)
                 solver.set_operator(self._lhs_matrix)
@@ -531,14 +532,14 @@ class BidomainSolver(BasicBidomainSolver):
 
         # Set default iterative solver choices (used if iterative
         # solver is invoked)
-        params.add("algorithm", "cg")
+        params.add("algorithm", "gmres")
         params.add("preconditioner", "petsc_amg")
 
         # Add default parameters from both LU and Krylov solvers
         params.add(LUSolver.default_parameters())
         petsc_params = PETScKrylovSolver.default_parameters()
         # FIXME: work around DOLFIN bug #583. Just deleted this when fixed.
-        petsc_params.convergence_norm_type = "preconditioned"
+        # petsc_params.convergence_norm_type = "preconditioned"
         params.add(petsc_params)
 
         # Customize default parameters for LUSolver

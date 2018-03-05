@@ -133,3 +133,8 @@ def test_spatial_and_temporal_convergence() -> None:
 
     assert v_rates[-1] > 1.95, "Failed convergence for v"
     assert u_rates[-1] > 1.9, "Failed convergence for u"
+
+
+if __name__ == "__main__":
+    test_spatial_convergence()
+    test_spatial_and_temporal_convergence()

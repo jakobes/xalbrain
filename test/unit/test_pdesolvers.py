@@ -213,7 +213,7 @@ class TestBidomainSolver(object):
         # Create solver and solve
         params = BidomainSolver.default_parameters()
         params["linear_solver_type"] = "direct"
-        params["use_avg_u_constraint"] = True
+        params["use_avg_u_constraint"] = False
         solver = BidomainSolver(
             self.mesh,
             self.time,
@@ -258,7 +258,7 @@ class TestBidomainSolver(object):
         # Create solver and solve
         params = BidomainSolver.default_parameters()
         params["linear_solver_type"] = "direct"
-        params["use_avg_u_constraint"] = True
+        params["use_avg_u_constraint"] = False
         solver = BidomainSolver(
             self.mesh,
             self.time,
@@ -272,7 +272,7 @@ class TestBidomainSolver(object):
         solutions = solver.solve((self.t0, self.t0 + 3*self.dt), self.dt)
         for (interval, fields) in solutions:
             (v_, vur) = fields
-            (v, u, r) = vur.split(deepcopy=True)
+            (v, u) = vur.split(deepcopy=True)
             a = v.vector().norm("l2")
 
         # Create solver and solve using iterative means

@@ -41,7 +41,7 @@ def main(N: int, dt: float, T: float, theta: float) -> \
     cell_model = NoCellModel()
 
     ac_str = "cos(t)*cos(2*pi*x[0])*cos(2*pi*x[1]) + 4*pow(pi, 2)*cos(2*pi*x[0])*cos(2*pi*x[1])*sin(t)"
-    stimulus = Expression(ac_str, t=time, degree=3)
+    stimulus = Expression(ac_str, t=time, degree=5)
     heart = CardiacModel(mesh, time, 1.0, 1.0, cell_model, stimulus=stimulus)
 
     # Set-up solver
@@ -54,11 +54,11 @@ def main(N: int, dt: float, T: float, theta: float) -> \
     # interval(s), u is computed at somewhere in the time interval
     # depending on theta)
 
-    v_exact =  Expression("cos(2*pi*x[0])*cos(2*pi*x[1])*sin(t)", t=T, degree=3)
+    v_exact =  Expression("cos(2*pi*x[0])*cos(2*pi*x[1])*sin(t)", t=T, degree=5)
     u_exact = Expression(
         "-cos(2*pi*x[0])*cos(2*pi*x[1])*sin(t)/2.0",
         t=T - (1 - theta)*dt,
-        degree=3
+        degree=5
     )
 
     # Define initial condition(s)
@@ -73,9 +73,9 @@ def main(N: int, dt: float, T: float, theta: float) -> \
 
     # Compute errors
     v, s = vs.split(deepcopy=True)
-    v_error = errornorm(v_exact, v, "L2", degree_rise=2)
+    v_error = errornorm(v_exact, v, "L2", degree_rise=5)
     v, u, *r = vur.split(deepcopy=True)
-    u_error = errornorm(u_exact, u, "L2", degree_rise=2)
+    u_error = errornorm(u_exact, u, "L2", degree_rise=5)
 
     return (v_error, u_error, mesh.hmin(), dt, T)
 
@@ -86,32 +86,35 @@ def test_analytic_bidomain():
 
     # Create domain
     level = 0
-    N = 10*(2**level)
-    dt = 0.01/(2**level)
-    T = 0.1
-    v_error, u_error, h, dt, T = main(N, dt, T, 0.5)
-
-    #v_reference = 4.1152719193176370e-03 # with degree = 5 and degree_rise=5
-    #u_reference = 2.0271098018943513e-03 # with degree = 5 and degree_rise=5
-    if level == 0:
-        v_reference = 4.1142235248997714e-03
-        u_reference = 2.0266633058042697e-03
-    elif level == 1:
-        v_reference = 1.0650181777538213e-03
-        u_reference = 5.4032830628888496e-04
-    elif level == 2:
-        v_reference = 2.6874957469988218e-04
-        u_reference = 1.3843820171918639e-04
-
-    # Compute errors
-    v_diff = abs(v_error - v_reference)
-    u_diff = abs(u_error - u_reference)
-    tolerance = 1.e-9
-    msg = "Maximal %s value does not match reference: diff is %.16e"
-    print("v_error = %.16e" % v_error)
-    print("u_error = %.16e" % u_error)
-    assert (v_diff < tolerance), msg % ("v", v_diff)
-    assert (u_diff < tolerance), msg % ("u", u_diff)
+    for level in (0, 1, 2):
+        N = 10*(2**level)
+        dt = 0.01/(2**level)
+        T = 0.1
+        v_error, u_error, h, dt, T = main(N, dt, T, 0.5)
+    
+        #v_reference = 4.1152719193176370e-03 # with degree = 5 and degree_rise=5
+        #u_reference = 2.0271098018943513e-03 # with degree = 5 and degree_rise=5
+    
+        if level == 0:
+            v_reference = 0.004115272130736041
+            u_reference = 0.003570426889654414
+        elif level == 1:
+            v_reference = 0.0010651083432491597
+            u_reference = 0.0030640902609339947
+        elif level == 2:
+            v_reference = 0.0002687502798474384
+            u_reference = 0.0008030767036222218
+    
+        # Compute errors
+        v_diff = abs(v_error - v_reference)
+        u_diff = abs(u_error - u_reference)
+        tolerance = 1.e-9
+        msg = "Maximal %s value does not match reference: diff is %.16e"
+        print(f"level: {level}")
+        print("v_error = %.16e" % v_error)
+        print("u_error = %.16e" % u_error)
+        assert (v_diff < tolerance), msg % ("v", v_diff)
+        assert (u_diff < tolerance), msg % ("u", u_diff)
 
 @slow
 @pytest.mark.xfail(dolfin_version == "2016.2.0", reason="Unknown")
@@ -125,7 +128,7 @@ def test_spatial_and_temporal_convergence():
     dt = 0.01
     theta = 0.5
     N = 10
-    for level in (0, 1, 2):
+    for level in (1, 2):
         a = dt/(2**level)
         v_error, u_error, h, a, T = main(N*(2**level), a, T, theta)
         v_errors.append(v_error)
@@ -146,4 +149,4 @@ def test_spatial_and_temporal_convergence():
 
 if __name__ == "__main__":
     test_analytic_bidomain()
-    # test_spatial_and_temporal_convergence()
+    test_spatial_and_temporal_convergence()

@@ -74,6 +74,7 @@ class TestSplittingSolver(object):
         params = BasicSplittingSolver.default_parameters()
         params["BasicCardiacODESolver"]["S_polynomial_family"] = "CG"
         params["BasicCardiacODESolver"]["S_polynomial_degree"] = 1
+        params["BasicBidomainSolver"]["linear_solver_type"] = solver_type
         if solver_type == "direct":
             params["BasicBidomainSolver"]["use_avg_u_constraint"] = True
         solver = BasicSplittingSolver(self.cardiac_model, params=params)
@@ -95,7 +96,7 @@ class TestSplittingSolver(object):
         params["BidomainSolver"]["linear_solver_type"] = solver_type
         params["enable_adjoint"] = False
         if solver_type == "direct":
-            params["BidomainSolver"]["use_avg_u_constraint"] = True 
+            params["BidomainSolver"]["use_avg_u_constraint"] = True
         solver = SplittingSolver(self.cardiac_model, params=params)
 
         (vs_, vs, vur) = solver.solution_fields()
