@@ -3,6 +3,8 @@
 import dolfin
 
 from dolfin import (
+    MPI,
+    RK4,
     Mesh,
     Constant,
     Parameters,
@@ -131,4 +133,6 @@ __all__ = [
     "zero",
     "RL1",
     "warning",
+    "RK4",
+    "MPI",
 ]
