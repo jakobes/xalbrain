@@ -28,6 +28,7 @@ __all__ = [
 
 from .beeler_reuter_1977 import Beeler_reuter_1977
 from .fitzhughnagumo_manual import FitzHughNagumoManual
+from .fitzhughnagumo import Fitzhughnagumo
 from .rogers_mcculloch_manual import RogersMcCulloch
 from .tentusscher_2004_mcell import Tentusscher_2004_mcell
 from .tentusscher_panfilov_2006_epi_cell import Tentusscher_panfilov_2006_epi_cell
@@ -54,6 +55,7 @@ SUPPORTED_CELL_MODELS += [
 __all__ += [
     "Beeler_reuter_1977",
     "FitzHughNagumoManual",
+    "Fitzhughnagumo",
     "RogersMcCulloch",
     "Tentusscher_2004_mcell",
     "Tentusscher_panfilov_2006_epi_cell",

@@ -4,12 +4,19 @@ for a monodomain + moderately complex (ten Tusscher) cell model
 solver.
 """
 
+from cbcpost import (
+    PostProcessor,
+    Field,
+    SolutionField
+)
+
 __author__ = "Marie E Rognes, Johan Hake and Patrick Farrell"
 
 import numpy
 import sys
 
-from cbcbeat import *
+from dolfin import *
+from xalbrain import *
 
 # Set FFC some parameters
 parameters["form_compiler"]["cpp_optimize"] = True
@@ -36,6 +43,7 @@ args = [sys.argv[0]] + """
                        """.split()
 parameters.parse(argv=args)
 
+
 # MER says: should use compiled c++ expression here for vastly
 # improved efficiency.
 class StimSubDomain(SubDomain):
@@ -46,6 +54,7 @@ class StimSubDomain(SubDomain):
 
     def inside(self, x, on_boundary):
         return numpy.all(x <= self.L + DOLFIN_EPS)
+
 
 def define_conductivity_tensor(chi, C_m):
     "Just define the conductivity tensor"
@@ -102,7 +111,8 @@ def setup_model(cellmodel, domain):
                       time=time,
                       start=0.0,
                       duration=stimulation_protocol_duration,
-                      amplitude=stimulation_protocol_amplitude)
+                      amplitude=stimulation_protocol_amplitude,
+                      degree=1)
 
     # Store input parameters in cardiac model
     I_s = Markerwise((stim,), (1,), markers)
@@ -141,13 +151,32 @@ def run_splitting_solver(domain, dt, T):
     vs_.assign(cell_model.initial_conditions())
     solutions = solver.solve((0, T), dt)
 
+
+    postprocessor = PostProcessor(dict(casedir="test", clean_casedir=True))
+    postprocessor.store_mesh(heart.domain())
+
+    field_params = dict(
+        save=True,
+        save_as=["hdf5", "xdmf"],
+        plot=False,
+        start_timestep=-1,
+        stride_timestep=1
+    )
+
+    postprocessor.add_field(SolutionField("v", field_params))
+    theta = ps["theta"]
+
     # Solve
     total = Timer("XXX Total cbcbeat solver time")
-    for (timestep, (vs_, vs, vur)) in solutions:
-        print "Solving on %s" % str(timestep)
+    for i, (timestep, (vs_, vs, vur)) in enumerate(solutions):
+
+        t0, t1 = timestep
+        current_t = t0 + theta*(t1 - t0)    
+        postprocessor.update_all({"v": lambda: vur}, current_t, i)
+        print("Solving on %s" % str(timestep))
 
         # Print memory usage (just for the fun of it)
-        print memory_usage()
+        print(memory_usage())
 
     total.stop()
 
@@ -161,7 +190,7 @@ def run_splitting_solver(domain, dt, T):
 
 if __name__ == "__main__":
 
-    parameters["adjoint"]["stop_annotating"] = True
+    # parameters["adjoint"]["stop_annotating"] = True
 
     # Define geometry parameters (in mm)
     Lx = 20.0; Ly = 7.0; Lz = 3.0  # mm
@@ -173,8 +202,8 @@ if __name__ == "__main__":
     T = 10*dt
 
     N = lambda v: int(numpy.rint(v))
-    x0 = Point(numpy.array((0.0, 0.0, 0.0)))
-    x1 = Point(numpy.array((Lx, Ly, Lz)))
+    x0 = Point(0.0, 0.0, 0.0)
+    x1 = Point(Lx, Ly, Lz)
     mesh = BoxMesh(x0, x1, N(Lx/dx), N(Ly/dx), N(Lz/dx))
     run_splitting_solver(mesh, dt, T)
 

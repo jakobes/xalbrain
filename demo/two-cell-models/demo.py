@@ -9,7 +9,8 @@ __author__ = "Marie E Rognes, Johan Hake and Patrick Farrell"
 import numpy
 import sys
 
-from cbcbeat import *
+from dolfin import *
+from xalbrain import *
 
 # Set FFC some parameters
 parameters["form_compiler"]["cpp_optimize"] = True
@@ -17,7 +18,7 @@ flags = ["-O3", "-ffast-math", "-march=native"]
 parameters["form_compiler"]["cpp_optimize_flags"] = " ".join(flags)
 parameters["form_compiler"]["quadrature_degree"] = 3
 
-parameters["adjoint"]["stop_annotating"] = True
+# parameters["adjoint"]["stop_annotating"] = True
 
 # Define space and time
 n = 40
@@ -37,12 +38,12 @@ c0 = Beeler_reuter_1977()
 #c0 = Fenton_karma_1998_BR_altered()
 c1 = FitzHughNagumoManual()
 markers = CellFunction("uint", mesh, 0)
-markers.array()[0:mesh.num_cells()/2] = 2
+markers.array()[0:int(mesh.num_cells()/2)] = 2
 cell_model = MultiCellModel((c0, c1), (2, 0), markers)
-plot(markers, interactive=True, title="Markers")
+# plot(markers, interactive=True, title="Markers")
 
 solver = BasicCardiacODESolver(mesh, time, cell_model,
-                               I_s=Expression("100*x[0]*exp(-t)", t=time),
+                               I_s=Expression("100*x[0]*exp(-t)", t=time, degree=1),
                                params=None)
 dt = 0.01
 T = 100*dt
@@ -57,8 +58,11 @@ solutions = solver.solve((0.0, T), dt)
 
 V = vs.split()[0].function_space().collapse()
 v = Function(V)
+
+outfile = File("figures/demo_v.pvd")
+
 for ((t0, t1), y) in solutions:
     v.assign(y.split(deepcopy=True)[0])
-    plot(v)
+    outfile << v
 
-interactive()
+# interactive()

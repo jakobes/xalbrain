@@ -72,7 +72,7 @@ class Wei(CardiacCellModel):
         Nai = NNai/voli
         Clo = NClo/volo
         Cli = NCli/voli
-        return Nao, Nai, Ko, Ki, Clo, Cli
+        return Ko, Ki, Nao, Nai, Clo, Cli
 
     def _gamma(self, voli):
         alpha = 4*pi*(3*voli/(4*pi))**(2/3)
@@ -99,7 +99,7 @@ class Wei(CardiacCellModel):
     def _I_pump(self, Nai, Ko, O, gamma):
         rho_max = self._parameters["rho_max"]
         rho = rho_max/(1 + exp((20 - O)/3))/gamma
-        return rho/(1 + exp((25 - Nai)/3))/(1 + exp(3.5 - Ko))
+        return rho/(1 + exp((25 - Nai)/3))*1/(1 + exp(3.5 - Ko))
 
     def I(self, V, s, time=None):
         m, h, n, NKo, NKi, NNao, NNai, NClo, NCli, voli, O = s

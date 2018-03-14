@@ -8,7 +8,7 @@ __all__ = []
 # Modified by Marie E. Rognes, 2014
 
 from dolfin import *
-from cbcbeat import *
+from xalbrain import *
 import numpy
 set_log_level(PROGRESS)
 
@@ -123,7 +123,8 @@ def setup_model(cellmodel, domain):
                       time=time,
                       start=0.0,
                       duration=stimulation_protocol_duration,
-                      amplitude=stimulation_protocol_amplitude)
+                      amplitude=stimulation_protocol_amplitude,
+                      degree=1)
 
     # Store input parameters in cardiac model
     I_s = Markerwise((stim,), (1,), markers)
@@ -195,18 +196,18 @@ def run_splitting_solver(domain, dt, T, theta=1.0):
     v_tmp = Function(V)
     v_pvd = File("output/v.pvd")
     w = vs.split(deepcopy=True)
-    v_tmp.assign(w[0], annotate=False)
+    v_tmp.assign(w[0])
     v_pvd << v_tmp
 
     # Solve
     total = Timer("Total cbcbeat solver time")
     for (timestep, (vs_, vs, vur)) in solutions:
-        print "Solving on %s" % str(timestep)
+        print("Solving on %s" % str(timestep))
 
         w = vs.split(deepcopy=True)
         activation_timer.update(timestep[0], w[0])
 
-        v_tmp.assign(w[0], annotate=False)
+        v_tmp.assign(w[0])
         v_pvd << v_tmp
         activation_time_pvd << activation_timer.activation_time
     total.stop()
@@ -245,6 +246,6 @@ if __name__ == "__main__":
 
             activation_time_xml = "output/activation_time_dx=%s_dt=%s.xml" % (dx, dt)
             mesh_xml = "output/activation_time_dx=%s_dt=%s_mesh.xml" % (dx, dt)
-            print "Run 'python analysis.py %s' to analyse the results." % activation_time_xml
+            print("Run 'python analysis.py %s' to analyse the results." % activation_time_xml)
             File(activation_time_xml) << activation_time
             File(mesh_xml) << domain

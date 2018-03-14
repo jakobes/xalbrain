@@ -170,7 +170,7 @@ class BasicSplittingSolver:
         cell_model = self._model.cell_models()
 
         # Extract stimulus from the cardiac model(!)
-        if self.parameters.apply_stimulus_current_to_pde:
+        if not self.parameters["apply_stimulus_current_to_pde"]:
             stimulus = None
         else:
             stimulus = self._model.stimulus()
@@ -196,7 +196,7 @@ class BasicSplittingSolver:
         # Extract stimulus from the cardiac model if we should apply
         # it to the PDEs (in the other case, it is handled by the ODE
         # solver)
-        if self.parameters.apply_stimulus_current_to_pde:
+        if not self.parameters["apply_stimulus_current_to_pde"]:
             stimulus = self._model.stimulus()
         else:
             stimulus = None

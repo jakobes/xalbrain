@@ -5,6 +5,15 @@ import dolfin
 from dolfin import (
     MPI,
     RK4,
+    CN2,
+    ERK,
+    BDF1,
+    ESDIRK3,
+    ESDIRK4,
+    GRL1,
+    GRL2,
+    RL1,
+    RL2,
     Mesh,
     Constant,
     Parameters,
@@ -54,6 +63,7 @@ from dolfin import (
     Vector,
     as_backend_type,
     UnitSquareMesh,
+    UnitIntervalMesh,
     project,
     split,
     dP,
@@ -63,6 +73,7 @@ from dolfin import (
     zero,
     RL1,
     warning,
+    as_vector,
 )
 
 
@@ -129,10 +140,21 @@ __all__ = [
     "dP",
     "Form",
     "UnitCubeMesh",
+    "UnitIntervalMesh",
     "PointIntegralSolver",
     "zero",
     "RL1",
     "warning",
     "RK4",
+    "CN2",
+    "ERK",
+    "BDF1",
+    "ESDIRK3",
+    "ESDIRK4",
+    "GRL1",
+    "GRL2",
+    "RL1",
+    "RL2",
     "MPI",
+    "as_vector"
 ]

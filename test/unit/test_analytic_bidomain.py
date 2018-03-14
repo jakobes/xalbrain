@@ -79,42 +79,6 @@ def main(N: int, dt: float, T: float, theta: float) -> \
 
     return (v_error, u_error, mesh.hmin(), dt, T)
 
-@slow
-@pytest.mark.xfail(dolfin_version == "2016.2.0", reason="Unknown")
-def test_analytic_bidomain():
-    "Test errors for bidomain solver against reference."
-
-    # Create domain
-    level = 0
-    for level in (0, 1, 2):
-        N = 10*(2**level)
-        dt = 0.01/(2**level)
-        T = 0.1
-        v_error, u_error, h, dt, T = main(N, dt, T, 0.5)
-    
-        #v_reference = 4.1152719193176370e-03 # with degree = 5 and degree_rise=5
-        #u_reference = 2.0271098018943513e-03 # with degree = 5 and degree_rise=5
-    
-        if level == 0:
-            v_reference = 0.004115272130736041
-            u_reference = 0.003570426889654414
-        elif level == 1:
-            v_reference = 0.0010651083432491597
-            u_reference = 0.0030640902609339947
-        elif level == 2:
-            v_reference = 0.0002687502798474384
-            u_reference = 0.0008030767036222218
-    
-        # Compute errors
-        v_diff = abs(v_error - v_reference)
-        u_diff = abs(u_error - u_reference)
-        tolerance = 1.e-9
-        msg = "Maximal %s value does not match reference: diff is %.16e"
-        print(f"level: {level}")
-        print("v_error = %.16e" % v_error)
-        print("u_error = %.16e" % u_error)
-        assert (v_diff < tolerance), msg % ("v", v_diff)
-        assert (u_diff < tolerance), msg % ("u", u_diff)
 
 @slow
 @pytest.mark.xfail(dolfin_version == "2016.2.0", reason="Unknown")
@@ -148,5 +112,4 @@ def test_spatial_and_temporal_convergence():
 
 
 if __name__ == "__main__":
-    test_analytic_bidomain()
     test_spatial_and_temporal_convergence()
