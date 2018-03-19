@@ -49,7 +49,7 @@ class Wei(CardiacCellModel):
             ("m", 0.0031),          # Voltage gating? 
             ("h", 0.9994),          # Voltage gating? 
             ("n", 0.0107),          # Voltage gating? 
-            ("Nko", 4*volo),        # [mol?] Initial extracellular potassium number
+            ("NKo", 4*volo),        # [mol?] Initial extracellular potassium number
             ("NKi", 140*vol),       # [mol?] Initial intracellular potassium number
             ("NNao", 144*volo),     # [mol?] Initial extracellular sodium number
             ("NNai", 18*vol),       # [mol?] Initial intracellular sodium number
