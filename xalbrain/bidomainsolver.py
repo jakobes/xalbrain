@@ -237,7 +237,7 @@ class BasicBidomainSolver:
 
         # Step through time steps until at end time
         while(True):
-            logger.info(f"Solving on t = ({t0}, {t1})")
+            logger.info("Solving on t = ({t0}, {t1})".format(t0=t0, t1=t1))
             self.step((t0, t1))
 
             # Yield solutions

@@ -317,7 +317,7 @@ class BasicSplittingSolver:
         )
 
         for t0, t1 in time_stepper:
-            logger.info(f"Solving on t = ({t0}, {t1})")
+            logger.info("Solving on t = ({t0}, {t1})".format(r0=t0, t1=t1))
             self.step((t0, t1))
 
             # Yield solutions
