@@ -462,6 +462,8 @@ class MonodomainSolver(BasicMonodomainSolver):
         assemble(self._rhs, tensor=self._rhs_vector, **self._annotate_kwargs)
         del timer0
 
+        self._rhs_vector -= self._rhs_vector.sum()/self._rhs_vector.size()
+
         # Solve problem
         self.linear_solver.solve(
             self.v.vector(),
