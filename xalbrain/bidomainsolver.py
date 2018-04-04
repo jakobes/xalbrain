@@ -247,6 +247,7 @@ class BasicBidomainSolver:
 
             # If not: update members and move to next time
             # Subfunction assignment would be good here.
+
             if isinstance(self.v_, Function):
                 self.merger.assign(self.v_, self.vur.sub(0))
             else:
@@ -649,13 +650,13 @@ class BidomainSolver(BasicBidomainSolver):
             self._update_solver(timestep_unchanged, dt)
 
         # Assemble right-hand-side
-        assemble(self._rhs, tensor=self._rhs_vector, **self._annotate_kwargs)
+        assemble(self._rhs, tensor=self._rhs_vector)
 
         # Solve problem
         self.linear_solver.solve(
             self.vur.vector(),
             self._rhs_vector,
-           **self._annotate_kwargs
+            **self._annotate_kwargs
         )
 
     def _update_lu_solver(self, timestep_unchanged: Constant, dt: Constant) -> None:

@@ -152,7 +152,7 @@ class BasicSplittingSolver:
         self.pde_solver = self._create_pde_solver()
         (self.v_, self.vur) = self.pde_solver.solution_fields()
 
-        # Create function assigner for merging v from self.vur into self.vs[0]
+        # # Create function assigner for merging v from self.vur into self.vs[0]
         if self.parameters["pde_solver"] == "bidomain":
             V = self.vur.function_space().sub(0)
         else:
@@ -349,6 +349,7 @@ class BasicSplittingSolver:
         # Assumes that its vs_ is in the correct state, gives its vs
         # in the current state
         self.ode_solver.step((t0, t))
+        self.vs_.assign(self.vs)
         end()
 
         # Compute tentative potentials vu = (v, u)
@@ -374,10 +375,10 @@ class BasicSplittingSolver:
         # are in the correct state, provides input argument (in this
         # case self.vs_) in its correct state
         self.merge(self.vs_)    # self.vs_.sub(0) <- self.vur.sub(0)
-
         # Assumes that its vs_ is in the correct state, provides vs in
         # the correct state
         self.ode_solver.step((t, t1))
+        bar = self.vs.vector().get_local()[0]
         end()
 
     def merge(self, solution):
@@ -563,6 +564,7 @@ class SplittingSolver(BasicSplittingSolver):
         if self.parameters["pde_solver"] == "bidomain":
             PDESolver = BidomainSolver
             params = self.parameters["BidomainSolver"]
+            params["theta"] = self.parameters["theta"]
             args = (self._domain, self._time, M_i, M_e)
             kwargs = dict(I_s=stimulus, I_a=applied_current,
                           v_=self.vs[0], cell_domains=self._model.cell_domains(),

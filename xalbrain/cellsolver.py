@@ -467,22 +467,6 @@ class CardiacODESolver(object):
 
         return params
 
-    @staticmethod
-    def default_parameters_adex():
-        """Initialize and return a set of default parameters
-
-        *Returns*
-          A set of parameters (:py:class:`dolfin.Parameters`)
-        """
-        params = Parameters("CardiacODESolver")
-        params.add("scheme", "BackwardEuler")
-        params.add("adex_solver", True)
-        params.add(PointIntegralSolver.default_parameters())
-        params.add("enable_adjoint", False)
-
-        return params
-
-
     def solution_fields(self):
         """
         Return current solution object.
@@ -517,10 +501,8 @@ class CardiacODESolver(object):
 
         # self._annotate_kwargs = annotate_kwargs(self.parameters)
         # self._pi_solver.step(dt, **self._annotate_kwargs)
-        # FIXME: Is dolfin adjoint doing something with the function signature?
         self._pi_solver.step(dt)
 
-        self._update_cell_model(self.vs)    # TODO: profile this
         timer.stop()
 
     def solve(self, interval, dt=None):

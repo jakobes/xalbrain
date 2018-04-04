@@ -36,13 +36,13 @@ class Wei(CardiacCellModel):
             ("eps_O", 0.17),    # [1/s] Oxygen diffusion rate
             ("KBath", 8.5),     # Extracellular potassium concentration? 
             ("OBath", 32),      # Extracellular oxygen concentration?
-
+            ("vol", 1.4368e-15),    # Initial intracellular volume FIXME: m^3?????
             ])
         return params
 
     def default_initial_conditions(self):
         beta0 = self._parameters["beta0"]
-        vol = 1.4368e-15         # TODO: FIXME!!!!!
+        vol = self._parameters["vol"]
         volo = 1/beta0*vol
         ic = OrderedDict([
             ("V", -74.30),          # [mV] Membrane potential
