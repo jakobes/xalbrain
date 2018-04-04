@@ -6,6 +6,8 @@ from .cardiaccellmodel import (
 from .nocellmodel import NoCellModel
 
 from .adex_slow import AdexManual
+from .logistic import LogisticCellModel
+from .coupled import TestCellModel
 from .adex import Adex
 
 # Only add supported cell model here if it is tested to actually run

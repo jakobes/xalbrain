@@ -8,6 +8,7 @@ from dolfin import (
     CN2,
     ERK,
     BDF1,
+    BackwardEuler,
     ESDIRK3,
     ESDIRK4,
     GRL1,
@@ -156,5 +157,6 @@ __all__ = [
     "RL1",
     "RL2",
     "MPI",
-    "as_vector"
+    "as_vector",
+    "BackwardEuler",
 ]
