@@ -359,19 +359,16 @@ class BasicBidomainSolver:
         params.add("preconditioner", "petsc_amg")
 
         # Add default parameters from both LU and Krylov solvers
+
         params.add(LUSolver.default_parameters())
-        petsc_params = PETScKrylovSolver.default_parameters()
-
-        # FIXME: work around DOLFIN bug #583. Just deleted this when fixed.
-        # petsc_params.convergence_norm_type = "preconditioned"
-        # params.add(petsc_params)
-
         # Customize default parameters for LUSolver
         params["lu_solver"]["same_nonzero_pattern"] = True
 
-        params.add(LinearVariationalSolver.default_parameters())
-        # params["linear_variational_solver"]["linear_solver"] = "gmres"
-        # params["linear_variational_solver"]["preconditioner"] = "petsc_amg"
+        linear_params = LinearVariationalSolver.default_parameters()
+        linear_params["krylov_solver"]["absolute_tolerance"] = 1e-14
+        linear_params["krylov_solver"]["relative_tolerance"] = 1e-14
+        linear_params["krylov_solver"]["nonzero_initial_guess"] = True
+        params.add(linear_params)
         return params
 
 
@@ -539,16 +536,13 @@ class BidomainSolver(BasicBidomainSolver):
         # Add default parameters from both LU and Krylov solvers
         params.add(LUSolver.default_parameters())
         petsc_params = PETScKrylovSolver.default_parameters()
-        # FIXME: work around DOLFIN bug #583. Just deleted this when fixed.
-        # petsc_params.convergence_norm_type = "preconditioned"
+        petsc_params["absolute_tolerance"] = 1e-14
+        petsc_params["relative_tolerance"] = 1e-14
+        petsc_params["nonzero_initial_guess"] = True
         params.add(petsc_params)
 
         # Customize default parameters for LUSolver
         params["lu_solver"]["same_nonzero_pattern"] = True
-
-        # Customize default parameters for PETScKrylovSolver
-        # params["petsc_krylov_solver"]["preconditioner"]["structure"] = "same"
-
         return params
 
     def variational_forms(self, k_n: Constant) -> Tuple[lhs, rhs]:
@@ -572,11 +566,11 @@ class BidomainSolver(BasicBidomainSolver):
         # Define variational formulation
         use_R = self.parameters["use_avg_u_constraint"]
         if use_R:
-             (v, u, l) = TrialFunctions(self.VUR)
-             (w, q, lamda) = TestFunctions(self.VUR)
+            v, u, l = TrialFunctions(self.VUR)
+            w, q, lamda = TestFunctions(self.VUR)
         else:
-             (v, u) = TrialFunctions(self.VUR)
-             (w, q) = TestFunctions(self.VUR)
+            v, u = TrialFunctions(self.VUR)
+            w, q = TestFunctions(self.VUR)
 
         # Set-up measure and rhs from stimulus
         dz = Measure("dx", domain=self._mesh, subdomain_data=self._cell_domains)
@@ -606,8 +600,8 @@ class BidomainSolver(BasicBidomainSolver):
             if self._I_a:
                 G -= self._I_a*q*dz(key)
 
-        (a, L) = system(G)
-        return (a, L)
+        a, L = system(G)
+        return a, L
 
     def step(self, interval: Tuple[float, float]) -> None:
         """

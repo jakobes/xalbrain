@@ -22,6 +22,8 @@ from xalbrain import (
     parameters,
 )
 
+import pytest
+
 
 set_log_level(WARNING)
 
@@ -49,7 +51,8 @@ class TestSplittingSolver(object):
         self.cardiac_model = CardiacModel(
             self.mesh,
             self.time,
-            self.M_i, self.M_e,
+            self.M_i,
+            self.M_e,
             self.cell_model,
             self.stimulus,
             self.applied_current
@@ -65,11 +68,15 @@ class TestSplittingSolver(object):
 
 
     @medium
-    @parametrize(("solver_type"), ["direct", "iterative"])
+    # @parametrize(("solver_type"), ["direct", "iterative"])
+    @pytest.mark.parametrize("solver_type", [
+        pytest.param("direct"),
+        pytest.param("iterative", marks=pytest.mark.xfail)
+    ])
     def test_basic_and_optimised_splitting_solver_exact(self, solver_type) -> None:
-        """Test that basic and optimised splitting solvers yield
-        very comparative results when configured identically."""
-
+        """
+        Test that the optimised and basic solvers yield similar results.
+        """
         # Create basic solver
         params = BasicSplittingSolver.default_parameters()
         params["BasicCardiacODESolver"]["S_polynomial_family"] = "CG"
@@ -79,17 +86,18 @@ class TestSplittingSolver(object):
             params["BasicBidomainSolver"]["use_avg_u_constraint"] = True
         solver = BasicSplittingSolver(self.cardiac_model, params=params)
 
-        (vs_, vs, vur) = solver.solution_fields()
+        vs_, vs, vur = solver.solution_fields()
         vs_.assign(self.ics)
 
         # Solve
         solutions = solver.solve((self.t0, self.T), self.dt)
-        for (interval, fields) in solutions:
-            (vs_, vs, vur) = fields
+        for (t0, t1), fields in solutions:
+            vs_, vs, vur = fields
 
-        a = vs.vector().norm("l2")
-        c = vur.vector().norm("l2")
-        assert_almost_equal(interval[1], self.T, 1e-10)
+        foo = vs.vector()
+        basic_vs = vs.vector().norm("l2")
+        basic_vur = vur.vector().norm("l2")
+        assert_almost_equal(t1, self.T, 1e-10)
 
         # Create optimised solver with direct solution algorithm
         params = SplittingSolver.default_parameters()
@@ -99,30 +107,26 @@ class TestSplittingSolver(object):
             params["BidomainSolver"]["use_avg_u_constraint"] = True
         solver = SplittingSolver(self.cardiac_model, params=params)
 
-        (vs_, vs, vur) = solver.solution_fields()
+        vs_, vs, vur = solver.solution_fields()
         vs_.assign(self.ics)
 
         # Solve again
         solutions = solver.solve((self.t0, self.T), self.dt)
-        for (interval, fields) in solutions:
-            (vs_, vs, vur) = fields
-        assert_almost_equal(interval[1], self.T, 1e-10)
-        b = vs.vector().norm("l2")
-        d = vur.vector().norm("l2")
+        for (t0, t1), fields in solutions:
+            vs_, vs, vur = fields
 
-        print("a, b = ", a, b)
-        print("c, d = ", c, d)
-        print("a - b = ", (a - b))
-        print("c - d = ", (c - d))
+        assert_almost_equal(t1, self.T, 1e-10)
+        bar = vs.vector()
+        optimised_vs = vs.vector().norm("l2")
+        optimised_vur = vur.vector().norm("l2")
 
-        # Compare results, discrepancy is in difference in ODE
-        # solves.
-        assert_almost_equal(a, b, tolerance=1.)
-        assert_almost_equal(c, d, tolerance=1.)
+        # Compare results, discrepancy is in difference in ODE solves.
+        assert_almost_equal(optimised_vs, basic_vs, tolerance=1)
+        assert_almost_equal(optimised_vur, basic_vur, tolerance=1)
 
 
 if __name__ == "__main__":
     tss = TestSplittingSolver()
     tss.setup()
-    for solver in "direct", "iterative":
-        tss.test_basic_and_optimised_splitting_solver_exact(solver)
+    for solver in ("iterative", "direct"):
+        foo, bar = tss.test_basic_and_optimised_splitting_solver_exact(solver)

@@ -35,15 +35,17 @@ xfail = pytest.mark.xfail
 # Assertions
 def assert_almost_equal(a: float, b: float, tolerance: float) -> None:
     c = a - b
+    msg = "diff = {}"
     try:
-        assert abs(float(c)) < tolerance
+        assert abs(float(c)) < tolerance, msg.format(c)
     except TypeError:
         c_inf = numpy.linalg.norm(c, numpy.inf)
-        assert c_inf < tolerance
+        assert c_inf < tolerance, msg.format(c_inf)
 
 
 def assert_equal(a: float, b: float) -> None:
-    assert a == b
+    msg = "{} != {}".format(a, b) 
+    assert a == b, msg
 
 
 def assert_true(a: Any) -> None:
@@ -51,7 +53,8 @@ def assert_true(a: Any) -> None:
 
 
 def assert_greater(a: float, b: float) -> None:
-    assert a > b
+    msg = "{} <= {}".format(a, b)
+    assert a > b, msg
 
 @pytest.fixture(params=SUPPORTED_CELL_MODELS_STR)
 def cell_model(request):
