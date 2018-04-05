@@ -140,7 +140,7 @@ class BasicSplittingSolver:
             self.parameters.update(params)
 
         # Extract solution domain
-        self._domain = self._model.domain()
+        self._domain = self._model.mesh
         self._time = self._model.time()
 
         # Create ODE solver and extract solution fields
@@ -284,7 +284,7 @@ class BasicSplittingSolver:
         *Returns*
           (previous vs, current vs, current vur) (:py:class:`tuple` of :py:class:`dolfin.Function`)
         """
-        return (self.vs_, self.vs, self.vur)
+        return self.vs_, self.vs, self.vur
 
     def solve(self, interval, dt):
         """

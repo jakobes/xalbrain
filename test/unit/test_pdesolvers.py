@@ -16,7 +16,7 @@ from xalbrain import (
 )
 
 
-class TestBasicBidomainSolver(object):
+class TestBasicBidomainSolver:
     """Test functionality for the basic bidomain solver."""
 
     def setUp(self):
@@ -59,7 +59,7 @@ class TestBasicBidomainSolver(object):
 
         # Solve
         solutions = solver.solve((self.t0, self.t0 + 2*self.dt), self.dt)
-        for (interval, fields) in solutions:
+        for interval, fields in solutions:
             v_, vs = fields
 
     @fast
@@ -126,12 +126,12 @@ class TestBasicMonodomainSolver(object):
 
         # Solve
         solutions = solver.solve((self.t0, self.t0 + 2*self.dt), self.dt)
-        for (interval, fields) in solutions:
-            (v_, vs) = fields
+        for interval, fields in solutions:
+            v_, vs = fields
 
     @fast
     def test_compare_solve_step(self):
-        """Test that solve gives same results as single step"""
+        """Test that solve gives same results as single step."""
         self.setUp()
 
         Solver = BasicMonodomainSolver
@@ -201,8 +201,8 @@ class TestBidomainSolver(object):
         )
 
         solutions = solver.solve((self.t0, self.t0 + 2*self.dt), self.dt)
-        for (interval, fields) in solutions:
-            (v_, vur) = fields
+        for interval, fields in solutions:
+            v_, vur = fields
 
     @fast
     def test_compare_with_basic_solve(self):
@@ -225,11 +225,14 @@ class TestBidomainSolver(object):
         )
 
         solutions = solver.solve((self.t0, self.t0 + 2*self.dt), self.dt)
-        for (interval, fields) in solutions:
-            (v_, vur) = fields
+        for interval, fields in solutions:
+            v_, vur = fields
 
         bidomain_result = vur.vector().norm("l2")
 
+        params = BasicBidomainSolver.default_parameters()
+        params["linear_solver_type"] = "direct"
+        params["use_avg_u_constraint"] = False
         # Create other solver and solve
         solver = BasicBidomainSolver(
             self.mesh,
@@ -241,8 +244,8 @@ class TestBidomainSolver(object):
         )
 
         solutions = solver.solve((self.t0, self.t0 + 2*self.dt), self.dt)
-        for (interval, fields) in solutions:
-            (v_, vur) = fields
+        for interval, fields in solutions:
+            v_, vur = fields
 
         basic_bidomain_result = vur.vector().norm("l2")
 
@@ -277,6 +280,8 @@ class TestBidomainSolver(object):
 
         # Create solver and solve using iterative means
         params = BidomainSolver.default_parameters()
+        params["linear_solver_type"] = "iterative"
+        params["use_avg_u_constraint"] = False
         params["petsc_krylov_solver"]["monitor_convergence"] = True
         solver = BidomainSolver(
             self.mesh,
@@ -289,9 +294,9 @@ class TestBidomainSolver(object):
         )
 
         solutions = solver.solve((self.t0, self.t0 + 3*self.dt), self.dt)
-        for (interval, fields) in solutions:
-            (v_, vu) = fields
-            (v, u) = vu.split(deepcopy=True)
+        for interval, fields in solutions:
+            v_, vu = fields
+            v, u = vu.split(deepcopy=True)
             b = v.vector().norm("l2")
 
         print("lu gives ", a)
@@ -316,20 +321,19 @@ class TestMonodomainSolver(object):
 
     @fast
     def test_solve(self):
-        "Test that solver runs."
+        """Test that solver runs."""
         self.setUp()
 
         # Create solver and solve
         solver = MonodomainSolver(self.mesh, self.time, self.M_i, I_s=self.stimulus)
                                   
         solutions = solver.solve((self.t0, self.t0 + 2*self.dt), self.dt)
-        for (interval, fields) in solutions:
-            (v_, vur) = fields
+        for interval, fields in solutions:
+            v_, vur = fields
 
     @fast
     def test_compare_with_basic_solve(self):
-        """Test that solver with direct linear algebra gives same
-        results as basic monodomain solver."""
+        """Test that the optimised and non optimised solvers give the same answer."""
         self.setUp()
 
         # Create solver and solve
@@ -344,16 +348,24 @@ class TestMonodomainSolver(object):
         )
 
         solutions = solver.solve((self.t0, self.t0 + 2*self.dt), self.dt)
-        for (interval, fields) in solutions:
-            (v_, vur) = fields
+        for interval, fields in solutions:
+            v_, vur = fields
         monodomain_result = vur.vector().norm("l2")
 
         # Create other solver and solve
-        solver = BasicMonodomainSolver(self.mesh, self.time, self.M_i, I_s=self.stimulus)
+        params = BasicMonodomainSolver.default_parameters()
+        params["linear_solver_type"] = "direct"
+        solver = BasicMonodomainSolver(
+            self.mesh,
+            self.time,
+            self.M_i,
+            I_s=self.stimulus,
+            params=params
+        )
                                        
         solutions = solver.solve((self.t0, self.t0 + 2*self.dt), self.dt)
-        for (interval, fields) in solutions:
-            (v_, vur) = fields
+        for interval, fields in solutions:
+            v_, vur = fields
         basic_monodomain_result = vur.vector().norm("l2")
 
         print("monodomain_result = ", monodomain_result)
@@ -362,7 +374,7 @@ class TestMonodomainSolver(object):
 
     @fast
     def test_compare_direct_iterative(self):
-        "Test that direct and iterative solution give comparable results."
+        """Test that direct and iterative solution give comparable results."""
         self.setUp()
 
         # Create solver and solve
@@ -377,8 +389,8 @@ class TestMonodomainSolver(object):
         )
 
         solutions = solver.solve((self.t0, self.t0 + 3*self.dt), self.dt)
-        for (interval, fields) in solutions:
-            (v_, v) = fields
+        for interval, fields in solutions:
+            v_, v = fields
             a = v.vector().norm("l2")
 
         # Create solver and solve using iterative means
@@ -394,8 +406,8 @@ class TestMonodomainSolver(object):
         )
 
         solutions = solver.solve((self.t0, self.t0 + 3*self.dt), self.dt)
-        for (interval, fields) in solutions:
-            (v_, v) = fields
+        for interval, fields in solutions:
+            v_, v = fields
             b = v.vector().norm("l2")
 
         print("lu gives ", a)

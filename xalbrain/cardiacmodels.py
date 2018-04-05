@@ -120,8 +120,7 @@ class CardiacModel(object):
         *Returns*
         (M_i, M_e) (:py:class:`tuple` of :py:class:`ufl.Expr`)
         """
-        return (self.intracellular_conductivity(),
-                self.extracellular_conductivity())
+        return self.intracellular_conductivity(), self.extracellular_conductivity()
 
     def intracellular_conductivity(self):
         "The intracellular conductivity (:py:class:`ufl.Expr`)."
@@ -135,7 +134,8 @@ class CardiacModel(object):
         "The current time (:py:class:`dolfin.Constant` or None)."
         return self._time
 
-    def domain(self):
+    @property
+    def mesh(self):
         "The spatial domain (:py:class:`dolfin.Mesh`)."
         return self._domain
 

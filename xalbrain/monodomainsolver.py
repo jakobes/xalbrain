@@ -204,7 +204,8 @@ class BasicMonodomainSolver:
             t1 = t0 + dt
 
     def step(self, interval):
-        """Solve on the given time interval (t0, t1).
+        """
+        Solve on the given time interval (t0, t1).
 
         *Arguments*
           interval (:py:class:`tuple`)
@@ -214,7 +215,6 @@ class BasicMonodomainSolver:
           Assuming that v\_ is in the correct state for t0, gives
           self.v in correct state at t1.
         """
-
         # Extract interval and thus time-step
         t0, t1 = interval
         k_n = Constant(t1 - t0)
@@ -242,13 +242,16 @@ class BasicMonodomainSolver:
         pde = LinearVariationalProblem(a, L, self.v)
 
         # Set-up solver
+        solver_type = self.parameters["linear_solver_type"]
         solver = LinearVariationalSolver(pde)
         solver.parameters.update(self.parameters["linear_variational_solver"])
+        solver.parameters["linear_solver"] = self.parameters["linear_solver_type"]
         solver.solve()
 
     @staticmethod
     def default_parameters():
-        """Initialize and return a set of default parameters
+        """
+        Initialize and return a set of default parameters.
 
         *Returns*
           A set of parameters (:py:class:`dolfin.Parameters`)
@@ -257,7 +260,6 @@ class BasicMonodomainSolver:
 
           info(BasicMonodomainSolver.default_parameters(), True)
         """
-
         params = Parameters("BasicMonodomainSolver")
         params.add("theta", 0.5)
         params.add("polynomial_degree", 1)
