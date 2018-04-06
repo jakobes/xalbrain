@@ -1,7 +1,8 @@
-"""
-These solvers solve the (pure) bidomain equations on the form: find
-the transmembrane potential :math:`v = v(x, t)` and the extracellular
-potential :math:`u = u(x, t)` such that
+r"""
+These solvers solve the (pure) bidomain equations.
+
+The equations are on the form: find the transmembrane potential :math:`v = v(x, t)` and
+the extracellular potential :math:`u = u(x, t)` such that
 
 .. math::
 
@@ -23,7 +24,6 @@ Finally, boundary conditions must be prescribed. For now, this solver
 assumes pure homogeneous Neumann boundary conditions for :math:`v` and
 :math:`u` and enforces the additional average value zero constraint
 for u.
-
 """
 
 # Copyright (C) 2013 Marie E. Rognes (meg@simula.no)
@@ -43,12 +43,10 @@ from typing import (
     Callable,
 )
 
-# TODO: Make custom types
-
 
 class BasicBidomainSolver:
-    """This solver is based on a theta-scheme discretization in time
-    and CG_1 x CG_1 (x R) elements in space.
+    r"""
+    This solver is based on a theta-scheme discretization in time and FEM in space.
 
     .. note::
 
@@ -92,18 +90,19 @@ class BasicBidomainSolver:
         Solver parameters
 
     """
+
     def __init__(
             self,
-            mesh: Mesh, 
+            mesh: Mesh,
             time: Constant,
             M_i: Union[Expression, Dict[int, Expression]],
             M_e: Union[Expression, Dict[int, Expression]],
-            I_s: Union[Expression, Dict[int, Expression]]=None,
-            I_a: Union[Expression, Dict[int, Expression]]=None,
-            v_: Function=None,
-            cell_domains: MeshFunction=None,
-            facet_domains: MeshFunction=None,
-            params: Parameters=None
+            I_s: Union[Expression, Dict[int, Expression]] = None,
+            I_a: Union[Expression, Dict[int, Expression]] = None,
+            v_: Function = None,
+            cell_domains: MeshFunction = None,
+            facet_domains: MeshFunction = None,
+            params: Parameters = None
     ) -> None:
         # Check some input
         assert isinstance(mesh, Mesh), \
@@ -129,12 +128,10 @@ class BasicBidomainSolver:
         Ve = FiniteElement("CG", self._mesh.ufl_cell(), k)
         V = FunctionSpace(self._mesh, "CG", k)
         Ue = FiniteElement("CG", self._mesh.ufl_cell(), k)
-        U = FunctionSpace(self._mesh, "CG", k)
 
         use_R = self.parameters["use_avg_u_constraint"]
         if use_R:
             Re = FiniteElement("R", self._mesh.ufl_cell(), 0)
-            R = FunctionSpace(self._mesh, "R", 0)
             self.VUR = FunctionSpace(mesh, MixedElement((Ve, Ue, Re)))
         else:
             self.VUR = FunctionSpace(mesh, MixedElement((Ve, Ue)))
