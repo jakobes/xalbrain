@@ -3,6 +3,7 @@
 import dolfin
 
 from dolfin import (
+    mpi_comm_world,
     MPI,
     RK4,
     CN2,
@@ -85,6 +86,7 @@ except:
 
 
 __all__ = [
+    "mpi_comm_world",
     "dolfin",
     "Mesh",
     "Constant",

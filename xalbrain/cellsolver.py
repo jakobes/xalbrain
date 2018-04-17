@@ -99,6 +99,7 @@ class BasicCardiacODESolver(object):
             self.VS = VectorFunctionSpace(self._mesh, v_family, v_degree,
                                           dim=self._num_states + 1)
         else:
+            assert False
             V = FunctionSpace(self._mesh, v_family, v_degree)
             S = state_space(self._mesh, self._num_states, s_family, s_degree)
             Mx = MixedElement(V.ufl_element(), S.ufl_element())
@@ -581,9 +582,8 @@ class BasicSingleCellSolver(BasicCardiacODESolver):
 
     """
 
-    def __init__(self, model, time, params=None, adex=False):
-        "Create solver from given cell model and optional parameters."
-
+    def __init__(self, model, time, params=None):
+        """Create solver from given cell model and optional parameters."""
         assert isinstance(model, CardiacCellModel), \
             "Expecting model to be a CardiacCellModel, not %r" % model
         assert (isinstance(time, Constant)), \
@@ -601,13 +601,12 @@ class BasicSingleCellSolver(BasicCardiacODESolver):
         # super-class.
         BasicCardiacODESolver.__init__(self, mesh, time, model,
                                        I_s=model.stimulus,
-                                       params=params, adex=adex)
+                                       params=params)
 
 
 class SingleCellSolver(CardiacODESolver):
-    def __init__(self, model, time, params=None, adex=False):
-        "Create solver from given cell model and optional parameters."
-
+    def __init__(self, model, time, params=None):
+        """Create solver from given cell model and optional parameters."""
         assert isinstance(model, CardiacCellModel), \
             "Expecting model to be a CardiacCellModel, not %r" % model
         assert (isinstance(time, Constant)), \
@@ -624,4 +623,4 @@ class SingleCellSolver(CardiacODESolver):
         # Extract information from cardiac cell model and ship off to
         # super-class.
         CardiacODESolver.__init__(self, mesh, time, model,
-                                  I_s=model.stimulus, params=params, adex=adex)
+                                  I_s=model.stimulus, params=params)

@@ -107,7 +107,7 @@ class CardiacCellModel:
         return OrderedDict()
 
     def set_parameters(self, **params):
-        "Update parameters in model"
+        """Update parameters in model."""
         for param_name, param_value in params.items():
             if param_name not in self._parameters:
                 error("'%s' is not a parameter in %s" %(param_name, self))
@@ -120,7 +120,7 @@ class CardiacCellModel:
             self._parameters[param_name] = param_value
 
     def set_initial_conditions(self, **init):
-        "Update initial_conditions in model"
+        """Update initial_conditions in model."""
         for init_name, init_value in init.items():
             if init_name not in self._initial_conditions:
                 error("'%s' is not a parameter in %s" %(init_name, self))
@@ -132,33 +132,30 @@ class CardiacCellModel:
             self._initial_conditions[init_name] = init_value
 
     def initial_conditions(self):
-        "Return initial conditions for v and s as an Expression."
+        """Return initial conditions for v and s as an Expression."""
         return Expression(tuple(self._initial_conditions.keys()), degree=1,
                           **self._initial_conditions)
 
     def parameters(self):
-        "Return the current parameters."
+        """Return the current parameters."""
         return self._parameters
 
     def F(self, v, s, time=None):
-        "Return right-hand side for state variable evolution."
+        """Return right-hand side for state variable evolution."""
         error("Must define F = F(v, s)")
 
     def I(self, v, s, time=None):
-        "Return the ionic current."
+        """Return the ionic current."""
         error("Must define I = I(v, s)")
 
     def num_states(self):
-        """Return number of state variables (in addition to the
-        membrane potential)."""
+        """Return number of state variables (in addition to the membrane potential)."""
         error("Must overload num_states")
 
     def __str__(self):
-        "Return string representation of class."
+        """Return string representation of class."""
         return "Some cardiac cell model"
 
-    def update(self, vs):
-        pass
 
 class MultiCellModel(CardiacCellModel):
     """
@@ -245,14 +242,3 @@ class MultiCellModel(CardiacCellModel):
 
     def update(self, vs):
         pass
-
-# from dolfin import *
-# from xalbrain import *
-
-# mesh = UnitSquareMesh(20, 20)
-# markers = CellFunction("uint", mesh, 0)
-# markers.array()[::2] = 1
-# c0 = Beeler_reuter_1977()
-# c1 = FitzHughNagumoManual()
-# cell_model = MultiCellModel((c0, c1), (0, 1), markers)
-# print cell_model.num_states()
