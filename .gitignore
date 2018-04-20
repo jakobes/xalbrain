@@ -5,5 +5,5 @@ Scratch/
 .mypy_cache/
 .pytest_cache/
 output/
-test/
 figures/
+demo/

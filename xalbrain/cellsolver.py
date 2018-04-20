@@ -95,18 +95,14 @@ class BasicCardiacODESolver(object):
         s_family = self.parameters["S_polynomial_family"]
         s_degree = self.parameters["S_polynomial_degree"]
 
-        if (v_family == s_family and s_degree == v_degree):
+        if v_family == s_family and s_degree == v_degree:
             self.VS = VectorFunctionSpace(self._mesh, v_family, v_degree,
                                           dim=self._num_states + 1)
         else:
-            assert False
             V = FunctionSpace(self._mesh, v_family, v_degree)
             S = state_space(self._mesh, self._num_states, s_family, s_degree)
             Mx = MixedElement(V.ufl_element(), S.ufl_element())
             self.VS = FunctionSpace(self._mesh, Mx)
-
-        # Update routine called in `step`
-        self._update_cell_model = self._model.update
 
         # Initialize solution fields
         self.vs_ = Function(self.VS, name="vs_")
@@ -298,12 +294,10 @@ class BasicCardiacODESolver(object):
         solver_params = self.parameters["nonlinear_variational_solver"]
         solver.parameters.update(solver_params)
         solver.solve()
-
-        self._update_cell_model(self.vs)
         timer.stop()
 
 
-class CardiacODESolver(object):
+class CardiacODESolver:
     """An optimised solver for systems of ODEs typically
     encountered in cardiac applications of the form: find a scalar
     field :math:`v = v(x, t)` and a vector field :math:`s = s(x, t)`
@@ -345,9 +339,10 @@ class CardiacODESolver(object):
 
       params (:py:class:`dolfin.Parameters`, optional)
         Solver parameters
-
     """
+
     def __init__(self, mesh, time, model, I_s=None, params=None, adex=False):
+        """Initialise parameters."""
         import ufl.classes
 
         # Store input
@@ -422,11 +417,9 @@ class CardiacODESolver(object):
         # Initialize solver and update its parameters
         self._pi_solver = PointIntegralSolver(self._scheme)
         self._pi_solver.parameters.update(self.parameters["point_integral_solver"])
-        
-        self._update_cell_model = self._model.update
 
     def _name_to_scheme(self, name):
-        """Return scheme class with given name
+        """Return scheme class with given name.
 
         *Arguments*
           name (string)
@@ -451,6 +444,11 @@ class CardiacODESolver(object):
         params.add("enable_adjoint", False)
 
         return params
+
+    @property
+    def time(self):
+        """The internal time of the solver."""
+        return self._time
 
     def solution_fields(self):
         """
@@ -517,18 +515,20 @@ class CardiacODESolver(object):
         """
 
         # Initial time set-up
-        (T0, T) = interval
+        T0, T = interval
 
         # Solve on entire interval if no interval is given.
         if dt is None:
-            dt = (T - T0)
+            dt = T - T0
 
         # Create timestepper
-        time_stepper = TimeStepper(interval, dt, \
-                                   annotate=self.parameters["enable_adjoint"])
+        time_stepper = TimeStepper(
+            interval,
+            dt,
+            annotate=self.parameters["enable_adjoint"]
+        )
 
         for t0, t1 in time_stepper:
-
             info_blue("Solving on t = (%g, %g)" % (t0, t1))
             self.step((t0, t1))
 
@@ -537,7 +537,6 @@ class CardiacODESolver(object):
 
             # FIXME: This eventually breaks in parallel!?
             self.vs_.assign(self.vs)
-
 
 class BasicSingleCellSolver(BasicCardiacODESolver):
     """A basic, non-optimised solver for systems of ODEs typically
