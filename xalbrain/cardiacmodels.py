@@ -16,6 +16,7 @@ from xalbrain.dolfinimport import (
     Constant,
     GenericFunction,
     error,
+    Expression,
 )
 
 from xalbrain.markerwisefield import (
@@ -64,18 +65,48 @@ class CardiacModel(object):
         an applied current as an ufl Expression
 
     """
-    def __init__(self, domain, time, M_i, M_e, cell_models,
-                 stimulus=None, applied_current=None,
-                 cell_domains=None, facet_domains=None):
-        "Create CardiacModel from given input."
+    def __init__(
+            self,
+            domain: Mesh,
+            time: Constant,
+            M_i,
+            M_e,
+            cell_models: CardiacCellModel,
+            stimulus=None,
+            applied_current=None,
+            ect_current=None,
+            cell_domains=None,
+            facet_domains=None
+    ) -> None:
+        """Create CardiacModel from given input."""
 
-        self._handle_input(domain, time, M_i, M_e, cell_models,
-                           stimulus, applied_current,
-                           facet_domains, cell_domains)
+        self._handle_input(
+            domain,
+            time,
+            M_i,
+            M_e,
+            cell_models,
+            stimulus,
+            applied_current,
+            ect_current,
+            facet_domains,
+            cell_domains
+        )
 
-    def _handle_input(self, domain, time, M_i, M_e, cell_models,
-                      stimulus=None, applied_current=None,
-                      facet_domains=None, cell_domains=None):
+    def _handle_input(
+            self,
+            domain: Mesh,
+            time: Constant,
+            M_i,
+            M_e,
+            cell_models,
+            stimulus=None,
+            applied_current=None,
+            ect_current=None,
+            facet_domains=None,
+            cell_domains=None
+    ) -> None:
+        self._ect_current = ect_current
 
         # Check input and store attributes
         msg = "Expecting domain to be a Mesh instance, not %r" % domain
@@ -105,6 +136,11 @@ class CardiacModel(object):
         ac = applied_current
         self._applied_current = handle_markerwise(ac, GenericFunction)
 
+    @property
+    def ect_current(self) -> Expression:
+        """Return the neumnn current."""
+        return self._ect_current
+
     def applied_current(self):
         "An applied current: used as a source in the elliptic bidomain equation"
         return self._applied_current
@@ -123,30 +159,30 @@ class CardiacModel(object):
         return self.intracellular_conductivity(), self.extracellular_conductivity()
 
     def intracellular_conductivity(self):
-        "The intracellular conductivity (:py:class:`ufl.Expr`)."
+        """The intracellular conductivity (:py:class:`ufl.Expr`)."""
         return self._intracellular_conductivity
 
     def extracellular_conductivity(self):
-        "The intracellular conductivity (:py:class:`ufl.Expr`)."
+        """The intracellular conductivity (:py:class:`ufl.Expr`)."""
         return self._extracellular_conductivity
 
     def time(self):
-        "The current time (:py:class:`dolfin.Constant` or None)."
+        """The current time (:py:class:`dolfin.Constant` or None)."""
         return self._time
 
     @property
-    def mesh(self):
-        "The spatial domain (:py:class:`dolfin.Mesh`)."
+    def mesh(self) -> Mesh:
+        """The spatial domain (:py:class:`dolfin.Mesh`)."""
         return self._domain
 
     def cell_domains(self):
-        "Marked volume"
+        """Marked volume."""
         return self._cell_domains
 
     def facet_domains(self):
-        "Marked area"
+        """Marked area."""
         return self._facet_domains
 
     def cell_models(self):
-        "Return the cell models"
+        """Return the cell models."""
         return self._cell_models

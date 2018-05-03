@@ -198,6 +198,7 @@ class BasicSplittingSolver:
         """
         # Extract applied current from the cardiac model
         applied_current = self._model.applied_current()
+        ect_current =  self._model.ect_current
 
         # Extract stimulus from the cardiac model if we should apply
         # it to the PDEs (in the other case, it is handled by the ODE solver)
@@ -217,6 +218,7 @@ class BasicSplittingSolver:
             kwargs = dict(
                 I_s=stimulus,
                 I_a=applied_current,
+                ect_current=ect_current,
                 v_=self.vs[0],
                 cell_domains=self._model.cell_domains(),
                 facet_domains=self._model.facet_domains(),
@@ -507,7 +509,7 @@ class SplittingSolver(BasicSplittingSolver):
 
         # Add default parameters from ODE solver
         ode_solver_params = CardiacODESolver.default_parameters()
-        ode_solver_params["scheme"] = "GRL1"
+        ode_solver_params["scheme"] = "BDF1"
         params.add(ode_solver_params)
 
         # Add default parameters from ODE solver
@@ -560,6 +562,7 @@ class SplittingSolver(BasicSplittingSolver):
         # Extract applied current from the cardiac model (stimulus
         # invoked in the ODE step)
         applied_current = self._model.applied_current()
+        ect_current = self._model.ect_current
 
         # Extract stimulus from the cardiac model
         if self.parameters.apply_stimulus_current_to_pde:
@@ -578,6 +581,7 @@ class SplittingSolver(BasicSplittingSolver):
             kwargs = dict(
                 I_s=stimulus,
                 I_a=applied_current,
+                ect_current=ect_current,
                 v_=self.vs[0],
                 cell_domains=self._model.cell_domains(),
                 facet_domains=self._model.facet_domains(),

@@ -621,5 +621,11 @@ class SingleCellSolver(CardiacODESolver):
 
         # Extract information from cardiac cell model and ship off to
         # super-class.
-        CardiacODESolver.__init__(self, mesh, time, model,
-                                  I_s=model.stimulus, params=params)
+        CardiacODESolver.__init__(
+            self,
+            mesh,
+            time,
+            model,
+            I_s=model.stimulus,
+            params=params
+        )
