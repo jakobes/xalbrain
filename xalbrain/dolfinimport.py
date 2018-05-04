@@ -76,6 +76,7 @@ from dolfin import (
     RL1,
     warning,
     as_vector,
+    SubDomain,
 )
 
 
@@ -161,4 +162,5 @@ __all__ = [
     "MPI",
     "as_vector",
     "BackwardEuler",
+    "SubDomain",
 ]

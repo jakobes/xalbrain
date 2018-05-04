@@ -17,19 +17,27 @@ from xalbrain.dolfinimport import (
     GenericFunction,
     error,
     Expression,
+    MeshFunction,
 )
 
 from xalbrain.markerwisefield import (
     Markerwise,
     handle_markerwise,
 )
+
 from .cellmodels import *
+
+from typing import (
+    Dict,
+    Union,
+)
+
 
 # ------------------------------------------------------------------------------
 # Cardiac models
 # ------------------------------------------------------------------------------
 
-class CardiacModel(object):
+class CardiacModel:
     """
     A container class for cardiac models. Objects of this class
     represent a specific cardiac simulation set-up and should provide
@@ -65,47 +73,21 @@ class CardiacModel(object):
         an applied current as an ufl Expression
 
     """
+
     def __init__(
             self,
             domain: Mesh,
             time: Constant,
-            M_i,
-            M_e,
+            M_i: Union[Expression, Dict[int, Expression]],
+            M_e: Union[Expression, Dict[int, Expression]],
             cell_models: CardiacCellModel,
-            stimulus=None,
-            applied_current=None,
-            ect_current=None,
-            cell_domains=None,
-            facet_domains=None
+            stimulus: Union[Expression, Dict[int, Expression]] =None,
+            applied_current: Union[Expression, Dict[int, Expression]] = None,
+            ect_current: Dict[int, Expression] = None,
+            cell_domains: MeshFunction = None,
+            facet_domains: MeshFunction = None
     ) -> None:
         """Create CardiacModel from given input."""
-
-        self._handle_input(
-            domain,
-            time,
-            M_i,
-            M_e,
-            cell_models,
-            stimulus,
-            applied_current,
-            ect_current,
-            facet_domains,
-            cell_domains
-        )
-
-    def _handle_input(
-            self,
-            domain: Mesh,
-            time: Constant,
-            M_i,
-            M_e,
-            cell_models,
-            stimulus=None,
-            applied_current=None,
-            ect_current=None,
-            facet_domains=None,
-            cell_domains=None
-    ) -> None:
         self._ect_current = ect_current
 
         # Check input and store attributes

@@ -99,22 +99,22 @@ class BasicBidomainSolver:
             M_e: Union[Expression, Dict[int, Expression]],
             I_s: Union[Expression, Dict[int, Expression]] = None,
             I_a: Union[Expression, Dict[int, Expression]] = None,
-            ect_current: Function=None,
+            ect_current: Dict[int, Expression]=None,
             v_: Function = None,
             cell_domains: MeshFunction = None,
             facet_domains: MeshFunction = None,
             params: Parameters = None
     ) -> None:
-        # Check some input
-        assert isinstance(mesh, Mesh), \
-            "Expecting mesh to be a Mesh instance, not %r" % mesh
-        assert isinstance(time, Constant) or time is None, \
-            "Expecting time to be a Constant instance (or None)."
-        assert isinstance(params, Parameters) or params is None, \
-            "Expecting params to be a Parameters instance (or None)"
+        """Initialise solverand check all parametersare correct."""
+        msg = "Expecting mesh to be a Mesh instance, not {}".format(mesh)
+        assert isinstance(mesh, Mesh), msg
+            
+        msg = "Expecting time to be a Constant instance (or None)."
+        assert isinstance(time, Constant) or time is None, msg
+            
+        msg = "Expecting params to be a Parameters instance (or None)"
+        assert isinstance(params, Parameters) or params is None, msg
 
-        # Set the ECT current, Not, it myst depend on `time` to be updated
-        self._ect_current = ect_current
         self._nullspace_basis = None
 
         # Store input
@@ -164,11 +164,16 @@ class BasicBidomainSolver:
         self._M_e = M_e
 
         # Store source terms
-        msg = "Source terms must be defined on the whole domain"
-        assert not isinstance(I_s, dict), msg
         self._I_s = I_s
-        assert not isinstance(I_s, dict), msg
         self._I_a = I_a
+
+        # Set the ECT current, Note, it myst depend on `time` to be updated
+        if ect_current is not None:
+            ect_tags = set(ect_current)
+            facet_tags = set(self._facet_domains.array())
+            msg = "{} not in facet domains ({}).".format(ect_tags, facet_tags)
+            assert ect_tags <= facet_tags, msg
+        self._ect_current = ect_current
 
         # Set-up solution fields:
         if v_ is None:
@@ -239,7 +244,7 @@ class BasicBidomainSolver:
 
         # Step through time steps until at end time
         while True:
-            info("Solving on t = (%g, %g)" % (t0, t1))
+            info("Solving on t = ({:g}, {:g})".format(t0, t1))
             self.step((t0, t1))
 
             # Yield solutions
@@ -327,7 +332,8 @@ class BasicBidomainSolver:
 
         for key in facet_tags:
             if self._ect_current is not None:
-                G += self._ect_current*q*db(key)
+                # Detfaltto 0 if not defined for that facet tag
+                G += self._ect_current.get(key, Constant(0))*q*db(key)
 
         # Define variational problem
         a, L = system(G)
@@ -611,7 +617,8 @@ class BidomainSolver(BasicBidomainSolver):
 
         for key in facet_tags:
             if self._ect_current is not None:
-                G += self._ect_current*q*db
+                # Default to 0 if not defined for tag
+                G += self._ect_current.get(key, Constant(0))*q*db
 
         a, L = system(G)
         return a, L
