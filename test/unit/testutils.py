@@ -33,7 +33,11 @@ xfail = pytest.mark.xfail
 
 
 # Assertions
-def assert_almost_equal(a: float, b: float, tolerance: float) -> None:
+def assert_almost_equal(a: Any, b: Any, tolerance: float) -> None:
+    """Assert that a and b are almostequal.
+
+    numpy.linalg.norm(a -b, numpy.inf) will be used in case ofarrays.
+    """
     c = a - b
     msg = "diff = {}"
     try:
@@ -44,20 +48,25 @@ def assert_almost_equal(a: float, b: float, tolerance: float) -> None:
 
 
 def assert_equal(a: float, b: float) -> None:
+    """Assert thattwo reals a and b are equal."""
     msg = "{} != {}".format(a, b) 
     assert a == b, msg
 
 
 def assert_true(a: Any) -> None:
+    """Assert a is True or not None.""" 
     assert a is True
 
 
 def assert_greater(a: float, b: float) -> None:
+    """Assert a > b."""
     msg = "{} <= {}".format(a, b)
     assert a > b, msg
 
+
 @pytest.fixture(params=SUPPORTED_CELL_MODELS_STR)
 def cell_model(request):
+    """Eval cell model."""
     Model = eval(request.param)
     return Model()
 

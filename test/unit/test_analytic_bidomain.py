@@ -33,8 +33,12 @@ from testutils import slow
 from typing import Tuple
 
 
-def main(N: int, dt: float, T: float, theta: float) -> \
-        Tuple[float, float, float, float, float]:
+def main(
+        N: int,
+        dt: float,
+        T: float,
+        theta: float
+) -> Tuple[float, float, float, float, float]:
     # Create cardiac model
     mesh = UnitSquareMesh(N, N)
     time = Constant(0.0)
@@ -63,27 +67,25 @@ def main(N: int, dt: float, T: float, theta: float) -> \
 
     # Define initial condition(s)
     vs0 = Function(solver.VS)
-    (vs_, vs, vur) = solver.solution_fields()
+    vs_, *_ = solver.solution_fields()
     vs_.assign(vs0)
 
     # Solve
-    solutions = solver.solve((0, T), dt)
-    for (timestep, (vs_, vs, vur)) in solutions:
+    for (_, (vs_, vs, vur)) in solver.solve((0, T), dt):
         continue
 
     # Compute errors
     v, s = vs.split(deepcopy=True)
     v_error = errornorm(v_exact, v, "L2", degree_rise=5)
-    v, u, *r = vur.split(deepcopy=True)
+    v, u, r = vur.split(deepcopy=True)
     u_error = errornorm(u_exact, u, "L2", degree_rise=5)
-
-    return (v_error, u_error, mesh.hmin(), dt, T)
+    return v_error, u_error, mesh.hmin(), dt, T
 
 
 @slow
 @pytest.mark.xfail(dolfin_version == "2016.2.0", reason="Unknown")
-def test_spatial_and_temporal_convergence():
-    "Test convergence rates for bidomain solver."
+def test_spatial_and_temporal_convergence() -> None:
+    """Test convergence rates for bidomain solver."""
     v_errors = []
     u_errors = []
     dts = []
@@ -92,7 +94,7 @@ def test_spatial_and_temporal_convergence():
     dt = 0.01
     theta = 0.5
     N = 10
-    for level in (1, 2):
+    for level in (1, 2, 3):
         a = dt/(2**level)
         v_error, u_error, h, a, T = main(N*(2**level), a, T, theta)
         v_errors.append(v_error)

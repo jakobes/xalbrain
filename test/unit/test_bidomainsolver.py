@@ -44,6 +44,7 @@ def main(
         T: float,
         theta: float
 ) -> Tuple[float, float, float, float, float]:
+    """Run bidomain MMA."""
     # Create data
     mesh = UnitSquareMesh(N, N)
     time = Constant(0.0)
