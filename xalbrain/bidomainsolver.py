@@ -88,7 +88,6 @@ class BasicBidomainSolver:
 
       params (:py:class:`dolfin.Parameters`, optional)
         Solver parameters
-
     """
 
     def __init__(
@@ -142,13 +141,15 @@ class BasicBidomainSolver:
         self.V = V
 
         if cell_domains is None:
-            cell_domains = CellFunction("size_t", mesh)
+            cell_domains = MeshFunction("size_t", mesh, 2)
             cell_domains.set_all(0)
+        assert cell_domains.dim() == 2      # Chech that it is indeed a cell function.
         self._cell_domains = cell_domains
 
         if facet_domains is None:
-            facet_domains = FacetFunction("size_t", mesh)
+            facet_domains = MeshFunction("size_t", mesh, 1)
             facet_domains.set_all(0)
+        assert facet_domains.dim() == 1     # Check that it is indeed a facet function.
         self._facet_domains = facet_domains
 
         if not isinstance(M_i, dict):
@@ -330,8 +331,8 @@ class BasicBidomainSolver:
             if self._I_a:
                 G -= self._I_a*q*dz(key)
 
-        for key in facet_tags:
-            if self._ect_current is not None:
+        if self._ect_current is not None:
+            for key in facet_tags:
                 # Detfaltto 0 if not defined for that facet tag
                 G += self._ect_current.get(key, Constant(0))*q*db(key)
 
@@ -618,7 +619,7 @@ class BidomainSolver(BasicBidomainSolver):
         for key in facet_tags:
             if self._ect_current is not None:
                 # Default to 0 if not defined for tag
-                G += self._ect_current.get(key, Constant(0))*q*db
+                G += self._ect_current.get(key, Constant(0))*q*db(key)
 
         a, L = system(G)
         return a, L
