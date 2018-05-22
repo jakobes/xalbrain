@@ -4,3 +4,6 @@
 Scratch/
 .mypy_cache/
 .pytest_cache/
+output/
+figures/
+demo/

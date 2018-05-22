@@ -3,11 +3,13 @@
 import dolfin
 
 from dolfin import (
+    mpi_comm_world,
     MPI,
     RK4,
     CN2,
     ERK,
     BDF1,
+    BackwardEuler,
     ESDIRK3,
     ESDIRK4,
     GRL1,
@@ -74,6 +76,7 @@ from dolfin import (
     RL1,
     warning,
     as_vector,
+    SubDomain,
 )
 
 
@@ -84,6 +87,7 @@ except:
 
 
 __all__ = [
+    "mpi_comm_world",
     "dolfin",
     "Mesh",
     "Constant",
@@ -156,5 +160,7 @@ __all__ = [
     "RL1",
     "RL2",
     "MPI",
-    "as_vector"
+    "as_vector",
+    "BackwardEuler",
+    "SubDomain",
 ]

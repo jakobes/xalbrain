@@ -1,4 +1,4 @@
-"""
+r"""
 These solvers solve the (pure) monodomain equations on the form: find
 the transmembrane potential :math:`v = v(x, t)` such that
 
@@ -16,8 +16,7 @@ given for :math:`v`:
 
    v(x, 0) = v_0
 
-Finally, boundary conditions must be prescribed. For now, this solver
-assumes pure homogeneous Neumann boundary conditions for :math:`v`.
+Finally, boundary conditions must be prescribed. For now, this solver assumes pure homogeneous Neumann boundary conditions for :math:`v`.
 
 """
 
@@ -41,6 +40,7 @@ from xalbrain.utils import (
 from typing import (
     Union,
     Dict,
+    Tuple,
 )
 
 
@@ -131,11 +131,11 @@ class BasicMonodomainSolver:
         self._annotate_kwargs = annotate_kwargs(self.parameters)
 
     @property
-    def time(self):
-        "The internal time of the solver."
+    def time(self) -> Constant:
+        """The internal time of the solver."""
         return self._time
 
-    def solution_fields(self):
+    def solution_fields(self) -> Tuple[Function]:
         """Return tuple of previous and current solution objects.
 
         Modifying these will modify the solution objects of the solver
@@ -147,7 +147,7 @@ class BasicMonodomainSolver:
         """
         return self.v_, self.v
 
-    def solve(self, interval, dt=None):
+    def solve(self, interval, dt=None) -> None:
         """
         Solve the discretization on a given time interval (t0, t1)
         with a given timestep dt and return generator for a tuple of
@@ -173,7 +173,6 @@ class BasicMonodomainSolver:
             v_, v = solution_fields
             # do something with the solutions
         """
-
         # Initial set-up
         # Solve on entire interval if no interval is given.
         T0, T = interval
@@ -203,8 +202,8 @@ class BasicMonodomainSolver:
             t0 = t1
             t1 = t0 + dt
 
-    def step(self, interval):
-        """Solve on the given time interval (t0, t1).
+    def step(self, interval) -> None:
+        r"""Solve on the given time interval (t0, t1).
 
         *Arguments*
           interval (:py:class:`tuple`)
@@ -214,13 +213,12 @@ class BasicMonodomainSolver:
           Assuming that v\_ is in the correct state for t0, gives
           self.v in correct state at t1.
         """
-
         # Extract interval and thus time-step
         t0, t1 = interval
         k_n = Constant(t1 - t0)
-        theta = self.parameters["theta"]
 
-        # Extract conductivities
+        # Extract theta parameter and conductivities
+        theta = self.parameters["theta"]
         M_i = self._M_i
 
         # Set time
@@ -230,25 +228,29 @@ class BasicMonodomainSolver:
         # Define variational formulation
         v = TrialFunction(self.V)
         w = TestFunction(self.V)
-        Dt_v = (v - self.v_)/k_n
+        Dt_v_k_n = (v - self.v_)/k_n
         v_mid = theta*v + (1.0 - theta)*self.v_
 
         dz, rhs = rhs_with_markerwise_field(self._I_s, self._mesh, w)
-        theta_parabolic = inner(M_i*grad(v_mid), grad(w))*dz()
-        G = Dt_v*w*dz() + theta_parabolic - rhs
+        G = Dt_v_k_n*w*dz()
+        G += inner(M_i*grad(v_mid), grad(w))*dz()
+        G -= rhs
 
         # Define variational problem
         a, L = system(G)
         pde = LinearVariationalProblem(a, L, self.v)
 
         # Set-up solver
+        solver_type = self.parameters["linear_solver_type"]
         solver = LinearVariationalSolver(pde)
         solver.parameters.update(self.parameters["linear_variational_solver"])
+        solver.parameters["linear_solver"] = self.parameters["linear_solver_type"]
         solver.solve()
 
     @staticmethod
     def default_parameters():
-        """Initialize and return a set of default parameters
+        """
+        Initialize and return a set of default parameters.
 
         *Returns*
           A set of parameters (:py:class:`dolfin.Parameters`)
@@ -257,7 +259,6 @@ class BasicMonodomainSolver:
 
           info(BasicMonodomainSolver.default_parameters(), True)
         """
-
         params = Parameters("BasicMonodomainSolver")
         params.add("theta", 0.5)
         params.add("polynomial_degree", 1)
@@ -265,7 +266,7 @@ class BasicMonodomainSolver:
         params.add("default_timestep", 1.0)
 
         # Set default solver type to be iterative
-        params.add("linear_solver_type", "iterative")
+        params.add("linear_solver_type", "direct")
         params.add("lu_type", "default")
 
         # Set default iterative solver choices (used if iterative
@@ -299,14 +300,11 @@ class MonodomainSolver(BasicMonodomainSolver):
         # Call super-class
         BasicMonodomainSolver.__init__(self, mesh, time, M_i, I_s=I_s,
                                        v_=v_, params=params)
-
         # Create variational forms
         self._timestep = Constant(self.parameters["default_timestep"])
-        (self._lhs, self._rhs, self._prec) \
-            = self.variational_forms(self._timestep)
+        self._lhs, self._rhs, self._prec = self.variational_forms(self._timestep)
 
-        # Preassemble left-hand side (will be updated if time-step
-        # changes)
+        # Preassemble left-hand side (will be updated if time-step changes)
         debug("Preassembling monodomain matrix (and initializing vector)")
         self._lhs_matrix = assemble(self._lhs, **self._annotate_kwargs)
         self._rhs_vector = Vector(mesh.mpi_comm(), self._lhs_matrix.size(0))
@@ -366,7 +364,6 @@ class MonodomainSolver(BasicMonodomainSolver):
 
           info(MonodomainSolver.default_parameters(), True)
         """
-
         params = Parameters("MonodomainSolver")
         params.add("enable_adjoint", False)
         params.add("theta", 0.5)
@@ -374,14 +371,14 @@ class MonodomainSolver(BasicMonodomainSolver):
         params.add("default_timestep", 1.0)
 
         # Set default solver type to be iterative
-        params.add("linear_solver_type", "iterative")
+        params.add("linear_solver_type", "direct")
         params.add("lu_type", "default")
 
         # Set default iterative solver choices (used if iterative
         # solver is invoked)
         params.add("algorithm", "cg")
         params.add("preconditioner", "petsc_amg")
-        params.add("use_custom_preconditioner", True)
+        params.add("use_custom_preconditioner", False)
 
         # Add default parameters from both LU and Krylov solvers
         params.add(LUSolver.default_parameters())
@@ -392,10 +389,9 @@ class MonodomainSolver(BasicMonodomainSolver):
 
         # Customize default parameters for KrylovSolver
         #params["krylov_solver"]["preconditioner"]["structure"] = "same"
-
         return params
 
-    def variational_forms(self, k_n):
+    def variational_forms(self, k_n: Constant):
         """Create the variational forms corresponding to the given
         discretization of the given system of equations.
 
@@ -405,9 +401,7 @@ class MonodomainSolver(BasicMonodomainSolver):
 
         *Returns*
           (lhs, rhs, prec) (:py:class:`tuple` of :py:class:`ufl.Form`)
-
         """
-
         # Extract theta parameter and conductivities
         theta = self.parameters["theta"]
         M_i = self._M_i
@@ -417,23 +411,22 @@ class MonodomainSolver(BasicMonodomainSolver):
         w = TestFunction(self.V)
 
         # Set-up variational problem
-        Dt_v_k_n = (v - self.v_)
+        Dt_v_k_n = (v - self.v_)/k_n
         v_mid = theta*v + (1.0 - theta)*self.v_
          
         dz, rhs = rhs_with_markerwise_field(self._I_s, self._mesh, w)
-
-        theta_parabolic = inner(M_i*grad(v_mid), grad(w))*dz()
-        G = Dt_v_k_n*w*dz + k_n*theta_parabolic - k_n*rhs
+        G = Dt_v_k_n*w*dz()
+        G += inner(M_i*grad(v_mid), grad(w))*dz()
+        G -= rhs
 
         # Define preconditioner based on educated(?) guess by Marie
         prec = (v*w + k_n/2.0*inner(M_i*grad(v), grad(w)))*dz
 
-        (a, L) = system(G)
+        a, L = system(G)
         return (a, L, prec)
 
     def step(self, interval):
-        """
-        Solve on the given time step (t0, t1).
+        """Solve on the given time step (t0, t1).
 
         *Arguments*
           interval (:py:class:`tuple`)
@@ -443,11 +436,10 @@ class MonodomainSolver(BasicMonodomainSolver):
           Assuming that v\_ is in the correct state for t0, gives
           self.v in correct state at t1.
         """
-
         timer = Timer("PDE Step")
 
         # Extract interval and thus time-step
-        (t0, t1) = interval
+        t0, t1 = interval
         dt = t1 - t0
         theta = self.parameters["theta"]
         t = t0 + theta*dt
@@ -461,8 +453,6 @@ class MonodomainSolver(BasicMonodomainSolver):
         timer0 = Timer("Assemble rhs")
         assemble(self._rhs, tensor=self._rhs_vector, **self._annotate_kwargs)
         del timer0
-
-        self._rhs_vector -= self._rhs_vector.sum()/self._rhs_vector.size()
 
         # Solve problem
         self.linear_solver.solve(
@@ -490,8 +480,7 @@ class MonodomainSolver(BasicMonodomainSolver):
             self._timestep.assign(Constant(dt))#, annotate=annotate)
 
             # Reassemble matrix
-            assemble(self._lhs, tensor=self._lhs_matrix,
-                     **self._annotate_kwargs)
+            assemble(self._lhs, tensor=self._lhs_matrix, **self._annotate_kwargs)
 
     def _update_krylov_solver(self, timestep_unchanged, dt):
         """Helper function for updating a KrylovSolver depending on
@@ -512,15 +501,13 @@ class MonodomainSolver(BasicMonodomainSolver):
             self._timestep.assign(Constant(dt))
 
             # Reassemble matrix
-            assemble(self._lhs, tensor=self._lhs_matrix,
-                     **self._annotate_kwargs)
+            assemble(self._lhs, tensor=self._lhs_matrix, **self._annotate_kwargs)
 
             # Reassemble preconditioner
             if self.parameters["use_custom_preconditioner"]:
-                assemble(self._prec, tensor=self._prec_matrix,
-                         **self._annotate_kwargs)
+                assemble(self._prec, tensor=self._prec_matrix, **self._annotate_kwargs)
 
         # Set nonzero initial guess if it indeed is nonzero
-        #if (self.v.vector().norm("l2") > 1.e-12):
-        #    debug("Initial guess is non-zero.")
-        #    self.linear_solver.parameters["nonzero_initial_guess"] = True
+        if (self.v.vector().norm("l2") > 1.e-12):
+            debug("Initial guess is non-zero.")
+            self.linear_solver.parameters["nonzero_initial_guess"] = True

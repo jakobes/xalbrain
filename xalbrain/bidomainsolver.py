@@ -1,7 +1,8 @@
-"""
-These solvers solve the (pure) bidomain equations on the form: find
-the transmembrane potential :math:`v = v(x, t)` and the extracellular
-potential :math:`u = u(x, t)` such that
+r"""
+These solvers solve the (pure) bidomain equations.
+
+The equations are on the form: find the transmembrane potential :math:`v = v(x, t)` and
+the extracellular potential :math:`u = u(x, t)` such that
 
 .. math::
 
@@ -23,7 +24,6 @@ Finally, boundary conditions must be prescribed. For now, this solver
 assumes pure homogeneous Neumann boundary conditions for :math:`v` and
 :math:`u` and enforces the additional average value zero constraint
 for u.
-
 """
 
 # Copyright (C) 2013 Marie E. Rognes (meg@simula.no)
@@ -43,12 +43,10 @@ from typing import (
     Callable,
 )
 
-# TODO: Make custom types
-
 
 class BasicBidomainSolver:
-    """This solver is based on a theta-scheme discretization in time
-    and CG_1 x CG_1 (x R) elements in space.
+    r"""
+    This solver is based on a theta-scheme discretization in time and FEM in space.
 
     .. note::
 
@@ -90,28 +88,31 @@ class BasicBidomainSolver:
 
       params (:py:class:`dolfin.Parameters`, optional)
         Solver parameters
-
     """
+
     def __init__(
             self,
-            mesh: Mesh, 
+            mesh: Mesh,
             time: Constant,
             M_i: Union[Expression, Dict[int, Expression]],
             M_e: Union[Expression, Dict[int, Expression]],
-            I_s: Union[Expression, Dict[int, Expression]]=None,
-            I_a: Union[Expression, Dict[int, Expression]]=None,
-            v_: Function=None,
-            cell_domains: MeshFunction=None,
-            facet_domains: MeshFunction=None,
-            params: Parameters=None
+            I_s: Union[Expression, Dict[int, Expression]] = None,
+            I_a: Union[Expression, Dict[int, Expression]] = None,
+            ect_current: Dict[int, Expression]=None,
+            v_: Function = None,
+            cell_domains: MeshFunction = None,
+            facet_domains: MeshFunction = None,
+            params: Parameters = None
     ) -> None:
-        # Check some input
-        assert isinstance(mesh, Mesh), \
-            "Expecting mesh to be a Mesh instance, not %r" % mesh
-        assert isinstance(time, Constant) or time is None, \
-            "Expecting time to be a Constant instance (or None)."
-        assert isinstance(params, Parameters) or params is None, \
-            "Expecting params to be a Parameters instance (or None)"
+        """Initialise solverand check all parametersare correct."""
+        msg = "Expecting mesh to be a Mesh instance, not {}".format(mesh)
+        assert isinstance(mesh, Mesh), msg
+            
+        msg = "Expecting time to be a Constant instance (or None)."
+        assert isinstance(time, Constant) or time is None, msg
+            
+        msg = "Expecting params to be a Parameters instance (or None)"
+        assert isinstance(params, Parameters) or params is None, msg
 
         self._nullspace_basis = None
 
@@ -129,12 +130,10 @@ class BasicBidomainSolver:
         Ve = FiniteElement("CG", self._mesh.ufl_cell(), k)
         V = FunctionSpace(self._mesh, "CG", k)
         Ue = FiniteElement("CG", self._mesh.ufl_cell(), k)
-        U = FunctionSpace(self._mesh, "CG", k)
 
         use_R = self.parameters["use_avg_u_constraint"]
         if use_R:
             Re = FiniteElement("R", self._mesh.ufl_cell(), 0)
-            R = FunctionSpace(self._mesh, "R", 0)
             self.VUR = FunctionSpace(mesh, MixedElement((Ve, Ue, Re)))
         else:
             self.VUR = FunctionSpace(mesh, MixedElement((Ve, Ue)))
@@ -142,29 +141,40 @@ class BasicBidomainSolver:
         self.V = V
 
         if cell_domains is None:
-            cell_domains = CellFunction("size_t", mesh)
+            cell_domains = MeshFunction("size_t", mesh, 2)
             cell_domains.set_all(0)
+        assert cell_domains.dim() == 2      # Chech that it is indeed a cell function.
         self._cell_domains = cell_domains
 
         if facet_domains is None:
-            facet_domains = FacetFunction("size_t", mesh)
+            facet_domains = MeshFunction("size_t", mesh, 1)
             facet_domains.set_all(0)
+        assert facet_domains.dim() == 1     # Check that it is indeed a facet function.
         self._facet_domains = facet_domains
 
         if not isinstance(M_i, dict):
             M_i = {int(i): M_i for i in set(self._cell_domains.array())}
+        else:
+            assert set(M_i.keys()) == set(self._cell_domains.array())
         self._M_i = M_i
 
         if not isinstance(M_e, dict):
             M_e = {int(i): M_e for i in set(self._cell_domains.array())}
+        else:
+            assert set(M_e.keys()) == set(self._cell_domains.array())
         self._M_e = M_e
 
         # Store source terms
-        msg = "Source terms must be defined on the whole domains"
-        assert not isinstance(I_s, dict), msg
         self._I_s = I_s
-        assert not isinstance(I_s, dict), msg
         self._I_a = I_a
+
+        # Set the ECT current, Note, it myst depend on `time` to be updated
+        if ect_current is not None:
+            ect_tags = set(ect_current)
+            facet_tags = set(self._facet_domains.array())
+            msg = "{} not in facet domains ({}).".format(ect_tags, facet_tags)
+            assert ect_tags <= facet_tags, msg
+        self._ect_current = ect_current
 
         # Set-up solution fields:
         if v_ is None:
@@ -181,7 +191,7 @@ class BasicBidomainSolver:
 
     @property
     def time(self) -> Constant:
-        "The internal time of the solver."
+        """The internal time of the solver."""
         return self._time
 
     def solution_fields(self) -> Tuple[Function, Function]:
@@ -229,13 +239,13 @@ class BasicBidomainSolver:
         # Solve on entire interval if no interval is given.
         T0, T = interval
         if dt is None:
-            dt = (T - T0)
+            dt = T - T0
         t0 = T0
         t1 = T0 + dt
 
         # Step through time steps until at end time
-        while(True):
-            info("Solving on t = (%g, %g)" % (t0, t1))
+        while True:
+            info("Solving on t = ({:g}, {:g})".format(t0, t1))
             self.step((t0, t1))
 
             # Yield solutions
@@ -247,6 +257,7 @@ class BasicBidomainSolver:
 
             # If not: update members and move to next time
             # Subfunction assignment would be good here.
+
             if isinstance(self.v_, Function):
                 self.merger.assign(self.v_, self.vur.sub(0))
             else:
@@ -265,16 +276,16 @@ class BasicBidomainSolver:
             Assuming that v\_ is in the correct state for t0, gives
             self.vur in correct state at t1.
         """
-
         timer = Timer("PDE step")
+
+        # Extract theta and conductivities
+        theta = self.parameters["theta"]
+        M_i = self._M_i
+        M_e = self._M_e
 
         # Extract interval and thus time-step
         t0, t1 = interval
         k_n = Constant(t1 - t0)
-        theta = self.parameters["theta"]
-
-        # Extract conductivities
-        M_i, M_e = self._M_i, self._M_e
 
         # Define variational formulation
         use_R = self.parameters["use_avg_u_constraint"]
@@ -296,33 +307,38 @@ class BasicBidomainSolver:
         # (dz, rhs) = rhs_with_markerwise_field(self._I_s, self._mesh, w)
 
         dz = Measure("dx", domain=self._mesh, subdomain_data=self._cell_domains)
-        tags = set(self._cell_domains.array())
+        db = Measure("ds", domain=self._mesh, subdomain_data=self._facet_domains)
+        cell_tags = map(int, set(self._cell_domains.array()))   # np.int64 does not work
+        facet_tags = map(int, set(self._facet_domains.array()))
 
-        G = 0
-        for key in tags:
-            key = int(key)      # NB! np.uint64 does not work
-            if self._I_s is not None:
-                rhs = self._I_s*w*dz(key)
+        G = Dt_v*w*dz()
+        for key in cell_tags:
+            G += inner(M_i[key]*grad(v_mid), grad(w))*dz(key)
+            G += inner(M_i[key]*grad(u), grad(w))*dz(key)
+            G += inner(M_i[key]*grad(v_mid), grad(q))*dz(key)
+            G += inner((M_i[key] + M_e[key])*grad(u), grad(q))*dz(key)
+
+            if self._I_s is None:
+                G -= Constant(0)*w*dz(key)
             else:
-                rhs = Constant(0)*w*dz(key)
-    
-            theta_parabolic = inner(M_i[key]*grad(v_mid), grad(w))*dz(key) \
-                            + inner(M_i[key]*grad(u), grad(w))*dz(key)
-            theta_elliptic = inner(M_i[key]*grad(v_mid), grad(q))*dz(key) \
-                           + inner((M_i[key] + M_e[key])*grad(u), grad(q))*dz(key)
-            G += Dt_v*w*dz(key) + theta_parabolic + theta_elliptic
-    
+                G -= self._I_s*w*dz(key)
+
+            # If Lagrangian multiplier
             if use_R:
                 G += (lamda*u + l*q)*dz(key)
-    
+
             # Add applied current as source in elliptic equation if applicable
             if self._I_a:
                 G -= self._I_a*q*dz(key)
-    
-            G -= rhs
+
+        if self._ect_current is not None:
+            for key in facet_tags:
+                # Detfaltto 0 if not defined for that facet tag
+                G += self._ect_current.get(key, Constant(0))*q*db(key)
 
         # Define variational problem
         a, L = system(G)
+
         pde = LinearVariationalProblem(a, L, self.vur)
 
         # Set-up solver
@@ -347,10 +363,10 @@ class BasicBidomainSolver:
         params.add("enable_adjoint", False)
         params.add("theta", 0.5)
         params.add("polynomial_degree", 1)
-        params.add("use_avg_u_constraint", False)
+        params.add("use_avg_u_constraint", True)
 
         # Set default solver type to be iterative
-        params.add("linear_solver_type", "iterative")
+        params.add("linear_solver_type", "direct")
 
         # Set default iterative solver choices (used if iterative
         # solver is invoked)
@@ -358,19 +374,16 @@ class BasicBidomainSolver:
         params.add("preconditioner", "petsc_amg")
 
         # Add default parameters from both LU and Krylov solvers
+
         params.add(LUSolver.default_parameters())
-        petsc_params = PETScKrylovSolver.default_parameters()
-
-        # FIXME: work around DOLFIN bug #583. Just deleted this when fixed.
-        # petsc_params.convergence_norm_type = "preconditioned"
-        # params.add(petsc_params)
-
         # Customize default parameters for LUSolver
         params["lu_solver"]["same_nonzero_pattern"] = True
 
-        params.add(LinearVariationalSolver.default_parameters())
-        # params["linear_variational_solver"]["linear_solver"] = "gmres"
-        # params["linear_variational_solver"]["preconditioner"] = "petsc_amg"
+        linear_params = LinearVariationalSolver.default_parameters()
+        linear_params["krylov_solver"]["absolute_tolerance"] = 1e-14
+        linear_params["krylov_solver"]["relative_tolerance"] = 1e-14
+        linear_params["krylov_solver"]["nonzero_initial_guess"] = True
+        params.add(linear_params)
         return params
 
 
@@ -385,6 +398,7 @@ class BidomainSolver(BasicBidomainSolver):
             M_e: Union[Expression, Dict[int, Expression]],
             I_s: Union[Expression, Dict[int, Expression]]=None,
             I_a: Union[Expression, Dict[int, Expression]]=None,
+            ect_current: Dict[int, Expression]=None,
             v_: Function=None,
             cell_domains: MeshFunction=None,
             facet_domains: MeshFunction=None,
@@ -400,6 +414,7 @@ class BidomainSolver(BasicBidomainSolver):
             I_s=I_s,
             I_a=I_a,
             v_=v_,
+            ect_current=ect_current,
             cell_domains=cell_domains, 
             facet_domains=facet_domains,
             params=params
@@ -419,7 +434,7 @@ class BidomainSolver(BasicBidomainSolver):
         return self._linear_solver
 
     def _create_linear_solver(self):
-        "Helper function for creating linear solver based on parameters."
+        """Helper function for creating linear solver based on parameters."""
         solver_type = self.parameters["linear_solver_type"]
 
         if solver_type == "direct":
@@ -482,7 +497,6 @@ class BidomainSolver(BasicBidomainSolver):
             if self.parameters["use_avg_u_constraint"]:
                 # Nothing to do, no null space
                 pass
-
             else:
                 # If dolfin-adjoint is enabled and installled: set the solver nullspace
                 if dolfin_adjoint:
@@ -498,7 +512,7 @@ class BidomainSolver(BasicBidomainSolver):
         else:
             error("Unknown linear_solver_type given: %s" % solver_type)
 
-        return (solver, update_routine)
+        return solver, update_routine
 
     @property
     def nullspace(self) -> VectorSpaceBasis:
@@ -527,8 +541,8 @@ class BidomainSolver(BasicBidomainSolver):
         params.add("polynomial_degree", 1)
 
         # Set default solver type to be iterative
-        params.add("linear_solver_type", "iterative")
-        params.add("use_avg_u_constraint", False)
+        params.add("linear_solver_type", "direct")
+        params.add("use_avg_u_constraint", True)
 
         # Set default iterative solver choices (used if iterative
         # solver is invoked)
@@ -538,16 +552,13 @@ class BidomainSolver(BasicBidomainSolver):
         # Add default parameters from both LU and Krylov solvers
         params.add(LUSolver.default_parameters())
         petsc_params = PETScKrylovSolver.default_parameters()
-        # FIXME: work around DOLFIN bug #583. Just deleted this when fixed.
-        # petsc_params.convergence_norm_type = "preconditioned"
+        petsc_params["absolute_tolerance"] = 1e-14
+        petsc_params["relative_tolerance"] = 1e-14
+        petsc_params["nonzero_initial_guess"] = True
         params.add(petsc_params)
 
         # Customize default parameters for LUSolver
         params["lu_solver"]["same_nonzero_pattern"] = True
-
-        # Customize default parameters for PETScKrylovSolver
-        # params["petsc_krylov_solver"]["preconditioner"]["structure"] = "same"
-
         return params
 
     def variational_forms(self, k_n: Constant) -> Tuple[lhs, rhs]:
@@ -562,7 +573,6 @@ class BidomainSolver(BasicBidomainSolver):
           (lhs, rhs) (:py:class:`tuple` of :py:class:`ufl.Form`)
 
         """
-
         # Extract theta parameter and conductivities
         theta = self.parameters["theta"]
         M_i = self._M_i
@@ -571,42 +581,48 @@ class BidomainSolver(BasicBidomainSolver):
         # Define variational formulation
         use_R = self.parameters["use_avg_u_constraint"]
         if use_R:
-             (v, u, l) = TrialFunctions(self.VUR)
-             (w, q, lamda) = TestFunctions(self.VUR)
+            v, u, l = TrialFunctions(self.VUR)
+            w, q, lamda = TestFunctions(self.VUR)
         else:
-             (v, u) = TrialFunctions(self.VUR)
-             (w, q) = TestFunctions(self.VUR)
+            v, u = TrialFunctions(self.VUR)
+            w, q = TestFunctions(self.VUR)
 
-        # Set-up measure and rhs from stimulus
-        dz = Measure("dx", domain=self._mesh, subdomain_data=self._cell_domains)
-        tags = set(self._cell_domains.array())
 
         Dt_v = (v - self.v_)/k_n
         v_mid = theta*v + (1.0 - theta)*self.v_
 
+        # Set-up measure and rhs from stimulus
+        dz = Measure("dx", domain=self._mesh, subdomain_data=self._cell_domains)
+        db = Measure("ds", domain=self._mesh, subdomain_data=self._facet_domains)
+        cell_tags = map(int, set(self._cell_domains.array()))   # np.int64 does not work
+        facet_tags = map(int, set(self._facet_domains.array()))
+
         G = Dt_v*w*dz()
-        for key in tags:
-            key = int(key)       # NB! np.uint64 does not work
-            G += inner(M_i[key]*grad(v_mid), grad(w))*dz(key) + \
-                 inner(M_i[key]*grad(u), grad(w))*dz(key)
-            G += inner(M_i[key]*grad(v_mid), grad(q))*dz(key) + \
-                 inner((M_i[key] + M_e[key])*grad(u), grad(q))*dz(key)
+        for key in cell_tags:
+            G += inner(M_i[key]*grad(v_mid), grad(w))*dz(key)
+            G += inner(M_i[key]*grad(u), grad(w))*dz(key)
+            G += inner(M_i[key]*grad(v_mid), grad(q))*dz(key)
+            G += inner((M_i[key] + M_e[key])*grad(u), grad(q))*dz(key)
 
-            if not self._I_s is None:
-                rhs = self._I_s*w*dz(key)
+            if  self._I_s is None:
+                G -= Constant(0)*w*dz(key)
             else:
-                rhs = Constant(0)*w*dz(key)
+                G -= self._I_s*w*dz(key)
 
-            G -= rhs
-
+            # If Lagrangian multiplier
             if use_R:
                 G += (lamda*u + l*q)*dz(key)
                 
             if self._I_a:
                 G -= self._I_a*q*dz(key)
 
-        (a, L) = system(G)
-        return (a, L)
+        for key in facet_tags:
+            if self._ect_current is not None:
+                # Default to 0 if not defined for tag
+                G += self._ect_current.get(key, Constant(0))*q*db(key)
+
+        a, L = system(G)
+        return a, L
 
     def step(self, interval: Tuple[float, float]) -> None:
         """
@@ -625,7 +641,7 @@ class BidomainSolver(BasicBidomainSolver):
         solver_type = self.parameters["linear_solver_type"]
 
         # Extract interval and thus time-step
-        (t0, t1) = interval
+        t0, t1 = interval
         dt = t1 - t0
         theta = self.parameters["theta"]
         t = t0 + theta*dt
@@ -640,6 +656,10 @@ class BidomainSolver(BasicBidomainSolver):
             debug("Preassembling bidomain matrix (and initializing vector)")
             self._lhs_matrix = assemble(self._lhs, **self._annotate_kwargs)
             self._rhs_vector = Vector(self._mesh.mpi_comm(), self._lhs_matrix.size(0))
+
+            # TODO: Ask Kent about this
+            self._rhs_vector -= self._rhs_vector.sum()/self._rhs_vector.size()
+
             self._lhs_matrix.init_vector(self._rhs_vector, 0)
 
             # Create linear solver (based on parameter choices)
@@ -649,13 +669,13 @@ class BidomainSolver(BasicBidomainSolver):
             self._update_solver(timestep_unchanged, dt)
 
         # Assemble right-hand-side
-        assemble(self._rhs, tensor=self._rhs_vector, **self._annotate_kwargs)
+        assemble(self._rhs, tensor=self._rhs_vector)
 
         # Solve problem
         self.linear_solver.solve(
             self.vur.vector(),
             self._rhs_vector,
-           **self._annotate_kwargs
+            **self._annotate_kwargs
         )
 
     def _update_lu_solver(self, timestep_unchanged: Constant, dt: Constant) -> None:
@@ -679,7 +699,7 @@ class BidomainSolver(BasicBidomainSolver):
             assemble(self._lhs, tensor=self._lhs_matrix,
                      **self._annotate_kwargs)
 
-            (self._linear_solver, dummy) = self._create_linear_solver()
+            self._linear_solver, dummy = self._create_linear_solver()
 
     def _update_krylov_solver(self, timestep_unchanged: Constant, dt: Constant):
         """Helper function for updating a KrylovSolver depending on
@@ -701,9 +721,9 @@ class BidomainSolver(BasicBidomainSolver):
             assemble(self._lhs, tensor=self._lhs_matrix, **self._annotate_kwargs)
 
             # Make new Krylov solver
-            (self._linear_solver, dummy) = self._create_linear_solver()
+            self._linear_solver, dummy = self._create_linear_solver()
 
         # Set nonzero initial guess if it indeed is nonzero
-        if (self.vur.vector().norm("l2") > 1.e-12):
+        if self.vur.vector().norm("l2") > 1.e-12:
             debug("Initial guess is non-zero.")
             self.linear_solver.parameters["nonzero_initial_guess"] = True

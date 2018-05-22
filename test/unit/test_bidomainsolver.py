@@ -4,6 +4,7 @@ verify the correctness of the BidomainSolver.
 """
 
 __author__ = "Marie E. Rognes (meg@simula.no), 2013"
+# Edited by Jakob Schreiner
 
 import pytest
 
@@ -37,8 +38,13 @@ args = sys.argv[:1] + """
 parameters.parse(args)
 
 
-def main(N: int, dt: float, T: float, theta: float) -> \
-        Tuple[float, float, float, float, float]:
+def main(
+        N: int,
+        dt: float,
+        T: float,
+        theta: float
+) -> Tuple[float, float, float, float, float]:
+    """Run bidomain MMA."""
     # Create data
     mesh = UnitSquareMesh(N, N)
     time = Constant(0.0)
@@ -74,7 +80,7 @@ def main(N: int, dt: float, T: float, theta: float) -> \
         continue
 
     # Compute errors
-    v, u = vu.split(deepcopy=True)[0:2]
+    v, u = vu.split(deepcopy=True)[:2]
     v_error = errornorm(v_exact, v, "L2", degree_rise=2)
     u_error = errornorm(u_exact, u, "L2", degree_rise=2)
     return v_error, u_error, mesh.hmin(), dt, T

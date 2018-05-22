@@ -16,19 +16,28 @@ from xalbrain.dolfinimport import (
     Constant,
     GenericFunction,
     error,
+    Expression,
+    MeshFunction,
 )
 
 from xalbrain.markerwisefield import (
     Markerwise,
     handle_markerwise,
 )
+
 from .cellmodels import *
+
+from typing import (
+    Dict,
+    Union,
+)
+
 
 # ------------------------------------------------------------------------------
 # Cardiac models
 # ------------------------------------------------------------------------------
 
-class CardiacModel(object):
+class CardiacModel:
     """
     A container class for cardiac models. Objects of this class
     represent a specific cardiac simulation set-up and should provide
@@ -64,18 +73,22 @@ class CardiacModel(object):
         an applied current as an ufl Expression
 
     """
-    def __init__(self, domain, time, M_i, M_e, cell_models,
-                 stimulus=None, applied_current=None,
-                 cell_domains=None, facet_domains=None):
-        "Create CardiacModel from given input."
 
-        self._handle_input(domain, time, M_i, M_e, cell_models,
-                           stimulus, applied_current,
-                           facet_domains, cell_domains)
-
-    def _handle_input(self, domain, time, M_i, M_e, cell_models,
-                      stimulus=None, applied_current=None,
-                      facet_domains=None, cell_domains=None):
+    def __init__(
+            self,
+            domain: Mesh,
+            time: Constant,
+            M_i: Union[Expression, Dict[int, Expression]],
+            M_e: Union[Expression, Dict[int, Expression]],
+            cell_models: CardiacCellModel,
+            stimulus: Union[Expression, Dict[int, Expression]] =None,
+            applied_current: Union[Expression, Dict[int, Expression]] = None,
+            ect_current: Dict[int, Expression] = None,
+            cell_domains: MeshFunction = None,
+            facet_domains: MeshFunction = None
+    ) -> None:
+        """Create CardiacModel from given input."""
+        self._ect_current = ect_current
 
         # Check input and store attributes
         msg = "Expecting domain to be a Mesh instance, not %r" % domain
@@ -105,6 +118,11 @@ class CardiacModel(object):
         ac = applied_current
         self._applied_current = handle_markerwise(ac, GenericFunction)
 
+    @property
+    def ect_current(self) -> Expression:
+        """Return the neumnn current."""
+        return self._ect_current
+
     def applied_current(self):
         "An applied current: used as a source in the elliptic bidomain equation"
         return self._applied_current
@@ -120,33 +138,33 @@ class CardiacModel(object):
         *Returns*
         (M_i, M_e) (:py:class:`tuple` of :py:class:`ufl.Expr`)
         """
-        return (self.intracellular_conductivity(),
-                self.extracellular_conductivity())
+        return self.intracellular_conductivity(), self.extracellular_conductivity()
 
     def intracellular_conductivity(self):
-        "The intracellular conductivity (:py:class:`ufl.Expr`)."
+        """The intracellular conductivity (:py:class:`ufl.Expr`)."""
         return self._intracellular_conductivity
 
     def extracellular_conductivity(self):
-        "The intracellular conductivity (:py:class:`ufl.Expr`)."
+        """The intracellular conductivity (:py:class:`ufl.Expr`)."""
         return self._extracellular_conductivity
 
     def time(self):
-        "The current time (:py:class:`dolfin.Constant` or None)."
+        """The current time (:py:class:`dolfin.Constant` or None)."""
         return self._time
 
-    def domain(self):
-        "The spatial domain (:py:class:`dolfin.Mesh`)."
+    @property
+    def mesh(self) -> Mesh:
+        """The spatial domain (:py:class:`dolfin.Mesh`)."""
         return self._domain
 
     def cell_domains(self):
-        "Marked volume"
+        """Marked volume."""
         return self._cell_domains
 
     def facet_domains(self):
-        "Marked area"
+        """Marked area."""
         return self._facet_domains
 
     def cell_models(self):
-        "Return the cell models"
+        """Return the cell models."""
         return self._cell_models

@@ -24,9 +24,8 @@ from typing import (
 )
 
 
-def main(N: int, dt: float, T: float, theta: float) -> \
-         Tuple[float, float, float, float]:
-
+def main(N: int, dt: float, T: float, theta: float) -> Tuple[float, float, float, float]:
+    """Run monodomain MMS."""
     mesh = UnitSquareMesh(N, N)
     time = Constant(0.0)
     lam = Constant(1.0)
@@ -37,20 +36,17 @@ def main(N: int, dt: float, T: float, theta: float) -> \
     brain = CardiacModel(mesh, time, 1.0, 1.0, cell_model, stimulus=stimulus)
 
     # Define solver solver
-
     ps = BasicSplittingSolver.default_parameters()
     ps["theta"] = theta
     ps["pde_solver"] = "monodomain"
     ps["BasicMonodomainSolver"]["linear_variational_solver"]["linear_solver"] = "direct"
     solver = BasicSplittingSolver(brain, params=ps)
 
-    
     vs0 = Function(solver.VS)
     vs_, vs, vur = solver.solution_fields()
     vs_.assign(vs0)
 
-    solutions = solver.solve((0, T), dt)
-    for timestep, (vs_, vs, vur) in solutions:
+    for timestep, (vs_, vs, vur) in solver.solve((0, T), dt):
         continue
 
     v_exact = Expression(
@@ -62,7 +58,6 @@ def main(N: int, dt: float, T: float, theta: float) -> \
     # compute errors
     v, s = vs.split(deepcopy=True)
     v_error = errornorm(v_exact, v, "L2", degree_rise=2)
-
     return (v_error, mesh.hmin(), dt, T)
 
 
@@ -73,12 +68,11 @@ def test_analytic_mondomain() -> None:
     T = 10*dt
 
     v_error, h, dt, T = main(N, dt, T, 0.5)
-    v_reference = 4.203505851866419e-08  
+    v_reference = 4.203505851866419e-08
     v_diff = abs(v_error - v_reference)
     tol = 1e-9
 
     print("v_diff: {}".format(v_diff))
-
     assert v_diff < tol, "Failed error for u, diff: {}".format(v_diff)
 
 
@@ -88,7 +82,7 @@ def test_spatial_and_temporal_convergence() -> None:
     dts = []
     hs = []
 
-    dt = 1e-3 
+    dt = 1e-3
     theta = 0.5
     N = 5
 
@@ -103,7 +97,6 @@ def test_spatial_and_temporal_convergence() -> None:
     v_rates = convergence_rate(hs, v_errors)
     print("v_errors = {}".format(v_errors))
     print("v_rates = {}".format(v_rates))
-
     assert all(v > 1.9 for v in v_rates), "Failed convergence for v"
 
 
