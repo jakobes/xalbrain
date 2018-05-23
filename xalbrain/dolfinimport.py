@@ -77,6 +77,7 @@ from dolfin import (
     warning,
     as_vector,
     SubDomain,
+    MultiStageScheme,
 )
 
 
@@ -163,4 +164,5 @@ __all__ = [
     "as_vector",
     "BackwardEuler",
     "SubDomain",
+    "MultiStageScheme",
 ]

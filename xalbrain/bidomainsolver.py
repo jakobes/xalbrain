@@ -41,6 +41,13 @@ from typing import (
     Tuple,
     Union,
     Callable,
+    Generator,
+)
+
+from xalbrain.parameters import (
+    BidomainParameters,
+    KrylovParmeters,
+    LUParameters,
 )
 
 
@@ -96,9 +103,11 @@ class BasicBidomainSolver:
             time: Constant,
             M_i: Union[Expression, Dict[int, Expression]],
             M_e: Union[Expression, Dict[int, Expression]],
+            parameters: BidomainParameters,
+            linear_solver_parameters = Union[KrylovParmeters, LUParameters],
             I_s: Union[Expression, Dict[int, Expression]] = None,
             I_a: Union[Expression, Dict[int, Expression]] = None,
-            ect_current: Dict[int, Expression]=None,
+            ect_current: Dict[int, Expression] = None,
             v_: Function = None,
             cell_domains: MeshFunction = None,
             facet_domains: MeshFunction = None,
@@ -107,10 +116,10 @@ class BasicBidomainSolver:
         """Initialise solverand check all parametersare correct."""
         msg = "Expecting mesh to be a Mesh instance, not {}".format(mesh)
         assert isinstance(mesh, Mesh), msg
-            
+
         msg = "Expecting time to be a Constant instance (or None)."
         assert isinstance(time, Constant) or time is None, msg
-            
+
         msg = "Expecting params to be a Parameters instance (or None)"
         assert isinstance(params, Parameters) or params is None, msg
 
@@ -120,19 +129,13 @@ class BasicBidomainSolver:
         self._mesh = mesh
         self._time = time
 
-        # Initialize and update parameters if given
-        self.parameters = self.default_parameters()
-        if params is not None:
-            self.parameters.update(params)
-
         # Set-up function spaces
-        k = self.parameters["polynomial_degree"]
+        k = self.parameters.polynomial_degree
         Ve = FiniteElement("CG", self._mesh.ufl_cell(), k)
         V = FunctionSpace(self._mesh, "CG", k)
         Ue = FiniteElement("CG", self._mesh.ufl_cell(), k)
 
-        use_R = self.parameters["use_avg_u_constraint"]
-        if use_R:
+        if parameters.solver_type == "direct":
             Re = FiniteElement("R", self._mesh.ufl_cell(), 0)
             self.VUR = FunctionSpace(mesh, MixedElement((Ve, Ue, Re)))
         else:
@@ -205,22 +208,22 @@ class BasicBidomainSolver:
         *Returns*
           (previous v, current vur) (:py:class:`tuple` of :py:class:`dolfin.Function`)
         """
-        return (self.v_, self.vur)
+        return self.v_, self.vur
 
-    def solve(self, interval: Tuple[float, float], dt: float=None) -> None:
-        """
-        Solve the discretization on a given time interval (t0, t1)
-        with a given timestep dt and return generator for a tuple of
-        the interval and the current solution.
+    def solve(
+            self,
+            interval: Tuple[float, float],
+            dt: float
+    ) -> Generator[Tuple[float, float], Function], None, None]:
+        """Solve the discretization on a given time interval with the specified time step.
+        A generator of intervals and solutions per time step is returned.
 
-        *Arguments*
-          interval (:py:class:`tuple`)
-            The time interval for the solve given by (t0, t1)
-          dt (int, optional)
-            The timestep for the solve. Defaults to length of interval
+        Arguments:
+            interval: The time interval for the solve given by (t0, t1)
+            dt: The timestep for the solve. Defaults to length of interval:
 
-        *Returns*
-          (timestep, solution_fields) via (:py:class:`genexpr`)
+        Returns:
+            timestep, solution_fields
 
         *Example of usage*::
 
@@ -238,15 +241,13 @@ class BasicBidomainSolver:
         # Initial set-up
         # Solve on entire interval if no interval is given.
         T0, T = interval
-        if dt is None:
-            dt = T - T0
         t0 = T0
         t1 = T0 + dt
 
         # Step through time steps until at end time
         while True:
             info("Solving on t = ({:g}, {:g})".format(t0, t1))
-            self.step((t0, t1))
+            self._step((t0, t1))
 
             # Yield solutions
             yield (t0, t1), self.solution_fields()
@@ -265,21 +266,20 @@ class BasicBidomainSolver:
             t0 = t1
             t1 = t0 + dt
 
-    def step(self, interval: Tuple[float, float]) -> None:
+    def _step(self, interval: Tuple[float, float]) -> None:
         """Solve on the given time interval (t0, t1).
 
         Arguments:
-            interval (:py:class:`tuple`)
-                The time interval (t0, t1) for the step
+            interval: The time interval (t0, t1) for the step.
 
-        *Invariants*
+        Invariants:
             Assuming that v\_ is in the correct state for t0, gives
             self.vur in correct state at t1.
         """
         timer = Timer("PDE step")
 
         # Extract theta and conductivities
-        theta = self.parameters["theta"]
+        theta = self.parameters.theta
         M_i = self._M_i
         M_e = self._M_e
 
@@ -288,7 +288,7 @@ class BasicBidomainSolver:
         k_n = Constant(t1 - t0)
 
         # Define variational formulation
-        use_R = self.parameters["use_avg_u_constraint"]
+        use_R = True if self.parameters.solver_type == "direct" else False
         if use_R:
             v, u, l = TrialFunctions(self.VUR)
             w, q, lamda = TestFunctions(self.VUR)
@@ -308,6 +308,8 @@ class BasicBidomainSolver:
 
         dz = Measure("dx", domain=self._mesh, subdomain_data=self._cell_domains)
         db = Measure("ds", domain=self._mesh, subdomain_data=self._facet_domains)
+
+        # NB! Generators
         cell_tags = map(int, set(self._cell_domains.array()))   # np.int64 does not work
         facet_tags = map(int, set(self._facet_domains.array()))
 
@@ -342,175 +344,137 @@ class BasicBidomainSolver:
         pde = LinearVariationalProblem(a, L, self.vur)
 
         # Set-up solver
-        solver = LinearVariationalSolver(pde)
-        solver.parameters.update(self.parameters["linear_variational_solver"])
-        solver.parameters["linear_solver"] = self.parameters["linear_solver_type"]
+        _ps = LinearVariationalSolver.default_parameters()
+        # _ps["linear_solver"] = self.linear_solver_parameters.solver
+        # TODO: Figure out how to use the LU vs Krylov parameters
+        solver = LinearVariationalSolver(pde, _ps)
+
         solver.solve()
 
-    @staticmethod
-    def default_parameters() -> Parameters:
-        """Initialize and return a set of default parameters
+    # @staticmethod
+    # def default_parameters() -> Parameters:
+    #     """Initialize and return a set of default parameters
 
-        *Returns*
-          A set of parameters (:py:class:`dolfin.Parameters`)
+    #     *Returns*
+    #       A set of parameters (:py:class:`dolfin.Parameters`)
 
-        To inspect all the default parameters, do::
+    #     To inspect all the default parameters, do::
 
-          info(BasicBidomainSolver.default_parameters(), True)
-        """
+    #       info(BasicBidomainSolver.default_parameters(), True)
+    #     """
 
-        params = Parameters("BasicBidomainSolver")
-        params.add("enable_adjoint", False)
-        params.add("theta", 0.5)
-        params.add("polynomial_degree", 1)
-        params.add("use_avg_u_constraint", True)
+    #     params = Parameters("BasicBidomainSolver")
+    #     params.add("enable_adjoint", False)
+    #     params.add("theta", 0.5)
+    #     params.add("polynomial_degree", 1)
+    #     params.add("use_avg_u_constraint", True)
 
-        # Set default solver type to be iterative
-        params.add("linear_solver_type", "direct")
+    #     # Set default solver type to be iterative
+    #     params.add("linear_solver_type", "direct")
 
-        # Set default iterative solver choices (used if iterative
-        # solver is invoked)
-        params.add("algorithm", "gmres")
-        params.add("preconditioner", "petsc_amg")
+    #     # Set default iterative solver choices (used if iterative
+    #     # solver is invoked)
+    #     params.add("algorithm", "gmres")
+    #     params.add("preconditioner", "petsc_amg")
 
-        # Add default parameters from both LU and Krylov solvers
+    #     # Add default parameters from both LU and Krylov solvers
 
-        params.add(LUSolver.default_parameters())
-        # Customize default parameters for LUSolver
-        params["lu_solver"]["same_nonzero_pattern"] = True
+    #     params.add(LUSolver.default_parameters())
+    #     # Customize default parameters for LUSolver
+    #     params["lu_solver"]["same_nonzero_pattern"] = True
 
-        linear_params = LinearVariationalSolver.default_parameters()
-        linear_params["krylov_solver"]["absolute_tolerance"] = 1e-14
-        linear_params["krylov_solver"]["relative_tolerance"] = 1e-14
-        linear_params["krylov_solver"]["nonzero_initial_guess"] = True
-        params.add(linear_params)
-        return params
+    #     linear_params = LinearVariationalSolver.default_parameters()
+    #     linear_params["krylov_solver"]["absolute_tolerance"] = 1e-14
+    #     linear_params["krylov_solver"]["relative_tolerance"] = 1e-14
+    #     linear_params["krylov_solver"]["nonzero_initial_guess"] = True
+    #     params.add(linear_params)
+    #     return params
 
 
 class BidomainSolver(BasicBidomainSolver):
     __doc__ = BasicBidomainSolver.__doc__
 
-    def __init__(
-            self,
-            mesh: Mesh, 
-            time: Constant,
-            M_i: Union[Expression, Dict[int, Expression]],
-            M_e: Union[Expression, Dict[int, Expression]],
-            I_s: Union[Expression, Dict[int, Expression]]=None,
-            I_a: Union[Expression, Dict[int, Expression]]=None,
-            ect_current: Dict[int, Expression]=None,
-            v_: Function=None,
-            cell_domains: MeshFunction=None,
-            facet_domains: MeshFunction=None,
-            params: Parameters=None
-    ) -> None:
-        # Call super-class
-        BasicBidomainSolver.__init__(
-            self,
-            mesh,
-            time,
-            M_i,
-            M_e,
-            I_s=I_s,
-            I_a=I_a,
-            v_=v_,
-            ect_current=ect_current,
-            cell_domains=cell_domains, 
-            facet_domains=facet_domains,
-            params=params
-        )
-
-        # Check consistency of parameters first
-        if self.parameters["enable_adjoint"] and not dolfin_adjoint:
-            warning("'enable_adjoint' is set to True, but no dolfin_adjoint installed.")
-
-        # Mark the timestep as unset
-        self._timestep = None
-
     @property
     def linear_solver(self) -> Union[LinearVariationalSolver, PETScKrylovSolver]:
-        """The linear solver (:py:class:`dolfin.LUSolver` or
-        :py:class:`dolfin.PETScKrylovSolver`)."""
+        """Return the linear solver."""
         return self._linear_solver
 
     def _create_linear_solver(self):
         """Helper function for creating linear solver based on parameters."""
-        solver_type = self.parameters["linear_solver_type"]
+        solver_type = self.parameters.linear_solver_type
 
         if solver_type == "direct":
             solver = LUSolver(self._lhs_matrix)
-            solver.parameters.update(self.parameters["lu_solver"])
+            solver.parameters.update(self.linear_solver_parameters.solver)
             solver.parameters["reuse_factorization"] = True
             update_routine = self._update_lu_solver
 
         elif solver_type == "iterative":
-
             # Initialize KrylovSolver with matrix
-            alg = self.parameters["algorithm"]
-            prec = self.parameters["preconditioner"]
+            alg = self.linear_solver_parameters.algorithm
+            prec = self.linear_solver_parameters.preconditioner
 
             debug("Creating PETSCKrylovSolver with %s and %s" % (alg, prec))
-            if prec == "fieldsplit":
-                # Argh. DOLFIN won't let you construct a PETScKrylovSolver with fieldsplit. Sigh ..
-                solver = PETScKrylovSolver()
-                # FIXME: work around DOLFIN bug #583. Just deleted this when fixed.
-                solver.parameters.convergence_norm_type = "preconditioned"
-                #solver.parameters["preconditioner"]["structure"] = "same" # MER this should be set by user, and is below
-                solver.parameters.update(self.parameters["petsc_krylov_solver"])
-                solver.set_operator(self._lhs_matrix)
+            # if prec == "fieldsplit":
+            #     # Argh. DOLFIN won't let you construct a PETScKrylovSolver with fieldsplit. Sigh ..
+            #     solver = PETScKrylovSolver()
+            #     # FIXME: work around DOLFIN bug #583. Just deleted this when fixed.
+            #     solver.parameters.convergence_norm_type = "preconditioned"
+            #     #solver.parameters["preconditioner"]["structure"] = "same" # MER this should be set by user, and is below
+            #     solver.parameters.update(self.parameters["petsc_krylov_solver"])
+            #     solver.set_operator(self._lhs_matrix)
 
-                # Initialize the KSP directly:
-                ksp = solver.ksp()
-                ksp.setType(alg)
-                ksp.pc.setType(prec)
-                ksp.setOptionsPrefix("bidomain_") # it's really stupid, solver.set_options_prefix() doesn't work
+            #     # Initialize the KSP directly:
+            #     ksp = solver.ksp()
+            #     ksp.setType(alg)
+            #     ksp.pc.setType(prec)
+            #     ksp.setOptionsPrefix("bidomain_") # it's really stupid, solver.set_options_prefix() doesn't work
 
-                # Set various options (by default) for the fieldsplit
-                # approach to solving the bidomain equations.
+            #     # Set various options (by default) for the fieldsplit
+            #     # approach to solving the bidomain equations.
 
-                # FIXME: This needs a try
-                from petsc4py import PETSc
+            #     # FIXME: This needs a try
+            #     from petsc4py import PETSc
 
-                # Patrick believes that the fieldsplit index sets
-                # should already be set from the assembled matrix.
+            #     # Patrick believes that the fieldsplit index sets
+            #     # should already be set from the assembled matrix.
 
-                # Now let's set some default options for the solver.
-                opts = PETSc.Options("bidomain_")
-                if "pc_fieldsplit_type"    not in opts: opts["pc_fieldsplit_type"] = "symmetric_multiplicative"
-                if "fieldsplit_0_ksp_type" not in opts: opts["fieldsplit_0_ksp_type"] = "preonly"
-                if "fieldsplit_1_ksp_type" not in opts: opts["fieldsplit_1_ksp_type"] = "preonly"
-                if "fieldsplit_0_pc_type"  not in opts: opts["fieldsplit_0_pc_type"] = "hypre"
-                if "fieldsplit_1_pc_type"  not in opts: opts["fieldsplit_1_pc_type"] = "hypre"
+            #     # Now let's set some default options for the solver.
+            #     opts = PETSc.Options("bidomain_")
+            #     if "pc_fieldsplit_type"    not in opts: opts["pc_fieldsplit_type"] = "symmetric_multiplicative"
+            #     if "fieldsplit_0_ksp_type" not in opts: opts["fieldsplit_0_ksp_type"] = "preonly"
+            #     if "fieldsplit_1_ksp_type" not in opts: opts["fieldsplit_1_ksp_type"] = "preonly"
+            #     if "fieldsplit_0_pc_type"  not in opts: opts["fieldsplit_0_pc_type"] = "hypre"
+            #     if "fieldsplit_1_pc_type"  not in opts: opts["fieldsplit_1_pc_type"] = "hypre"
 
-                ksp.setFromOptions()
-                ksp.setUp()
-            else:
-                solver = PETScKrylovSolver(alg, prec)
-                solver.set_operator(self._lhs_matrix)
-                # Still waiting for that bug fix:
-                solver.parameters.convergence_norm_type = "preconditioned"
-                solver.parameters.update(self.parameters["petsc_krylov_solver"])
+            #     ksp.setFromOptions()
+            #     ksp.setUp()
+            # else:
+            #     solver = PETScKrylovSolver(alg, prec)
+            #     solver.set_operator(self._lhs_matrix)
+            #     # Still waiting for that bug fix:
+            #     solver.parameters.convergence_norm_type = "preconditioned"
+            #     solver.parameters.update(self.parameters["petsc_krylov_solver"])
 
             # Set nullspace if present. We happen to know that the
             # transpose nullspace is the same as the nullspace (easy
             # to prove from matrix structure).
-            if self.parameters["use_avg_u_constraint"]:
-                # Nothing to do, no null space
-                pass
-            else:
-                # If dolfin-adjoint is enabled and installled: set the solver nullspace
-                if dolfin_adjoint:
-                    solver.set_nullspace(self.nullspace)
-                    solver.set_transpose_nullspace(self.nullspace)
-                # Otherwise, set the nullspace in the operator
-                # directly.
-                else:
-                    A = as_backend_type(self._lhs_matrix)
-                    A.set_nullspace(self.nullspace)
-
+            # if self.parameters["use_avg_u_constraint"]:
+            #     # Nothing to do, no null space
+            #     pass
+            # else:
+            #     # If dolfin-adjoint is enabled and installled: set the solver nullspace
+            #     if dolfin_adjoint:
+            #         solver.set_nullspace(self.nullspace)
+            #         solver.set_transpose_nullspace(self.nullspace)
+            #     # Otherwise, set the nullspace in the operator
+            #     # directly.
+            #     else:
+            #         A = as_backend_type(self._lhs_matrix)
+            #         A.set_nullspace(self.nullspace)
             update_routine = self._update_krylov_solver
         else:
-            error("Unknown linear_solver_type given: %s" % solver_type)
+            error("Unknown linear_solver_type given: {}".format(solver_type))
 
         return solver, update_routine
 
@@ -523,63 +487,23 @@ class BidomainSolver(BasicBidomainSolver):
             self._nullspace_basis = VectorSpaceBasis([null_vector])
         return self._nullspace_basis
 
-    @staticmethod
-    def default_parameters() -> Parameters:
-        """Initialize and return a set of default parameters
-
-        *Returns*
-          A set of parameters (:py:class:`dolfin.Parameters`)
-
-        To inspect all the default parameters, do::
-
-          info(BidomainSolver.default_parameters(), True)
-        """
-
-        params = Parameters("BidomainSolver")
-        params.add("enable_adjoint", False)
-        params.add("theta", 0.5)
-        params.add("polynomial_degree", 1)
-
-        # Set default solver type to be iterative
-        params.add("linear_solver_type", "direct")
-        params.add("use_avg_u_constraint", True)
-
-        # Set default iterative solver choices (used if iterative
-        # solver is invoked)
-        params.add("algorithm", "gmres")
-        params.add("preconditioner", "petsc_amg")
-
-        # Add default parameters from both LU and Krylov solvers
-        params.add(LUSolver.default_parameters())
-        petsc_params = PETScKrylovSolver.default_parameters()
-        petsc_params["absolute_tolerance"] = 1e-14
-        petsc_params["relative_tolerance"] = 1e-14
-        petsc_params["nonzero_initial_guess"] = True
-        params.add(petsc_params)
-
-        # Customize default parameters for LUSolver
-        params["lu_solver"]["same_nonzero_pattern"] = True
-        return params
-
     def variational_forms(self, k_n: Constant) -> Tuple[lhs, rhs]:
         """Create the variational forms corresponding to the given
         discretization of the given system of equations.
 
-        *Arguments*
-          k_n (:py:class:`ufl.Expr` or float)
-            The time step
+        Arguments:
+            k_n: The time step.
 
-        *Returns*
-          (lhs, rhs) (:py:class:`tuple` of :py:class:`ufl.Form`)
-
+        Returns:
+            (lhs, rhs)
         """
         # Extract theta parameter and conductivities
-        theta = self.parameters["theta"]
+        theta = self.parameters.theta
         M_i = self._M_i
         M_e = self._M_e
 
         # Define variational formulation
-        use_R = self.parameters["use_avg_u_constraint"]
+        use_R = True if self.parameters.solver_type == "direct" else False
         if use_R:
             v, u, l = TrialFunctions(self.VUR)
             w, q, lamda = TestFunctions(self.VUR)
@@ -587,13 +511,14 @@ class BidomainSolver(BasicBidomainSolver):
             v, u = TrialFunctions(self.VUR)
             w, q = TestFunctions(self.VUR)
 
-
         Dt_v = (v - self.v_)/k_n
         v_mid = theta*v + (1.0 - theta)*self.v_
 
         # Set-up measure and rhs from stimulus
         dz = Measure("dx", domain=self._mesh, subdomain_data=self._cell_domains)
         db = Measure("ds", domain=self._mesh, subdomain_data=self._facet_domains)
+
+        # NB! Generators
         cell_tags = map(int, set(self._cell_domains.array()))   # np.int64 does not work
         facet_tags = map(int, set(self._facet_domains.array()))
 
@@ -624,26 +549,23 @@ class BidomainSolver(BasicBidomainSolver):
         a, L = system(G)
         return a, L
 
-    def step(self, interval: Tuple[float, float]) -> None:
+    def _step(self, interval: Tuple[float, float]) -> None:
+        """Solve on the given time step (t0, t1).
+
+        Arguments:
+            interval: The time interval (t0, t1) for the step.
+
+        Invariants:
+            Assuming that v\_ is in the correct state for t0, gives
+            self.vur in correct state at t1.
         """
-        Solve on the given time step (t0, t1).
-
-        *Arguments*
-          interval (:py:class:`tuple`)
-            The time interval (t0, t1) for the step
-
-        *Invariants*
-          Assuming that v\_ is in the correct state for t0, gives
-          self.vur in correct state at t1.
-        """
-
         timer = Timer("PDE step")
-        solver_type = self.parameters["linear_solver_type"]
+        solver_type = self.parameters.linear_solver_type
 
         # Extract interval and thus time-step
+        theta = self.parameters.theta
         t0, t1 = interval
         dt = t1 - t0
-        theta = self.parameters["theta"]
         t = t0 + theta*dt
         self.time.assign(t)
 
@@ -678,7 +600,7 @@ class BidomainSolver(BasicBidomainSolver):
             **self._annotate_kwargs
         )
 
-    def _update_lu_solver(self, timestep_unchanged: Constant, dt: Constant) -> None:
+    def _update_lu_solver(self, timestep_unchanged: bool, dt: Constant) -> None:
         """Helper function for updating an LUSolver depending on
         whether timestep has changed."""
 
