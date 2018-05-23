@@ -11,7 +11,6 @@ from dolfin import info, set_log_level, WARNING
 
 from xalbrain import (
     CardiacModel,
-    BasicSplittingSolver,
     SplittingSolver,
     BasicCardiacODESolver,
     FitzHughNagumoManual,
@@ -24,11 +23,20 @@ from xalbrain import (
 
 import pytest
 
+from xalbrain.parameters import (
+    SplittingParameters,
+    BidomainParameters,
+    MonodomainParameters,
+    SingleCellParameters,
+    LUParameters,
+    KrylovParameters,
+)
+
 
 set_log_level(WARNING)
 
 
-class TestSplittingSolver(object):
+class TestSplittingSolver:
     """Test functionality for the splitting solvers."""
 
     def setup(self) -> None:
@@ -66,25 +74,32 @@ class TestSplittingSolver(object):
         self.T = self.t0 + 5*dt
         self.ics = self.cell_model.initial_conditions()
 
-
     @medium
     # @parametrize(("solver_type"), ["direct", "iterative"])
     @pytest.mark.parametrize("solver_type", [
         pytest.param("direct"),
         pytest.param("iterative", marks=pytest.mark.xfail)
     ])
-    def test_basic_and_optimised_splitting_solver_exact(self, solver_type) -> None:
-        """
-        Test that the optimised and basic solvers yield similar results.
-        """
+    def test_basic_and_optimised_splitting_solver_exact(self, solver_type: str) -> None:
+        """Test that the optimised and basic solvers yield similar results."""
         # Create basic solver
-        params = BasicSplittingSolver.default_parameters()
-        params["BasicCardiacODESolver"]["S_polynomial_family"] = "CG"
-        params["BasicCardiacODESolver"]["S_polynomial_degree"] = 1
-        params["BasicBidomainSolver"]["linear_solver_type"] = solver_type
+
+        splitting_parameters = SplittingParameters()
+        pde_parameters = BidomainParameters(solver_type, solver="BasicBidomainSolver")
+        ode_parameters = SingleCellParameters("cg", solver="BasicCardiacODESolver")
+
         if solver_type == "direct":
-            params["BasicBidomainSolver"]["use_avg_u_constraint"] = True
-        solver = BasicSplittingSolver(self.cardiac_model, params=params)
+            linear_solver_parameters = LUParameters() 
+        else:
+            linear_solver_parameters = KrylovParameters()
+
+        solver = SplittingSolver(
+            self.cardiac_model,
+            splitting_parameters,
+            pde_parameters,
+            ode_parameters,
+            linear_solver_parameters
+        )
 
         vs_, vs, vur = solver.solution_fields()
         vs_.assign(self.ics)
@@ -100,12 +115,16 @@ class TestSplittingSolver(object):
         assert_almost_equal(t1, self.T, 1e-10)
 
         # Create optimised solver with direct solution algorithm
-        params = SplittingSolver.default_parameters()
-        params["BidomainSolver"]["linear_solver_type"] = solver_type
-        params["enable_adjoint"] = False
-        if solver_type == "direct":
-            params["BidomainSolver"]["use_avg_u_constraint"] = True
-        solver = SplittingSolver(self.cardiac_model, params=params)
+        pde_parameters = BidomainParameters(solver_type)
+        ode_parameters = SingleCellParameters("RK4")
+
+        solver = SplittingSolver(
+            self.cardiac_model,
+            splitting_parameters,
+            pde_parameters,
+            ode_parameters,
+            linear_solver_parameters
+        )
 
         vs_, vs, vur = solver.solution_fields()
         vs_.assign(self.ics)

@@ -13,7 +13,7 @@ import pytest
 from xalbrain import (
     CardiacModel,
     NoCellModel,
-    BasicSplittingSolver,
+    SplittingSolver,
 )
 
 from dolfin import (
@@ -32,6 +32,13 @@ from testutils import slow
 
 from typing import Tuple
 
+from xalbrain.parameters import (
+    SplittingParameters,
+    BidomainParameters,
+    SingleCellParameters,
+    LUParameters,
+)
+
 
 def main(
         N: int,
@@ -44,15 +51,28 @@ def main(
     time = Constant(0.0)
     cell_model = NoCellModel()
 
-    ac_str = "cos(t)*cos(2*pi*x[0])*cos(2*pi*x[1]) + 4*pow(pi, 2)*cos(2*pi*x[0])*cos(2*pi*x[1])*sin(t)"
-    stimulus = Expression(ac_str, t=time, degree=5)
-    heart = CardiacModel(mesh, time, 1.0, 1.0, cell_model, stimulus=stimulus)
+    ac_str = "cos(t)*cos(2*pi*x[0])*cos(2*pi*x[1])"
+    ac_str += " + 4*pow(pi, 2)*cos(2*pi*x[0])*cos(2*pi*x[1])*sin(t)"
+    stimulus = Expression(ac_str, t=time, degree=3)
+    brain = CardiacModel(mesh, time, 1.0, 1.0, cell_model, stimulus=stimulus)
 
     # Set-up solver
-    ps = BasicSplittingSolver.default_parameters()
-    ps["theta"] = theta
-    ps["BasicBidomainSolver"]["linear_variational_solver"]["linear_solver"] = "direct"
-    solver = BasicSplittingSolver(heart, params=ps)
+    splitting_parameters = SplittingParameters(theta=theta)
+    pde_parameters = BidomainParameters(
+        "direct",
+        solver="BasicBidomainSolver",
+        theta=theta
+    )
+    ode_parameters = SingleCellParameters("cg", solver="BasicCardiacODESolver")
+    lu_parameters = LUParameters()
+
+    solver = SplittingSolver(
+        brain,
+        splitting_parameters,
+        pde_parameters,
+        ode_parameters,
+        lu_parameters
+    )
 
     # Define exact solution (Note: v is returned at end of time
     # interval(s), u is computed at somewhere in the time interval
@@ -71,7 +91,7 @@ def main(
     vs_.assign(vs0)
 
     # Solve
-    for (_, (vs_, vs, vur)) in solver.solve((0, T), dt):
+    for _, (vs_, vs, vur) in solver.solve((0, T), dt):
         continue
 
     # Compute errors

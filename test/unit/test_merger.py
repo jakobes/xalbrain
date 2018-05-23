@@ -1,6 +1,4 @@
-"""
-Unit tests for the merger in splitting solver
-"""
+"""Unit tests for the merger in splitting solver."""
 
 __author__ = "Marie E. Rognes (meg@simula.no), 2013"
 __all__ = ["TestMerger"]
@@ -11,11 +9,17 @@ import numpy as np
 
 from xalbrain import (
     CardiacModel,
-    BasicSplittingSolver,
     SplittingSolver,
     FitzHughNagumoManual,
     UnitCubeMesh,
     Constant
+)
+
+from xalbrain.parameters import (
+    SplittingParameters,
+    BidomainParameters,
+    SingleCellParameters,
+    LUParameters,
 )
 
 
@@ -28,14 +32,31 @@ class TestMerger(object):
         self.cardiac_model = CardiacModel(self.mesh, None, 1.0, 2.0, self.cell_model)
 
     @fast
-    @parametrize("Solver", [SplittingSolver, BasicSplittingSolver])
-    def test_basic_and_optimised_splitting_solver_merge(self, Solver):
+    @parametrize("solver_type", ["Basic", ""])
+    def test_basic_and_optimised_splitting_solver_merge(self, solver_type):
         """Test that the merger in basic and optimised splitting solver works."""
+        splitting_parameters = SplittingParameters()
+        pde_parameters = BidomainParameters(
+            "direct",
+            solver = solver_type + "BidomainSolver"
+        )
+        # TODO: This is not very elegant
+        ode_scheme = "cg" if solver_type == "Basic" else "RK4"
+        ode_parameters = SingleCellParameters(
+            ode_scheme,
+            solver = solver_type + "CardiacODESolver"
+        )
+        lu_parameter = LUParameters()
 
-        # Create basic solver
-        solver = Solver(self.cardiac_model)
+        solver = SplittingSolver(
+            self.cardiac_model,
+            splitting_parameters,
+            pde_parameters,
+            ode_parameters,
+            lu_parameter
+        )
 
-        (vs_, vs, vur) = solver.solution_fields()
+        vs_, vs, vur = solver.solution_fields()
 
         vs.vector()[:] = 2.0
         vur.vector()[:] = 1.0

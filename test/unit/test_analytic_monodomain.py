@@ -4,7 +4,7 @@ import pytest
 from xalbrain import (
     CardiacModel,
     NoCellModel,
-    BasicSplittingSolver,
+    SplittingSolver,
 )
 
 from dolfin import (
@@ -23,6 +23,13 @@ from typing import (
     Tuple,
 )
 
+from xalbrain.parameters import (
+    SplittingParameters,
+    MonodomainParameters,
+    SingleCellParameters,
+    LUParameters,
+)
+
 
 def main(N: int, dt: float, T: float, theta: float) -> Tuple[float, float, float, float]:
     """Run monodomain MMS."""
@@ -31,22 +38,34 @@ def main(N: int, dt: float, T: float, theta: float) -> Tuple[float, float, float
     lam = Constant(1.0)
     cell_model = NoCellModel()
 
-    ac_str = "(8*pi*pi*lam*sin(t) + (lam + 1)*cos(t))*cos(2*pi*x[0])*cos(2*pi*x[1])/(lam + 1)"
+    ac_str = "(8*pi*pi*lam*sin(t)"
+    ac_str += "+ (lam + 1)*cos(t))*cos(2*pi*x[0])*cos(2*pi*x[1])/(lam + 1)"
     stimulus = Expression(ac_str, t=time, lam=lam, degree=3)
     brain = CardiacModel(mesh, time, 1.0, 1.0, cell_model, stimulus=stimulus)
 
     # Define solver solver
-    ps = BasicSplittingSolver.default_parameters()
-    ps["theta"] = theta
-    ps["pde_solver"] = "monodomain"
-    ps["BasicMonodomainSolver"]["linear_variational_solver"]["linear_solver"] = "direct"
-    solver = BasicSplittingSolver(brain, params=ps)
+    splitting_parameters = SplittingParameters(theta=theta)
+    pde_parameters = MonodomainParameters(
+        "direct",
+        solver = "BasicMonodomainSolver",
+        theta = theta
+    )
+    ode_parameters = SingleCellParameters("cg", solver="BasicCardiacODESolver")
+    lu_parameters = LUParameters()
+
+    solver = SplittingSolver(
+        brain,
+        splitting_parameters,
+        pde_parameters,
+        ode_parameters,
+        lu_parameters
+    )
 
     vs0 = Function(solver.VS)
     vs_, vs, vur = solver.solution_fields()
     vs_.assign(vs0)
 
-    for timestep, (vs_, vs, vur) in solver.solve((0, T), dt):
+    for _, (vs_, vs, vur) in solver.solve((0, T), dt):
         continue
 
     v_exact = Expression(

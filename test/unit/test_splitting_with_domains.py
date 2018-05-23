@@ -15,6 +15,13 @@ from xalbrain import (
     parameters,
 )
 
+from xalbrain.parameters import (
+    SplittingParameters,
+    BidomainParameters,
+    SingleCellParameters,
+    LUParameters,
+)
+
 
 @fast
 def test_solver_with_domains() -> None:
@@ -48,17 +55,25 @@ def test_solver_with_domains() -> None:
     ics = cell_model.initial_conditions()
 
     # Create basic solver
-    params = SplittingSolver.default_parameters()
-    params["ode_solver_choice"] = "BasicCardiacODESolver"
-    solver = SplittingSolver(cardiac_model, params=params)
+    splitting_parameters = SplittingParameters()
+    pde_parameters = BidomainParameters("direct", solver="BasicBidomainSolver")
+    ode_parameters = SingleCellParameters("cg", solver="BasicCardiacODESolver")
+    lu_parameters = LUParameters()
+    solver = SplittingSolver(
+        cardiac_model,
+        splitting_parameters,
+        pde_parameters,
+        ode_parameters,
+        lu_parameters
+    )
 
-    (vs_, vs, vur) = solver.solution_fields()
+    vs_, vs, vur = solver.solution_fields()
     vs_.assign(ics)
 
     # Solve
     solutions = solver.solve((t0, T), dt)
     for (interval, fields) in solutions:
-        (vs_, vs, vur) = fields
+        vs_, vs, vur = fields
 
 if __name__ == "__main__":
     test_solver_with_domains()

@@ -30,6 +30,12 @@ from testutils import medium
 
 import sys
 
+from xalbrain.parameters import (
+    BidomainParameters,
+    SingleCellParameters,
+    LUParameters,
+)
+
 args = sys.argv[:1] + """
                       --petsc.bidomain_ksp_monitor_true_residual
                       --petsc.bidomain_ksp_viewx
@@ -48,18 +54,28 @@ def main(
     # Create data
     mesh = UnitSquareMesh(N, N)
     time = Constant(0.0)
-    ac_str = "cos(t)*cos(2*pi*x[0])*cos(2*pi*x[1]) + 4*pi*pi*cos(2*pi*x[0])*cos(2*pi*x[1])*sin(t)"
+    ac_str = "cos(t)*cos(2*pi*x[0])*cos(2*pi*x[1])"
+    ac_str += "+ 4*pi*pi*cos(2*pi*x[0])*cos(2*pi*x[1])*sin(t)"
     stimulus = Expression(ac_str, t=time, degree=5)
     M_i = 1.
     M_e = 1.0
 
     # Set-up solver
-    params = BidomainSolver.default_parameters()
-    params["theta"] = theta
-    params["linear_solver_type"] = "direct"
-    params["use_avg_u_constraint"] = True
-    params["enable_adjoint"] = False
-    solver = BidomainSolver(mesh, time, M_i, M_e, I_s=stimulus, params=params)
+    pde_parameters = BidomainParameters(
+        "direct",
+        solver="BidomainSolver",
+        theta=theta
+    )
+    lu_parameters = LUParameters()
+    solver = BidomainSolver(
+        mesh,
+        time,
+        M_i,
+        M_e,
+        pde_parameters,
+        lu_parameters,
+        I_s = stimulus
+    )
 
     # Define exact solution (Note: v is returned at end of time
     # interval(s), u is computed at somewhere in the time interval

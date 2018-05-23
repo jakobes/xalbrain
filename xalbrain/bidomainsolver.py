@@ -46,7 +46,7 @@ from typing import (
 
 from xalbrain.parameters import (
     BidomainParameters,
-    KrylovParmeters,
+    KrylovParameters,
     LUParameters,
 )
 
@@ -104,7 +104,7 @@ class BasicBidomainSolver:
             M_i: Union[Expression, Dict[int, Expression]],
             M_e: Union[Expression, Dict[int, Expression]],
             parameters: BidomainParameters,
-            linear_solver_parameters = Union[KrylovParmeters, LUParameters],
+            linear_solver_parameters = Union[KrylovParameters, LUParameters],
             I_s: Union[Expression, Dict[int, Expression]] = None,
             I_a: Union[Expression, Dict[int, Expression]] = None,
             ect_current: Dict[int, Expression] = None,
@@ -123,6 +123,10 @@ class BasicBidomainSolver:
         msg = "Expecting params to be a Parameters instance (or None)"
         assert isinstance(params, Parameters) or params is None, msg
 
+        self.parameters = parameters
+        self.linear_solver_parameters = linear_solver_parameters
+
+        self._timestep = None
         self._nullspace_basis = None
 
         # Store input
@@ -135,7 +139,7 @@ class BasicBidomainSolver:
         V = FunctionSpace(self._mesh, "CG", k)
         Ue = FiniteElement("CG", self._mesh.ufl_cell(), k)
 
-        if parameters.solver_type == "direct":
+        if parameters.linear_solver_type == "direct":
             Re = FiniteElement("R", self._mesh.ufl_cell(), 0)
             self.VUR = FunctionSpace(mesh, MixedElement((Ve, Ue, Re)))
         else:
@@ -214,7 +218,7 @@ class BasicBidomainSolver:
             self,
             interval: Tuple[float, float],
             dt: float
-    ) -> Generator[Tuple[float, float], Function], None, None]:
+    ) -> Generator[Tuple[Tuple[float, float], Function], None, None]:
         """Solve the discretization on a given time interval with the specified time step.
         A generator of intervals and solutions per time step is returned.
 
@@ -247,7 +251,7 @@ class BasicBidomainSolver:
         # Step through time steps until at end time
         while True:
             info("Solving on t = ({:g}, {:g})".format(t0, t1))
-            self._step((t0, t1))
+            self.step((t0, t1))
 
             # Yield solutions
             yield (t0, t1), self.solution_fields()
@@ -266,7 +270,7 @@ class BasicBidomainSolver:
             t0 = t1
             t1 = t0 + dt
 
-    def _step(self, interval: Tuple[float, float]) -> None:
+    def step(self, interval: Tuple[float, float]) -> None:
         """Solve on the given time interval (t0, t1).
 
         Arguments:
@@ -288,7 +292,7 @@ class BasicBidomainSolver:
         k_n = Constant(t1 - t0)
 
         # Define variational formulation
-        use_R = True if self.parameters.solver_type == "direct" else False
+        use_R = True if self.parameters.linear_solver_type == "direct" else False
         if use_R:
             v, u, l = TrialFunctions(self.VUR)
             w, q, lamda = TestFunctions(self.VUR)
@@ -347,7 +351,8 @@ class BasicBidomainSolver:
         _ps = LinearVariationalSolver.default_parameters()
         # _ps["linear_solver"] = self.linear_solver_parameters.solver
         # TODO: Figure out how to use the LU vs Krylov parameters
-        solver = LinearVariationalSolver(pde, _ps)
+        solver = LinearVariationalSolver(pde)
+        solver.parameters.update(_ps)
 
         solver.solve()
 
@@ -404,17 +409,25 @@ class BidomainSolver(BasicBidomainSolver):
         solver_type = self.parameters.linear_solver_type
 
         if solver_type == "direct":
-            solver = LUSolver(self._lhs_matrix)
-            solver.parameters.update(self.linear_solver_parameters.solver)
-            solver.parameters["reuse_factorization"] = True
+            solver = LUSolver(
+                self._lhs_matrix,
+                self.linear_solver_parameters.solver
+            )
+
+            params = LUSolver.default_parameters()
+            params["same_nonzero_pattern"] = \
+                self.linear_solver_parameters.same_nonzero_pattern
+            params["reuse_factorization"] = \
+                self.linear_solver_parameters.reuse_factorization
+            solver.parameters.update(params)
             update_routine = self._update_lu_solver
 
         elif solver_type == "iterative":
             # Initialize KrylovSolver with matrix
-            alg = self.linear_solver_parameters.algorithm
+            alg = self.linear_solver_parameters.solver
             prec = self.linear_solver_parameters.preconditioner
 
-            debug("Creating PETSCKrylovSolver with %s and %s" % (alg, prec))
+            # debug("Creating PETSCKrylovSolver with %s and %s" % (alg, prec))
             # if prec == "fieldsplit":
             #     # Argh. DOLFIN won't let you construct a PETScKrylovSolver with fieldsplit. Sigh ..
             #     solver = PETScKrylovSolver()
@@ -450,11 +463,23 @@ class BidomainSolver(BasicBidomainSolver):
             #     ksp.setFromOptions()
             #     ksp.setUp()
             # else:
-            #     solver = PETScKrylovSolver(alg, prec)
-            #     solver.set_operator(self._lhs_matrix)
-            #     # Still waiting for that bug fix:
-            #     solver.parameters.convergence_norm_type = "preconditioned"
-            #     solver.parameters.update(self.parameters["petsc_krylov_solver"])
+            # solver = PETScKrylovSolver(alg, prec)
+            # solver.set_operator(self._lhs_matrix)
+            # Still waiting for that bug fix:
+            # solver.parameters.convergence_norm_type = "preconditioned"
+            # solver.parameters.update(self.parameters["petsc_krylov_solver"])
+
+            solver = PETScKrylovSolver(alg, prec)
+            _sp = PETScKrylovSolver.default_parameters()
+            _sp["absolute_tolerance"] = self.linear_solver_parameters.absolute_tolerance
+            _sp["relative_tolerance"] = self.linear_solver_parameters.relative_tolerance
+            _sp["nonzero_initial_guess"] = self.linear_solver_parameters.nonzero_initial_guess
+            _sp["convergence_norm_type"] = "preconditioned"
+            solver.parameters.update(_sp)
+            solver.set_operator(self._lhs_matrix)
+            solver.ksp().setFromOptions()
+            update_routine = self._update_krylov_solver
+
 
             # Set nullspace if present. We happen to know that the
             # transpose nullspace is the same as the nullspace (easy
@@ -503,7 +528,7 @@ class BidomainSolver(BasicBidomainSolver):
         M_e = self._M_e
 
         # Define variational formulation
-        use_R = True if self.parameters.solver_type == "direct" else False
+        use_R = True if self.parameters.linear_solver_type == "direct" else False
         if use_R:
             v, u, l = TrialFunctions(self.VUR)
             w, q, lamda = TestFunctions(self.VUR)
@@ -549,7 +574,7 @@ class BidomainSolver(BasicBidomainSolver):
         a, L = system(G)
         return a, L
 
-    def _step(self, interval: Tuple[float, float]) -> None:
+    def step(self, interval: Tuple[float, float]) -> None:
         """Solve on the given time step (t0, t1).
 
         Arguments:

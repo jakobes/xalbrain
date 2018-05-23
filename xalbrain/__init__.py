@@ -17,12 +17,11 @@ from xalbrain.cellmodels import *
 from xalbrain.markerwisefield import *
 
 # Solver imports
-from xalbrain.splittingsolver import (
-    BasicSplittingSolver,
-    SplittingSolver
-)
+from xalbrain.splittingsolver import SplittingSolver
 
 from xalbrain.cellsolver import (
+    BasicCardiacODESolver,
+    CardiacODESolver,
     BasicSingleCellSolver,
     SingleCellSolver
 )
@@ -42,7 +41,7 @@ from xalbrain.parameters import (
     MonodomainParameters,
     SingleCellParameters,
     SplittingParameters,
-    KrylovParmeters,
+    KrylovParameters,
     LUParameters,
 )
 

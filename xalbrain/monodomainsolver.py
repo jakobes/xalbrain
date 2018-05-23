@@ -41,16 +41,15 @@ from typing import (
     Union,
     Dict,
     Tuple,
-    Generator
+    Generator,
+    Any
 )
 
 from xalbrain.parameters import (
     MonodomainParameters,
-    KrylovParmeters,
+    KrylovParameters,
     LUParameters,
 )
-
-import ufl
 
 
 class BasicMonodomainSolver:
@@ -100,7 +99,7 @@ class BasicMonodomainSolver:
             time: Constant,
             M_i: Union[Expression, Dict[int, Expression]],
             parameters: MonodomainParameters,
-            linear_solver_parameters: Union[KrylovParmeters, LUParameters],
+            linear_solver_parameters: Union[KrylovParameters, LUParameters],
             I_s: Union[Expression, Dict[int, Expression]]=None,
             v_: Function=None,
     ) -> None:
@@ -109,6 +108,9 @@ class BasicMonodomainSolver:
         self._M_i = M_i
         self._time = time
         self._I_s = I_s
+
+        self.parameters = parameters
+        self.linear_solver_parameters = linear_solver_parameters
 
         # Set-up function spaces
         k = self.parameters.polynomial_degree
@@ -126,7 +128,7 @@ class BasicMonodomainSolver:
         self.v = Function(self.V, name="v")
 
         # Figure out whether we should annotate or not
-        # self._annotate_kwargs = annotate_kwargs(self.parameters)
+        self._annotate_kwargs = annotate_kwargs(self.parameters)
 
     @property
     def time(self) -> Constant:
@@ -179,7 +181,7 @@ class BasicMonodomainSolver:
         # Step through time steps until at end time
         while True:
             info("Solving on t = ({:g}, {:g})".format(t0, t1))
-            self._step((t0, t1))
+            self.step((t0, t1))
 
             # Yield solutions
             yield (t0, t1), self.solution_fields()
@@ -197,7 +199,7 @@ class BasicMonodomainSolver:
             t0 = t1
             t1 = t0 + dt
 
-    def _step(self, interval: Tuple[float, float]) -> None:
+    def step(self, interval: Tuple[float, float]) -> None:
         r"""Solve on the given time interval (t0, t1).
 
         Arguments:
@@ -288,17 +290,18 @@ class MonodomainSolver(BasicMonodomainSolver):
             mesh: Mesh,
             time: Constant,
             M_i: Union[Expression, Dict[int, Expression]],
-            parameter: MonodomainParameters,
-            linear_solver_parameters: Union[KrylovParmeters, LUParameters],
-            I_s: Union[Expression, Dict[int, Expression]]=None,
+            parameters: MonodomainParameters,
+            linear_solver_parameters: Union[KrylovParameters, LUParameters],
+            I_s: Union[Expression, Dict[int, Expression]] = None,
             v_: Function=None,
     ) -> None:
         super().__init__(
-            mesh, time, M_i, parameters, linear_solver_parameters, I_s, v)
+            mesh, time, M_i, parameters, linear_solver_parameters, I_s, v_
         )
 
         # Create variational forms
-        self._timestep = Constant(self.parameters["default_timestep"])
+        # self._timestep = Constant(self.parameters["default_timestep"])
+        self._timestep = Constant(Constant(1.0))
         self._lhs, self._rhs, self._prec = self.variational_forms(self._timestep)
 
         # Preassemble left-hand side (will be updated if time-step changes)
@@ -321,12 +324,17 @@ class MonodomainSolver(BasicMonodomainSolver):
         solver_type = self.parameters.linear_solver_type
 
         if solver_type == "direct":
-            _sp = LUSolver.default_parameters()
-            _sp["linear_solver"] = self.linear_solver_parameters.solver
             solver = LUSolver(
                 self._lhs_matrix,
-                _sp
+                self.linear_solver_parameters.solver
             )
+
+            params = LUSolver.default_parameters()
+            params["same_nonzero_pattern"] = \
+                self.linear_solver_parameters.same_nonzero_pattern
+            params["reuse_factorization"] = \
+                self.linear_solver_parameters.reuse_factorization
+            solver.parameters.update(params)
             update_routine = self._update_lu_solver
 
         elif solver_type == "iterative":
@@ -334,8 +342,8 @@ class MonodomainSolver(BasicMonodomainSolver):
             # changes)
             debug("Preassembling preconditioner")
             # Initialize KrylovSolver with matrix and preconditioner
-            alg = self.parameters.solver
-            prec = self.parameters.preconditioner
+            alg = self.linear_solver_parameters.solver
+            prec = self.linear_solver_parameters.preconditioner
             # if self.parameters["use_custom_preconditioner"]:
             #     self._prec_matrix = assemble(self._prec,
             #                                  **self._annotate_kwargs)
@@ -346,9 +354,10 @@ class MonodomainSolver(BasicMonodomainSolver):
             # else:
             solver = PETScKrylovSolver(alg, prec)
             _sp = PETScKrylovSolver.default_parameters()
-            _sp["absolute_tolerance"] = self.parameters.absolute_tolerance
-            _sp["relative_tolerance"] = self.parameters.relative_tolerance
-            _sp["nonzero_initial_guess"] =  self.parameters.nonzero_initial_guess
+            _sp["absolute_tolerance"] = self.linear_solver_parameters.absolute_tolerance
+            _sp["relative_tolerance"] = self.linear_solver_parameters.relative_tolerance
+            _sp["nonzero_initial_guess"] = self.linear_solver_parameters.nonzero_initial_guess
+            _sp["convergence_norm_type"] = "preconditioned"
             solver.parameters.update(_sp)
             solver.set_operator(self._lhs_matrix)
             solver.ksp().setFromOptions()
@@ -395,9 +404,9 @@ class MonodomainSolver(BasicMonodomainSolver):
     #    #params["krylov_solver"]["preconditioner"]["structure"] = "same"
     #    return params
 
-    def variational_forms(self, k_n: Constant) -> Tuple[ufl.Form, ufl.Form. ufl.Form]:
-        """Create the variational forms corresponding to the given
-        discretization of the given system of equations.
+    def variational_forms(self, k_n: Constant) -> Tuple[Any, Any, Any]:
+        """
+        Return the variational form of the descrete system of equations.
 
         Arguments:
             k_n: The time step.

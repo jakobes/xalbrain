@@ -12,9 +12,9 @@ from xalbrain.cellmodels import (
     MultiCellModel,
 )
 
-from xalbrain import (
+from xalbrain.parameters import (
     SingleCellParameters,
-    KrylovParmeters,
+    KrylovParameters,
     LUParameters,
 )
 
@@ -25,7 +25,11 @@ from xalbrain.utils import (
     annotate_kwargs,
 )
 
-from typing import Tuple, Union
+from typing import (
+    Tuple,
+    Union,
+    Generator,
+)
 
 
 class BasicCardiacODESolver:
@@ -82,8 +86,7 @@ class BasicCardiacODESolver:
             time: Constant,
             model: CardiacCellModel,
             parameters: SingleCellParameters,
-            linear_solver_parameters: Union[KrylovParameters, LUParameters]
-            I_s=None,
+            I_s: Expression = None,
     ) -> None:
         # Store input
         self._mesh = mesh
@@ -100,7 +103,6 @@ class BasicCardiacODESolver:
 
         # Initialize and update parameters if given
         self.parameters = parameters
-        self.linear_solver_parameters = linear_solver_parameters
 
         # Create (mixed) function space for potential + states
         v_family = self.parameters.V_polynomial_family
@@ -147,7 +149,7 @@ class BasicCardiacODESolver:
             self,
             interval: Tuple[float, float],
             dt: float
-    ) -> Generator[Tuple[Tuple[float, float], Function, None, None]:
+    ) -> Generator[Tuple[Tuple[float, float], Function], None, None]:
         """
         Solve the peoblem on the given interval with the given time step.
 
@@ -170,8 +172,8 @@ class BasicCardiacODESolver:
         """
         time_stepper = TimeStepper(interval, dt)
         for t0, t1 in time_stepper:
-           info_blue("Solving on t = ({:g}, {:g})".format(t0, t1))
-            self._step((t0, t1))
+            info_blue("Solving on t = ({:g}, {:g})".format(t0, t1))
+            self.step((t0, t1))
 
             # Yield solutions
             yield (t0, t1), self.vs
@@ -179,7 +181,7 @@ class BasicCardiacODESolver:
             # Update time step
             self.vs_.assign(self.vs)
 
-    def _step(self, interval: Tuple[float, float]) -> None:
+    def step(self, interval: Tuple[float, float]) -> None:
         """
         Solve on the given time interval (t0, t1).
 
@@ -277,13 +279,10 @@ class BasicCardiacODESolver:
         pde = NonlinearVariationalProblem(G, self.vs, J=derivative(G, self.vs))
         solver = NonlinearVariationalSolver(pde)
 
-        solver = self.parameters.scheme
-
         # Update parameters
         _sp = NonlinearVariationalSolver.default_parameters()
-        _sp["nonlinear_variational_solver"]["newton_solver"]["linear_solver"] = solver
-        solver_params = self.parameters["nonlinear_variational_solver"]
-        solver.parameters.update(sp)
+        _sp["newton_solver"]["linear_solver"] = self.parameters.scheme
+        solver.parameters.update(_sp)
 
         solver.solve()
         timer.stop()
@@ -336,8 +335,7 @@ class CardiacODESolver:
             time: Constant,
             model: CardiacCellModel,
             parameters: SingleCellParameters,
-            linear_solver_parameters: Union[KrylovParameters, LUParameters]
-            I_s=None,
+            I_s: Expression = None,
     ) -> None:
         """Initialise parameters."""
         import ufl.classes
@@ -437,7 +435,7 @@ class CardiacODESolver:
         """
         return self.vs_, self.vs
 
-    def _step(self, interval) -> None:
+    def step(self, interval) -> None:
         """Solve on the given intervalp (t0, t1).
 
         End users are recommended to use solve instead.
@@ -464,7 +462,7 @@ class CardiacODESolver:
             self,
             interval: Tuple[float, float],
             dt: float
-    ) -> Generator[Tuple[Tuple[float, float], Function]:
+    ) -> Generator[Tuple[Tuple[float, float], Function], None, None]:
         """Solve the problem on the given interval with the specified time step.
         return a generator overintervals and solutions.
 
@@ -495,7 +493,7 @@ class CardiacODESolver:
 
         for t0, t1 in time_stepper:
             info_blue("Solving on t = ({:g}, {:g})".format(t0, t1))
-            self._step((t0, t1))
+            self.step((t0, t1))
 
             # Yield solutions
             yield (t0, t1), self.vs
@@ -546,7 +544,6 @@ class BasicSingleCellSolver(BasicCardiacODESolver):
             self,
             model: CardiacCellModel,
             parameters: SingleCellParameters,
-            linear_solver_parameters: Union[KrylovParmeters, LUParameters],
     ):
         """Create solver from given cell model and optional parameters."""
         # Define carefully chosen dummy mesh
@@ -559,8 +556,7 @@ class BasicSingleCellSolver(BasicCardiacODESolver):
             time,
             model,
             parameters,
-            linear_solver_parameters,
-            I_s=model.stimulus
+            I_s = model.stimulus
         )
 
 
@@ -569,7 +565,6 @@ class SingleCellSolver(CardiacODESolver):
             self,
             model: CardiacCellModel,
             parameters: SingleCellParameters,
-            linear_solver_parameters: Union[KrylovParmeters, LUParameters],
         ) -> None:
         # Define carefully chosen dummy mesh
         mesh = UnitIntervalMesh(1)
@@ -581,6 +576,5 @@ class SingleCellSolver(CardiacODESolver):
             time,
             model,
             parameters,
-            linear_solver_parameters,
-            I_s=model.stimulus
+            I_s = model.stimulus
         )

@@ -16,13 +16,17 @@ from xalbrain import (
     MonodomainSolver,
     BasicMonodomainSolver,
 )
-    
+
 from xalbrain.utils import convergence_rate
 
 from typing import Tuple
 
-import sys
-from IPython import embed
+from xalbrain.parameters import (
+    SplittingParameters,
+    MonodomainParameters,
+    SingleCellParameters,
+    LUParameters,
+)
 
 
 set_log_level(100)
@@ -43,12 +47,22 @@ def main(N: int, dt: float, T: float, theta: float) -> Tuple[float, float, float
     ac_str = "(8*pi*pi*lam*sin(t) + (lam + 1)*cos(t))*cos(2*pi*x[0])*cos(2*pi*x[1])/(lam + 1)"
     stimulus = Expression(ac_str, t=time, lam=Constant(1), degree=3)
     M_i = Constant(1.0)
+
     # Set up solver
-    params = BasicMonodomainSolver.default_parameters()
-    params["theta"] = theta
-    params["linear_variational_solver"]["linear_solver"] = "direct"
-    params["enable_adjoint"] = False
-    solver = BasicMonodomainSolver(mesh, time, M_i, I_s=stimulus, params=params)
+    pde_parameters = MonodomainParameters(
+        "direct",
+        solver = "BasicMonodomainSolver",
+        theta = theta
+    )
+    lu_parameters = LUParameters()
+    solver = BasicMonodomainSolver(
+        mesh,
+        time,
+        M_i,
+        pde_parameters,
+        lu_parameters,
+        I_s = stimulus
+    )
 
     v_exact  = Expression("sin(t)*cos(2*pi*x[0])*cos(2*pi*x[1])", t=T, degree=3)
 

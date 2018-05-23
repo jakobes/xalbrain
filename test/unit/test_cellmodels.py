@@ -80,10 +80,7 @@ class TestCompilationCorrectness:
         scheme.t().assign(float(time))
 
         # Create and step solver
-        if adex:
-            solver = AdexPointIntegralSolver(scheme)
-        else: 
-            solver = PointIntegralSolver(scheme)
+        solver = PointIntegralSolver(scheme)
         solver.parameters["newton_solver"]["relative_tolerance"] = 1e-6
         solver.parameters["newton_solver"]["report"] = False
         dt = 0.1
@@ -92,8 +89,7 @@ class TestCompilationCorrectness:
 
     @slow
     @pytest.mark.parametrize("adex_model, adex", [
-        pytest.param(Adex, True, marks=pytest.mark.xfail),
-        pytest.param(AdexManual, False, marks=pytest.mark.xfail)
+        pytest.param(AdexManual, False, marks=pytest.mark.xfail),
     ])
     def test_point_integral_solver(self, adex_model, adex):
         """Compare form compilation result with and without optimizations."""
