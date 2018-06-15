@@ -141,15 +141,19 @@ class BasicBidomainSolver:
         self.V = V
 
         if cell_domains is None:
-            cell_domains = MeshFunction("size_t", mesh, 2)
+            cell_domains = MeshFunction("size_t", mesh, self._mesh.geometry().dim())
             cell_domains.set_all(0)
-        assert cell_domains.dim() == 2      # Chech that it is indeed a cell function.
+
+        # Chech that it is indeed a cell function.
+        assert cell_domains.dim() == self._mesh.geometry().dim()
         self._cell_domains = cell_domains
 
         if facet_domains is None:
-            facet_domains = MeshFunction("size_t", mesh, 1)
+            facet_domains = MeshFunction("size_t", mesh, self._mesh.geometry().dim() - 1)
             facet_domains.set_all(0)
-        assert facet_domains.dim() == 1     # Check that it is indeed a facet function.
+
+        # Check that it is indeed a facet function.
+        assert facet_domains.dim() == self._mesh.geometry().dim() - 1
         self._facet_domains = facet_domains
 
         if not isinstance(M_i, dict):
