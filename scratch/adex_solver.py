@@ -109,7 +109,7 @@ if __name__ == "__main__":
 
     import matplotlib.pyplot as plt
     import matplotlib as mpl
-    plt.xkcd()
+    # plt.xkcd()
 
     font = {'size': 40}
     mpl.rc('font', **font)
@@ -121,4 +121,5 @@ if __name__ == "__main__":
     ax.set_xlabel("Time (ms)")
     ax.set_ylabel("Transmembrane Potential (mV)")
     plt.legend()
-    plt.show()
+    # plt.show()
+    plt.savefig("foo.png")

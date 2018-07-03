@@ -19,8 +19,9 @@ from xalbrain.utils import (
     annotate_kwargs,
 )
 
+from typing import Dict
 
-class BasicCardiacODESolver(object):
+class BasicCardiacODESolver:
     """A basic, non-optimised solver for systems of ODEs typically
     encountered in cardiac applications of the form: find a scalar
     field :math:`v = v(x, t)` and a vector field :math:`s = s(x, t)`
@@ -67,7 +68,14 @@ class BasicCardiacODESolver(object):
       params (:py:class:`dolfin.Parameters`, optional)
         Solver parameters
     """
-    def __init__(self, mesh, time, model, I_s=None, params=None, adex=False):
+    def __init__(
+            self,
+            mesh: Mesh,
+            time: Constant,
+            model: CardiacCellModel,
+            I_s,
+            params=None,
+    ):
         # Store input
         self._mesh = mesh
         self._time = time
@@ -82,10 +90,7 @@ class BasicCardiacODESolver(object):
         self._I_s = handle_markerwise(I_s, GenericFunction)
 
         # Initialize and update parameters if given
-        if adex:
-            self.parameters = self.default_parameters_adex()
-        else:
-            self.parameters = self.default_parameters()
+        self.parameters = self.default_parameters()
         if params is not None:
             self.parameters.update(params)
 
@@ -341,7 +346,7 @@ class CardiacODESolver:
         Solver parameters
     """
 
-    def __init__(self, mesh, time, model, I_s=None, params=None, adex=False):
+    def __init__(self, mesh, time, model, I_s=None, params=None):
         """Initialise parameters."""
         import ufl.classes
 
@@ -440,7 +445,6 @@ class CardiacODESolver:
         params = Parameters("CardiacODESolver")
         params.add("scheme", "BackwardEuler")
         params.add(PointIntegralSolver.default_parameters())
-        params.add("adex_solver", False)
         params.add("enable_adjoint", False)
 
         return params
