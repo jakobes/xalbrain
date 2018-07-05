@@ -231,7 +231,9 @@ class BasicSplittingSolver:
             kwargs = dict(
                 I_s=stimulus,
                 v_=self.vs[0],
-                params=params
+                params=params,
+                cell_domains=self._model.cell_domains(),
+                facet_domains=self._model.facet_domains(),
             )
 
         # Propagate enable_adjoint to Bidomain solver
@@ -591,7 +593,13 @@ class SplittingSolver(BasicSplittingSolver):
             PDESolver = MonodomainSolver
             params = self.parameters["MonodomainSolver"]
             args = (self._domain, self._time, M_i)
-            kwargs = dict(I_s=stimulus, v_=self.vs[0], params=params)
+            kwargs = dict(
+                I_s=stimulus,
+                v_=self.vs[0],
+                cell_domains=self._model.cell_domains(),
+                facet_domains=self._model.facet_domains(),
+                params=params
+            )
 
         # Propagate enable_adjoint to Bidomain solver
         if params.has_key("enable_adjoint"):

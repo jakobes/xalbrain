@@ -81,7 +81,7 @@ class CardiacModel:
             M_i: Union[Expression, Dict[int, Expression]],
             M_e: Union[Expression, Dict[int, Expression]],
             cell_models: CardiacCellModel,
-            stimulus: Union[Expression, Dict[int, Expression]] =None,
+            stimulus: Union[Expression, Dict[int, Expression]] = None,
             applied_current: Union[Expression, Dict[int, Expression]] = None,
             ect_current: Dict[int, Expression] = None,
             cell_domains: MeshFunction = None,
