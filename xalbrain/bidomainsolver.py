@@ -145,7 +145,9 @@ class BasicBidomainSolver:
             cell_domains.set_all(0)
 
         # Chech that it is indeed a cell function.
-        assert cell_domains.dim() == self._mesh.geometry().dim()
+        cell_dim = cell_domains.dim()
+        mesh_dim = self._mesh.geometry().dim()
+        assert cell_dim == mesh_dim, f"Got {cell_dim}, expected {mesh_dim}."
         self._cell_domains = cell_domains
 
         if facet_domains is None:
@@ -153,13 +155,16 @@ class BasicBidomainSolver:
             facet_domains.set_all(0)
 
         # Check that it is indeed a facet function.
-        assert facet_domains.dim() == self._mesh.geometry().dim() - 1
+        facet_dim = facet_domains.dim()
+        assert facet_dim == mesh_dim - 1, f"Got {facet_dim}, expected {mesh_dim - 1}."
         self._facet_domains = facet_domains
 
         if not isinstance(M_i, dict):
             M_i = {int(i): M_i for i in set(self._cell_domains.array())}
         else:
-            assert set(M_i.keys()) == set(self._cell_domains.array())
+            M_i_keys = set(M_i.keys())
+            cell_keys = set(self._cell_domains.array())
+            assert M_i_keys == cell_keys, f"Got {M_i_keys}, expected {cell_keys}."
         self._M_i = M_i
 
         if not isinstance(M_e, dict):
