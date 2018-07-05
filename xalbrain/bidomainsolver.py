@@ -107,10 +107,10 @@ class BasicBidomainSolver:
         """Initialise solverand check all parametersare correct."""
         msg = "Expecting mesh to be a Mesh instance, not {}".format(mesh)
         assert isinstance(mesh, Mesh), msg
-            
+
         msg = "Expecting time to be a Constant instance (or None)."
         assert isinstance(time, Constant) or time is None, msg
-            
+
         msg = "Expecting params to be a Parameters instance (or None)"
         assert isinstance(params, Parameters) or params is None, msg
 
@@ -400,13 +400,13 @@ class BidomainSolver(BasicBidomainSolver):
             time: Constant,
             M_i: Union[Expression, Dict[int, Expression]],
             M_e: Union[Expression, Dict[int, Expression]],
-            I_s: Union[Expression, Dict[int, Expression]]=None,
-            I_a: Union[Expression, Dict[int, Expression]]=None,
-            ect_current: Dict[int, Expression]=None,
-            v_: Function=None,
-            cell_domains: MeshFunction=None,
-            facet_domains: MeshFunction=None,
-            params: Parameters=None
+            I_s: Union[Expression, Dict[int, Expression]] = None,
+            I_a: Union[Expression, Dict[int, Expression]] = None,
+            ect_current: Dict[int, Expression] = None,
+            v_: Function = None,
+            cell_domains: MeshFunction = None,
+            facet_domains: MeshFunction = None,
+            params: Parameters = None
     ) -> None:
         # Call super-class
         BasicBidomainSolver.__init__(
@@ -419,7 +419,7 @@ class BidomainSolver(BasicBidomainSolver):
             I_a=I_a,
             v_=v_,
             ect_current=ect_current,
-            cell_domains=cell_domains, 
+            cell_domains=cell_domains,
             facet_domains=facet_domains,
             params=params
         )

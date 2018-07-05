@@ -89,9 +89,11 @@ class BasicMonodomainSolver:
             mesh: Mesh,
             time: Constant,
             M_i: Union[Expression, Dict[int, Expression]],
-            I_s: Union[Expression, Dict[int, Expression]]=None,
-            v_: Function=None,
-            params: Parameters=None
+            I_s: Union[Expression, Dict[int, Expression]] = None,
+            v_: Function = None,
+            cell_domains = None,
+            facet_domains = None,
+            params: Parameters = None
     ) -> None:
         # Check some input
         assert isinstance(mesh, Mesh), \
@@ -103,7 +105,6 @@ class BasicMonodomainSolver:
 
         # Store input
         self._mesh = mesh
-        self._M_i = M_i
         self._I_s = I_s
         self._time = time
 
@@ -126,6 +127,28 @@ class BasicMonodomainSolver:
             self.v_ = v_
 
         self.v = Function(self.V, name="v")
+
+        if cell_domains is None:
+            cell_domains = MeshFunction("size_t", mesh, self._mesh.geometry().dim())
+            cell_domains.set_all(0)
+
+        # Chech that it is indeed a cell function.
+        assert cell_domains.dim() == self._mesh.geometry().dim()
+        self._cell_domains = cell_domains
+
+        if facet_domains is None:
+            facet_domains = MeshFunction("size_t", mesh, self._mesh.geometry().dim() - 1)
+            facet_domains.set_all(0)
+
+        # Check that it is indeed a facet function.
+        assert facet_domains.dim() == self._mesh.geometry().dim() - 1
+        self._facet_domains = facet_domains
+
+        if not isinstance(M_i, dict):
+            M_i = {int(i): M_i for i in set(self._cell_domains.array())}
+        else:
+            assert set(M_i.keys()) == set(self._cell_domains.array())
+        self._M_i = M_i
 
         # Figure out whether we should annotate or not
         self._annotate_kwargs = annotate_kwargs(self.parameters)
@@ -231,10 +254,20 @@ class BasicMonodomainSolver:
         Dt_v_k_n = (v - self.v_)/k_n
         v_mid = theta*v + (1.0 - theta)*self.v_
 
-        dz, rhs = rhs_with_markerwise_field(self._I_s, self._mesh, w)
-        G = Dt_v_k_n*w*dz()
-        G += inner(M_i*grad(v_mid), grad(w))*dz()
-        G -= rhs
+        dz = Measure("dx", domain=self._mesh, subdomain_data=self._cell_domains)
+        db = Measure("ds", domain=self._mesh, subdomain_data=self._facet_domains)
+        # dz, rhs = rhs_with_markerwise_field(self._I_s, self._mesh, w)
+        cell_tags = map(int, set(self._cell_domains.array()))   # np.int64 does not work
+        facet_tags = map(int, set(self._facet_domains.array()))
+
+        for key in cell_tags:
+            G = Dt_v_k_n*w*dz(key)
+            G += inner(M_i[key]*grad(v_mid), grad(w))*dz(key)
+
+            if self._I_s is None:
+                G -= Constant(0)*w*dz(key)
+            else:
+                G -= self._I_s*w*dz(key)
 
         # Define variational problem
         a, L = system(G)
@@ -293,13 +326,23 @@ class MonodomainSolver(BasicMonodomainSolver):
             mesh: Mesh,
             time: Constant,
             M_i: Union[Expression, Dict[int, Expression]],
-            I_s: Union[Expression, Dict[int, Expression]]=None,
-            v_: Function=None,
-            params: Parameters=None
+            I_s: Union[Expression, Dict[int, Expression]] = None,
+            v_: Function = None,
+            cell_domains: MeshFunction = None,
+            facet_domains: MeshFunction = None,
+            params: Parameters = None
     ) -> None:
         # Call super-class
-        BasicMonodomainSolver.__init__(self, mesh, time, M_i, I_s=I_s,
-                                       v_=v_, params=params)
+        super().__init__(
+            mesh,
+            time,
+            M_i,
+            I_s=I_s,
+            v_=v_,
+            cell_domains=cell_domains,
+            facet_domains=facet_domains,
+            params=params)
+
         # Create variational forms
         self._timestep = Constant(self.parameters["default_timestep"])
         self._lhs, self._rhs, self._prec = self.variational_forms(self._timestep)
@@ -413,14 +456,28 @@ class MonodomainSolver(BasicMonodomainSolver):
         # Set-up variational problem
         Dt_v_k_n = (v - self.v_)/k_n
         v_mid = theta*v + (1.0 - theta)*self.v_
-         
-        dz, rhs = rhs_with_markerwise_field(self._I_s, self._mesh, w)
-        G = Dt_v_k_n*w*dz()
-        G += inner(M_i*grad(v_mid), grad(w))*dz()
-        G -= rhs
+
+        # dz, rhs = rhs_with_markerwise_field(self._I_s, self._mesh, w)
+
+        dz = Measure("dx", domain=self._mesh, subdomain_data=self._cell_domains)
+        db = Measure("ds", domain=self._mesh, subdomain_data=self._facet_domains)
+        cell_tags = map(int, set(self._cell_domains.array()))   # np.int64 does not work
+        facet_tags = map(int, set(self._facet_domains.array()))
+
+        prec = 0
+
+        for key in cell_tags:
+            G = Dt_v_k_n*w*dz(key)
+            G += inner(M_i[key]*grad(v_mid), grad(w))*dz(key)
+
+            if self._I_s is None:
+                G -= Constant(0)*w*dz(key)
+            else:
+                G -= self._I_s*w*dz(key)
+
 
         # Define preconditioner based on educated(?) guess by Marie
-        prec = (v*w + k_n/2.0*inner(M_i*grad(v), grad(w)))*dz
+        prec += (v*w + k_n/2.0*inner(M_i[key]*grad(v), grad(w)))*dz(key)
 
         a, L = system(G)
         return (a, L, prec)
