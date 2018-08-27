@@ -179,7 +179,7 @@ class BasicBidomainSolver:
 
         # Set the ECT current, Note, it myst depend on `time` to be updated
         if ect_current is not None:
-            ect_tags = set(ect_current)
+            ect_tags = set(ect_current.keys())
             facet_tags = set(self._facet_domains.array())
             msg = "{} not in facet domains ({}).".format(ect_tags, facet_tags)
             assert ect_tags <= facet_tags, msg
@@ -496,9 +496,13 @@ class BidomainSolver(BasicBidomainSolver):
             else:
                 solver = PETScKrylovSolver(alg, prec)
                 solver.set_operator(self._lhs_matrix)
-                # Still waiting for that bug fix:
-                solver.parameters.convergence_norm_type = "preconditioned"
+
                 solver.parameters.update(self.parameters["petsc_krylov_solver"])
+                solver.parameters.convergence_norm_type = "preconditioned"
+                solver.parameters.monitor_convergence = False
+                solver.parameters.report = False
+                solver.parameters.maximum_iterations = None
+                solver.parameters.nonzero_initial_guess = True
 
             # Set nullspace if present. We happen to know that the
             # transpose nullspace is the same as the nullspace (easy
@@ -621,7 +625,7 @@ class BidomainSolver(BasicBidomainSolver):
             # If Lagrangian multiplier
             if use_R:
                 G += (lamda*u + l*q)*dz(key)
-                
+
             if self._I_a:
                 G -= self._I_a*q*dz(key)
 
@@ -666,9 +670,6 @@ class BidomainSolver(BasicBidomainSolver):
             self._lhs_matrix = assemble(self._lhs, **self._annotate_kwargs)
             self._rhs_vector = Vector(self._mesh.mpi_comm(), self._lhs_matrix.size(0))
 
-            # TODO: Ask Kent about this
-            self._rhs_vector -= self._rhs_vector.sum()/self._rhs_vector.size()
-
             self._lhs_matrix.init_vector(self._rhs_vector, 0)
 
             # Create linear solver (based on parameter choices)
@@ -679,6 +680,9 @@ class BidomainSolver(BasicBidomainSolver):
 
         # Assemble right-hand-side
         assemble(self._rhs, tensor=self._rhs_vector)
+
+        rhs_norm = self._rhs_vector.array()[:].sum()/self._rhs_vector.size()/2
+        self._rhs_vector.array()[:] -= rhs_norm
 
         # Solve problem
         self.linear_solver.solve(

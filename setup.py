@@ -35,10 +35,10 @@ CMDS = {
 
 
 setup(
-    name="xalbrain",
-    author="Jakob E. Schreiner",
-    author_email="jakob@xal.no",
-    packages=["xalbrain", "xalbrain.cellmodels",],
-    package_dir={"xalbrain": "xalbrain"},
+    name = "xalbrain",
+    author = "Jakob E. Schreiner",
+    author_email = "jakob@xal.no",
+    packages = ["xalbrain", "xalbrain.cellmodels",],
+    package_dir = {"xalbrain": "xalbrain"},
     cmdclass = CMDS
 )
