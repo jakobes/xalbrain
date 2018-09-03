@@ -396,7 +396,7 @@ class BasicBidomainSolver:
         # Customize default parameters for LUSolver
         params["lu_solver"]["same_nonzero_pattern"] = True
 
-        linear_params = LinearVariationalSolver.default_parameters()
+        linear_params = df.LinearVariationalSolver.default_parameters()
         linear_params["krylov_solver"]["absolute_tolerance"] = 1e-14
         linear_params["krylov_solver"]["relative_tolerance"] = 1e-14
         linear_params["krylov_solver"]["nonzero_initial_guess"] = True
@@ -468,7 +468,7 @@ class BidomainSolver(BasicBidomainSolver):
             alg = self.parameters["algorithm"]
             prec = self.parameters["preconditioner"]
 
-            df.ebug("Creating PETSCKrylovSolver with %s and %s" % (alg, prec))
+            df.debug("Creating PETSCKrylovSolver with %s and %s" % (alg, prec))
 
             solver = df.PETScKrylovSolver(alg, prec)
             solver.set_operator(self._lhs_matrix)
