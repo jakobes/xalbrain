@@ -330,10 +330,10 @@ class BasicBidomainSolver:
 
         G = Dt_v*w*dz()
         for key in cell_tags:
-            G += inner(Mi[key]*df.grad(v_mid), df.grad(w))*dz(key)
-            G += inner(Mi[key]*df.grad(u), df.grad(w))*dz(key)
-            G += inner(Mi[key]*df.grad(v_mid), df.grad(q))*dz(key)
-            G += inner((Mi[key] + Me[key])*df.grad(u), df.grad(q))*dz(key)
+            G += df.inner(Mi[key]*df.grad(v_mid), df.grad(w))*dz(key)
+            G += df.inner(Mi[key]*df.grad(u), df.grad(w))*dz(key)
+            G += df.inner(Mi[key]*df.grad(v_mid), df.grad(q))*dz(key)
+            G += df.inner((Mi[key] + Me[key])*df.grad(u), df.grad(q))*dz(key)
 
             if self._I_s is None:
                 G -= df.Constant(0)*w*dz(key)
