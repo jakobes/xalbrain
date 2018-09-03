@@ -489,14 +489,14 @@ class BidomainSolver(BasicBidomainSolver):
                 pass
             else:
                 # If dolfin-adjoint is enabled and installled: set the solver nullspace
-                if dolfin_adjoint:
-                    solver.set_nullspace(self.nullspace)
-                    solver.set_transpose_nullspace(self.nullspace)
+                # if dolfin_adjoint:
+                #     solver.set_nullspace(self.nullspace)
+                #     solver.set_transpose_nullspace(self.nullspace)
                 # Otherwise, set the nullspace in the operator
                 # directly.
-                else:
-                    A = as_backend_type(self._lhs_matrix)
-                    A.set_nullspace(self.nullspace)
+                # else:
+                A = df.as_backend_type(self._lhs_matrix)
+                A.set_nullspace(self.nullspace)
 
             update_routine = self._update_krylov_solver
         else:
@@ -676,8 +676,8 @@ class BidomainSolver(BasicBidomainSolver):
             df.debug("Timestep is unchanged, reusing LU factorization")
         else:
             df.debug("Timestep has changed, updating LU factorization")
-            if dolfin_adjoint and self.parameters["enable_adjoint"]:
-                raise ValueError("dolfin-adjoint doesn't support changing timestep (yet)")
+            # if dolfin_adjoint and self.parameters["enable_adjoint"]:
+            #     raise ValueError("dolfin-adjoint doesn't support changing timestep (yet)")
 
             # Update stored timestep
             # FIXME: dolfin_adjoint still can't annotate constant assignment.
@@ -711,5 +711,5 @@ class BidomainSolver(BasicBidomainSolver):
 
         # Set nonzero initial guess if it indeed is nonzero
         if self.vur.vector().norm("l2") > 1.e-12:
-            debug("Initial guess is non-zero.")
+            df.debug("Initial guess is non-zero.")
             self.linear_solver.parameters["nonzero_initial_guess"] = True
