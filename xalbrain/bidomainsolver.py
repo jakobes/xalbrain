@@ -105,7 +105,7 @@ class BasicBidomainSolver:
             v_: df.Function = None,
             cell_domains: df.MeshFunction = None,
             facet_domains: df.MeshFunction = None,
-            dirichlet_bc: List[Tuple[df.Expression, df.MeshFunction, int]] = None,
+            dirichlet_bc: List[Tuple[df.Expression, int]] = None,
             params: df.Parameters = None
     ) -> None:
         """Initialise solverand check all parametersare correct."""
@@ -200,10 +200,12 @@ class BasicBidomainSolver:
         self.vur = df.Function(self.VUR, name="vur")
 
         # Set Dirichlet bcs
-        self.bcs = []
+        self._bcs = []
         if dirichlet_bc is not None:
-            for function, mesh_function, marker in dirichlet_bc:
-                self.bcs.append(df.DirichletBC(self.VUR.sub(1), function,  mesh_function, marker))
+            for function, marker in dirichlet_bc:
+                self._bcs.append(
+                    df.DirichletBC(self.VUR.sub(1), function, self._facet_domains,  marker)
+                )
 
     @property
     def time(self) -> df.Constant:
@@ -356,7 +358,7 @@ class BasicBidomainSolver:
         # Define variational problem
         a, L = df.system(G)
 
-        pde = df.LinearVariationalProblem(a, L, self.vur)
+        pde = df.LinearVariationalProblem(a, L, self.vur, bcs=self._bcs)
 
         # Set-up solver
         solver = df.LinearVariationalSolver(pde)
@@ -419,7 +421,7 @@ class BidomainSolver(BasicBidomainSolver):
             v_: df.Function = None,
             cell_domains: df.MeshFunction = None,
             facet_domains: df.MeshFunction = None,
-            dirichlet_bc: List[Tuple[df.Expression, df.MeshFunction, int]] = None,
+            dirichlet_bc: List[Tuple[df.Expression, int]] = None,
             params: df.Parameters = None
     ) -> None:
         # Call super-class
@@ -657,6 +659,9 @@ class BidomainSolver(BasicBidomainSolver):
 
         # Assemble right-hand-side
         df.assemble(self._rhs, tensor=self._rhs_vector)
+
+        for bc in self._bcs:
+            bc.apply(self._lhs_matrix, self._rhs_vector)
 
         rhs_norm = self._rhs_vector.array()[:].sum()/self._rhs_vector.size()/2
         self._rhs_vector.array()[:] -= rhs_norm

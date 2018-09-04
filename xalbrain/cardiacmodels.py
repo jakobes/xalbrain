@@ -10,26 +10,23 @@ scenarios.
 
 __all__ = ["CardiacModel"]
 
-from xalbrain.dolfinimport import (
-    Parameters,
-    Mesh,
-    Constant,
-    GenericFunction,
-    error,
-    Expression,
-    MeshFunction,
-)
+import dolfin as df
+
+import xalbrain as xb
 
 from xalbrain.markerwisefield import (
     Markerwise,
     handle_markerwise,
 )
 
-from .cellmodels import *
+from .cellmodels import *       # Why do I need this?
 
 from typing import (
     Dict,
     Union,
+    List,
+    Tuple,
+    Any,
 )
 
 
@@ -76,27 +73,28 @@ class CardiacModel:
 
     def __init__(
             self,
-            domain: Mesh,
-            time: Constant,
-            M_i: Union[Expression, Dict[int, Expression]],
-            M_e: Union[Expression, Dict[int, Expression]],
+            domain: df.Mesh,
+            time: df.Constant,
+            M_i: Union[df.Expression, Dict[int, df.Expression]],
+            M_e: Union[df.Expression, Dict[int, df.Expression]],
             cell_models: CardiacCellModel,
-            stimulus: Union[Expression, Dict[int, Expression]] = None,
-            applied_current: Union[Expression, Dict[int, Expression]] = None,
-            ect_current: Dict[int, Expression] = None,
-            cell_domains: MeshFunction = None,
-            facet_domains: MeshFunction = None
+            stimulus: Union[df.Expression, Dict[int, df.Expression]] = None,
+            applied_current: Union[df.Expression, Dict[int, df.Expression]] = None,
+            ect_current: Dict[int, df.Expression] = None,
+            dirichlet_bc: List[Tuple[df.Expression, int]] = None,
+            cell_domains: df.MeshFunction = None,
+            facet_domains: df.MeshFunction = None
     ) -> None:
         """Create CardiacModel from given input."""
         self._ect_current = ect_current
 
         # Check input and store attributes
         msg = "Expecting domain to be a Mesh instance, not %r" % domain
-        assert isinstance(domain, Mesh), msg
+        assert isinstance(domain, df.Mesh), msg
         self._domain = domain
 
         msg = "Expecting time to be a Constant instance, not %r." % time
-        assert isinstance(time, Constant) or time is None, msg
+        assert isinstance(time, df.Constant) or time is None, msg
         self._time = time
 
         self._intracellular_conductivity = M_i
@@ -109,29 +107,35 @@ class CardiacModel:
         self._cell_models = handle_markerwise(cell_models, CardiacCellModel)
         if isinstance(self._cell_models, Markerwise):
             msg = "Different cell_models are currently not supported."
-            error(msg)
+            df.error(msg)
 
         # Handle stimulus
-        self._stimulus = handle_markerwise(stimulus, GenericFunction)
+        self._stimulus = handle_markerwise(stimulus, df.GenericFunction)
 
         # Handle applied current
         ac = applied_current
-        self._applied_current = handle_markerwise(ac, GenericFunction)
+        self._applied_current = handle_markerwise(ac, df.GenericFunction)
+        self._dirichlet_bcs = dirichlet_bc
 
     @property
-    def ect_current(self) -> Expression:
+    def bcs(self) -> List[Tuple[df.Expression, int]]:
+        """Return a list of `DirichletBC`s."""
+        return self._dirichlet_bcs
+
+    @property
+    def ect_current(self) -> df.Expression:
         """Return the neumnn current."""
         return self._ect_current
 
-    def applied_current(self):
+    def applied_current(self) -> Any:
         "An applied current: used as a source in the elliptic bidomain equation"
         return self._applied_current
 
-    def stimulus(self):
+    def stimulus(self) -> Any:
         "A stimulus: used as a source in the parabolic bidomain equation"
         return self._stimulus
 
-    def conductivities(self):
+    def conductivities(self) -> Any:
         """Return the intracellular and extracellular conductivities
         as a tuple of UFL Expressions.
 
@@ -140,31 +144,31 @@ class CardiacModel:
         """
         return self.intracellular_conductivity(), self.extracellular_conductivity()
 
-    def intracellular_conductivity(self):
+    def intracellular_conductivity(self) -> Any:
         """The intracellular conductivity (:py:class:`ufl.Expr`)."""
         return self._intracellular_conductivity
 
-    def extracellular_conductivity(self):
+    def extracellular_conductivity(self) -> Any:
         """The intracellular conductivity (:py:class:`ufl.Expr`)."""
         return self._extracellular_conductivity
 
-    def time(self):
+    def time(self) -> df.Constant:
         """The current time (:py:class:`dolfin.Constant` or None)."""
         return self._time
 
     @property
-    def mesh(self) -> Mesh:
+    def mesh(self) -> df.Mesh:
         """The spatial domain (:py:class:`dolfin.Mesh`)."""
         return self._domain
 
-    def cell_domains(self):
+    def cell_domains(self) -> df.MeshFunction:
         """Marked volume."""
         return self._cell_domains
 
-    def facet_domains(self):
+    def facet_domains(self) -> df.MeshFunction:
         """Marked area."""
         return self._facet_domains
 
-    def cell_models(self):
+    def cell_models(self) -> xb.cellmodels.CardiacCellModel:
         """Return the cell models."""
         return self._cell_models
