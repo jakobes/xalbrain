@@ -225,7 +225,6 @@ class BasicBidomainSolver:
         """
         return self.v_, self.vur
 
-
     def solve(self, interval: Tuple[float, float], dt: float=None) -> None:
         """
         Solve the discretization on a given time interval (t0, t1)
@@ -304,7 +303,7 @@ class BasicBidomainSolver:
 
         # Extract interval and thus time-step
         t0, t1 = interval
-        k_n = df.Constant(t1 - t0)
+        kn = df.Constant(t1 - t0)
 
         # Define variational formulation
         use_R = self.parameters["use_avg_u_constraint"]
@@ -315,7 +314,12 @@ class BasicBidomainSolver:
             v, u = df.TrialFunctions(self.VUR)
             w, q = df.TestFunctions(self.VUR)
 
-        Dt_v = (v - self.v_)/k_n
+        # Get physical parameters
+        chi = self.parameters["Chi"]
+        capacitance = self.parameters["Cm"]
+
+        Dt_v = (v - self.v_)/kn
+        Dt_v *= chi*capacitance
         v_mid = theta*v + (1.0 - theta)*self.v_
 
         # Set time
@@ -323,13 +327,14 @@ class BasicBidomainSolver:
         self.time.assign(t)
 
         # Define spatial integration domains:
-        # (dz, rhs) = rhs_with_markerwise_field(self._I_s, self._mesh, w)
-
         dz = df.Measure("dx", domain=self._mesh, subdomain_data=self._cell_domains)
         db = df.Measure("ds", domain=self._mesh, subdomain_data=self._facet_domains)
-        cell_tags = map(int, set(self._cell_domains.array()))   # np.int64 does not work
+
+        # Get domain labels
+        cell_tags = map(int, set(self._cell_domains.array()))   # np.int64 does not workv
         facet_tags = map(int, set(self._facet_domains.array()))
 
+        # Loop overe all domain labels
         G = Dt_v*w*dz()
         for key in cell_tags:
             G += df.inner(Mi[key]*df.grad(v_mid), df.grad(w))*dz(key)
@@ -338,9 +343,9 @@ class BasicBidomainSolver:
             G += df.inner((Mi[key] + Me[key])*df.grad(u), df.grad(q))*dz(key)
 
             if self._I_s is None:
-                G -= df.Constant(0)*w*dz(key)
+                G -= chi*df.Constant(0)*w*dz(key)
             else:
-                G -= self._I_s*w*dz(key)
+                G -= chi*self._I_s*w*dz(key)
 
             # If Lagrangian multiplier
             if use_R:
@@ -348,11 +353,12 @@ class BasicBidomainSolver:
 
             # Add applied current as source in elliptic equation if applicable
             if self._I_a:
-                G -= self._I_a*q*dz(key)
+                G -= chi*self._I_a*q*dz(key)
 
         if self._ect_current is not None:
             for key in facet_tags:
-                # Detfaltto 0 if not defined for that facet tag
+                # Detfalt to 0 if not defined for that facet tag
+                # TODO: Should I include `chi` here? I do not think so
                 G += self._ect_current.get(key, df.Constant(0))*q*db(key)
 
         # Define variational problem
@@ -392,6 +398,9 @@ class BasicBidomainSolver:
         params.add("algorithm", "gmres")
         params.add("preconditioner", "petsc_amg")
 
+        params.add("Chi", 1.0)        # Membrane to volume ratio
+        params.add("Cm", 1.0)         # Membrane capacitance
+
         # Add default parameters from both LU and Krylov solvers
 
         params.add(df.LUSolver.default_parameters())
@@ -399,6 +408,8 @@ class BasicBidomainSolver:
         params["lu_solver"]["same_nonzero_pattern"] = True
 
         linear_params = df.LinearVariationalSolver.default_parameters()
+
+        # TODO: Add the rest of the Krylov parameters here
         linear_params["krylov_solver"]["absolute_tolerance"] = 1e-14
         linear_params["krylov_solver"]["relative_tolerance"] = 1e-14
         linear_params["krylov_solver"]["nonzero_initial_guess"] = True
@@ -532,6 +543,10 @@ class BidomainSolver(BasicBidomainSolver):
         params.add("theta", 0.5)
         params.add("polynomial_degree", 1)
 
+        # Physical parameters
+        params.add("Chi", 1.0)        # Membrane to volume ratio
+        params.add("Cm", 1.0)         # Membrane capacitance
+
         # Set default solver type to be iterative
         params.add("linear_solver_type", "direct")
         params.add("use_avg_u_constraint", True)
@@ -558,7 +573,7 @@ class BidomainSolver(BasicBidomainSolver):
         discretization of the given system of equations.
 
         *Arguments*
-          k_n (:py:class:`ufl.Expr` or float)
+          kn (:py:class:`ufl.Expr` or float)
             The time step
 
         *Returns*
@@ -579,16 +594,23 @@ class BidomainSolver(BasicBidomainSolver):
             v, u = df.TrialFunctions(self.VUR)
             w, q = df.TestFunctions(self.VUR)
 
+        # Get physical parameters
+        chi = self.parameters["Chi"]
+        capacitance = self.parameters["Cm"]
 
         Dt_v = (v - self.v_)/kn
+        Dt_v *= chi*capacitance
         v_mid = theta*v + (1.0 - theta)*self.v_
 
         # Set-up measure and rhs from stimulus
         dz = df.Measure("dx", domain=self._mesh, subdomain_data=self._cell_domains)
         db = df.Measure("ds", domain=self._mesh, subdomain_data=self._facet_domains)
+
+        # Get domain tags
         cell_tags = map(int, set(self._cell_domains.array()))   # np.int64 does not work
         facet_tags = map(int, set(self._facet_domains.array()))
 
+        # Loop over all domains
         G = Dt_v*w*dz()
         for key in cell_tags:
             G += df.inner(Mi[key]*df.grad(v_mid), df.grad(w))*dz(key)
@@ -597,20 +619,21 @@ class BidomainSolver(BasicBidomainSolver):
             G += df.inner((Mi[key] + Me[key])*df.grad(u), df.grad(q))*dz(key)
 
             if  self._I_s is None:
-                G -= df.Constant(0)*w*dz(key)
+                G -= chi*df.Constant(0)*w*dz(key)
             else:
-                G -= self._I_s*w*dz(key)
+                G -= chi*self._I_s*w*dz(key)
 
             # If Lagrangian multiplier
             if use_R:
                 G += (lamda*u + l*q)*dz(key)
 
             if self._I_a:
-                G -= self._I_a*q*dz(key)
+                G -= chi*self._I_a*q*dz(key)
 
         for key in facet_tags:
             if self._ect_current is not None:
                 # Default to 0 if not defined for tag
+                # I do not I should apply `chi` here.
                 G += self._ect_current.get(key, df.Constant(0))*q*db(key)
 
         a, L = df.system(G)
