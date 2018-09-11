@@ -11,11 +11,7 @@ from xalbrain.dolfinimport import dolfin_adjoint
 
 import dolfin
 
-if dolfin_adjoint:
-    from dolfin_adjoint import assemble, LUSolver, KrylovSolver
-    from dolfin import parameters
-else:
-    from dolfin import assemble, LUSolver, KrylovSolver, parameters
+from dolfin import assemble, LUSolver, KrylovSolver, parameters
 
 from typing import Dict
 

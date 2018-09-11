@@ -3,13 +3,13 @@ import subprocess
 from pathlib import Path
 from setuptools import setup, Command
 
-from typing import List
+#from typing import List
 
 
 class SphinxCommand(Command):
     """Command to build the documentation."""
 
-    user_options: List[str] = []
+    user_options = []
     description = "Build html doc."
 
     def initialize_options(self):
@@ -20,12 +20,14 @@ class SphinxCommand(Command):
     def finalize_options(self):
         """finalize options."""
         if self.sphinx_source:
-            msg = f"sphinx source folder {self.sphinx_source} do not exist"
+            msg = "sphinx source folder {} do not exist".format(self.sphinx_source)
             assert self.sphinx_source.exists(), msg
 
     def run(self):
         """Execute command."""
-        cmd = f"sphinx-build -b html -na {self.sphinx_source} {self.sphinx_build}"
+        cmd = "sphinx-build -b html -na {} {}".format(
+            self.sphinx_source, self.sphinx_build
+        )
         subprocess.check_call(cmd)
 
 

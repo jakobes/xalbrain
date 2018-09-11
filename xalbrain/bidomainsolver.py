@@ -44,6 +44,7 @@ from typing import (
     Union,
     Callable,
     List,
+    Any,
 )
 
 
@@ -577,7 +578,7 @@ class BidomainSolver(BasicBidomainSolver):
         params["lu_solver"]["same_nonzero_pattern"] = True
         return params
 
-    def variational_forms(self, kn: df.Constant) -> Tuple[df.lhs, df.rhs]:
+    def variational_forms(self, kn: df.Constant) -> Tuple[Any, Any]:
         """Create the variational forms corresponding to the given
         discretization of the given system of equations.
 
