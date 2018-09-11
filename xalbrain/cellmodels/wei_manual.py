@@ -46,9 +46,9 @@ class Wei(CardiacCellModel):
         volo = 1/beta0*vol
         ic = OrderedDict([
             ("V", -74.30),          # [mV] Membrane potential
-            ("m", 0.0031),          # Voltage gating? 
-            ("h", 0.9994),          # Voltage gating? 
-            ("n", 0.0107),          # Voltage gating? 
+            ("m", 0.0031),          # Voltage gating?
+            ("h", 0.9994),          # Voltage gating?
+            ("n", 0.0107),          # Voltage gating?
             ("NKo", 4*volo),        # [mol?] Initial extracellular potassium number
             ("NKi", 140*vol),       # [mol?] Initial intracellular potassium number
             ("NNao", 144*volo),     # [mol?] Initial extracellular sodium number

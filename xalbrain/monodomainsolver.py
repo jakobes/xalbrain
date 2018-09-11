@@ -154,7 +154,7 @@ class BasicMonodomainSolver:
         else:
             M_i_keys = set(M_i.keys())
             cell_keys = set(self._cell_domains.array())
-            msg = "Got {M_i_keys}, expected {cell_keys}.".format(M_i_keys, cell_keys))
+            msg = "Got {M_i_keys}, expected {cell_keys}.".format(M_i_keys, cell_keys)
             assert M_i_keys == cell_keys, msg
         self._M_i = M_i
 
