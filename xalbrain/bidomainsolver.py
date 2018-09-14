@@ -107,6 +107,7 @@ class BasicBidomainSolver:
             cell_domains: df.MeshFunction = None,
             facet_domains: df.MeshFunction = None,
             dirichlet_bc: List[Tuple[df.Expression, int]] = None,
+            dirichlet_bc_v: List[Tuple[df.Expression, int]] = None,
             params: df.Parameters = None
     ) -> None:
         """Initialise solverand check all parametersare correct."""
@@ -211,10 +212,17 @@ class BasicBidomainSolver:
 
         # Set Dirichlet bcs
         self._bcs = []
+
+        if dirichlet_bc_v is not None:
+            for function, marker in dirichlet_bc_v:
+                self._bcs.append(
+                    df.DirichletBC(self.VUR.sub(0), function, self._facet_domains, marker)
+                )
+
         if dirichlet_bc is not None:
             for function, marker in dirichlet_bc:
                 self._bcs.append(
-                    df.DirichletBC(self.VUR.sub(1), function, self._facet_domains,  marker)
+                    df.DirichletBC(self.VUR.sub(1), function, self._facet_domains, marker)
                 )
 
     @property
@@ -443,6 +451,7 @@ class BidomainSolver(BasicBidomainSolver):
             cell_domains: df.MeshFunction = None,
             facet_domains: df.MeshFunction = None,
             dirichlet_bc: List[Tuple[df.Expression, int]] = None,
+            dirichlet_bc_v: List[Tuple[df.Expression, int]] = None,
             params: df.Parameters = None
     ) -> None:
         # Call super-class
@@ -459,6 +468,7 @@ class BidomainSolver(BasicBidomainSolver):
             cell_domains=cell_domains,
             facet_domains=facet_domains,
             dirichlet_bc=dirichlet_bc,
+            dirichlet_bc_v=dirichlet_bc_v,
             params=params
         )
 

@@ -82,6 +82,7 @@ class CardiacModel:
             applied_current: Union[df.Expression, Dict[int, df.Expression]] = None,
             ect_current: Dict[int, df.Expression] = None,
             dirichlet_bc: List[Tuple[df.Expression, int]] = None,
+            dirichlet_bc_v: List[Tuple[df.Expression, int]] = None,
             cell_domains: df.MeshFunction = None,
             facet_domains: df.MeshFunction = None
     ) -> None:
@@ -116,6 +117,7 @@ class CardiacModel:
         ac = applied_current
         self._applied_current = handle_markerwise(ac, df.GenericFunction)
         self._dirichlet_bcs = dirichlet_bc
+        self._dirichlet_bcs_v = dirichlet_bc_v
 
     @property
     def bcs(self) -> List[Tuple[df.Expression, int]]:

@@ -145,7 +145,7 @@ class BasicMonodomainSolver:
 
         # Check that it is indeed a facet function.
         facet_dim = facet_domains.dim()
-        msg = "Got {facet_dim}, expected {mesh_dim - 1}.".format(facet_dim, mesh_dim - 1)
+        msg = "Got {}, expected {}.".format(facet_dim, mesh_dim)
         assert facet_dim == mesh_dim - 1, msg
         self._facet_domains = facet_domains
 
@@ -154,7 +154,7 @@ class BasicMonodomainSolver:
         else:
             M_i_keys = set(M_i.keys())
             cell_keys = set(self._cell_domains.array())
-            msg = "Got {M_i_keys}, expected {cell_keys}.".format(M_i_keys, cell_keys)
+            msg = "Got {}, expected {}.".format(M_i_keys, cell_keys)
             assert M_i_keys == cell_keys, msg
         self._M_i = M_i
 
