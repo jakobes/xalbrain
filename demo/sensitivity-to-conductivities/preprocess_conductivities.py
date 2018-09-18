@@ -18,7 +18,7 @@ def generate_conductivities():
     File("data/ischemic_region.xml.gz") >> ischemic
     ischemic_array = ischemic.vector().array()
 
-    plot(ischemic, title="Ischemic region")
+    #plot(ischemic, title="Ischemic region")
 
     # Healthy and ischemic conductivities
     # (All values in mS/cm (milli-Siemens per centimeter, before division)
@@ -54,7 +54,7 @@ def generate_conductivities():
     g_it_field = Function(V)
     g_it_field.vector()[:] = (1-ischemic_array)*g_it_isch+ischemic_array*g_it
 
-    plot(g_it_field, title="Ischemic g_it_field")
+    #plot(g_it_field, title="Ischemic g_it_field")
 
     # Store these. Note use of t for both t and n
     info("Storing conductivities")
@@ -97,7 +97,7 @@ def generate_conductivities():
     file = File("data/healthy_g_in_field.xml.gz")
     file << g_it_field
 
-    plot(g_it_field, title="Healthy g_it_field")
+    #plot(g_it_field, title="Healthy g_it_field")
 
 if __name__ == "__main__":
 

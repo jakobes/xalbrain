@@ -4,7 +4,8 @@
 __author__ = "Marie E. Rognes (meg@simula.no), 2012--2014"
 
 import math
-from cbcbeat import *
+from dolfin import *
+from xalbrain import *
 import time
 
 def setup_application_parameters():
@@ -159,7 +160,8 @@ def main(store_solutions=True):
     (vs_, vs, vu) = solver.solution_fields()
 
     # Extract and assign initial condition
-    vs_.assign(heart.cell_models().initial_conditions(), solver.VS)
+    #vs_.assign(heart.cell_models().initial_conditions(), solver.VS)
+    vs_.assign(heart.cell_models().initial_conditions())
 
     # Store parameters (FIXME: arbitrary ls whether this works in parallel!)
     directory = application_parameters["directory"]
@@ -174,15 +176,18 @@ def main(store_solutions=True):
     solutions = solver.solve((0, T), k_n)
 
     # Set up storage
-    mpi_comm = heart.domain().mpi_comm()
-    vs_timeseries = TimeSeries(mpi_comm, "%s/vs" % directory)
-    u_timeseries = TimeSeries(mpi_comm, "%s/u" % directory)
+    mpi_comm = heart.mesh.mpi_comm()
+    # vs_timeseries = TimeSeries(mpi_comm, "%s/vs" % directory)
+    # u_timeseries = TimeSeries(mpi_comm, "%s/u" % directory)
+
+    ufile = File("results/u.pvd")
+    vfile = File("results/v.pvd")
 
     # Store initial solutions:
-    if store_solutions:
-        vs_timeseries.store(vs_.vector(), 0.0)
-        u = vu.split(deepcopy=True)[1]
-        u_timeseries.store(u.vector(), 0.0)
+    # if store_solutions:
+        # vs_timeseries.store(vs_.vector(), 0.0)
+        # u = vu.split(deepcopy=True)[1]
+        # u_timeseries.store(u.vector(), 0.0)
 
     # (Compute) and store solutions
     timer = Timer("Forward solve")
@@ -191,10 +196,11 @@ def main(store_solutions=True):
         # Store hdf5
         if store_solutions:
             (t0, t1) = timestep
-            vs_timeseries.store(vs.vector(), t1)
-            u = vu.split(deepcopy=True)[1]
-            u_timeseries.store(u.vector(), t0 + theta*(t1 - t0))
-    plot(vs[0], title="v")
+            # vs_timeseries.store(vs.vector(), t1)
+            v, u, *_ = vu.split(deepcopy=True)
+            ufile << u
+            vfile << v
+            # u_timeseries.store(u.vector(), t0 + theta*(t1 - t0))
 
     timer.stop()
 
