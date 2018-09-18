@@ -61,7 +61,6 @@ testing or debugging purposes primarily.
 __all__ = ["SplittingSolver", "BasicSplittingSolver",]
 
 import dolfin as df
-# from xalbrain.dolfinimport import *
 from xalbrain import CardiacModel
 
 from xalbrain.cellsolver import (
@@ -223,8 +222,8 @@ class BasicSplittingSolver:
                 v_=self.vs[0],
                 cell_domains=self._model.cell_domains(),
                 facet_domains=self._model.facet_domains(),
-                dirichlet_bc=self._model._dirichlet_bcs,        # dirichlet_bc
-                dirichlet_bc_v=self._model._dirichlet_bcs_v,        # dirichlet_bc
+                dirichlet_bc=self._model.dirichlet_bc_u,        # dirichlet_bc
+                dirichlet_bc_v=self._model.dirichlet_bc_v,        # dirichlet_bc
                 params=params
             )
         else:
@@ -361,7 +360,6 @@ class BasicSplittingSolver:
         # Assumes that its vs_ is in the correct state, gives its vs
         # in the current state
 
-        # FIXME: Debug
         self.ode_solver.step((t0, t))
         self.vs_.assign(self.vs)
         df.end()
@@ -392,8 +390,6 @@ class BasicSplittingSolver:
         # Assumes that its vs_ is in the correct state, provides vs in
         # the correct state
 
-
-        # FIXME: Debug
         self.ode_solver.step((t, t1))
         df.end()
 
@@ -595,8 +591,8 @@ class SplittingSolver(BasicSplittingSolver):
                 v_=self.vs[0],
                 cell_domains=self._model.cell_domains(),
                 facet_domains=self._model.facet_domains(),
-                dirichlet_bc=self._model._dirichlet_bcs,        # dirichlet_bc
-                dirichlet_bc_v=self._model._dirichlet_bcs_v,        # dirichlet_bc
+                dirichlet_bc=self._model.dirichlet_bc_u,        # dirichlet_bc
+                dirichlet_bc_v=self._model.dirichlet_bc_v,        # dirichlet_bc
                 params=params
             )
         else:

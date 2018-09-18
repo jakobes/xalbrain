@@ -170,11 +170,12 @@ class BasicBidomainSolver:
         assert facet_dim == mesh_dim - 1, msg
         self._facet_domains = facet_domains
 
+        # Set the intracellular conductivity
+        cell_keys = set(self._cell_domains.array())
         if not isinstance(M_i, dict):
-            M_i = {int(i): M_i for i in set(self._cell_domains.array())}
+            M_i = {int(i): M_i for i in cell_keys}
         else:
             M_i_keys = set(M_i.keys())
-            cell_keys = set(self._cell_domains.array())
             msg = "Got {M_i_keys}, expected {cell_keys}.".format(
                 M_i_keys=M_i_keys,
                 cell_keys=cell_keys
@@ -183,9 +184,14 @@ class BasicBidomainSolver:
         self._M_i = M_i
 
         if not isinstance(M_e, dict):
-            M_e = {int(i): M_e for i in set(self._cell_domains.array())}
+            M_e = {int(i): M_e for i in cell_keys}
         else:
-            assert set(M_e.keys()) == set(self._cell_domains.array())
+            M_e_keys = set(M_e.kesy())
+            msg = "Got {M_i_keys}, expected {cell_keys}.".format(
+                M_e_keys=M_e_keys,
+                cell_keys=cell_keys
+            )
+            assert M_e_keys == cell_keys, msg
         self._M_e = M_e
 
         # Store source terms
@@ -210,15 +216,15 @@ class BasicBidomainSolver:
             self.v_ = v_
         self.vur = df.Function(self.VUR, name="vur")
 
-        # Set Dirichlet bcs
+        # Set Dirichlet bcs for the transmembrane potential
         self._bcs = []
-
         if dirichlet_bc_v is not None:
             for function, marker in dirichlet_bc_v:
                 self._bcs.append(
                     df.DirichletBC(self.VUR.sub(0), function, self._facet_domains, marker)
                 )
 
+        # Set Dirichlet bcs for the extra cellular potential
         if dirichlet_bc is not None:
             for function, marker in dirichlet_bc:
                 self._bcs.append(
@@ -506,7 +512,7 @@ class BidomainSolver(BasicBidomainSolver):
             solver = df.PETScKrylovSolver(alg, prec)
             solver.set_operator(self._lhs_matrix)
 
-            # TODO: Espose these parameters
+            # TODO: Expose these parameters
             solver.parameters.update(self.parameters["petsc_krylov_solver"])
             solver.parameters.convergence_norm_type = "preconditioned"
             solver.parameters.monitor_convergence = False
