@@ -19,7 +19,13 @@ from xalbrain.utils import (
     annotate_kwargs,
 )
 
-from typing import Dict
+from typing import (
+    Dict,
+    Any,
+    Tuple,
+    Union,
+)
+
 
 class BasicCardiacODESolver:
     """A basic, non-optimised solver for systems of ODEs typically
@@ -73,9 +79,9 @@ class BasicCardiacODESolver:
             mesh: Mesh,
             time: Constant,
             model: CardiacCellModel,
-            I_s,
-            params=None,
-    ):
+            I_s: Union[Expression, Dict[int, Expression]],
+            params: Dict[str, str]=None,
+    ) -> None:
         # Store input
         self._mesh = mesh
         self._time = time
@@ -114,12 +120,12 @@ class BasicCardiacODESolver:
         self.vs = Function(self.VS, name="vs")
 
     @property
-    def time(self):
+    def time(self) -> Constant:
         "The internal time of the solver."
         return self._time
 
     @staticmethod
-    def default_parameters():
+    def default_parameters() -> Parameters:
         """Initialize and return a set of default parameters
 
         *Returns*
@@ -139,7 +145,7 @@ class BasicCardiacODESolver:
 
         return params
 
-    def solution_fields(self):
+    def solution_fields(self) -> Tuple[Function, Function]:
         """
         Return tuple of previous and current solution objects.
 
@@ -152,7 +158,7 @@ class BasicCardiacODESolver:
         """
         return (self.vs_, self.vs)
 
-    def solve(self, interval, dt=None):
+    def solve(self, interval: Tuple[float, float], dt: float=None) -> None:
         """
         Solve the problem given by the model on a given time interval
         (t0, t1) with a given timestep dt and return generator for a
@@ -198,7 +204,7 @@ class BasicCardiacODESolver:
 
             self.vs_.assign(self.vs)
 
-    def step(self, interval):
+    def step(self, interval: Tuple[float, float]) -> None:
         """
         Solve on the given time step (t0, t1).
 
@@ -346,7 +352,14 @@ class CardiacODESolver:
         Solver parameters
     """
 
-    def __init__(self, mesh, time, model, I_s=None, params=None):
+    def __init__(
+            self,
+            mesh: Mesh,
+            time: Constant,
+            model: CardiacCellModel,
+            I_s: Union[Expression: Dict[int: Expression]]=None,
+            params: Dict[str, str]=None
+    ) -> None:
         """Initialise parameters."""
         import ufl.classes
 
@@ -436,7 +449,7 @@ class CardiacODESolver:
         return eval(name)
 
     @staticmethod
-    def default_parameters():
+    def default_parameters() -> Parameters:
         """Initialize and return a set of default parameters
 
         *Returns*
@@ -450,11 +463,11 @@ class CardiacODESolver:
         return params
 
     @property
-    def time(self):
+    def time(self) -> Constant:
         """The internal time of the solver."""
         return self._time
 
-    def solution_fields(self):
+    def solution_fields(self) -> Tuple[Function, Function]:
         """
         Return current solution object.
 
@@ -467,7 +480,7 @@ class CardiacODESolver:
         """
         return self.vs_, self.vs
 
-    def step(self, interval):
+    def step(self, interval: Tuple[float, float]) -> None:
         """
         Solve on the given time step (t0, t1).
 
@@ -492,7 +505,7 @@ class CardiacODESolver:
 
         timer.stop()
 
-    def solve(self, interval, dt=None):
+    def solve(self, interval: Tuple[float, float], dt: float=None) -> None:
         """
         Solve the problem given by the model on a given time interval
         (t0, t1) with a given timestep dt and return generator for a
@@ -542,6 +555,7 @@ class CardiacODESolver:
             # FIXME: This eventually breaks in parallel!?
             self.vs_.assign(self.vs)
 
+
 class BasicSingleCellSolver(BasicCardiacODESolver):
     """A basic, non-optimised solver for systems of ODEs typically
     encountered in cardiac applications of the form: find a scalar
@@ -585,7 +599,12 @@ class BasicSingleCellSolver(BasicCardiacODESolver):
 
     """
 
-    def __init__(self, model, time, params=None):
+    def __init__(
+            self,
+            model: CardiacCellModel,
+            time: Constant,
+            params: Dict[str, str]=None
+    ) -> None:
         """Create solver from given cell model and optional parameters."""
         assert isinstance(model, CardiacCellModel), \
             "Expecting model to be a CardiacCellModel, not %r" % model
@@ -608,7 +627,12 @@ class BasicSingleCellSolver(BasicCardiacODESolver):
 
 
 class SingleCellSolver(CardiacODESolver):
-    def __init__(self, model, time, params=None):
+    def __init__(
+            self,
+            model: CardiacCellModel,
+            time: df.Constant,
+            params: dict[str: str]=None
+    ) -> None:
         """Create solver from given cell model and optional parameters."""
         assert isinstance(model, CardiacCellModel), \
             "Expecting model to be a CardiacCellModel, not %r" % model
