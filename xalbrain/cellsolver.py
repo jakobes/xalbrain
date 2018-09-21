@@ -4,8 +4,10 @@
 __author__ = "Marie E. Rognes (meg@simula.no), 2012--2013"
 
 
-from xalbrain.dolfinimport import *
+# from xalbrain.dolfinimport import *
 from xalbrain.markerwisefield import *
+
+import dolfin as df
 
 from xalbrain.cellmodels import (
     CardiacCellModel,
@@ -76,11 +78,11 @@ class BasicCardiacODESolver:
     """
     def __init__(
             self,
-            mesh: Mesh,
-            time: Constant,
+            mesh: df.Mesh,
+            time: df.Constant,
             model: CardiacCellModel,
-            I_s: Union[Expression, Dict[int, Expression]],
-            params: Dict[str, str]=None,
+            I_s: Union[df.Expression, Dict[int, df.Expression]],
+            params: df.Parameters=None,
     ) -> None:
         # Store input
         self._mesh = mesh
@@ -93,7 +95,7 @@ class BasicCardiacODESolver:
         self._num_states = self._model.num_states()
 
         # Handle stimulus
-        self._I_s = handle_markerwise(I_s, GenericFunction)
+        self._I_s = handle_markerwise(I_s, df.GenericFunction)
 
         # Initialize and update parameters if given
         self.parameters = self.default_parameters()
@@ -107,31 +109,31 @@ class BasicCardiacODESolver:
         s_degree = self.parameters["S_polynomial_degree"]
 
         if v_family == s_family and s_degree == v_degree:
-            self.VS = VectorFunctionSpace(self._mesh, v_family, v_degree,
+            self.VS = df.VectorFunctionSpace(self._mesh, v_family, v_degree,
                                           dim=self._num_states + 1)
         else:
-            V = FunctionSpace(self._mesh, v_family, v_degree)
+            V = df.FunctionSpace(self._mesh, v_family, v_degree)
             S = state_space(self._mesh, self._num_states, s_family, s_degree)
-            Mx = MixedElement(V.ufl_element(), S.ufl_element())
-            self.VS = FunctionSpace(self._mesh, Mx)
+            Mx = df.MixedElement(V.ufl_element(), S.ufl_element())
+            self.VS = df.FunctionSpace(self._mesh, Mx)
 
         # Initialize solution fields
-        self.vs_ = Function(self.VS, name="vs_")
-        self.vs = Function(self.VS, name="vs")
+        self.vs_ = df.Function(self.VS, name="vs_")
+        self.vs = df.Function(self.VS, name="vs")
 
     @property
-    def time(self) -> Constant:
+    def time(self) -> df.Constant:
         "The internal time of the solver."
         return self._time
 
     @staticmethod
-    def default_parameters() -> Parameters:
+    def default_parameters() -> df.Parameters:
         """Initialize and return a set of default parameters
 
         *Returns*
           A set of parameters (:py:class:`dolfin.Parameters`)
         """
-        params = Parameters("BasicCardiacODESolver")
+        params = df.Parameters("BasicCardiacODESolver")
         params.add("theta", 0.5)
         params.add("V_polynomial_degree", 0)
         params.add("V_polynomial_family", "DG")
@@ -140,12 +142,12 @@ class BasicCardiacODESolver:
         params.add("enable_adjoint", False)
 
         # Use iterative solver as default.
-        params.add(NonlinearVariationalSolver.default_parameters())
+        params.add(df.NonlinearVariationalSolver.default_parameters())
         params["nonlinear_variational_solver"]["newton_solver"]["linear_solver"] = "gmres"
 
         return params
 
-    def solution_fields(self) -> Tuple[Function, Function]:
+    def solution_fields(self) -> Tuple[df.Function, df.Function]:
         """
         Return tuple of previous and current solution objects.
 
@@ -192,11 +194,10 @@ class BasicCardiacODESolver:
             dt = (T - T0)
 
         # Create timestepper
-        time_stepper = TimeStepper(interval, dt, \
-                                   annotate=self.parameters["enable_adjoint"])
+        time_stepper = TimeStepper(interval, dt)
         for t0, t1 in time_stepper:
 
-            info_blue("Solving on t = (%g, %g)" % (t0, t1))
+            df.info_blue("Solving on t = ({:g}, {:g})".format(t0, t1))
             self.step((t0, t1))
 
             # Yield solutions
@@ -215,14 +216,14 @@ class BasicCardiacODESolver:
             The time interval (t0, t1) for the step
         """
 
-        timer = Timer("ODE step")
+        timer = df.Timer("ODE step")
 
         # Check for cell meshs
         dim = self._mesh.topology().dim()
 
         # Extract time mesh
         (t0, t1) = interval
-        k_n = Constant(t1 - t0)
+        k_n = df.Constant(t1 - t0)
 
         # Extract previous solution(s)
         (v_, s_) = splat(self.vs_, self._num_states + 1)
@@ -230,7 +231,7 @@ class BasicCardiacODESolver:
         # Set-up current variables
         self.vs.assign(self.vs_)     # Start with good guess
         (v, s) = splat(self.vs, self._num_states + 1)
-        (w, r) = splat(TestFunction(self.VS), self._num_states + 1)
+        (w, r) = splat(df.TestFunction(self.VS), self._num_states + 1)
 
         # Define equation based on cell model
         Dt_v = (v - v_)/k_n
@@ -248,7 +249,7 @@ class BasicCardiacODESolver:
         if isinstance(self._model, MultiCellModel):
             model = self._model
             mesh = model.mesh()
-            dy = Measure("dx", domain=mesh, subdomain_data=model.markers())
+            dy = df.Measure("dx", domain=mesh, subdomain_data=model.markers())
 
             # Only allowing trivial forcing functions here
             if isinstance(self._I_s, Markerwise):
@@ -260,7 +261,7 @@ class BasicCardiacODESolver:
             # Collect contributions to lhs by iterating over the different cell models
             domains = self._model.keys()
             lhs = list()
-            for (k, model_k) in enumerate(model.models()):
+            for k, model_k in enumerate(model.models()):
                 n_k = model_k.num_states() # Extract number of local (non-trivial) states
 
                 # Extract right components of coefficients and test functions
@@ -281,7 +282,11 @@ class BasicCardiacODESolver:
                 I_theta_k = -self._I_ion(v_mid, s_mid_k, time=self.time, index=i_k)
 
                 # Variational contribution over the relevant domain
-                a_k = ((Dt_v - I_theta_k)*w + inner(Dt_s_k, r_k) + inner(- F_theta_k, r_k))*dy(i_k)
+                a_k = (
+                    (Dt_v - I_theta_k)*w
+                    + df.inner(Dt_s_k, r_k)
+                    - df.inner(F_theta_k, r_k)
+                )*dy(i_k)
 
                 # Add s_trivial = 0 on Omega_{i_k} in variational form:
                 a_k += sum(s[j]*r[j] for j in range(n_k, n))*dy(i_k)
@@ -289,19 +294,19 @@ class BasicCardiacODESolver:
             lhs = sum(lhs)
 
         else:
-            (dz, rhs) = rhs_with_markerwise_field(self._I_s, self._mesh, w)
+            dz, rhs = rhs_with_markerwise_field(self._I_s, self._mesh, w)
 
             # Evaluate currents at averaged v and s. Note sign for I_theta
             F_theta = self._F(v_mid, s_mid, time=self.time)
             I_theta = - self._I_ion(v_mid, s_mid, time=self.time)
-            lhs = (Dt_v - I_theta)*w*dz + inner(Dt_s - F_theta, r)*dz
+            lhs = (Dt_v - I_theta)*w*dz + df.inner(Dt_s - F_theta, r)*dz
 
         # Set-up system of equations
         G = lhs - rhs
 
         # Solve system
-        pde = NonlinearVariationalProblem(G, self.vs, J=derivative(G, self.vs))
-        solver = NonlinearVariationalSolver(pde)
+        pde = df.NonlinearVariationalProblem(G, self.vs, J=df.derivative(G, self.vs))
+        solver = df.NonlinearVariationalSolver(pde)
         solver_params = self.parameters["nonlinear_variational_solver"]
         solver.parameters.update(solver_params)
         solver.solve()
@@ -354,11 +359,11 @@ class CardiacODESolver:
 
     def __init__(
             self,
-            mesh: Mesh,
-            time: Constant,
+            mesh: df.Mesh,
+            time: df.Constant,
             model: CardiacCellModel,
-            I_s: Union[Expression: Dict[int: Expression]]=None,
-            params: Dict[str, str]=None
+            I_s: Union[df.Expression, Dict[int, df.Expression]]=None,
+            params: df.Parameters=None
     ) -> None:
         """Initialise parameters."""
         import ufl.classes
@@ -373,11 +378,11 @@ class CardiacODESolver:
         self._I_ion = self._model.I
         self._num_states = self._model.num_states()
 
-        self._I_s = handle_markerwise(I_s, GenericFunction)
+        self._I_s = handle_markerwise(I_s, df.GenericFunction)
 
         # Create time if not given, otherwise use given time
         if time is None:
-            self._time = Constant(0.0)
+            self._time = df.Constant(0.0)
         else:
             self._time = time
 
@@ -387,7 +392,7 @@ class CardiacODESolver:
             self.parameters.update(params)
 
         # Create (vector) function space for potential + states
-        self.VS = VectorFunctionSpace(
+        self.VS = df.VectorFunctionSpace(
             self._mesh,
             "CG",
             1,
@@ -395,12 +400,12 @@ class CardiacODESolver:
         )
 
         # Initialize solution field
-        self.vs_ = Function(self.VS, name="vs_")
-        self.vs = Function(self.VS, name="vs")
+        self.vs_ = df.Function(self.VS, name="vs_")
+        self.vs = df.Function(self.VS, name="vs")
 
         # Initialize scheme
         v, s = splat(self.vs, self._num_states + 1)
-        w, q = splat(TestFunction(self.VS), self._num_states + 1)
+        w, q = splat(df.TestFunction(self.VS), self._num_states + 1)
 
         # Workaround to get algorithm in RL schemes working as it only
         # works for scalar expressions
@@ -408,7 +413,7 @@ class CardiacODESolver:
 
         # MER: This looks much more complicated than it needs to be!
         # If we have a as_vector expression
-        F_exprs_q = zero()
+        F_exprs_q = df.zero()
         if isinstance(F_exprs, ufl.classes.ListTensor):
             for i, expr_i in enumerate(F_exprs.ufl_operands):
                 F_exprs_q += expr_i*q[i]
@@ -423,7 +428,7 @@ class CardiacODESolver:
         if self._I_s:
             rhs += self._I_s*w
 
-        self._rhs = rhs*dP()
+        self._rhs = rhs*df.dP()
 
         name = self.parameters["scheme"]
         Scheme = self._name_to_scheme(name)
@@ -433,7 +438,7 @@ class CardiacODESolver:
         self._annotate_kwargs = annotate_kwargs(self.parameters)
 
         # Initialize solver and update its parameters
-        self._pi_solver = PointIntegralSolver(self._scheme)
+        self._pi_solver = df.PointIntegralSolver(self._scheme)
         self._pi_solver.parameters.update(self.parameters["point_integral_solver"])
 
     def _name_to_scheme(self, name):
@@ -446,28 +451,28 @@ class CardiacODESolver:
           the Scheme (:py:class:`dolfin.MultiStageScheme`)
 
         """
-        return eval(name)
+        return eval("df.{:s}".format(name))
 
     @staticmethod
-    def default_parameters() -> Parameters:
+    def default_parameters() -> df.Parameters:
         """Initialize and return a set of default parameters
 
         *Returns*
           A set of parameters (:py:class:`dolfin.Parameters`)
         """
-        params = Parameters("CardiacODESolver")
-        params.add("scheme", "BackwardEuler")
-        params.add(PointIntegralSolver.default_parameters())
+        params = df.Parameters("CardiacODESolver")
+        params.add("scheme", "RK4")
+        params.add(df.PointIntegralSolver.default_parameters())
         params.add("enable_adjoint", False)
 
         return params
 
     @property
-    def time(self) -> Constant:
+    def time(self) -> df.Constant:
         """The internal time of the solver."""
         return self._time
 
-    def solution_fields(self) -> Tuple[Function, Function]:
+    def solution_fields(self) -> Tuple[df.Function, df.Function]:
         """
         Return current solution object.
 
@@ -493,7 +498,7 @@ class CardiacODESolver:
         # NB: The point integral solver operates on vs directly, map
         # initial condition in vs_ to vs:
 
-        timer = Timer("ODE step")
+        timer = df.Timer("ODE step")
         self.vs.assign(self.vs_)
 
         t0, t1 = interval
@@ -546,7 +551,7 @@ class CardiacODESolver:
         )
 
         for t0, t1 in time_stepper:
-            info_blue("Solving on t = (%g, %g)" % (t0, t1))
+            df.info_blue("Solving on t = (%g, %g)" % (t0, t1))
             self.step((t0, t1))
 
             # Yield solutions
@@ -602,8 +607,8 @@ class BasicSingleCellSolver(BasicCardiacODESolver):
     def __init__(
             self,
             model: CardiacCellModel,
-            time: Constant,
-            params: Dict[str, str]=None
+            time: df.Constant,
+            params: df.Parameters=None
     ) -> None:
         """Create solver from given cell model and optional parameters."""
         assert isinstance(model, CardiacCellModel), \
@@ -617,7 +622,7 @@ class BasicSingleCellSolver(BasicCardiacODESolver):
         self._model = model
 
         # Define carefully chosen dummy mesh
-        mesh = UnitIntervalMesh(1)
+        mesh = df.UnitIntervalMesh(1)
 
         # Extract information from cardiac cell model and ship off to
         # super-class.
@@ -631,21 +636,21 @@ class SingleCellSolver(CardiacODESolver):
             self,
             model: CardiacCellModel,
             time: df.Constant,
-            params: dict[str: str]=None
+            params: df.Parameters=None
     ) -> None:
         """Create solver from given cell model and optional parameters."""
         assert isinstance(model, CardiacCellModel), \
             "Expecting model to be a CardiacCellModel, not %r" % model
-        assert (isinstance(time, Constant)), \
+        assert (isinstance(time, df.Constant)), \
             "Expecting time to be a Constant instance, not %r" % time
-        assert isinstance(params, Parameters) or params is None, \
+        assert isinstance(params, df.Parameters) or params is None, \
             "Expecting params to be a Parameters (or None), not %r" % params
 
         # Store model
         self._model = model
 
         # Define carefully chosen dummy mesh
-        mesh = UnitIntervalMesh(1)
+        mesh = df.UnitIntervalMesh(1)
 
         # Extract information from cardiac cell model and ship off to
         # super-class.

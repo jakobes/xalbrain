@@ -20,23 +20,23 @@ class Wei(CardiacCellModel):
     @staticmethod
     def default_parameters():
         params = OrderedDict([
-            ("C", 1),           # [muF/cm^2]        Membrane capacitance
-            ("G_Na", 30),       # [mS/cm^2]
-            ("G_NaL", 0.0247),  # [mS/cm^2]
-            ("G_K", 25),        # [mS/cm^2]
-            ("G_KL", 0.05),     # [mS/cm^2]
-            ("G_ClL", 0.1),     # [mS/cm^2]
-            ("beta0", 7),       # Ratio of initial extra- and intracellular volume
-            ("rho_max", 0.8),   # [mM/s]
-            ("tau", 1e-3),      # [s???] time constant
-            ("Ukcc2", 0.3),     # [mM/s] Maximal KCC2 cotransporter strength
-            ("Unkcc1", 0.1),    # [mM/s] Maximal KCC2 cotransporter strength
-            ("eps_K", 0.25),    # [1/s] Potassium diffusion coefficient
-            ("G_glia", 5),      # [mM/s] Maximal glia uptake strength of potassium
-            ("eps_O", 0.17),    # [1/s] Oxygen diffusion rate
-            ("KBath", 8.5),     # Extracellular potassium concentration? 
-            ("OBath", 32),      # Extracellular oxygen concentration?
-            ("vol", 1.4368e-15),    # Initial intracellular volume FIXME: m^3?????
+            ("C", 1),               # [muF/cm^2]        Membrane capacitance
+            ("G_Na", 30),           # [mS/cm^2]
+            ("G_NaL", 0.0247),      # [mS/cm^2]
+            ("G_K", 25),            # [mS/cm^2]
+            ("G_KL", 0.05),         # [mS/cm^2]
+            ("G_ClL", 0.1),         # [mS/cm^2]
+            ("beta0", 7),           # Ratio of initial extra- and intracellular volume
+            ("rho_max", 0.8),       # [mM/s]
+            ("tau", 1e-3),          # [s???] time constant
+            ("Ukcc2", 0.3),         # [mM/s] Maximal KCC2 cotransporter strength
+            ("Unkcc1", 0.1),        # [mM/s] Maximal KCC2 cotransporter strength
+            ("eps_K", 0.25),        # [1/s] Potassium diffusion coefficient
+            ("G_glia", 5),          # [mM/s] Maximal glia uptake strength of potassium
+            ("eps_O", 0.17),        # [1/s] Oxygen diffusion rate
+            ("KBath", 8.5),         # Extracellular potassium concentration? 
+            ("OBath", 32),          # Extracellular oxygen concentration?
+            ("vol", 1.4368e-15),    # Initial intracellular volume FIXME: m^3?
             ])
         return params
 
@@ -57,7 +57,7 @@ class Wei(CardiacCellModel):
             ("NCli", 6*vol),        # [mol?] Initial intracellular chloride number
             ("vol", vol),           # [m^3] Initial intracellular volume
             ("O", 29.3),            # [mol?] Initial oxygen concentration
-            ])
+        ])
         return ic
 
     def _get_concentrations(self, V, s):
