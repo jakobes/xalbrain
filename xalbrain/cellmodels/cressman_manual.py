@@ -52,9 +52,9 @@ class Cressman(CardiacCellModel):
             ("m", 0.0936),
             ("h", 0.96859),
             ("n", 0.08553),
-            ("foo", 0.0),
-            ("bar", 7.8),
-            ("baz", 15.5),
+            ("Ca", 0.0),
+            ("K", 7.8),
+            ("Na", 15.5),
         ])
         return ic
 
@@ -138,17 +138,17 @@ class Cressman(CardiacCellModel):
         IGlia = Gglia/(1 + df.exp((18 - s[4])/2.5))
         Idiff = eps0*(s[4] - Koinf)
 
-        dot_foo = -s[3]/80 - 0.002*GCa*(V - ECa)/(1 + df.exp(-(V + 25)/2.5))
-        dot_bar = (gamma1*beta0*IK - 2*beta0*Ipump - IGlia - Idiff)/tau
-        dot_baz = (gamma1*INa + 3*Ipump)/tau
+        dot_Ca = -s[3]/80 - 0.002*GCa*(V - ECa)/(1 + df.exp(-(V + 25)/2.5))
+        dot_K = (gamma1*beta0*IK - 2*beta0*Ipump - IGlia - Idiff)/tau
+        dot_Na = (gamma1*INa + 3*Ipump)/tau
 
         F_expressions = [ufl.zero()]*self.num_states()
         F_expressions[0] = dot_m
         F_expressions[1] = dot_h
         F_expressions[2] = dot_n
-        F_expressions[3] = dot_foo
-        F_expressions[4] = dot_bar
-        F_expressions[5] = dot_baz
+        F_expressions[3] = dot_cA
+        F_expressions[4] = dot_K
+        F_expressions[5] = dot_Na
         return df.as_vector(F_expressions)
 
     def num_states(self):

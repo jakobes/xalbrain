@@ -413,6 +413,12 @@ class BasicSplittingSolver:
 
         timer.stop()
 
+    @property
+    def model(self) -> CardiacModel:
+        """Return the brain."""
+        return self._model
+
+
 class SplittingSolver(BasicSplittingSolver):
     """
     An optimised solver for the bidomain equations.
