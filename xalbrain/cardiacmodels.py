@@ -158,6 +158,7 @@ class CardiacModel:
         """The intracellular conductivity (:py:class:`ufl.Expr`)."""
         return self._extracellular_conductivity
 
+    @property
     def time(self) -> df.Constant:
         """The current time (:py:class:`dolfin.Constant` or None)."""
         return self._time
@@ -175,6 +176,7 @@ class CardiacModel:
         """Marked area."""
         return self._facet_domains
 
+    @property
     def cell_models(self) -> xb.cellmodels.CardiacCellModel:
         """Return the cell models."""
         return self._cell_models
