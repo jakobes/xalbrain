@@ -146,7 +146,7 @@ class Cressman(CardiacCellModel):
         F_expressions[0] = dot_m
         F_expressions[1] = dot_h
         F_expressions[2] = dot_n
-        F_expressions[3] = dot_cA
+        F_expressions[3] = dot_Ca
         F_expressions[4] = dot_K
         F_expressions[5] = dot_Na
         return df.as_vector(F_expressions)
