@@ -271,9 +271,9 @@ class BasicCardiacODESolver:
                     r_k = r[0]
                     Dt_s_k = Dt_s[0]
                 else:
-                    s_mid_k = as_vector(tuple(s_mid[j] for j in range(n_k)))
-                    r_k = as_vector(tuple(r[j] for j in range(n_k)))
-                    Dt_s_k = as_vector(tuple(Dt_s[j] for j in range(n_k)))
+                    s_mid_k = df.as_vector(tuple(s_mid[j] for j in range(n_k)))
+                    r_k = df.as_vector(tuple(r[j] for j in range(n_k)))
+                    Dt_s_k = df.as_vector(tuple(Dt_s[j] for j in range(n_k)))
 
                 i_k = domains[k] # Extract domain index of cell model k
 
