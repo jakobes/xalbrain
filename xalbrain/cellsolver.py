@@ -120,6 +120,9 @@ class BasicCardiacODESolver:
         # Initialize solution fields
         self.vs_ = df.Function(self.VS, name="vs_")
         self.vs = df.Function(self.VS, name="vs")
+        print("=-="*30)
+        print(self.vs.vector().size())
+        print("=-="*30)
 
     @property
     def time(self) -> df.Constant:
@@ -144,6 +147,7 @@ class BasicCardiacODESolver:
         # Use iterative solver as default.
         params.add(df.NonlinearVariationalSolver.default_parameters())
         params["nonlinear_variational_solver"]["newton_solver"]["linear_solver"] = "gmres"
+        params["nonlinear_variational_solver"]["newton_solver"]["preconditioner"] = "petsc_amg"
 
         return params
 
@@ -254,6 +258,9 @@ class BasicCardiacODESolver:
             # Only allowing trivial forcing functions here
             if isinstance(self._I_s, Markerwise):
                 error("Not implemented")
+
+            if self._I_s is None:
+                self._I_s = df.Constant(0)
             rhs = self._I_s*w*dy()
 
             n = model.num_states()      # Extract number of global states
@@ -309,6 +316,11 @@ class BasicCardiacODESolver:
         solver = df.NonlinearVariationalSolver(pde)
         solver_params = self.parameters["nonlinear_variational_solver"]
         solver.parameters.update(solver_params)
+
+        print("="*40)
+        print(self.vs.vector().size())
+        print("="*40)
+
         solver.solve()
         timer.stop()
 

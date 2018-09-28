@@ -131,6 +131,12 @@ class CardiacCellModel:
                 error("expected the value_size of '%s' to be 1" % init_name)
             self._initial_conditions[init_name] = init_value
 
+    def assign_initial_conditions(self, function) -> None:
+        """Assign initial conditions to `func`."""
+        function.assign(
+            Expression(tuple(self._initial_conditions.keys()), degree=1, **self._initial_conditions)
+        )
+
     def initial_conditions(self):
         """Return initial conditions for v and s as an Expression."""
         return Expression(tuple(self._initial_conditions.keys()), degree=1,
@@ -213,8 +219,30 @@ class MultiCellModel(CardiacCellModel):
         k = self._key_to_cell_model[index]
         return self._cell_models[k].I(v, s, time)
 
+    def assign_initial_conditions(self, function):
+        function_space = function.function_space()
+        markers = self.markers()
+
+        u = TrialFunction(function_space)
+        v = TestFunction(function_space)
+
+        dy = Measure("dx", domain=self.mesh(), subdomain_data=markers)
+
+        # Define projection into multiverse
+        a = inner(u, v)*dy()
+
+        Ls = list()
+        for (k, model) in enumerate(self.models()):
+            ic = model.initial_conditions() # Extract initial conditions
+            n_k = model.num_states() # Extract number of local states
+            i_k = self.keys()[k] # Extract domain index of cell model k
+            L_k = sum(ic[j]*v[j]*dy(i_k) for j in range(n_k + 1))       # include v and s
+            Ls.append(L_k)
+        L = sum(Ls)
+        solve(a == L, function)
+
     def initial_conditions(self):
-        "Return initial conditions for v and s as a dolfin.GenericFunction."
+        """Return initial conditions for v and s as a dolfin.GenericFunction."""
 
         n = self.num_states() # (Maximal) Number of states in MultiCellModel
         VS = VectorFunctionSpace(self.mesh(), "DG", 0, n + 1)
@@ -230,10 +258,6 @@ class MultiCellModel(CardiacCellModel):
 
         # Define projection into multiverse
         a = inner(u, v)*dy()
-
-        # model = self.models()[0]
-        # ic = model.initial_conditions() # Extract initial conditions
-        # L = sum(ic[j]*v[j]*dy(1) for j in range(model.num_states() + 1))
 
         Ls = list()
         for (k, model) in enumerate(self.models()):

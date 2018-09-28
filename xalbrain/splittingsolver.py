@@ -127,8 +127,8 @@ class BasicSplittingSolver:
 
     *Assumptions*
       * The cardiac conductivities do not vary in time
-
     """
+
     def __init__(self, model, params=None):
         """Create solver from given Cardiac Model and (optional) parameters."""
 
@@ -168,7 +168,7 @@ class BasicSplittingSolver:
         the cardiac model.
         """
         # Extract cardiac cell model from cardiac model
-        cell_model = self._model.cell_models()
+        cell_model = self._model.cell_models
 
         # Extract stimulus from the cardiac model(!)
         if not self._parameters["apply_stimulus_current_to_pde"]:
@@ -178,9 +178,6 @@ class BasicSplittingSolver:
 
         # Extract ode solver parameters
         params = self._parameters["BasicCardiacODESolver"]
-        # Propagate enable_adjoint to Bidomain solver
-        # if params.has_key("enable_adjoint"):
-        #     params["enable_adjoint"] = self._parameters["enable_adjoint"]
 
         solver = BasicCardiacODESolver(
             self._domain,
@@ -222,7 +219,7 @@ class BasicSplittingSolver:
                 v_=self.vs[0],
                 cell_domains=self._model.cell_domains(),
                 facet_domains=self._model.facet_domains(),
-                dirichlet_bc=self._model.dirichlet_bc_u,        # dirichlet_bc
+                dirichlet_bc=self._model.dirichlet_bc_u,          # dirichlet_bc
                 dirichlet_bc_v=self._model.dirichlet_bc_v,        # dirichlet_bc
                 params=params
             )
