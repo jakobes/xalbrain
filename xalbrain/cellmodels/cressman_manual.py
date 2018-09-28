@@ -27,28 +27,28 @@ class Cressman(CardiacCellModel):
         TODO: add units and explanation
         """
         params = OrderedDict([
-            ("Cm", 1),
-            ("GNa", 100),
-            ("GK", 40),
+            ("Cm", 1.0),
+            ("GNa", 100.0),
+            ("GK", 40.0),
             ("GAHP", 0.01),
             ("GKL", 0.05),
             ("GNaL", 0.0175),
             ("GClL", 0.05),
             ("GCa", 0.1),
-            ("Gglia", 66),
-            ("Koinf", 4),     # Default = 4
+            ("Gglia", 66.0),
+            ("Koinf", 4.0),     # Default = 4
             ("gamma1", 0.0445),
-            ("tau", 1000),
-            ("control", 1),
-            ("period", 1000),
-            ("duration", 300),
-            ("amplitude", 3)
+            ("tau", 1000.0),
+            ("control", 1.0),
+            ("period", 1000.0),
+            ("duration", 300.0),
+            ("amplitude", 3.0)
         ])
         return params
 
     def default_initial_conditions(self):
         ic = OrderedDict([
-            ("V", -50),
+            ("V", -50.0),
             ("m", 0.0936),
             ("h", 0.96859),
             ("n", 0.08553),
@@ -84,7 +84,6 @@ class Cressman(CardiacCellModel):
         IK = (GK*s[1]**4 + GAHP*s[3]/(1 + s[3]) + GKL)*(V - EK)
         ICl = GClL*(V - ECl)
         return (INa + IK + ICl)/Cm       # Check the sign
-        # return -(INa + IK + ICl)/Cm       # Check the sign
 
     def F(self, V, s, time=None):
         """ds/dt = F(v, s)."""
