@@ -19,6 +19,8 @@ from xalbrain.dolfinimport import (
     inner
 )
 
+import dolfin as df
+
 from collections import OrderedDict
 
 
@@ -184,6 +186,7 @@ class MultiCellModel(CardiacCellModel):
         self._markers = markers
 
         self._num_states = max(c.num_states() for c in self._cell_models)
+        self.stimulus = None
 
     def models(self):
         return self._cell_models
@@ -232,7 +235,7 @@ class MultiCellModel(CardiacCellModel):
         a = inner(u, v)*dy()
 
         Ls = list()
-        for (k, model) in enumerate(self.models()):
+        for k, model in enumerate(self.models()):
             ic = model.initial_conditions() # Extract initial conditions
             n_k = model.num_states() # Extract number of local states
             i_k = self.keys()[k] # Extract domain index of cell model k

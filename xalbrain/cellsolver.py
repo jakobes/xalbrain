@@ -120,9 +120,6 @@ class BasicCardiacODESolver:
         # Initialize solution fields
         self.vs_ = df.Function(self.VS, name="vs_")
         self.vs = df.Function(self.VS, name="vs")
-        print("=-="*30)
-        print(self.vs.vector().size())
-        print("=-="*30)
 
     @property
     def time(self) -> df.Constant:
@@ -191,7 +188,7 @@ class BasicCardiacODESolver:
         """
 
         # Initial time set-up
-        (T0, T) = interval
+        T0, T = interval
 
         # Solve on entire interval if no interval is given.
         if dt is None:
@@ -219,23 +216,22 @@ class BasicCardiacODESolver:
           interval (:py:class:`tuple`)
             The time interval (t0, t1) for the step
         """
-
         timer = df.Timer("ODE step")
 
         # Check for cell meshs
         dim = self._mesh.topology().dim()
 
         # Extract time mesh
-        (t0, t1) = interval
+        t0, t1 = interval
         k_n = df.Constant(t1 - t0)
 
         # Extract previous solution(s)
-        (v_, s_) = splat(self.vs_, self._num_states + 1)
+        v_, s_ = splat(self.vs_, self._num_states + 1)
 
         # Set-up current variables
         self.vs.assign(self.vs_)     # Start with good guess
-        (v, s) = splat(self.vs, self._num_states + 1)
-        (w, r) = splat(df.TestFunction(self.VS), self._num_states + 1)
+        v, s = splat(self.vs, self._num_states + 1)
+        w, r = splat(df.TestFunction(self.VS), self._num_states + 1)
 
         # Define equation based on cell model
         Dt_v = (v - v_)/k_n
@@ -315,11 +311,15 @@ class BasicCardiacODESolver:
         pde = df.NonlinearVariationalProblem(G, self.vs, J=df.derivative(G, self.vs))
         solver = df.NonlinearVariationalSolver(pde)
         solver_params = self.parameters["nonlinear_variational_solver"]
-        solver.parameters.update(solver_params)
+        solver_params["nonlinear_solver"] = "snes"
+        solver_params["snes_solver"]["absolute_tolerance"] = 1e-13
+        solver_params["snes_solver"]["relative_tolerance"] = 1e-13
 
-        print("="*40)
-        print(self.vs.vector().size())
-        print("="*40)
+        # Tested on Cressman
+        solver_params["snes_solver"]["linear_solver"] = "bicgstab"
+        solver_params["snes_solver"]["preconditioner"] = "jacobi"
+
+        solver.parameters.update(solver_params)
 
         solver.solve()
         timer.stop()
@@ -625,9 +625,9 @@ class BasicSingleCellSolver(BasicCardiacODESolver):
         """Create solver from given cell model and optional parameters."""
         assert isinstance(model, CardiacCellModel), \
             "Expecting model to be a CardiacCellModel, not %r" % model
-        assert (isinstance(time, Constant)), \
+        assert (isinstance(time, df.Constant)), \
             "Expecting time to be a Constant instance, not %r" % time
-        assert isinstance(params, Parameters) or params is None, \
+        assert isinstance(params, df.Parameters) or params is None, \
             "Expecting params to be a Parameters (or None), not %r" % params
 
         # Store model

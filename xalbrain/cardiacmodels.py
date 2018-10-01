@@ -168,10 +168,12 @@ class CardiacModel:
         """The spatial domain (:py:class:`dolfin.Mesh`)."""
         return self._domain
 
+    @property
     def cell_domains(self) -> df.MeshFunction:
         """Marked volume."""
         return self._cell_domains
 
+    @property
     def facet_domains(self) -> df.MeshFunction:
         """Marked area."""
         return self._facet_domains

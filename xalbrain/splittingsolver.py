@@ -217,8 +217,8 @@ class BasicSplittingSolver:
                 I_a=applied_current,
                 ect_current=ect_current,
                 v_=self.vs[0],
-                cell_domains=self._model.cell_domains(),
-                facet_domains=self._model.facet_domains(),
+                cell_domains=self._model.cell_domains,
+                facet_domains=self._model.facet_domains,
                 dirichlet_bc=self._model.dirichlet_bc_u,          # dirichlet_bc
                 dirichlet_bc_v=self._model.dirichlet_bc_v,        # dirichlet_bc
                 params=params
@@ -231,8 +231,8 @@ class BasicSplittingSolver:
                 I_s=stimulus,
                 v_=self.vs[0],
                 params=params,
-                cell_domains=self._model.cell_domains(),
-                facet_domains=self._model.facet_domains(),
+                cell_domains=self._model.cell_domains,
+                facet_domains=self._model.facet_domains,
             )
 
         # Propagate enable_adjoint to Bidomain solver
@@ -405,6 +405,7 @@ class BasicSplittingSolver:
             v = self.vur.sub(0)
         else:
             v = self.vur
+
         self.merger.assign(solution.sub(0), v)
         df.end()
 
@@ -554,8 +555,6 @@ class SplittingSolver(BasicSplittingSolver):
 
         Solver = eval(self._parameters["ode_solver_choice"])
         params = self._parameters[Solver.__name__]
-        if params.has_key("enable_adjoint"):
-            params["enable_adjoint"] = self._parameters["enable_adjoint"]
 
         solver = Solver(
             self._domain,
@@ -597,8 +596,8 @@ class SplittingSolver(BasicSplittingSolver):
                 I_a=applied_current,
                 ect_current=ect_current,
                 v_=self.vs[0],
-                cell_domains=self._model.cell_domains(),
-                facet_domains=self._model.facet_domains(),
+                cell_domains=self._model.cell_domains,
+                facet_domains=self._model.facet_domains,
                 dirichlet_bc=self._model.dirichlet_bc_u,        # dirichlet_bc
                 dirichlet_bc_v=self._model.dirichlet_bc_v,        # dirichlet_bc
                 params=params
@@ -610,8 +609,8 @@ class SplittingSolver(BasicSplittingSolver):
             kwargs = dict(
                 I_s=stimulus,
                 v_=self.vs[0],
-                cell_domains=self._model.cell_domains(),
-                facet_domains=self._model.facet_domains(),
+                cell_domains=self._model.cell_domains,
+                facet_domains=self._model.facet_domains,
                 params=params
             )
 
