@@ -751,8 +751,8 @@ class BidomainSolver(BasicBidomainSolver):
             df.debug("Timestep is unchanged, reusing preconditioner")
         else:
             df.debug("Timestep has changed, updating preconditioner")
-            if dolfin_adjoint and self.parameters["enable_adjoint"]:
-                raise ValueError("dolfin-adjoint doesn't support changing timestep (yet)")
+            # if dolfin_adjoint and self.parameters["enable_adjoint"]:
+            #     raise ValueError("dolfin-adjoint doesn't support changing timestep (yet)")
 
             # Update stored timestep
             self._timestep.assign(df.Constant(dt))#, annotate=annotate)

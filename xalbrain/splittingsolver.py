@@ -323,6 +323,9 @@ class BasicSplittingSolver:
 
         for t0, t1 in time_stepper:
             df.info_blue("Solving on t = (%g, %g)" % (t0, t1))
+
+            # TODO: Debug
+            # self.ode_solver.step((t0, t1))
             self.step((t0, t1))
 
             # Yield solutions
@@ -356,7 +359,6 @@ class BasicSplittingSolver:
         df.begin(df.PROGRESS, "Tentative ODE step")
         # Assumes that its vs_ is in the correct state, gives its vs
         # in the current state
-
         self.ode_solver.step((t0, t))
         self.vs_.assign(self.vs)
         df.end()
@@ -365,6 +367,7 @@ class BasicSplittingSolver:
         df.begin(df.PROGRESS, "PDE step")
         # Assumes that its vs_ is in the correct state, gives vur in
         # the current state
+
         self.pde_solver.step((t0, t1))
         df.end()
 

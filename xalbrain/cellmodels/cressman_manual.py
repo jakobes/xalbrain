@@ -139,7 +139,8 @@ class Cressman(CardiacCellModel):
 
         dot_Ca = -s[3]/80 - 0.002*GCa*(V - ECa)/(1 + df.exp(-(V + 25)/2.5))
         dot_K = (gamma1*beta0*IK - 2*beta0*Ipump - IGlia - Idiff)/tau
-        dot_Na = (gamma1*INa + 3*Ipump)/tau
+        # dot_Na = (gamma1*INa + 3*Ipump)/tau
+        dot_Na = -(gamma1*INa + 3*Ipump)/tau    # Pretty sure it should me minus
 
         F_expressions = [ufl.zero()]*self.num_states()
         F_expressions[0] = dot_m

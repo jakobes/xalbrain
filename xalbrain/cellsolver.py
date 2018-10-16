@@ -144,8 +144,7 @@ class BasicCardiacODESolver:
         # Use iterative solver as default.
         params.add(df.NonlinearVariationalSolver.default_parameters())
         params["nonlinear_variational_solver"]["newton_solver"]["linear_solver"] = "gmres"
-        params["nonlinear_variational_solver"]["newton_solver"]["preconditioner"] = "petsc_amg"
-
+        params["nonlinear_variational_solver"]["newton_solver"]["preconditioner"] = "jacobi"
         return params
 
     def solution_fields(self) -> Tuple[df.Function, df.Function]:
@@ -515,11 +514,7 @@ class CardiacODESolver:
 
         t0, t1 = interval
         dt = t1 - t0
-
-        # self._annotate_kwargs = annotate_kwargs(self.parameters)
-        # self._pi_solver.step(dt, **self._annotate_kwargs)
         self._pi_solver.step(dt)
-
         timer.stop()
 
     def solve(self, interval: Tuple[float, float], dt: float=None) -> None:

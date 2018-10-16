@@ -242,7 +242,19 @@ class MultiCellModel(CardiacCellModel):
             L_k = sum(ic[j]*v[j]*dy(i_k) for j in range(n_k + 1))       # include v and s
             Ls.append(L_k)
         L = sum(Ls)
-        solve(a == L, function)
+        # solve(a == L, function)       # really inaccurate
+
+        params = df.KrylovSolver.default_parameters()
+        params["absolute_tolerance"] = 1e-14
+        params["relative_tolerance"] = 1e-14
+        params["nonzero_initial_guess"] = True
+        solver = df.KrylovSolver()
+        solver.update_parameters(params)
+        A, b = df.assemble_system(a, L)
+        solver.set_operator(A)
+        solver.solve(function.vector(), b)
+
+
 
     def initial_conditions(self):
         """Return initial conditions for v and s as a dolfin.GenericFunction."""
@@ -260,14 +272,14 @@ class MultiCellModel(CardiacCellModel):
         dy = Measure("dx", domain=self.mesh(), subdomain_data=markers)
 
         # Define projection into multiverse
-        a = inner(u, v)*dy()
+        a = inner(u, v)*dy(i_k)
 
         Ls = list()
-        for (k, model) in enumerate(self.models()):
-            ic = model.initial_conditions() # Extract initial conditions
-            n_k = model.num_states() # Extract number of local states
-            i_k = self.keys()[k] # Extract domain index of cell model k
-            L_k = sum(ic[j]*v[j]*dy(i_k) for j in range(n_k + 1))       # include v and s
+        for k, model in enumerate(self.models()):
+            i_k = self.keys()[k]        # Extract domain index of cell model k
+            ic = model.initial_conditions()     # Extract initial conditions
+            n_k = model.num_states()        # Extract number of local states
+            L_k = sum(ic[j]*v[j]*dy(i_k) for j in range(n_k + 1))   # include v and s
             Ls.append(L_k)
         L = sum(Ls)
         solve(a == L, vs)
