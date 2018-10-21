@@ -512,13 +512,6 @@ class BidomainSolver(BasicBidomainSolver):
             solver = df.PETScKrylovSolver(alg, prec)
             solver.set_operator(self._lhs_matrix)
 
-            # TODO: Expose these parameters
-            solver.parameters.update(self.parameters["petsc_krylov_solver"])
-            solver.parameters.convergence_norm_type = "preconditioned"
-            solver.parameters.monitor_convergence = False
-            solver.parameters.report = False
-            solver.parameters.maximum_iterations = None
-            solver.parameters.nonzero_initial_guess = True
 
             # Set nullspace if present. We happen to know that the
             # transpose nullspace is the same as the nullspace (easy
@@ -584,14 +577,22 @@ class BidomainSolver(BasicBidomainSolver):
 
         # Add default parameters from both LU and Krylov solvers
         params.add(df.LUSolver.default_parameters())
+
+        # Customize default parameters for LUSolver
+        params["lu_solver"]["same_nonzero_pattern"] = True
+
         petsc_params = df.PETScKrylovSolver.default_parameters()
         petsc_params["absolute_tolerance"] = 1e-14
         petsc_params["relative_tolerance"] = 1e-14
         petsc_params["nonzero_initial_guess"] = True
         params.add(petsc_params)
 
-        # Customize default parameters for LUSolver
-        params["lu_solver"]["same_nonzero_pattern"] = True
+        solver.parameters.update(self.parameters["petsc_krylov_solver"])
+        solver.parameters.convergence_norm_type = "preconditioned"
+        solver.parameters.monitor_convergence = False
+        solver.parameters.report = False
+        solver.parameters.maximum_iterations = None
+        solver.parameters.nonzero_initial_guess = True
         return params
 
     def variational_forms(self, kn: df.Constant) -> Tuple[Any, Any]:
@@ -730,11 +731,8 @@ class BidomainSolver(BasicBidomainSolver):
             df.debug("Timestep is unchanged, reusing LU factorization")
         else:
             df.debug("Timestep has changed, updating LU factorization")
-            # if dolfin_adjoint and self.parameters["enable_adjoint"]:
-            #     raise ValueError("dolfin-adjoint doesn't support changing timestep (yet)")
 
             # Update stored timestep
-            # FIXME: dolfin_adjoint still can't annotate constant assignment.
             self._timestep.assign(df.Constant(dt))#, annotate=annotate)
 
             # Reassemble matrix
@@ -751,8 +749,6 @@ class BidomainSolver(BasicBidomainSolver):
             df.debug("Timestep is unchanged, reusing preconditioner")
         else:
             df.debug("Timestep has changed, updating preconditioner")
-            # if dolfin_adjoint and self.parameters["enable_adjoint"]:
-            #     raise ValueError("dolfin-adjoint doesn't support changing timestep (yet)")
 
             # Update stored timestep
             self._timestep.assign(df.Constant(dt))#, annotate=annotate)

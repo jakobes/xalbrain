@@ -12,6 +12,8 @@ __all__ = []
 
 import itertools
 
+import numpy as np
+
 from xalbrain import (
     SingleCellSolver,
     CardiacModel,
@@ -24,6 +26,7 @@ from xalbrain import (
 from xalbrain.cellmodels import FitzHughNagumoManual
 
 from testutils import assert_almost_equal, parametrize
+
 
 @parametrize(
     ("theta", "pde_solver"),
@@ -51,7 +54,7 @@ def test_ode_pde(theta, pde_solver) -> None:
     print("ODE")
     print("v(T) = ", ode_vs.vector().get_local()[0])
     print("s(T) = ", ode_vs.vector().get_local()[1])
-    
+
     # Propagate with Bidomain+ODE solver
     mesh = UnitSquareMesh(1, 1)
     brain = CardiacModel(mesh, time, 1.0, 1.0, model, stimulus=stimulus)
@@ -61,7 +64,7 @@ def test_ode_pde(theta, pde_solver) -> None:
     ps["CardiacODESolver"]["scheme"] = "RK4"
     ps["enable_adjoint"] = False
     solver = SplittingSolver(brain, params=ps)
-    
+
     pde_vs_, pde_vs, vur = solver.solution_fields()
     pde_vs_.assign(model.initial_conditions())
 
@@ -81,6 +84,11 @@ def test_ode_pde(theta, pde_solver) -> None:
     tolerance = 1e-3
     print(abs(pde_vec[0] - ode_vec[0]))
     print(abs(pde_vec[1] - ode_vec[1]))
-    assert_almost_equal(abs(pde_vec[0] - ode_vec[0]), 0.0, tolerance)
-    assert_almost_equal(abs(pde_vec[1] - ode_vec[1]), 0.0, tolerance)
-    print()
+    # assert_almost_equal(abs(pde_vec[0] - ode_vec[0]), 0.0, tolerance)
+    # assert_almost_equal(abs(pde_vec[1] - ode_vec[1]), 0.0, tolerance)
+
+    assert np.allclose(pde_vec[:ode_vec.size], ode_vec)
+
+
+if __name__ == "__main__":
+    test_ode_pde(0.5, "bidomain")
