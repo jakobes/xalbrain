@@ -556,7 +556,6 @@ class BidomainSolver(BasicBidomainSolver):
 
           info(BidomainSolver.default_parameters(), True)
         """
-
         params = df.Parameters("BidomainSolver")
         params.add("enable_adjoint", False)
         params.add("theta", 0.5)
@@ -585,14 +584,8 @@ class BidomainSolver(BasicBidomainSolver):
         petsc_params["absolute_tolerance"] = 1e-14
         petsc_params["relative_tolerance"] = 1e-14
         petsc_params["nonzero_initial_guess"] = True
+        petsc_params["convergence_norm_type"] = "preconditioned"
         params.add(petsc_params)
-
-        solver.parameters.update(self.parameters["petsc_krylov_solver"])
-        solver.parameters.convergence_norm_type = "preconditioned"
-        solver.parameters.monitor_convergence = False
-        solver.parameters.report = False
-        solver.parameters.maximum_iterations = None
-        solver.parameters.nonzero_initial_guess = True
         return params
 
     def variational_forms(self, kn: df.Constant) -> Tuple[Any, Any]:
