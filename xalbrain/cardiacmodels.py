@@ -8,8 +8,7 @@ scenarios.
 # Use and modify at will
 # Last changed: 2016-04-21
 
-__all__ = ["CardiacModel"]
-
+__all__ = ["CardiacModel"] 
 import dolfin as df
 
 import xalbrain as xb
@@ -81,7 +80,7 @@ class CardiacModel:
             stimulus: Union[df.Expression, Dict[int, df.Expression]] = None,
             applied_current: Union[df.Expression, Dict[int, df.Expression]] = None,
             ect_current: Dict[int, df.Expression] = None,
-            dirichlet_bc: List[Tuple[df.Expression, int]] = None,
+            dirichlet_bc_u: List[Tuple[df.Expression, int]] = None,
             dirichlet_bc_v: List[Tuple[df.Expression, int]] = None,
             cell_domains: df.MeshFunction = None,
             facet_domains: df.MeshFunction = None
@@ -116,13 +115,18 @@ class CardiacModel:
         # Handle applied current
         ac = applied_current
         self._applied_current = handle_markerwise(ac, df.GenericFunction)
-        self._dirichlet_bcs = dirichlet_bc
+        self._dirichlet_bcs_u = dirichlet_bc_u
         self._dirichlet_bcs_v = dirichlet_bc_v
 
     @property
-    def bcs(self) -> List[Tuple[df.Expression, int]]:
-        """Return a list of `DirichletBC`s."""
-        return self._dirichlet_bcs
+    def dirichlet_bc_u(self) -> List[Tuple[df.Expression, int]]:
+        """Return a list of `DirichletBC`s u."""
+        return self._dirichlet_bcs_v
+
+    @property
+    def dirichlet_bc_v(self) -> List[Tuple[df.Expression, int]]:
+        """Return a lit of `DirichletBC`'s for v."""
+        return self._dirichlet_bcs_u
 
     @property
     def ect_current(self) -> df.Expression:
@@ -154,6 +158,7 @@ class CardiacModel:
         """The intracellular conductivity (:py:class:`ufl.Expr`)."""
         return self._extracellular_conductivity
 
+    @property
     def time(self) -> df.Constant:
         """The current time (:py:class:`dolfin.Constant` or None)."""
         return self._time
@@ -163,14 +168,17 @@ class CardiacModel:
         """The spatial domain (:py:class:`dolfin.Mesh`)."""
         return self._domain
 
+    @property
     def cell_domains(self) -> df.MeshFunction:
         """Marked volume."""
         return self._cell_domains
 
+    @property
     def facet_domains(self) -> df.MeshFunction:
         """Marked area."""
         return self._facet_domains
 
+    @property
     def cell_models(self) -> xb.cellmodels.CardiacCellModel:
         """Return the cell models."""
         return self._cell_models

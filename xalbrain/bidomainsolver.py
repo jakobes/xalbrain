@@ -32,7 +32,7 @@ for u.
 
 # from xalbrain.dolfinimport import *
 from xalbrain.markerwisefield import *
-from xalbrain.utils import end_of_time, annotate_kwargs
+from xalbrain.utils import end_of_time
 
 import numpy as np
 
@@ -170,11 +170,12 @@ class BasicBidomainSolver:
         assert facet_dim == mesh_dim - 1, msg
         self._facet_domains = facet_domains
 
+        # Set the intracellular conductivity
+        cell_keys = set(self._cell_domains.array())
         if not isinstance(M_i, dict):
-            M_i = {int(i): M_i for i in set(self._cell_domains.array())}
+            M_i = {int(i): M_i for i in cell_keys}
         else:
             M_i_keys = set(M_i.keys())
-            cell_keys = set(self._cell_domains.array())
             msg = "Got {M_i_keys}, expected {cell_keys}.".format(
                 M_i_keys=M_i_keys,
                 cell_keys=cell_keys
@@ -183,9 +184,14 @@ class BasicBidomainSolver:
         self._M_i = M_i
 
         if not isinstance(M_e, dict):
-            M_e = {int(i): M_e for i in set(self._cell_domains.array())}
+            M_e = {int(i): M_e for i in cell_keys}
         else:
-            assert set(M_e.keys()) == set(self._cell_domains.array())
+            M_e_keys = set(M_e.kesy())
+            msg = "Got {M_i_keys}, expected {cell_keys}.".format(
+                M_e_keys=M_e_keys,
+                cell_keys=cell_keys
+            )
+            assert M_e_keys == cell_keys, msg
         self._M_e = M_e
 
         # Store source terms
@@ -210,15 +216,15 @@ class BasicBidomainSolver:
             self.v_ = v_
         self.vur = df.Function(self.VUR, name="vur")
 
-        # Set Dirichlet bcs
+        # Set Dirichlet bcs for the transmembrane potential
         self._bcs = []
-
         if dirichlet_bc_v is not None:
             for function, marker in dirichlet_bc_v:
                 self._bcs.append(
                     df.DirichletBC(self.VUR.sub(0), function, self._facet_domains, marker)
                 )
 
+        # Set Dirichlet bcs for the extra cellular potential
         if dirichlet_bc is not None:
             for function, marker in dirichlet_bc:
                 self._bcs.append(
@@ -506,13 +512,6 @@ class BidomainSolver(BasicBidomainSolver):
             solver = df.PETScKrylovSolver(alg, prec)
             solver.set_operator(self._lhs_matrix)
 
-            # TODO: Espose these parameters
-            solver.parameters.update(self.parameters["petsc_krylov_solver"])
-            solver.parameters.convergence_norm_type = "preconditioned"
-            solver.parameters.monitor_convergence = False
-            solver.parameters.report = False
-            solver.parameters.maximum_iterations = None
-            solver.parameters.nonzero_initial_guess = True
 
             # Set nullspace if present. We happen to know that the
             # transpose nullspace is the same as the nullspace (easy
@@ -557,7 +556,6 @@ class BidomainSolver(BasicBidomainSolver):
 
           info(BidomainSolver.default_parameters(), True)
         """
-
         params = df.Parameters("BidomainSolver")
         params.add("enable_adjoint", False)
         params.add("theta", 0.5)
@@ -578,14 +576,16 @@ class BidomainSolver(BasicBidomainSolver):
 
         # Add default parameters from both LU and Krylov solvers
         params.add(df.LUSolver.default_parameters())
+
+        # Customize default parameters for LUSolver
+        params["lu_solver"]["same_nonzero_pattern"] = True
+
         petsc_params = df.PETScKrylovSolver.default_parameters()
         petsc_params["absolute_tolerance"] = 1e-14
         petsc_params["relative_tolerance"] = 1e-14
         petsc_params["nonzero_initial_guess"] = True
+        petsc_params["convergence_norm_type"] = "preconditioned"
         params.add(petsc_params)
-
-        # Customize default parameters for LUSolver
-        params["lu_solver"]["same_nonzero_pattern"] = True
         return params
 
     def variational_forms(self, kn: df.Constant) -> Tuple[Any, Any]:
@@ -724,12 +724,9 @@ class BidomainSolver(BasicBidomainSolver):
             df.debug("Timestep is unchanged, reusing LU factorization")
         else:
             df.debug("Timestep has changed, updating LU factorization")
-            # if dolfin_adjoint and self.parameters["enable_adjoint"]:
-            #     raise ValueError("dolfin-adjoint doesn't support changing timestep (yet)")
 
             # Update stored timestep
-            # FIXME: dolfin_adjoint still can't annotate constant assignment.
-            self._timestep.assign(df.Constant(dt))#, annotate=annotate)
+            self._timestep.assign(df.Constant(dt))
 
             # Reassemble matrix
             df.assemble(self._lhs, tensor=self._lhs_matrix)
@@ -745,14 +742,12 @@ class BidomainSolver(BasicBidomainSolver):
             df.debug("Timestep is unchanged, reusing preconditioner")
         else:
             df.debug("Timestep has changed, updating preconditioner")
-            if dolfin_adjoint and self.parameters["enable_adjoint"]:
-                raise ValueError("dolfin-adjoint doesn't support changing timestep (yet)")
 
             # Update stored timestep
-            self._timestep.assign(df.Constant(dt))#, annotate=annotate)
+            self._timestep.assign(df.Constant(dt))
 
             # Reassemble matrix
-            df.assemble(self._lhs, tensor=self._lhs_matrix, **self._annotate_kwargs)
+            df.assemble(self._lhs, tensor=self._lhs_matrix)
 
             # Make new Krylov solver
             self._linear_solver, dummy = self._create_linear_solver()

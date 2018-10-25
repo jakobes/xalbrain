@@ -61,7 +61,6 @@ testing or debugging purposes primarily.
 __all__ = ["SplittingSolver", "BasicSplittingSolver",]
 
 import dolfin as df
-# from xalbrain.dolfinimport import *
 from xalbrain import CardiacModel
 
 from xalbrain.cellsolver import (
@@ -128,8 +127,8 @@ class BasicSplittingSolver:
 
     *Assumptions*
       * The cardiac conductivities do not vary in time
-
     """
+
     def __init__(self, model, params=None):
         """Create solver from given Cardiac Model and (optional) parameters."""
 
@@ -138,13 +137,13 @@ class BasicSplittingSolver:
 
         # Set model and parameters
         self._model = model
-        self.parameters = self.default_parameters()
+        self._parameters = self.default_parameters()
         if params is not None:
-            self.parameters.update(params)
+            self._parameters.update(params)
 
         # Extract solution domain
         self._domain = self._model.mesh
-        self._time = self._model.time()
+        self._time = self._model.time
 
         # Create ODE solver and extract solution fields
         self.ode_solver = self._create_ode_solver()
@@ -156,7 +155,7 @@ class BasicSplittingSolver:
         self.v_, self.vur = self.pde_solver.solution_fields()
 
         # # Create function assigner for merging v from self.vur into self.vs[0]
-        if self.parameters["pde_solver"] == "bidomain":
+        if self._parameters["pde_solver"] == "bidomain":
             V = self.vur.function_space().sub(0)
         else:
             V = self.vur.function_space()
@@ -169,19 +168,16 @@ class BasicSplittingSolver:
         the cardiac model.
         """
         # Extract cardiac cell model from cardiac model
-        cell_model = self._model.cell_models()
+        cell_model = self._model.cell_models
 
         # Extract stimulus from the cardiac model(!)
-        if not self.parameters["apply_stimulus_current_to_pde"]:
+        if not self._parameters["apply_stimulus_current_to_pde"]:
             stimulus = None
         else:
             stimulus = self._model.stimulus()
 
         # Extract ode solver parameters
-        params = self.parameters["BasicCardiacODESolver"]
-        # Propagate enable_adjoint to Bidomain solver
-        # if params.has_key("enable_adjoint"):
-        #     params["enable_adjoint"] = self.parameters["enable_adjoint"]
+        params = self._parameters["BasicCardiacODESolver"]
 
         solver = BasicCardiacODESolver(
             self._domain,
@@ -203,7 +199,7 @@ class BasicSplittingSolver:
 
         # Extract stimulus from the cardiac model if we should apply
         # it to the PDEs (in the other case, it is handled by the ODE solver)
-        if not self.parameters["apply_stimulus_current_to_pde"]:
+        if not self._parameters["apply_stimulus_current_to_pde"]:
             stimulus = self._model.stimulus()
         else:
             stimulus = None
@@ -211,37 +207,37 @@ class BasicSplittingSolver:
         # Extract conductivities from the cardiac model
         Mi, Me = self._model.conductivities()
 
-        if self.parameters["pde_solver"] == "bidomain":
+        if self._parameters["pde_solver"] == "bidomain":
             PDESolver = BasicBidomainSolver
-            params = self.parameters["BasicBidomainSolver"]
-            params["theta"] = self.parameters["theta"]
+            params = self._parameters["BasicBidomainSolver"]
+            params["theta"] = self._parameters["theta"]
             args = (self._domain, self._time, Mi, Me)
             kwargs = dict(
                 I_s=stimulus,
                 I_a=applied_current,
                 ect_current=ect_current,
                 v_=self.vs[0],
-                cell_domains=self._model.cell_domains(),
-                facet_domains=self._model.facet_domains(),
-                dirichlet_bc=self._model._dirichlet_bcs,        # dirichlet_bc
-                dirichlet_bc_v=self._model._dirichlet_bcs_v,        # dirichlet_bc
+                cell_domains=self._model.cell_domains,
+                facet_domains=self._model.facet_domains,
+                dirichlet_bc=self._model.dirichlet_bc_u,          # dirichlet_bc
+                dirichlet_bc_v=self._model.dirichlet_bc_v,        # dirichlet_bc
                 params=params
             )
         else:
             PDESolver = BasicMonodomainSolver
-            params = self.parameters["BasicMonodomainSolver"]
+            params = self._parameters["BasicMonodomainSolver"]
             args = (self._domain, self._time, Mi)
             kwargs = dict(
                 I_s=stimulus,
                 v_=self.vs[0],
                 params=params,
-                cell_domains=self._model.cell_domains(),
-                facet_domains=self._model.facet_domains(),
+                cell_domains=self._model.cell_domains,
+                facet_domains=self._model.facet_domains,
             )
 
         # Propagate enable_adjoint to Bidomain solver
         # if params.has_key("enable_adjoint"):
-        #     params["enable_adjoint"] = self.parameters["enable_adjoint"]
+        #     params["enable_adjoint"] = self._parameters["enable_adjoint"]
 
         solver = PDESolver(*args, **kwargs)
         return solver
@@ -327,6 +323,9 @@ class BasicSplittingSolver:
 
         for t0, t1 in time_stepper:
             df.info_blue("Solving on t = (%g, %g)" % (t0, t1))
+
+            # TODO: Debug
+            # self.ode_solver.step((t0, t1))
             self.step((t0, t1))
 
             # Yield solutions
@@ -349,7 +348,7 @@ class BasicSplittingSolver:
           that self.vur[0] == self.vs[0] only if theta = 1.0.)
         """
         # Extract some parameters for readability
-        theta = self.parameters["theta"]
+        theta = self._parameters["theta"]
 
         # Extract time domain
         t0, t1 = interval
@@ -360,8 +359,6 @@ class BasicSplittingSolver:
         df.begin(df.PROGRESS, "Tentative ODE step")
         # Assumes that its vs_ is in the correct state, gives its vs
         # in the current state
-
-        # FIXME: Debug
         self.ode_solver.step((t0, t))
         self.vs_.assign(self.vs)
         df.end()
@@ -370,6 +367,7 @@ class BasicSplittingSolver:
         df.begin(df.PROGRESS, "PDE step")
         # Assumes that its vs_ is in the correct state, gives vur in
         # the current state
+
         self.pde_solver.step((t0, t1))
         df.end()
 
@@ -392,8 +390,6 @@ class BasicSplittingSolver:
         # Assumes that its vs_ is in the correct state, provides vs in
         # the correct state
 
-
-        # FIXME: Debug
         self.ode_solver.step((t, t1))
         df.end()
 
@@ -408,14 +404,26 @@ class BasicSplittingSolver:
         timer = df.Timer("Merge step")
 
         df.begin(df.PROGRESS, "Merging")
-        if self.parameters["pde_solver"] == "bidomain":
+        if self._parameters["pde_solver"] == "bidomain":
             v = self.vur.sub(0)
         else:
             v = self.vur
+
         self.merger.assign(solution.sub(0), v)
         df.end()
 
         timer.stop()
+
+    @property
+    def model(self) -> CardiacModel:
+        """Return the brain."""
+        return self._model
+
+    @property
+    def parameters(self) -> df.Parameters:
+        """Return the parameters."""
+        return self._parameters
+
 
 class SplittingSolver(BasicSplittingSolver):
     """
@@ -540,7 +548,7 @@ class SplittingSolver(BasicSplittingSolver):
         Helper function to initialize a suitable ODE solver from the cardiac model.
         """
         # Extract cardiac cell model from cardiac model
-        cell_model = self._model.cell_models()
+        cell_model = self._model.cell_models
 
         # Extract stimulus from the cardiac model(!)
         if self.parameters.apply_stimulus_current_to_pde:
@@ -548,10 +556,8 @@ class SplittingSolver(BasicSplittingSolver):
         else:
             stimulus = self._model.stimulus()
 
-        Solver = eval(self.parameters["ode_solver_choice"])
-        params = self.parameters[Solver.__name__]
-        if params.has_key("enable_adjoint"):
-            params["enable_adjoint"] = self.parameters["enable_adjoint"]
+        Solver = eval(self._parameters["ode_solver_choice"])
+        params = self._parameters[Solver.__name__]
 
         solver = Solver(
             self._domain,
@@ -575,7 +581,7 @@ class SplittingSolver(BasicSplittingSolver):
         ect_current = self._model.ect_current
 
         # Extract stimulus from the cardiac model
-        if self.parameters.apply_stimulus_current_to_pde:
+        if self._parameters.apply_stimulus_current_to_pde:
             stimulus = self._model.stimulus()
         else:
             stimulus = None
@@ -583,37 +589,37 @@ class SplittingSolver(BasicSplittingSolver):
         # Extract conductivities from the cardiac model
         Mi, Me = self._model.conductivities()
 
-        if self.parameters["pde_solver"] == "bidomain":
+        if self._parameters["pde_solver"] == "bidomain":
             PDESolver = BidomainSolver
-            params = self.parameters["BidomainSolver"]
-            params["theta"] = self.parameters["theta"]
+            params = self._parameters["BidomainSolver"]
+            params["theta"] = self._parameters["theta"]
             args = (self._domain, self._time, Mi, Me)
             kwargs = dict(
                 I_s=stimulus,
                 I_a=applied_current,
                 ect_current=ect_current,
                 v_=self.vs[0],
-                cell_domains=self._model.cell_domains(),
-                facet_domains=self._model.facet_domains(),
-                dirichlet_bc=self._model._dirichlet_bcs,        # dirichlet_bc
-                dirichlet_bc_v=self._model._dirichlet_bcs_v,        # dirichlet_bc
+                cell_domains=self._model.cell_domains,
+                facet_domains=self._model.facet_domains,
+                dirichlet_bc=self._model.dirichlet_bc_u,        # dirichlet_bc
+                dirichlet_bc_v=self._model.dirichlet_bc_v,        # dirichlet_bc
                 params=params
             )
         else:
             PDESolver = MonodomainSolver
-            params = self.parameters["MonodomainSolver"]
+            params = self._parameters["MonodomainSolver"]
             args = (self._domain, self._time, Mi)
             kwargs = dict(
                 I_s=stimulus,
                 v_=self.vs[0],
-                cell_domains=self._model.cell_domains(),
-                facet_domains=self._model.facet_domains(),
+                cell_domains=self._model.cell_domains,
+                facet_domains=self._model.facet_domains,
                 params=params
             )
 
         # Propagate enable_adjoint to Bidomain solver
         if params.has_key("enable_adjoint"):
-            params["enable_adjoint"] = self.parameters["enable_adjoint"]
+            params["enable_adjoint"] = self._parameters["enable_adjoint"]
 
         solver = PDESolver(*args, **kwargs)
         return solver

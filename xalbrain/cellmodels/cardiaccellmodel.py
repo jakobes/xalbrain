@@ -19,6 +19,8 @@ from xalbrain.dolfinimport import (
     inner
 )
 
+import dolfin as df
+
 from collections import OrderedDict
 
 
@@ -131,6 +133,12 @@ class CardiacCellModel:
                 error("expected the value_size of '%s' to be 1" % init_name)
             self._initial_conditions[init_name] = init_value
 
+    def assign_initial_conditions(self, function) -> None:
+        """Assign initial conditions to `func`."""
+        function.assign(
+            Expression(tuple(self._initial_conditions.keys()), degree=1, **self._initial_conditions)
+        )
+
     def initial_conditions(self):
         """Return initial conditions for v and s as an Expression."""
         return Expression(tuple(self._initial_conditions.keys()), degree=1,
@@ -178,6 +186,7 @@ class MultiCellModel(CardiacCellModel):
         self._markers = markers
 
         self._num_states = max(c.num_states() for c in self._cell_models)
+        self.stimulus = None
 
     def models(self):
         return self._cell_models
@@ -213,16 +222,12 @@ class MultiCellModel(CardiacCellModel):
         k = self._key_to_cell_model[index]
         return self._cell_models[k].I(v, s, time)
 
-    def initial_conditions(self):
-        "Return initial conditions for v and s as a dolfin.GenericFunction."
-
-        n = self.num_states() # (Maximal) Number of states in MultiCellModel
-        VS = VectorFunctionSpace(self.mesh(), "DG", 0, n+1)
-        vs = Function(VS)
-
+    def assign_initial_conditions(self, function):
+        function_space = function.function_space()
         markers = self.markers()
-        u = TrialFunction(VS)
-        v = TestFunction(VS)
+
+        u = TrialFunction(function_space)
+        v = TestFunction(function_space)
 
         dy = Measure("dx", domain=self.mesh(), subdomain_data=markers)
 
@@ -230,11 +235,51 @@ class MultiCellModel(CardiacCellModel):
         a = inner(u, v)*dy()
 
         Ls = list()
-        for (k, model) in enumerate(self.models()):
+        for k, model in enumerate(self.models()):
             ic = model.initial_conditions() # Extract initial conditions
             n_k = model.num_states() # Extract number of local states
             i_k = self.keys()[k] # Extract domain index of cell model k
-            L_k = sum(ic[j]*v[j]*dy(i_k) for j in range(n_k))
+            L_k = sum(ic[j]*v[j]*dy(i_k) for j in range(n_k + 1))       # include v and s
+            Ls.append(L_k)
+        L = sum(Ls)
+        # solve(a == L, function)       # really inaccurate
+
+        params = df.KrylovSolver.default_parameters()
+        params["absolute_tolerance"] = 1e-14
+        params["relative_tolerance"] = 1e-14
+        params["nonzero_initial_guess"] = True
+        solver = df.KrylovSolver()
+        solver.update_parameters(params)
+        A, b = df.assemble_system(a, L)
+        solver.set_operator(A)
+        solver.solve(function.vector(), b)
+
+
+
+    def initial_conditions(self):
+        """Return initial conditions for v and s as a dolfin.GenericFunction."""
+
+        n = self.num_states() # (Maximal) Number of states in MultiCellModel
+        VS = VectorFunctionSpace(self.mesh(), "DG", 0, n + 1)
+        vs = Function(VS)
+        vs_tmp = Function(VS)
+
+        markers = self.markers()
+
+        u = TrialFunction(VS)
+        v = TestFunction(VS)
+
+        dy = Measure("dx", domain=self.mesh(), subdomain_data=markers)
+
+        # Define projection into multiverse
+        a = inner(u, v)*dy(i_k)
+
+        Ls = list()
+        for k, model in enumerate(self.models()):
+            i_k = self.keys()[k]        # Extract domain index of cell model k
+            ic = model.initial_conditions()     # Extract initial conditions
+            n_k = model.num_states()        # Extract number of local states
+            L_k = sum(ic[j]*v[j]*dy(i_k) for j in range(n_k + 1))   # include v and s
             Ls.append(L_k)
         L = sum(Ls)
         solve(a == L, vs)

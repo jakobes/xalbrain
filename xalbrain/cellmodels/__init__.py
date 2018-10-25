@@ -25,7 +25,8 @@ __all__ = [
     "Adex",
     "CardiacCellModel",
     "MultiCellModel",
-    "Wei"
+    "Wei",
+    "Cressman",
 ]
 
 from .beeler_reuter_1977 import Beeler_reuter_1977
@@ -40,7 +41,7 @@ from .grandi_pasqualini_bers_2010 import Grandi_pasqualini_bers_2010
 from .adex_slow import AdexManual
 from .adex import Adex
 from .wei_manual import Wei
-from .wei_manual import Wei
+from .cressman_manual import Cressman
 
 # Only add supported cell model here if it is tested to actually run
 # with some multistage discretization
