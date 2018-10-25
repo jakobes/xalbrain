@@ -18,7 +18,6 @@ from xalbrain.utils import (
     state_space,
     TimeStepper,
     splat,
-    annotate_kwargs,
 )
 
 from typing import (
@@ -445,9 +444,6 @@ class CardiacODESolver:
         Scheme = self._name_to_scheme(name)
         self._scheme = Scheme(self._rhs, self.vs, self._time)
 
-        # Figure out whether we should annotate or not
-        self._annotate_kwargs = annotate_kwargs(self.parameters)
-
         # Initialize solver and update its parameters
         self._pi_solver = df.PointIntegralSolver(self._scheme)
         self._pi_solver.parameters.update(self.parameters["point_integral_solver"])
@@ -553,8 +549,7 @@ class CardiacODESolver:
         # Create timestepper
         time_stepper = TimeStepper(
             interval,
-            dt,
-            annotate=self.parameters["enable_adjoint"]
+            dt
         )
 
         for t0, t1 in time_stepper:

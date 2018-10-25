@@ -32,7 +32,7 @@ for u.
 
 # from xalbrain.dolfinimport import *
 from xalbrain.markerwisefield import *
-from xalbrain.utils import end_of_time, annotate_kwargs
+from xalbrain.utils import end_of_time
 
 import numpy as np
 
@@ -726,7 +726,7 @@ class BidomainSolver(BasicBidomainSolver):
             df.debug("Timestep has changed, updating LU factorization")
 
             # Update stored timestep
-            self._timestep.assign(df.Constant(dt))#, annotate=annotate)
+            self._timestep.assign(df.Constant(dt))
 
             # Reassemble matrix
             df.assemble(self._lhs, tensor=self._lhs_matrix)
@@ -744,10 +744,10 @@ class BidomainSolver(BasicBidomainSolver):
             df.debug("Timestep has changed, updating preconditioner")
 
             # Update stored timestep
-            self._timestep.assign(df.Constant(dt))#, annotate=annotate)
+            self._timestep.assign(df.Constant(dt))
 
             # Reassemble matrix
-            df.assemble(self._lhs, tensor=self._lhs_matrix, **self._annotate_kwargs)
+            df.assemble(self._lhs, tensor=self._lhs_matrix)
 
             # Make new Krylov solver
             self._linear_solver, dummy = self._create_linear_solver()
