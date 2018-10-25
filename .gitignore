@@ -2,6 +2,7 @@
 *.xml.gz
 .cache/
 Scratch/
+scratch/
 .mypy_cache/
 .pytest_cache/
 output/
