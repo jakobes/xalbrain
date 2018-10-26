@@ -14,6 +14,9 @@ from xalbrain import (
     BasicSplittingSolver,
     SplittingSolver,
     FitzHughNagumoManual,
+)
+
+from dolfin import (
     UnitCubeMesh,
     Constant
 )
@@ -35,7 +38,7 @@ class TestMerger(object):
         # Create basic solver
         solver = Solver(self.cardiac_model)
 
-        (vs_, vs, vur) = solver.solution_fields()
+        vs_, vs, vur = solver.solution_fields()
 
         vs.vector()[:] = 2.0
         vur.vector()[:] = 1.0

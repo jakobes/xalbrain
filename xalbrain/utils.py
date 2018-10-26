@@ -7,8 +7,6 @@ __all__ = ["state_space", "end_of_time", "convergence_rate",
 
 import math
 
-from xalbrain.dolfinimport import dolfin_adjoint
-
 import dolfin
 
 from dolfin import assemble, LUSolver, KrylovSolver, parameters
@@ -17,6 +15,7 @@ from typing import Dict
 
 
 def annotate_kwargs(ba_parameters: parameters) -> Dict[str, bool]:
+    return {}
     if not dolfin_adjoint:
         return {}
     if not ba_parameters["enable_adjoint"]:

@@ -29,7 +29,7 @@ __all__ = [
     "MonodomainSolver"
 ]
 
-from xalbrain.dolfinimport import *
+from dolfin import *
 from xalbrain.markerwisefield import *
 
 from xalbrain.utils import (

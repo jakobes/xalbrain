@@ -5,7 +5,7 @@
 __all__ = ["Markerwise", "handle_markerwise", "rhs_with_markerwise_field"]
 
 
-from xalbrain.dolfinimport import (
+from dolfin import (
     dx,
     Measure,
     error,

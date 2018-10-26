@@ -15,10 +15,12 @@ from xalbrain import (
     SplittingSolver,
     BasicCardiacODESolver,
     FitzHughNagumoManual,
+)
+
+from dolfin import (
     Constant,
     Expression,
     UnitCubeMesh,
-    dolfin_adjoint,
     parameters,
 )
 

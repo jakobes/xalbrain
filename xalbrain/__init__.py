@@ -9,7 +9,7 @@ To import the module, type::
 """
 
 # Import all of dolfin with possibly dolfin-adjoint on top
-from xalbrain.dolfinimport import *
+# from xalbrain.dolfinimport import *
 
 # Model imports
 from xalbrain.cardiacmodels import CardiacModel
@@ -34,5 +34,5 @@ import ufl
 ufl.algorithms.apply_derivatives.CONDITIONAL_WORKAROUND = True
 
 # Set-up some global parameters
-beat_parameters = dolfinimport.Parameters("beat-parameters")
-beat_parameters.add("enable_adjoint", True)
+# beat_parameters = dolfinimport.Parameters("beat-parameters")
+# beat_parameters.add("enable_adjoint", True)

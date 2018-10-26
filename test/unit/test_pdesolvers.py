@@ -12,7 +12,6 @@ from xalbrain import (
     BasicMonodomainSolver,
     MonodomainSolver,
     BidomainSolver,
-    Constant,
 )
 
 

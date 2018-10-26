@@ -16,7 +16,7 @@ from xalbrain import (
     MonodomainSolver,
     BasicMonodomainSolver,
 )
-    
+
 from xalbrain.utils import convergence_rate
 
 from typing import Tuple
@@ -26,14 +26,6 @@ from IPython import embed
 
 
 set_log_level(100)
-
-
-# args = sys.argv[:1] + """
-#                       --petsc.bidomain_ksp_monitor_true_residual
-#                       --petsc.bidomain_ksp_viewx
-#                       --petsc.bidomain_ksp_type cg
-#                       """.split()
-# parameters.parse(args)
 
 
 def main(N: int, dt: float, T: float, theta: float) -> Tuple[float, float, float, float]:

@@ -6,10 +6,13 @@ import logging
 import numpy as np
 
 from xalbrain import (
-    UnitSquareMesh,
     CardiacModel,
     SplittingSolver,
     SingleCellSolver,
+)
+
+from dolfin import (
+    UnitSquareMesh,
     Constant,
     Expression,
 )

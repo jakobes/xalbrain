@@ -2,12 +2,11 @@
 
 __author__ = "Marie E. Rognes (meg@simula.no), 2014"
 
-from xalbrain.dolfinimport import *
+import dolfin as df
 
 import numpy.linalg
 import pytest
 
-from xalbrain.dolfinimport import parameters
 from xalbrain.cellmodels import *
 from xalbrain.utils import state_space
 
@@ -75,15 +74,15 @@ def cell_model(request):
 def ode_test_form(request):
     Model = eval(request.param)
     model = Model()
-    mesh = UnitSquareMesh(10, 10)
-    V = FunctionSpace(mesh, "CG", 1)
+    mesh = df.UnitSquareMesh(10, 10)
+    V = df.FunctionSpace(mesh, "CG", 1)
     S = state_space(mesh, model.num_states())
-    Mx = MixedElement((V.ufl_element(), S.ufl_element()))
-    VS = FunctionSpace(mesh, Mx)
-    vs = Function(VS)
-    vs.assign(project(model.initial_conditions(), VS))
-    (v, s) = split(vs)
-    (w, r) = TestFunctions(VS)
-    rhs = inner(model.F(v, s), r) + inner(- model.I(v, s), w)
-    form = rhs*dP
+    Mx = df.MixedElement((V.ufl_element(), S.ufl_element()))
+    VS = df.FunctionSpace(mesh, Mx)
+    vs = df.Function(VS)
+    vs.assign(df.project(model.initial_conditions(), VS))
+    (v, s) = df.split(vs)
+    (w, r) = df.TestFunctions(VS)
+    rhs = df.inner(model.F(v, s), r) + df.inner(- model.I(v, s), w)
+    form = rhs*df.dP
     return form

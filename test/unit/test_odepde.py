@@ -18,6 +18,9 @@ from xalbrain import (
     SingleCellSolver,
     CardiacModel,
     SplittingSolver,
+)
+
+from dolfin import (
     Expression,
     UnitSquareMesh,
     Constant,

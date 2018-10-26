@@ -5,13 +5,17 @@ __all__ = ["TestSplittingSolver"]
 
 
 from testutils import fast
+
 from xalbrain import (
-    UnitCubeMesh,
-    Constant,
-    Expression,
     CardiacModel,
     FitzHughNagumoManual,
     SplittingSolver,
+)
+
+from dolfin import (
+    UnitCubeMesh,
+    Constant,
+    Expression,
     parameters,
 )
 
