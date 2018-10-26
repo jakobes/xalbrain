@@ -4,10 +4,9 @@ from __future__ import division
 __author__ = "Marie E. Rognes (meg@simula.no), 2012--2013"
 __all__ = ["CardiacCellModel", "MultiCellModel"]
 
-from xalbrain.dolfinimport import (
+from dolfin import (
     Parameters,
     Expression,
-    error,
     GenericFunction,
     VectorFunctionSpace,
     Function,

@@ -250,8 +250,8 @@ class BasicCardiacODESolver:
             dy = df.Measure("dx", domain=mesh, subdomain_data=model.markers())
 
             # Only allowing trivial forcing functions here
-            if isinstance(self._I_s, Markerwise):
-                error("Not implemented")
+            # if isinstance(self._I_s, Markerwise):
+            #     error("Not implemented")
 
             if self._I_s is None:
                 self._I_s = df.Constant(0)

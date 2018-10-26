@@ -8,7 +8,6 @@ __all__ = ["Markerwise", "handle_markerwise", "rhs_with_markerwise_field"]
 from dolfin import (
     dx,
     Measure,
-    error,
 )
 
 
@@ -22,7 +21,6 @@ def handle_markerwise(g, classtype):
     else:
         msg = "Expecting stimulus to be a %s or Markerwise, not %r " \
               % (str(classtype), g)
-        error(msg)
 
 
 def rhs_with_markerwise_field(g, mesh, v):

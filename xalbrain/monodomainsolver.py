@@ -214,7 +214,7 @@ class BasicMonodomainSolver:
 
         # Step through time steps until at end time
         while True:
-            info("Solving on t = (%g, %g)" % (t0, t1))
+            # info("Solving on t = (%g, %g)" % (t0, t1))
             self.step((t0, t1))
 
             # Yield solutions
@@ -401,7 +401,8 @@ class MonodomainSolver(BasicMonodomainSolver):
 
             update_routine = self._update_krylov_solver
         else:
-            error("Unknown linear_solver_type given: %s" % solver_type) 
+            assert False, "Unknown linear_solver_type given: %s"
+            # error( % solver_type)
         return (solver, update_routine)
 
     @staticmethod

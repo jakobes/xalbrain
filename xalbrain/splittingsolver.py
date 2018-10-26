@@ -322,7 +322,7 @@ class BasicSplittingSolver:
         )
 
         for t0, t1 in time_stepper:
-            df.info_blue("Solving on t = (%g, %g)" % (t0, t1))
+            # df.info_blue("Solving on t = (%g, %g)" % (t0, t1))
 
             # TODO: Debug
             # self.ode_solver.step((t0, t1))
