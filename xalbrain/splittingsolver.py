@@ -520,7 +520,7 @@ class SplittingSolver(BasicSplittingSolver):
         params.add(
             "ode_solver_choice",
             "CardiacODESolver",
-            ["BasicCardiacODESolver", "CardiacODESolver"]
+            {"BasicCardiacODESolver", "CardiacODESolver"}
         )
 
         # Add default parameters from ODE solver
