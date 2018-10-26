@@ -23,7 +23,7 @@ from collections import OrderedDict
 
 
 def error(arg):
-    assert False, arg
+    print(arg)
 
 
 class CardiacCellModel:
