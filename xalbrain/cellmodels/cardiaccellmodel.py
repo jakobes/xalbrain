@@ -22,6 +22,10 @@ import dolfin as df
 from collections import OrderedDict
 
 
+def error(arg):
+    assert False, arg
+
+
 class CardiacCellModel:
     """
     Base class for cardiac cell models. Specialized cell models should
