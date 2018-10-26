@@ -16,7 +16,7 @@ __author__ = "Marie E. Rognes (meg@simula.no), 2012--2013"
 __all__ = ["RogersMcCulloch"]
 
 from collections import OrderedDict
-from xalbrain.dolfinimport import Parameters, Expression
+from dolfin import Parameters, Expression
 from xalbrain.cellmodels import CardiacCellModel
 
 class RogersMcCulloch(CardiacCellModel):

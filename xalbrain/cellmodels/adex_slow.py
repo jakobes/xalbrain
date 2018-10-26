@@ -8,10 +8,9 @@ __author__ = "Jakob E. Schrein (jakob@xal.no), 2017"
 
 
 from collections import OrderedDict
-from xalbrain.dolfinimport import Expression
 from xalbrain.cellmodels import CardiacCellModel
 
-from dolfin import exp, assign, as_backend_type
+from dolfin import exp, assign, as_backend_type, Expression
 
 import numpy as np
 

@@ -1,4 +1,4 @@
-from xalbrain.dolfinimport import Parameters, Expression
+from dolfin import Parameters, Expression
 from xalbrain.cellmodels import CardiacCellModel
 
 from dolfin import exp

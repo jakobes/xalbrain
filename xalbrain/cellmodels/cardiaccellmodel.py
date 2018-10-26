@@ -7,7 +7,6 @@ __all__ = ["CardiacCellModel", "MultiCellModel"]
 from dolfin import (
     Parameters,
     Expression,
-    GenericFunction,
     VectorFunctionSpace,
     Function,
     DirichletBC,
@@ -112,9 +111,9 @@ class CardiacCellModel:
         for param_name, param_value in params.items():
             if param_name not in self._parameters:
                 error("'%s' is not a parameter in %s" %(param_name, self))
-            if not isinstance(param_value, (float, int, GenericFunction)):
+            if not isinstance(param_value, (float, int, Function)):
                 error("'%s' is not a scalar or a GenericFunction" % param_name)
-            if isinstance(param_value, GenericFunction) and \
+            if isinstance(param_value, Function) and \
                param_value.value_size() != 1:
                 error("expected the value_size of '%s' to be 1" % param_name)
 
@@ -125,9 +124,9 @@ class CardiacCellModel:
         for init_name, init_value in init.items():
             if init_name not in self._initial_conditions:
                 error("'%s' is not a parameter in %s" %(init_name, self))
-            if not isinstance(init_value, (float, int, GenericFunction)):
+            if not isinstance(init_value, (float, int, Function)):
                 error("'%s' is not a scalar or a GenericFunction" % init_name)
-            if isinstance(init_value, GenericFunction) and \
+            if isinstance(init_value, Function) and \
                init_value.value_size() != 1:
                 error("expected the value_size of '%s' to be 1" % init_name)
             self._initial_conditions[init_name] = init_value

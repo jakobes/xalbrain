@@ -110,11 +110,11 @@ class CardiacModel:
             df.error(msg)
 
         # Handle stimulus
-        self._stimulus = handle_markerwise(stimulus, df.GenericFunction)
+        self._stimulus = handle_markerwise(stimulus, df.Function)
 
         # Handle applied current
         ac = applied_current
-        self._applied_current = handle_markerwise(ac, df.GenericFunction)
+        self._applied_current = handle_markerwise(ac, df.Function)
         self._dirichlet_bcs_u = dirichlet_bc_u
         self._dirichlet_bcs_v = dirichlet_bc_v
 

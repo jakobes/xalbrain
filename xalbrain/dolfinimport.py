@@ -48,7 +48,6 @@ from dolfin import (
     MixedElement,
     CellFunction,
     dx,
-    GenericFunction,
     VectorFunctionSpace,
     DirichletBC,
     solve,

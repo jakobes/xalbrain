@@ -94,7 +94,7 @@ class BasicCardiacODESolver:
         self._num_states = self._model.num_states()
 
         # Handle stimulus
-        self._I_s = handle_markerwise(I_s, df.GenericFunction)
+        self._I_s = handle_markerwise(I_s, df.Function)
 
         # Initialize and update parameters if given
         self.parameters = self.default_parameters()
@@ -388,7 +388,7 @@ class CardiacODESolver:
         self._I_ion = self._model.I
         self._num_states = self._model.num_states()
 
-        self._I_s = handle_markerwise(I_s, df.GenericFunction)
+        self._I_s = handle_markerwise(I_s, df.Function)
 
         # Create time if not given, otherwise use given time
         if time is None:

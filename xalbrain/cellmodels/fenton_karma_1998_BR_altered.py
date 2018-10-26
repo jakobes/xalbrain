@@ -7,8 +7,8 @@ from __future__ import division
 from collections import OrderedDict
 import ufl
 
-from xalbrain.dolfinimport import *
 from xalbrain.cellmodels import CardiacCellModel
+from dolfin import *
 
 class Fenton_karma_1998_BR_altered(CardiacCellModel):
     def __init__(self, params=None, init_conditions=None):
