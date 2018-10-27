@@ -446,7 +446,7 @@ class CardiacODESolver:
 
         # Initialize solver and update its parameters
         self._pi_solver = df.PointIntegralSolver(self._scheme)
-        self._pi_solver.parameters.update(self.parameters["point_integral_solver"])
+        # self._pi_solver.parameters.update(self.parameters["point_integral_solver"])
 
     def _name_to_scheme(self, name):
         """Return scheme class with given name.
@@ -469,8 +469,8 @@ class CardiacODESolver:
         """
         params = df.Parameters("CardiacODESolver")
         params.add("scheme", "RK4")
-        params.add(df.PointIntegralSolver.default_parameters())
-        params.add("enable_adjoint", False)
+        # params.add(df.PointIntegralSolver.default_parameters())
+        # params.add("enable_adjoint", False)
 
         return params
 
