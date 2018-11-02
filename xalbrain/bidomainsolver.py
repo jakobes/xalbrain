@@ -706,8 +706,11 @@ class BidomainSolver(BasicBidomainSolver):
         for bc in self._bcs:
             bc.apply(self._lhs_matrix, self._rhs_vector)
 
-        rhs_norm = self._rhs_vector.array()[:].sum()/self._rhs_vector.size()/2
-        self._rhs_vector.array()[:] -= rhs_norm
+        extracellular_indices = np.arange(0, self._rhs_vector.size(), 2)
+        rhs_norm = self._rhs_vector.array()[extracellular_indices].sum()
+        rhs_norm /= extracellular_indices.size
+        # rhs_norm = self._rhs_vector.array()[extracellular_indices].sum()/extracellular_indices.size
+        self._rhs_vector.array()[extracellular_indices] -= rhs_norm
 
         # Solve problem
         self.linear_solver.solve(
