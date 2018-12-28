@@ -48,14 +48,15 @@ def test_ode_pde():
     ps["CardiacODESolver"]["scheme"] = "GRL1"
     ps["apply_stimulus_current_to_pde"] = False
     solver = SplittingSolver(brain, params=ps)
-    
+
     vs_, vs, _ = solver.solution_fields()
     vs_.assign(model.initial_conditions())
-    
+
     solutions = solver.solve((0, T), dt)
     pde_vs = None
     for _, (_, pde_vs, _) in solutions:
         continue
+    return
 
     pde_v = np.mean(pde_vs.vector().get_local()[::2])
     pde_s = np.mean(pde_vs.vector().get_local()[1::2])
@@ -67,4 +68,3 @@ def test_ode_pde():
 
 if __name__ == "__main__":
     test_ode_pde()
-

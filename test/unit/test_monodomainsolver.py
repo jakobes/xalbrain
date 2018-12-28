@@ -38,7 +38,7 @@ def main(N: int, dt: float, T: float, theta: float) -> Tuple[float, float, float
     # Set up solver
     params = BasicMonodomainSolver.default_parameters()
     params["theta"] = theta
-    params["linear_variational_solver"]["linear_solver"] = "direct"
+    # params["linear_variational_solver"]["linear_solver"] = "direct"
     params["enable_adjoint"] = False
     solver = BasicMonodomainSolver(mesh, time, M_i, I_s=stimulus, params=params)
 

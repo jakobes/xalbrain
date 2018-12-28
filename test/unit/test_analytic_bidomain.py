@@ -51,7 +51,7 @@ def main(
     # Set-up solver
     ps = BasicSplittingSolver.default_parameters()
     ps["theta"] = theta
-    ps["BasicBidomainSolver"]["linear_variational_solver"]["linear_solver"] = "direct"
+    # ps["BasicBidomainSolver"]["linear_variational_solver"]["linear_solver"] = "direct"
     solver = BasicSplittingSolver(heart, params=ps)
 
     # Define exact solution (Note: v is returned at end of time

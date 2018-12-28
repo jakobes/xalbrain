@@ -39,7 +39,7 @@ def main(N: int, dt: float, T: float, theta: float) -> Tuple[float, float, float
     ps = BasicSplittingSolver.default_parameters()
     ps["theta"] = theta
     ps["pde_solver"] = "monodomain"
-    ps["BasicMonodomainSolver"]["linear_variational_solver"]["linear_solver"] = "direct"
+    # ps["BasicMonodomainSolver"]["linear_variational_solver"]["linear_solver"] = "direct"
     solver = BasicSplittingSolver(brain, params=ps)
 
     vs0 = Function(solver.VS)

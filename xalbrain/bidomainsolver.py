@@ -211,7 +211,7 @@ class BasicBidomainSolver:
             self.merger = df.FunctionAssigner(V, self.VUR.sub(0))
             self.v_ = df.Function(V, name="v_")
         else:
-            df.debug("Experimental: v_ shipped from elsewhere.")
+            # df.debug("Experimental: v_ shipped from elsewhere.")
             self.merger = None
             self.v_ = v_
         self.vur = df.Function(self.VUR, name="vur")
@@ -287,7 +287,7 @@ class BasicBidomainSolver:
 
         # Step through time steps until at end time
         while True:
-            df.info("Solving on t = ({:g}, {:g})".format(t0, t1))
+            # df.info("Solving on t = ({:g}, {:g})".format(t0, t1))
             self.step((t0, t1))
 
             # Yield solutions
@@ -302,8 +302,8 @@ class BasicBidomainSolver:
 
             if isinstance(self.v_, df.Function):
                 self.merger.assign(self.v_, self.vur.sub(0))
-            else:
-                debug("Assuming that v_ is updated elsewhere. Experimental.")
+            #else:
+            #    # odebug("Assuming that v_ is updated elsewhere. Experimental.")
             t0 = t1
             t1 = t0 + dt
 
@@ -392,8 +392,8 @@ class BasicBidomainSolver:
 
         # Set-up solver
         solver = df.LinearVariationalSolver(pde)
-        solver.parameters.update(self.parameters["linear_variational_solver"])
-        solver.parameters["linear_solver"] = self.parameters["linear_solver_type"]
+        # solver.parameters.update(self.parameters["linear_variational_solver"])
+        # solver.parameters["linear_solver"] = self.parameters["linear_solver_type"]
         solver.solve()
 
     @staticmethod
@@ -427,17 +427,17 @@ class BasicBidomainSolver:
 
         # Add default parameters from both LU and Krylov solvers
 
-        params.add(df.LUSolver.default_parameters())
-        # Customize default parameters for LUSolver
-        params["lu_solver"]["same_nonzero_pattern"] = True
+        # params.add(df.LUSolver.default_parameters())
+        # # Customize default parameters for LUSolver
+        # params["lu_solver"]["same_nonzero_pattern"] = True
 
-        linear_params = df.LinearVariationalSolver.default_parameters()
+        # linear_params = df.LinearVariationalSolver.default_parameters()
 
-        # TODO: Add the rest of the Krylov parameters here
-        linear_params["krylov_solver"]["absolute_tolerance"] = 1e-14
-        linear_params["krylov_solver"]["relative_tolerance"] = 1e-14
-        linear_params["krylov_solver"]["nonzero_initial_guess"] = True
-        params.add(linear_params)
+        # # TODO: Add the rest of the Krylov parameters here
+        # linear_params["krylov_solver"]["absolute_tolerance"] = 1e-14
+        # linear_params["krylov_solver"]["relative_tolerance"] = 1e-14
+        # linear_params["krylov_solver"]["nonzero_initial_guess"] = True
+        # params.add(linear_params)
         return params
 
 
@@ -497,8 +497,8 @@ class BidomainSolver(BasicBidomainSolver):
 
         if solver_type == "direct":
             solver = df.LUSolver(self._lhs_matrix)
-            solver.parameters.update(self.parameters["lu_solver"])
-            solver.parameters["reuse_factorization"] = True
+            # solver.parameters.update(self.parameters["lu_solver"])
+            # solver.parameters["reuse_factorization"] = True
             update_routine = self._update_lu_solver
 
         elif solver_type == "iterative":
@@ -507,7 +507,7 @@ class BidomainSolver(BasicBidomainSolver):
             alg = self.parameters["algorithm"]
             prec = self.parameters["preconditioner"]
 
-            df.debug("Creating PETSCKrylovSolver with %s and %s" % (alg, prec))
+            # df.debug("Creating PETSCKrylovSolver with %s and %s" % (alg, prec))
 
             solver = df.PETScKrylovSolver(alg, prec)
             solver.set_operator(self._lhs_matrix)
@@ -575,17 +575,17 @@ class BidomainSolver(BasicBidomainSolver):
         params.add("preconditioner", "petsc_amg")
 
         # Add default parameters from both LU and Krylov solvers
-        params.add(df.LUSolver.default_parameters())
+        # params.add(df.LUSolver.default_parameters())
 
         # Customize default parameters for LUSolver
-        params["lu_solver"]["same_nonzero_pattern"] = True
+        # params["lu_solver"]["same_nonzero_pattern"] = True
 
-        petsc_params = df.PETScKrylovSolver.default_parameters()
-        petsc_params["absolute_tolerance"] = 1e-14
-        petsc_params["relative_tolerance"] = 1e-14
-        petsc_params["nonzero_initial_guess"] = True
-        petsc_params["convergence_norm_type"] = "preconditioned"
-        params.add(petsc_params)
+        # petsc_params = df.PETScKrylovSolver.default_parameters()
+        # petsc_params["absolute_tolerance"] = 1e-14
+        # petsc_params["relative_tolerance"] = 1e-14
+        # petsc_params["nonzero_initial_guess"] = True
+        # petsc_params["convergence_norm_type"] = "preconditioned"
+        # params.add(petsc_params)
         return params
 
     def variational_forms(self, kn: df.Constant) -> Tuple[Any, Any]:
@@ -688,9 +688,10 @@ class BidomainSolver(BasicBidomainSolver):
             self._lhs, self._rhs = self.variational_forms(self._timestep)
 
             # Preassemble left-hand side and initialize right-hand side vector
-            df.debug("Preassembling bidomain matrix (and initializing vector)")
+            # df.debug("Preassembling bidomain matrix (and initializing vector)")
             self._lhs_matrix = df.assemble(self._lhs)
             self._rhs_vector = df.Vector(self._mesh.mpi_comm(), self._lhs_matrix.size(0))
+
 
             self._lhs_matrix.init_vector(self._rhs_vector, 0)
 
@@ -707,10 +708,10 @@ class BidomainSolver(BasicBidomainSolver):
             bc.apply(self._lhs_matrix, self._rhs_vector)
 
         extracellular_indices = np.arange(0, self._rhs_vector.size(), 2)
-        rhs_norm = self._rhs_vector.array()[extracellular_indices].sum()
+        rhs_norm = self._rhs_vector.get_local()[extracellular_indices].sum()
         rhs_norm /= extracellular_indices.size
         # rhs_norm = self._rhs_vector.array()[extracellular_indices].sum()/extracellular_indices.size
-        self._rhs_vector.array()[extracellular_indices] -= rhs_norm
+        self._rhs_vector.get_local()[extracellular_indices] -= rhs_norm
 
         # Solve problem
         self.linear_solver.solve(
@@ -724,9 +725,10 @@ class BidomainSolver(BasicBidomainSolver):
         # Update reuse of factorization parameter in accordance with
         # changes in timestep
         if timestep_unchanged:
-            df.debug("Timestep is unchanged, reusing LU factorization")
+            pass
+        #     df.debug("Timestep is unchanged, reusing LU factorization")
         else:
-            df.debug("Timestep has changed, updating LU factorization")
+        #     df.debug("Timestep has changed, updating LU factorization")
 
             # Update stored timestep
             self._timestep.assign(df.Constant(dt))
@@ -742,9 +744,10 @@ class BidomainSolver(BasicBidomainSolver):
         # Update reuse of preconditioner parameter in accordance with
         # changes in timestep
         if timestep_unchanged:
-            df.debug("Timestep is unchanged, reusing preconditioner")
+            pass
+        #     df.debug("Timestep is unchanged, reusing preconditioner")
         else:
-            df.debug("Timestep has changed, updating preconditioner")
+        #     df.debug("Timestep has changed, updating preconditioner")
 
             # Update stored timestep
             self._timestep.assign(df.Constant(dt))
@@ -757,5 +760,5 @@ class BidomainSolver(BasicBidomainSolver):
 
         # Set nonzero initial guess if it indeed is nonzero
         if self.vur.vector().norm("l2") > 1.e-12:
-            df.debug("Initial guess is non-zero.")
+            # df.debug("Initial guess is non-zero.")
             self.linear_solver.parameters["nonzero_initial_guess"] = True

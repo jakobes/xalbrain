@@ -123,7 +123,7 @@ class BasicMonodomainSolver:
         if v_ is None:
             self.v_ = Function(V, name="v_")
         else:
-            debug("Experimental: v_ shipped from elsewhere.")
+            # debug("Experimental: v_ shipped from elsewhere.")
             self.v_ = v_
 
         self.v = Function(self.V, name="v")
@@ -227,8 +227,8 @@ class BasicMonodomainSolver:
             # If not: update members and move to next time
             if isinstance(self.v_, Function):
                 self.v_.assign(self.v)
-            else:
-                debug("Assuming that v_ is updated elsewhere. Experimental.")
+            # else:
+            #     debug("Assuming that v_ is updated elsewhere. Experimental.")
 
             t0 = t1
             t1 = t0 + dt
@@ -284,8 +284,8 @@ class BasicMonodomainSolver:
         # Set-up solver
         solver_type = self.parameters["linear_solver_type"]
         solver = LinearVariationalSolver(pde)
-        solver.parameters.update(self.parameters["linear_variational_solver"])
-        solver.parameters["linear_solver"] = self.parameters["linear_solver_type"]
+        # solver.parameters.update(self.parameters["linear_variational_solver"])
+        # solver.parameters["linear_solver"] = self.parameters["linear_solver_type"]
         solver.solve()
 
     @staticmethod
@@ -317,13 +317,13 @@ class BasicMonodomainSolver:
         params.add("use_custom_preconditioner", False)
 
         # Add default parameters from both LU and Krylov solvers
-        params.add(LUSolver.default_parameters())
-        params.add(KrylovSolver.default_parameters())
+        # params.add(LUSolver.default_parameters())
+        # params.add(KrylovSolver.default_parameters())
 
-        # Customize default parameters for LUSolver
-        params["lu_solver"]["same_nonzero_pattern"] = True
+        # # Customize default parameters for LUSolver
+        # params["lu_solver"]["same_nonzero_pattern"] = True
 
-        params.add(LinearVariationalSolver.default_parameters())
+        # params.add(LinearVariationalSolver.default_parameters())
         return params
 
 class MonodomainSolver(BasicMonodomainSolver):
@@ -356,7 +356,7 @@ class MonodomainSolver(BasicMonodomainSolver):
         self._lhs, self._rhs, self._prec = self.variational_forms(self._timestep)
 
         # Preassemble left-hand side (will be updated if time-step changes)
-        debug("Preassembling monodomain matrix (and initializing vector)")
+        # debug("Preassembling monodomain matrix (and initializing vector)")
         self._lhs_matrix = assemble(self._lhs, **self._annotate_kwargs)
         self._rhs_vector = Vector(mesh.mpi_comm(), self._lhs_matrix.size(0))
         self._lhs_matrix.init_vector(self._rhs_vector, 0)
@@ -376,13 +376,13 @@ class MonodomainSolver(BasicMonodomainSolver):
 
         if solver_type == "direct":
             solver = LUSolver(self._lhs_matrix, self.parameters["lu_type"])
-            solver.parameters.update(self.parameters["lu_solver"])
+            # solver.parameters.update(self.parameters["lu_solver"])
             update_routine = self._update_lu_solver
 
         elif solver_type == "iterative":
             # Preassemble preconditioner (will be updated if time-step
             # changes)
-            debug("Preassembling preconditioner")
+            # debug("Preassembling preconditioner")
             # Initialize KrylovSolver with matrix and preconditioner
             alg = self.parameters["algorithm"]
             prec = self.parameters["preconditioner"]
@@ -395,7 +395,7 @@ class MonodomainSolver(BasicMonodomainSolver):
                 solver.ksp().setFromOptions()
             else:
                 solver = PETScKrylovSolver(alg, prec)
-                solver.parameters.update(self.parameters["krylov_solver"])
+                # solver.parameters.update(self.parameters["krylov_solver"])
                 solver.set_operator(self._lhs_matrix)
                 solver.ksp().setFromOptions()
 
@@ -432,12 +432,12 @@ class MonodomainSolver(BasicMonodomainSolver):
         params.add("preconditioner", "petsc_amg")
         params.add("use_custom_preconditioner", False)
 
-        # Add default parameters from both LU and Krylov solvers
-        params.add(LUSolver.default_parameters())
-        params.add(KrylovSolver.default_parameters())
+        # # Add default parameters from both LU and Krylov solvers
+        # params.add(LUSolver.default_parameters())
+        # params.add(KrylovSolver.default_parameters())
 
         # Customize default parameters for LUSolver
-        params["lu_solver"]["same_nonzero_pattern"] = True
+        # params["lu_solver"]["same_nonzero_pattern"] = True
 
         # Customize default parameters for KrylovSolver
         #params["krylov_solver"]["preconditioner"]["structure"] = "same"
@@ -535,11 +535,12 @@ class MonodomainSolver(BasicMonodomainSolver):
         # Update reuse of factorization parameter in accordance with
         # changes in timestep
         if timestep_unchanged:
-            debug("Timestep is unchanged, reusing LU factorization")
-            self.linear_solver.parameters["reuse_factorization"] = True
+            # debug("Timestep is unchanged, reusing LU factorization")
+            # self.linear_solver.parameters["reuse_factorization"] = True
+            pass
         else:
-            debug("Timestep has changed, updating LU factorization")
-            self.linear_solver.parameters["reuse_factorization"] = False
+            # debug("Timestep has changed, updating LU factorization")
+            # self.linear_solver.parameters["reuse_factorization"] = False
 
             # Update stored timestep
             # FIXME: dolfin_adjoint still can't annotate constant assignment.
@@ -556,10 +557,11 @@ class MonodomainSolver(BasicMonodomainSolver):
         # Update reuse of preconditioner parameter in accordance with
         # changes in timestep
         if timestep_unchanged:
-            debug("Timestep is unchanged, reusing preconditioner")
+            # debug("Timestep is unchanged, reusing preconditioner")
             #self.linear_solver.parameters["preconditioner"]["structure"] = "same"
+            pass
         else:
-            debug("Timestep has changed, updating preconditioner")
+            # debug("Timestep has changed, updating preconditioner")
             #self.linear_solver.parameters["preconditioner"]["structure"] = \
             #                                            "same_nonzero_pattern"
 
@@ -574,6 +576,6 @@ class MonodomainSolver(BasicMonodomainSolver):
                 assemble(self._prec, tensor=self._prec_matrix, **self._annotate_kwargs)
 
         # Set nonzero initial guess if it indeed is nonzero
-        if (self.v.vector().norm("l2") > 1.e-12):
-            debug("Initial guess is non-zero.")
-            self.linear_solver.parameters["nonzero_initial_guess"] = True
+        # if (self.v.vector().norm("l2") > 1.e-12):
+        #     # debug("Initial guess is non-zero.")
+        #     self.linear_solver.parameters["nonzero_initial_guess"] = True

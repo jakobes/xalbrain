@@ -7,7 +7,7 @@ __all__ = ["TestSplittingSolver"]
 
 from testutils import assert_almost_equal, medium, parametrize
 
-from dolfin import info, set_log_level, WARNING
+from dolfin import info, set_log_level#, WARNING
 
 from xalbrain import (
     CardiacModel,
@@ -27,7 +27,7 @@ from dolfin import (
 import pytest
 
 
-set_log_level(WARNING)
+# set_log_level(WARNING)
 
 
 class TestSplittingSolver(object):
@@ -86,6 +86,9 @@ class TestSplittingSolver(object):
         params["BasicBidomainSolver"]["linear_solver_type"] = solver_type
         if solver_type == "direct":
             params["BasicBidomainSolver"]["use_avg_u_constraint"] = True
+        else:
+            params["BasicBidomainSolver"]["use_avg_u_constraint"] = False
+
         solver = BasicSplittingSolver(self.cardiac_model, params=params)
 
         vs_, vs, vur = solver.solution_fields()
@@ -107,6 +110,8 @@ class TestSplittingSolver(object):
         params["enable_adjoint"] = False
         if solver_type == "direct":
             params["BidomainSolver"]["use_avg_u_constraint"] = True
+        else:
+            params["BidomainSolver"]["use_avg_u_constraint"] = False
         solver = SplittingSolver(self.cardiac_model, params=params)
 
         vs_, vs, vur = solver.solution_fields()
@@ -130,5 +135,6 @@ class TestSplittingSolver(object):
 if __name__ == "__main__":
     tss = TestSplittingSolver()
     tss.setup()
+
     for solver in ("iterative", "direct"):
         foo, bar = tss.test_basic_and_optimised_splitting_solver_exact(solver)

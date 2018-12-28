@@ -259,7 +259,7 @@ class BasicSplittingSolver:
         params.add("theta", 0.5, 0., 1.)
         params.add("apply_stimulus_current_to_pde", False)
         # params.add("pde_solver", "bidomain", {"bidomain", "monodomain"})
-        params.add("pde_solver", "bidomain", ["bidomain", "monodomain"])
+        params.add("pde_solver", "bidomain")
 
         # Add default parameters from ODE solver, but update for V space
         ode_solver_params = BasicCardiacODESolver.default_parameters()
@@ -357,20 +357,20 @@ class BasicSplittingSolver:
         t = t0 + theta*dt
 
         # Compute tentative membrane potential and state (vs_star)
-        df.begin(df.PROGRESS, "Tentative ODE step")
+        # df.begin(df.PROGRESS, "Tentative ODE step")
         # Assumes that its vs_ is in the correct state, gives its vs
         # in the current state
         self.ode_solver.step((t0, t))
         self.vs_.assign(self.vs)
-        df.end()
+        # df.end()
 
         # Compute tentative potentials vu = (v, u)
-        df.begin(df.PROGRESS, "PDE step")
+        # df.begin(df.PROGRESS, "PDE step")
         # Assumes that its vs_ is in the correct state, gives vur in
         # the current state
 
         self.pde_solver.step((t0, t1))
-        df.end()
+        # df.end()
 
         # If first order splitting, we need to ensure that self.vs is
         # up to date, but otherwise we are done.
@@ -382,7 +382,7 @@ class BasicSplittingSolver:
             return
 
         # Otherwise, we do another ode_step:
-        df.begin(df.PROGRESS, "Corrective ODE step")
+        # df.begin(df.PROGRESS, "Corrective ODE step")
 
         # Assumes that the v part of its vur and the s part of its vs
         # are in the correct state, provides input argument (in this
@@ -392,7 +392,7 @@ class BasicSplittingSolver:
         # the correct state
 
         self.ode_solver.step((t, t1))
-        df.end()
+        # df.end()
 
     def merge(self, solution: df.Function) -> None:
         """
@@ -404,14 +404,14 @@ class BasicSplittingSolver:
         """
         timer = df.Timer("Merge step")
 
-        df.begin(df.PROGRESS, "Merging")
+        # df.begin(df.PROGRESS, "Merging")
         if self._parameters["pde_solver"] == "bidomain":
             v = self.vur.sub(0)
         else:
             v = self.vur
 
         self.merger.assign(solution.sub(0), v)
-        df.end()
+        # df.end()
 
         timer.stop()
 
@@ -518,12 +518,10 @@ class SplittingSolver(BasicSplittingSolver):
         params.add("theta", 0.5, 0, 1)
         params.add("apply_stimulus_current_to_pde", False)
         # params.add("pde_solver", "bidomain", {"bidomain", "monodomain"})
-        params.add("pde_solver", "bidomain", ["bidomain", "monodomain"])
+        params.add("pde_solver", "bidomain")
         params.add(
             "ode_solver_choice",
-            "CardiacODESolver",
-            # {"BasicCardiacODESolver", "CardiacODESolver"}
-            ["BasicCardiacODESolver", "CardiacODESolver"]
+            "CardiacODESolver"
         )
 
         # Add default parameters from ODE solver
@@ -554,7 +552,7 @@ class SplittingSolver(BasicSplittingSolver):
         cell_model = self._model.cell_models
 
         # Extract stimulus from the cardiac model(!)
-        if self.parameters.apply_stimulus_current_to_pde:
+        if self._parameters["apply_stimulus_current_to_pde"]:
             stimulus = None
         else:
             stimulus = self._model.stimulus()
@@ -584,7 +582,7 @@ class SplittingSolver(BasicSplittingSolver):
         ect_current = self._model.ect_current
 
         # Extract stimulus from the cardiac model
-        if self._parameters.apply_stimulus_current_to_pde:
+        if self._parameters["apply_stimulus_current_to_pde"]:
             stimulus = self._model.stimulus()
         else:
             stimulus = None
@@ -621,8 +619,8 @@ class SplittingSolver(BasicSplittingSolver):
             )
 
         # Propagate enable_adjoint to Bidomain solver
-        if params.has_key("enable_adjoint"):
-            params["enable_adjoint"] = self._parameters["enable_adjoint"]
+        # if params.has_key("enable_adjoint"):
+        #     params["enable_adjoint"] = self._parameters["enable_adjoint"]
 
         solver = PDESolver(*args, **kwargs)
         return solver

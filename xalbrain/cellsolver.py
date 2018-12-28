@@ -4,7 +4,8 @@
 __author__ = "Marie E. Rognes (meg@simula.no), 2012--2013"
 
 
-# from xalbrain.dolfinimport import *
+import ufl
+
 from xalbrain.markerwisefield import *
 
 import dolfin as df
@@ -196,7 +197,7 @@ class BasicCardiacODESolver:
         time_stepper = TimeStepper(interval, dt)
         for t0, t1 in time_stepper:
 
-            df.info_blue("Solving on t = ({:g}, {:g})".format(t0, t1))
+            # df.info_blue("Solving on t = ({:g}, {:g})".format(t0, t1))
             self.step((t0, t1))
 
             # Yield solutions
@@ -423,7 +424,7 @@ class CardiacODESolver:
 
         # MER: This looks much more complicated than it needs to be!
         # If we have a as_vector expression
-        F_exprs_q = df.zero()
+        F_exprs_q = ufl.zero()
         if isinstance(F_exprs, ufl.classes.ListTensor):
             for i, expr_i in enumerate(F_exprs.ufl_operands):
                 F_exprs_q += expr_i*q[i]
@@ -458,7 +459,7 @@ class CardiacODESolver:
           the Scheme (:py:class:`dolfin.MultiStageScheme`)
 
         """
-        return eval("df.{:s}".format(name))
+        return eval("df.multistage.{:s}".format(name))
 
     @staticmethod
     def default_parameters() -> df.Parameters:
@@ -553,7 +554,7 @@ class CardiacODESolver:
         )
 
         for t0, t1 in time_stepper:
-            df.info_blue("Solving on t = (%g, %g)" % (t0, t1))
+            # df.info_blue("Solving on t = (%g, %g)" % (t0, t1))
             self.step((t0, t1))
 
             # Yield solutions

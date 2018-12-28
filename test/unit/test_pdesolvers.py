@@ -218,7 +218,6 @@ class TestBidomainSolver:
         )
 
         for _, (v_, vur) in solver.solve((self.t0, self.t0 + 2*self.dt), self.dt):
-            # print(vur.vector().array())
             pass
 
         bidomain_result = vur.vector().norm("l2")
@@ -238,7 +237,6 @@ class TestBidomainSolver:
         )
 
         for _, (v_, vur) in solver.solve((self.t0, self.t0 + 2*self.dt), self.dt):
-            print(vur.vector().array())
             pass
 
         basic_bidomain_result = vur.vector().norm("l2")
@@ -274,7 +272,6 @@ class TestBidomainSolver:
         params = BidomainSolver.default_parameters()
         params["linear_solver_type"] = "iterative"
         params["use_avg_u_constraint"] =  False
-        params["petsc_krylov_solver"]["monitor_convergence"] = True
         solver = BidomainSolver(
             self.mesh,
             self.time,
@@ -387,7 +384,7 @@ class TestMonodomainSolver:
         # Create solver and solve using iterative means
         params = MonodomainSolver.default_parameters()
         params["linear_solver_type"] = "iterative"
-        params["krylov_solver"]["monitor_convergence"] = True
+        # params["krylov_solver"]["monitor_convergence"] = True
         solver = MonodomainSolver(
             self.mesh,
             self.time,
@@ -406,5 +403,8 @@ class TestMonodomainSolver:
 
 
 if __name__ == "__main__":
-    tester = TestBidomainSolver()
-    tester.test_compare_with_basic_solve()
+    # tester = TestBidomainSolver()
+    # tester.test_compare_direct_iterative()
+
+    tester = TestMonodomainSolver()
+    tester.test_solve()
