@@ -129,11 +129,13 @@ class BasicSplittingSolver:
       * The cardiac conductivities do not vary in time
     """
 
-    def __init__(self, model, params=None):
+    def __init__(self, model, ode_timestep=None, params=None):
         """Create solver from given Cardiac Model and (optional) parameters."""
 
         assert isinstance(model, CardiacModel), \
             "Expecting CardiacModel as first argument"
+
+        self._ode_timestep = ode_timestep
 
         # Set model and parameters
         self._model = model
@@ -360,7 +362,13 @@ class BasicSplittingSolver:
         # df.begin(df.PROGRESS, "Tentative ODE step")
         # Assumes that its vs_ is in the correct state, gives its vs
         # in the current state
-        self.ode_solver.step((t0, t))
+        # self.ode_solver.step((t0, t))
+        if self._ode_timestep is None:
+            self.ode_solver.step((t0, t))
+        else:
+            for _ in self.ode_solver.solve((t0, t), self._ode_timestep):
+                pass
+
         self.vs_.assign(self.vs)
         # df.end()
 
@@ -391,7 +399,13 @@ class BasicSplittingSolver:
         # Assumes that its vs_ is in the correct state, provides vs in
         # the correct state
 
-        self.ode_solver.step((t, t1))
+        # self.ode_solver.step((t0, t))
+        if self._ode_timestep is None:
+            self.ode_solver.step((t0, t))
+        else:
+            for _ in self.ode_solver.solve((t0, t), self._ode_timestep):
+                pass
+
         # df.end()
 
     def merge(self, solution: df.Function) -> None:
@@ -498,8 +512,8 @@ class SplittingSolver(BasicSplittingSolver):
 
     """
 
-    def __init__(self, model, params=None):
-        BasicSplittingSolver.__init__(self, model, params)
+    def __init__(self, model, ode_timestep=None, params=None):
+        BasicSplittingSolver.__init__(self, model, ode_timestep, params)
 
     @staticmethod
     def default_parameters() -> df.Parameters:

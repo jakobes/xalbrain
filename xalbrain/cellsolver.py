@@ -16,8 +16,7 @@ from xalbrain.cellmodels import (
 )
 
 from xalbrain.utils import (
-    state_space,
-    TimeStepper,
+    state_space, TimeStepper,
     splat,
 )
 

@@ -256,10 +256,17 @@ class BasicMonodomainSolver:
         t = t0 + theta*(t1 - t0)
         self.time.assign(t)
 
+        # Get physical parameters
+        chi = self.parameters["Chi"]
+        capacitance = self.parameters["Cm"]
+        lam = self.parameters["lambda"]
+        lam_frac = Constant(lam/(1 + lam))
+
         # Define variational formulation
         v = TrialFunction(self.V)
         w = TestFunction(self.V)
         Dt_v_k_n = (v - self.v_)/k_n
+        Dt_v_k_n *= chi*capacitance
         v_mid = theta*v + (1.0 - theta)*self.v_
 
         dz = Measure("dx", domain=self._mesh, subdomain_data=self._cell_domains)
@@ -270,12 +277,12 @@ class BasicMonodomainSolver:
 
         for key in cell_tags:
             G = Dt_v_k_n*w*dz(key)
-            G += inner(M_i[key]*grad(v_mid), grad(w))*dz(key)
+            G += lam_frac*inner(M_i[key]*grad(v_mid), grad(w))*dz(key)
 
             if self._I_s is None:
-                G -= Constant(0)*w*dz(key)
+                G -= chi*Constant(0)*w*dz(key)
             else:
-                G -= self._I_s*w*dz(key)
+                G -= chi*self._I_s*w*dz(key)
 
         # Define variational problem
         a, L = system(G)
@@ -315,6 +322,10 @@ class BasicMonodomainSolver:
         params.add("algorithm", "cg")
         params.add("preconditioner", "petsc_amg")
         params.add("use_custom_preconditioner", False)
+
+        params.add("Chi", 1.0)      # Membrane to volume ratio
+        params.add("Cm", 1.0)      # Membrane Capacitance
+        params.add("lambda", 1.0)
 
         # Add default parameters from both LU and Krylov solvers
         # params.add(LUSolver.default_parameters())
@@ -432,6 +443,11 @@ class MonodomainSolver(BasicMonodomainSolver):
         params.add("preconditioner", "petsc_amg")
         params.add("use_custom_preconditioner", False)
 
+
+        params.add("Chi", 1.0)        # Membrane to volume ratio
+        params.add("Cm", 1.0)         # Membrane capacitance
+        params.add("lambda", 1.0)
+
         # # Add default parameters from both LU and Krylov solvers
         # params.add(LUSolver.default_parameters())
         # params.add(KrylovSolver.default_parameters())
@@ -462,8 +478,14 @@ class MonodomainSolver(BasicMonodomainSolver):
         v = TrialFunction(self.V)
         w = TestFunction(self.V)
 
+        chi = self.parameters["Chi"]
+        capacitance = self.parameters["Cm"]
+        lam = self.parameters["lambda"]
+        lam_frac = Constant(lam/(1 + lam))
+
         # Set-up variational problem
         Dt_v_k_n = (v - self.v_)/k_n
+        Dt_v_k_n *= chi*capacitance
         v_mid = theta*v + (1.0 - theta)*self.v_
 
         # dz, rhs = rhs_with_markerwise_field(self._I_s, self._mesh, w)
@@ -477,12 +499,12 @@ class MonodomainSolver(BasicMonodomainSolver):
 
         for key in cell_tags:
             G = Dt_v_k_n*w*dz(key)
-            G += inner(M_i[key]*grad(v_mid), grad(w))*dz(key)
+            G += lam_frac*inner(M_i[key]*grad(v_mid), grad(w))*dz(key)
 
             if self._I_s is None:
-                G -= Constant(0)*w*dz(key)
+                G -= chi*Constant(0)*w*dz(key)
             else:
-                G -= self._I_s*w*dz(key)
+                G -= chi*self._I_s*w*dz(key)
 
 
         # Define preconditioner based on educated(?) guess by Marie
