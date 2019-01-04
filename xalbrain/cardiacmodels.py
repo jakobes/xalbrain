@@ -12,10 +12,6 @@ import dolfin as df
 
 import xalbrain as xb
 
-from xalbrain.markerwisefield import (
-    Markerwise,
-)
-
 from .cellmodels import *       # Why do I need this?
 
 from typing import (
@@ -102,9 +98,6 @@ class CardiacModel:
 
         # Handle cell_models
         self._cell_models = cell_models
-        if isinstance(self._cell_models, Markerwise):
-            msg = "Different cell_models are currently not supported."
-            df.error(msg)
 
         # Handle stimulus
         self._stimulus = stimulus

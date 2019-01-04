@@ -160,7 +160,7 @@ class BasicCardiacODESolver:
         """
         return self.vs_, self.vs
 
-    def solve(self, interval: Tuple[float, float], dt: float=None) -> Any:
+    def solve(self, interval: Tuple[float, float], dt: float = None) -> Any:
         """
         Solve the problem given by the model on a given time interval
         (t0, t1) with a given timestep dt and return generator for a

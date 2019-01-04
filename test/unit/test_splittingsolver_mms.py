@@ -52,7 +52,7 @@ def main(N, dt, T, theta=0.5):
 
     # Source term
     ac_str = "cos(t)*cos(pi*x[0])*cos(pi*x[1]) + pow(pi, 2)*cos(pi*x[0])*cos(pi*x[1])*sin(t)"
-    ac_str +=" - " + s_exact_str
+    ac_str += " - " + s_exact_str
 
     # Create data
     mesh = df.UnitSquareMesh(N, N)

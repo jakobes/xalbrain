@@ -1,29 +1,19 @@
 """This module provides various utilities for internal use."""
 
-__author__ = "Marie E. Rognes (meg@simula.no), 2012--2013"
 
-__all__ = ["state_space", "end_of_time", "convergence_rate",
-           "Projecter"]
+__author__ = "Marie E. Rognes (meg@simula.no), 2012--2013"
+__all__ = ["state_space", "end_of_time", "convergence_rate", "Projecter"]
+
 
 import math
 
-import dolfin
+import dolfin as df
 
-from dolfin import assemble, LUSolver, KrylovSolver, parameters
-
-from typing import Dict
-
-
-def annotate_kwargs(ba_parameters: parameters) -> Dict[str, bool]:
-    return {}
-    if not dolfin_adjoint:
-        return {}
-    if not ba_parameters["enable_adjoint"]:
-        return {"annotate": False}
-    if parameters["adjoint"]["stop_annotating"]:
-        return {"annotate": False}
-
-    return {"annotate": True}
+from typing import (
+    Tuple,
+    List,
+    Sequence,
+)
 
 
 def splat(vs, dim):
@@ -32,18 +22,23 @@ def splat(vs, dim):
         if dim == 2:
             s = vs[1]
         else:
-            s = dolfin.as_vector([vs[i] for i in range(1, dim)])
+            s = df.as_vector([vs[i] for i in range(1, dim)])
     else:
-        v, s = dolfin.split(vs)
+        v, s = df.split(vs)
     return v, s
 
 
-def state_space(domain: dolfin.Mesh, d: int, family: str=None, k: int=1) -> \
-        dolfin.FunctionSpace:
-    """Return function space for the state variables.
+def state_space(
+        domain: df.Mesh,
+        d: int,
+        family: str = None,
+        k: int = 1
+) -> df.FunctionSpace:
+    """
+    Return function space for the state variables.
 
     *Arguments*
-      domain (:py:class:`dolfin.Mesh`)
+      domain (:py:class:`df.Mesh`)
         The computational domain
       d (int)
         The number of states
@@ -53,14 +48,14 @@ def state_space(domain: dolfin.Mesh, d: int, family: str=None, k: int=1) -> \
         The finite element degree, defaults to 1
 
     *Returns*
-      a function space (:py:class:`dolfin.FunctionSpace`)
+      a function space (:py:class:`df.FunctionSpace`)
     """
     if family is None:
         family = "CG"
     if d > 1:
-        S = dolfin.VectorFunctionSpace(domain, family, k, d)
+        S = df.VectorFunctionSpace(domain, family, k, d)
     else:
-        S = dolfin.FunctionSpace(domain, family, k)
+        S = df.FunctionSpace(domain, family, k)
     return S
 
 
@@ -69,14 +64,13 @@ def end_of_time(T: float, t0: float, t1: float, dt: float) -> bool:
     Return True if the interval (t0, t1) is the last before the end
     time T, otherwise False.
     """
-    return (t1 + dt) > (T + dolfin.DOLFIN_EPS)
+    return (t1 + dt) > (T + df.DOLFIN_EPS)
 
 
 class TimeStepper:
-    """
-    A helper object that keep track of simulated time
-    """
-    def __init__(self, interval, dt, annotate=False):
+    """A helper object that keep track of simulated time"""
+
+    def __init__(self, interval: Tuple[float, float], dt: float) -> None:
         """
         *Arguments*
           interval (:py:class:`tuple`)
@@ -85,12 +79,7 @@ class TimeStepper:
             The timestep for the solve. A list of tuples of floats can
             also be passed. Each tuple should contain two floats where the
             first includes the start time and the second the dt.
-          annotate (:py:class:`bool)
-            If enabling dolfin_adjoint timestep annotation
         """
-
-        self.annotate = annotate
-
         if not isinstance(interval, (tuple, list)) or len(interval) != 2 or \
                not all(isinstance(value, (float, int)) for value in interval):
             raise TypeError("expected tuple or list of size 2 with scalars for "\
@@ -139,20 +128,12 @@ class TimeStepper:
         # Keep track of dt index
         self._dt_ind = 0
         self.t0 = self.T0
-        #self.t1 = self.T0 + self.dt
-
-        # Step through time steps until at end time.
-        if self.annotate and dolfin_adjoint:
-            dolfin_adjoint.adj_start_timestep(self.T0)
 
     def __iter__(self):
-        """
-        Return an iterator over time intervals
-        """
+        """Return an iterator over time intervals."""
         eps = 1e-10
 
         while True:
-
             # Get next t1
             t1 = self.next_t1()
 
@@ -160,25 +141,17 @@ class TimeStepper:
             yield self.t0, t1
 
             # Break if this is the last step
-            if abs(t1-self.T1) < eps:
-                if self.annotate and dolfin_adjoint:
-                    dolfin_adjoint.adj_inc_timestep(time=t1, finished=True)
+            if abs(t1 - self.T1) < eps:
                 break
-
-            # Move to next time
-            if self.annotate and dolfin_adjoint:
-                dolfin_adjoint.adj_inc_timestep(time=t1)
-
             self.t0 = t1
 
     def next_t1(self):
-        """
-        Return the time of next end interval
-        """
+        """Return the time of next end interval."""
         assert self._dt_ind < len(self._dt)+1
         dt = self._dt[self._dt_ind][1]
         time_to_switch_dt = self._dt[self._dt_ind+1][0]
-        if time_to_switch_dt - dolfin.DOLFIN_EPS > self.t0 + dt :
+
+        if time_to_switch_dt - df.DOLFIN_EPS > self.t0 + dt :
             return self.t0 + dt
 
         # Update dt index
@@ -186,29 +159,25 @@ class TimeStepper:
         return time_to_switch_dt
 
 
-def convergence_rate(hs, errors):
+def convergence_rate(hs: Sequence[float], errors: Sequence[float]) -> List[float]:
     """
     Compute and return rates of convergence :math:`r_i` such that
 
     .. math::
 
       errors = C hs^r
-
     """
     assert (len(hs) == len(errors)), "hs and errors must have same length."
-    # Compute converence rates
-    rates = [(math.log(errors[i+1]/errors[i]))/(math.log(hs[i+1]/hs[i]))
-             for i in range(len(hs)-1)]
-
-    # Return convergence rates
+    ln = math.log
+    rates = [(ln(errors[i + 1]/errors[i]))/(ln(hs[i + 1]/hs[i])) for i in range(len(hs) - 1)]
     return rates
 
 
-class Projecter(object):
+class Projecter:
     """Customized class for repeated projection.
 
     *Arguments*
-      V (:py:class:`dolfin.FunctionSpace`)
+      V (:py:class:`df.FunctionSpace`)
         The function space to project into
       solver_type (string, optional)
         "iterative" (default) or "direct"
@@ -228,25 +197,25 @@ class Projecter(object):
 
         # Set-up mass matrix for L^2 projection
         self.V = V
-        self.u = dolfin.TrialFunction(self.V)
-        self.v = dolfin.TestFunction(self.V)
-        self.m = dolfin.inner(self.u, self.v)*dolfin.dx()
-        self.M = assemble(self.m)
-        self.b = dolfin.Vector(V.mesh().mpi_comm(), V.dim())
+        self.u = df.TrialFunction(self.V)
+        self.v = df.TestFunction(self.V)
+        self.m = df.inner(self.u, self.v)*dolfin.dx()
+        self.M = df.assemble(self.m)
+        self.b = df.Vector(V.mesh().mpi_comm(), V.dim())
 
         solver_type = self.parameters["linear_solver_type"]
         assert(solver_type == "lu" or solver_type == "cg"),  \
             "Expecting 'linear_solver_type' to be 'lu' or 'cg'"
         if solver_type == "lu":
-            dolfin.debug("Setting up direct solver for projecter")
+            df.debug("Setting up direct solver for projecter")
             # Customize LU solver (reuse everything)
-            solver = LUSolver(self.M)
+            solver = df.LUSolver(self.M)
             solver.parameters["same_nonzero_pattern"] = True
             solver.parameters["reuse_factorization"] = True
         else:
-            dolfin.debug("Setting up iterative solver for projecter")
+            df.debug("Setting up iterative solver for projecter")
             # Customize Krylov solver (reuse everything)
-            solver = KrylovSolver("cg", "ilu")
+            solver = df.KrylovSolver("cg", "ilu")
             solver.set_operator(self.M)
             solver.parameters["preconditioner"]["structure"] = "same"
             # solver.parameters["nonzero_initial_guess"] = True
@@ -254,7 +223,7 @@ class Projecter(object):
 
     @staticmethod
     def default_parameters():
-        parameters = dolfin.Parameters("Projecter")
+        parameters = df.Parameters("Projecter")
         parameters.add("linear_solver_type", "cg")
         return parameters
 
@@ -267,9 +236,9 @@ class Projecter(object):
         *Arguments*
           f (:py:class:`ufl.Expr`)
             The thing to be projected into this function space
-          u (:py:class:`dolfin.Function`)
+          u (:py:class:`df.Function`)
             The result of the projection
         """
-        L = dolfin.inner(f, self.v)*dolfin.dx()
-        assemble(L, tensor=self.b)
+        L = df.inner(f, self.v)*dolfin.dx()
+        df.assemble(L, tensor=self.b)
         self.solver.solve(u.vector(), self.b)
