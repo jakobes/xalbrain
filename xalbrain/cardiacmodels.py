@@ -8,14 +8,12 @@ scenarios.
 # Use and modify at will
 # Last changed: 2016-04-21
 
-__all__ = ["CardiacModel"] 
 import dolfin as df
 
 import xalbrain as xb
 
 from xalbrain.markerwisefield import (
     Markerwise,
-    handle_markerwise,
 )
 
 from .cellmodels import *       # Why do I need this?
@@ -29,9 +27,8 @@ from typing import (
 )
 
 
-# ------------------------------------------------------------------------------
-# Cardiac models
-# ------------------------------------------------------------------------------
+__all__ = ["CardiacModel"] 
+
 
 class CardiacModel:
     """
@@ -104,17 +101,16 @@ class CardiacModel:
         self._facet_domains = facet_domains
 
         # Handle cell_models
-        self._cell_models = handle_markerwise(cell_models, CardiacCellModel)
+        self._cell_models = cell_models
         if isinstance(self._cell_models, Markerwise):
             msg = "Different cell_models are currently not supported."
             df.error(msg)
 
         # Handle stimulus
-        self._stimulus = handle_markerwise(stimulus, df.Function)
+        self._stimulus = stimulus
 
         # Handle applied current
-        ac = applied_current
-        self._applied_current = handle_markerwise(ac, df.Function)
+        self._applied_current = applied_current
         self._dirichlet_bcs_u = dirichlet_bc_u
         self._dirichlet_bcs_v = dirichlet_bc_v
 

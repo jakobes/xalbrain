@@ -30,8 +30,7 @@ for u.
 # Use and modify at will
 # Last changed: 2013-04-18
 
-# from xalbrain.dolfinimport import *
-from xalbrain.markerwisefield import *
+# from xalbrain.markerwisefield import *
 from xalbrain.utils import end_of_time
 
 import numpy as np
@@ -282,6 +281,7 @@ class BasicBidomainSolver:
         T0, T = interval
         if dt is None:
             dt = T - T0
+
         t0 = T0
         t1 = T0 + dt
 
@@ -299,11 +299,9 @@ class BasicBidomainSolver:
 
             # If not: update members and move to next time
             # Subfunction assignment would be good here.
-
             if isinstance(self.v_, df.Function):
                 self.merger.assign(self.v_, self.vur.sub(0))
-            #else:
-            #    # odebug("Assuming that v_ is updated elsewhere. Experimental.")
+
             t0 = t1
             t1 = t0 + dt
 
@@ -387,13 +385,10 @@ class BasicBidomainSolver:
 
         # Define variational problem
         a, L = df.system(G)
-
         pde = df.LinearVariationalProblem(a, L, self.vur, bcs=self._bcs)
 
         # Set-up solver
         solver = df.LinearVariationalSolver(pde)
-        # solver.parameters.update(self.parameters["linear_variational_solver"])
-        # solver.parameters["linear_solver"] = self.parameters["linear_solver_type"]
         solver.solve()
 
     @staticmethod
@@ -407,7 +402,6 @@ class BasicBidomainSolver:
 
           info(BasicBidomainSolver.default_parameters(), True)
         """
-
         params = df.Parameters("BasicBidomainSolver")
         params.add("enable_adjoint", False)
         params.add("theta", 0.5)
@@ -417,27 +411,12 @@ class BasicBidomainSolver:
         # Set default solver type to be iterative
         params.add("linear_solver_type", "direct")
 
-        # Set default iterative solver choices (used if iterative
-        # solver is invoked)
+        # Set default iterative solver choices (used if iterative solver is invoked)
         params.add("algorithm", "gmres")
         params.add("preconditioner", "petsc_amg")
 
         params.add("Chi", 1.0)        # Membrane to volume ratio
         params.add("Cm", 1.0)         # Membrane capacitance
-
-        # Add default parameters from both LU and Krylov solvers
-
-        # params.add(df.LUSolver.default_parameters())
-        # # Customize default parameters for LUSolver
-        # params["lu_solver"]["same_nonzero_pattern"] = True
-
-        # linear_params = df.LinearVariationalSolver.default_parameters()
-
-        # # TODO: Add the rest of the Krylov parameters here
-        # linear_params["krylov_solver"]["absolute_tolerance"] = 1e-14
-        # linear_params["krylov_solver"]["relative_tolerance"] = 1e-14
-        # linear_params["krylov_solver"]["nonzero_initial_guess"] = True
-        # params.add(linear_params)
         return params
 
 
@@ -460,7 +439,6 @@ class BidomainSolver(BasicBidomainSolver):
             dirichlet_bc_v: List[Tuple[df.Expression, int]] = None,
             params: df.Parameters = None
     ) -> None:
-        # Call super-class
         BasicBidomainSolver.__init__(
             self,
             mesh,
@@ -477,18 +455,12 @@ class BidomainSolver(BasicBidomainSolver):
             dirichlet_bc_v=dirichlet_bc_v,
             params=params
         )
-
-        # Check consistency of parameters first
-        if self.parameters["enable_adjoint"] and not dolfin_adjoint:
-            df.warning("'enable_adjoint' is set to True, but no dolfin_adjoint installed.")
-
         # Mark the timestep as unset
         self._timestep = None
 
     @property
     def linear_solver(self) -> Union[df.LinearVariationalSolver, df.PETScKrylovSolver]:
-        """The linear solver (:py:class:`dolfin.LUSolver` or
-        :py:class:`dolfin.PETScKrylovSolver`)."""
+        """The linear solver (:py:class:`dolfin.LUSolver` or :py:class:`dolfin.PETScKrylovSolver`)."""
         return self._linear_solver
 
     def _create_linear_solver(self):
@@ -497,8 +469,6 @@ class BidomainSolver(BasicBidomainSolver):
 
         if solver_type == "direct":
             solver = df.LUSolver(self._lhs_matrix)
-            # solver.parameters.update(self.parameters["lu_solver"])
-            # solver.parameters["reuse_factorization"] = True
             update_routine = self._update_lu_solver
 
         elif solver_type == "iterative":
@@ -507,32 +477,19 @@ class BidomainSolver(BasicBidomainSolver):
             alg = self.parameters["algorithm"]
             prec = self.parameters["preconditioner"]
 
-            # df.debug("Creating PETSCKrylovSolver with %s and %s" % (alg, prec))
-
             solver = df.PETScKrylovSolver(alg, prec)
             solver.set_operator(self._lhs_matrix)
-
 
             # Set nullspace if present. We happen to know that the
             # transpose nullspace is the same as the nullspace (easy
             # to prove from matrix structure).
-            if self.parameters["use_avg_u_constraint"]:
-                # Nothing to do, no null space
-                pass
-            else:
-                # If dolfin-adjoint is enabled and installled: set the solver nullspace
-                # if dolfin_adjoint:
-                #     solver.set_nullspace(self.nullspace)
-                #     solver.set_transpose_nullspace(self.nullspace)
-                # Otherwise, set the nullspace in the operator
-                # directly.
-                # else:
+            if not self.parameters["use_avg_u_constraint"]:
                 A = df.as_backend_type(self._lhs_matrix)
                 A.set_nullspace(self.nullspace)
 
             update_routine = self._update_krylov_solver
         else:
-            error("Unknown linear_solver_type given: %s" % solver_type)
+            error("Unknown linear_solver_type given: {}".format(solver_type))
 
         return solver, update_routine
 
@@ -569,23 +526,9 @@ class BidomainSolver(BasicBidomainSolver):
         params.add("linear_solver_type", "direct")
         params.add("use_avg_u_constraint", True)
 
-        # Set default iterative solver choices (used if iterative
-        # solver is invoked)
+        # Set default iterative solver choices (used if iterative solver is invoked)
         params.add("algorithm", "gmres")
         params.add("preconditioner", "petsc_amg")
-
-        # Add default parameters from both LU and Krylov solvers
-        # params.add(df.LUSolver.default_parameters())
-
-        # Customize default parameters for LUSolver
-        # params["lu_solver"]["same_nonzero_pattern"] = True
-
-        # petsc_params = df.PETScKrylovSolver.default_parameters()
-        # petsc_params["absolute_tolerance"] = 1e-14
-        # petsc_params["relative_tolerance"] = 1e-14
-        # petsc_params["nonzero_initial_guess"] = True
-        # petsc_params["convergence_norm_type"] = "preconditioned"
-        # params.add(petsc_params)
         return params
 
     def variational_forms(self, kn: df.Constant) -> Tuple[Any, Any]:
@@ -660,7 +603,7 @@ class BidomainSolver(BasicBidomainSolver):
         return a, L
 
     def step(self, interval: Tuple[float, float]) -> None:
-        """
+        r"""
         Solve on the given time step (t0, t1).
 
         *Arguments*
@@ -671,11 +614,6 @@ class BidomainSolver(BasicBidomainSolver):
           Assuming that v\_ is in the correct state for t0, gives
           self.vur in correct state at t1.
         """
-
-        timer = df.Timer("PDE step")
-        solver_type = self.parameters["linear_solver_type"]
-
-        # Extract interval and thus time-step
         t0, t1 = interval
         dt = t1 - t0
         theta = self.parameters["theta"]
@@ -688,11 +626,8 @@ class BidomainSolver(BasicBidomainSolver):
             self._lhs, self._rhs = self.variational_forms(self._timestep)
 
             # Preassemble left-hand side and initialize right-hand side vector
-            # df.debug("Preassembling bidomain matrix (and initializing vector)")
             self._lhs_matrix = df.assemble(self._lhs)
             self._rhs_vector = df.Vector(self._mesh.mpi_comm(), self._lhs_matrix.size(0))
-
-
             self._lhs_matrix.init_vector(self._rhs_vector, 0)
 
             # Create linear solver (based on parameter choices)
@@ -704,6 +639,7 @@ class BidomainSolver(BasicBidomainSolver):
         # Assemble right-hand-side
         df.assemble(self._rhs, tensor=self._rhs_vector)
 
+        # Apply BCs
         for bc in self._bcs:
             bc.apply(self._lhs_matrix, self._rhs_vector)
 
@@ -721,15 +657,7 @@ class BidomainSolver(BasicBidomainSolver):
 
     def _update_lu_solver(self, timestep_unchanged: df.Constant, dt: df.Constant) -> None:
         """Helper function for updating an LUSolver depending on whether timestep has changed."""
-
-        # Update reuse of factorization parameter in accordance with
-        # changes in timestep
-        if timestep_unchanged:
-            pass
-        #     df.debug("Timestep is unchanged, reusing LU factorization")
-        else:
-        #     df.debug("Timestep has changed, updating LU factorization")
-
+        if not timestep_unchanged:
             # Update stored timestep
             self._timestep.assign(df.Constant(dt))
 
@@ -743,12 +671,7 @@ class BidomainSolver(BasicBidomainSolver):
 
         # Update reuse of preconditioner parameter in accordance with
         # changes in timestep
-        if timestep_unchanged:
-            pass
-        #     df.debug("Timestep is unchanged, reusing preconditioner")
-        else:
-        #     df.debug("Timestep has changed, updating preconditioner")
-
+        if not timestep_unchanged:
             # Update stored timestep
             self._timestep.assign(df.Constant(dt))
 

@@ -30,6 +30,7 @@ __all__ = [
 ]
 
 from dolfin import *
+import dolfin as df
 from xalbrain.markerwisefield import *
 
 from xalbrain.utils import (
