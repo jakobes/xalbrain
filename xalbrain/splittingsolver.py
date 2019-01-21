@@ -93,6 +93,9 @@ from typing import (
 )
 
 
+import time
+
+
 class BasicSplittingSolver:
     """
     A non-optimised solver for the bidomain equations based on the
@@ -308,7 +311,7 @@ class BasicSplittingSolver:
         time_stepper = TimeStepper(interval, dt)
 
         for t0, t1 in time_stepper:
-            self.step((t0, t1))
+            self.step((t0, t1), dt)
 
             # Yield solutions
             yield (t0, t1), self.solution_fields()
@@ -316,7 +319,7 @@ class BasicSplittingSolver:
             # Update previous solution
             self.vs_.assign(self.vs)
 
-    def step(self, interval: Tuple[float, float]) -> None:
+    def step(self, interval: Tuple[float, float], dt: float) -> None:
         """
         Solve the pde for one time step.
 
@@ -333,15 +336,15 @@ class BasicSplittingSolver:
 
         # Extract time domain
         t0, t1 = interval
-        dt = t1 - t0
-        t = t0 + theta*dt
+        _dt = t1 - t0
+        t = t0 + theta*_dt
 
         # Compute tentative membrane potential and state (vs_star)
         # df.begin(df.PROGRESS, "Tentative ODE step")
         # Assumes that its vs_ is in the correct state, gives its vs
         # in the current state
         # self.ode_solver.step((t0, t))
-        if self._ode_timestep is None:
+        if self._ode_timestep is None or self._ode_timestep == dt:
             self.ode_solver.step((t0, t))
         else:
             # Take multiple ODE steps for each pde step
@@ -373,7 +376,7 @@ class BasicSplittingSolver:
         # Assumes that its vs_ is in the correct state, provides vs in the correct state
 
         # self.ode_solver.step((t0, t))
-        if self._ode_timestep is None:
+        if self._ode_timestep is None or self._ode_timestep == dt:
             self.ode_solver.step((t0, t))
         else:
             # Take multiple ODE steps for each pde step
