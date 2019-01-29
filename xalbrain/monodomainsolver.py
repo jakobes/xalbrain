@@ -365,7 +365,9 @@ class MonodomainSolver(BasicMonodomainSolver):
 
         if solver_type == "direct":
             solver = df.LUSolver(self._lhs_matrix, self.parameters["lu_type"])
+            solver.parameters["symmetric"] = True
             update_routine = self._update_lu_solver
+
         elif solver_type == "iterative":
             # Preassemble preconditioner (will be updated if time-step changes)
             # Initialize KrylovSolver with matrix and preconditioner
@@ -380,6 +382,9 @@ class MonodomainSolver(BasicMonodomainSolver):
             else:
                 solver = df.PETScKrylovSolver(alg, prec)
                 solver.set_operator(self._lhs_matrix)
+                solver.parameters["nonzero_initial_guess"] = True
+                solver.parameters["monitor_convergence"] = True
+
                 solver.ksp().setFromOptions()
 
             update_routine = self._update_krylov_solver
