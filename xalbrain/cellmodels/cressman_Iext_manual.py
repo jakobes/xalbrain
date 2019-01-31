@@ -13,7 +13,7 @@ from math import (
 )
 
 
-class Cressman(CardiacCellModel):
+class Cressman_Iext(CardiacCellModel):
 
     def __init__(self, params: df.parameters = None, init_conditions: Dict[str, float] = None) -> None:
         """Create neuronal cell model, optionally from given parameters.
@@ -24,10 +24,7 @@ class Cressman(CardiacCellModel):
 
     @staticmethod
     def default_parameters():
-        """Default parameters from Andre Erhardt. 
-
-        TODO: add units and explanation
-        """
+        """TODO: add units and explanation"""
         params = OrderedDict([
             ("Cm", 1.0),
             ("GNa", 100.0),
@@ -38,7 +35,7 @@ class Cressman(CardiacCellModel):
             ("GClL", 0.05),
             ("GCa", 0.1),
             ("Gglia", 66.0),
-            ("Koinf", 4.0),     # Default = 4
+            ("Koinf", 4.0),
             ("gamma1", 0.0445),
             ("tau", 1000.0),
             ("control", 1.0),
@@ -62,7 +59,7 @@ class Cressman(CardiacCellModel):
         ])
         return ic
 
-    def I(self, V, s, time=None):
+    def I(self, V, s, time: df.Constant = None):
         """dv/dt = -I."""
         Cm = self._parameters["Cm"]
         GNa = self._parameters["GNa"]

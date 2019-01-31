@@ -12,7 +12,7 @@ from .adex import Adex
 
 # Only add supported cell model here if it is tested to actually run
 # with some multistage discretization
-# TODO: Enforce this 
+# TODO: Enforce this
 SUPPORTED_CELL_MODELS = [
     NoCellModel,
     AdexManual,
@@ -27,6 +27,7 @@ __all__ = [
     "MultiCellModel",
     "Wei",
     "Cressman",
+    "Cressman_Iext",
 ]
 
 from .beeler_reuter_1977 import Beeler_reuter_1977
@@ -42,6 +43,7 @@ from .adex_slow import AdexManual
 from .adex import Adex
 from .wei_manual import Wei
 from .cressman_manual import Cressman
+from .cressman_Iext_manual import Cressman_Iext
 
 # Only add supported cell model here if it is tested to actually run
 # with some multistage discretization
