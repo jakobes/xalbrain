@@ -168,4 +168,4 @@ class Cressman_Iext(CardiacCellModel):
 
     def num_states(self):
         """Return number of state variables."""
-        return 6
+        return 8

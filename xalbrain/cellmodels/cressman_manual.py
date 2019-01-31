@@ -40,7 +40,7 @@ class Cressman(CardiacCellModel):
             ("gamma1", 0.0445),
             ("tau", 1000.0),
             ("control", 1.0)
-        ]
+        ])
         return params
 
     def default_initial_conditions(self) -> OrderedDict:
