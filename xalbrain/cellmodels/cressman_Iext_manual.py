@@ -3,17 +3,19 @@ import ufl
 import dolfin as df
 
 from xalbrain.cellmodels import CardiacCellModel
-
 from collections import OrderedDict
+from typing import Dict
 
-from typing import (
-    Dict,
+from math import (
+    pi,
+    sin,
+    cos
 )
 
 
 class Cressman(CardiacCellModel):
 
-    def __init__(self, params: df.parameters=None, init_conditions: Dict[str, float]=None) -> None:
+    def __init__(self, params: df.parameters = None, init_conditions: Dict[str, float] = None) -> None:
         """Create neuronal cell model, optionally from given parameters.
 
         See Cressman TODO: Look this up
@@ -41,7 +43,7 @@ class Cressman(CardiacCellModel):
             ("tau", 1000.0),
             ("control", 1.0),
             ("period", 1000.0),
-            ("duration", 300.0),
+            ("duration", 600.0),
             ("amplitude", 3.0)
         ])
         return params
@@ -55,6 +57,8 @@ class Cressman(CardiacCellModel):
             ("Ca", 0.0),
             ("K", 7.8),
             ("Na", 15.5),
+            ("u", 1.0),
+            ("w", 0.0),
         ])
         return ic
 
@@ -68,6 +72,10 @@ class Cressman(CardiacCellModel):
         GAHP = self._parameters["GAHP"]
         control = self._parameters["control"]
         GClL = self._parameters["GClL"]
+
+        duration = self._parameters["duration"]
+        amplitude = self._parameters["amplitude"]
+        period = self._parameters["period"]
 
         # Define some parameters
         beta0 = 7
@@ -83,7 +91,11 @@ class Cressman(CardiacCellModel):
         INa = GNa*s[0]**3*s[2]*(V - ENa) + GNaL*(V - ENa)
         IK = (GK*s[1]**4 + GAHP*s[3]/(1 + s[3]) + GKL)*(V - EK)
         ICl = GClL*(V - ECl)
-        return (INa + IK + ICl)/Cm       # Check the sign
+
+        phi_ext = duration*pi/period
+        I_ext = amplitude/(1 + df.exp(10**2*((1 - s[6])*cos(phi_ext) - s[7]*sin(phi_ext))))
+
+        return (INa + IK + ICl - I_ext)/Cm       # Check the sign
 
     def F(self, V, s, time=None):
         """ds/dt = F(v, s)."""
@@ -99,14 +111,14 @@ class Cressman(CardiacCellModel):
         GAHP = self._parameters["GAHP"]
         Koinf = self._parameters["Koinf"]
 
+        period = self._parameters["period"]
+
         # Define some parameters
         ECa = 120
         phi = 3
         rho = 1.25
         eps0 = 1.2
         beta0 = 7
-        Cli = 6
-        Clo = 130
 
         Nao = 144 - beta0*(s[5] - 18)
         ENa = 26.64*df.ln(Nao/s[5])
@@ -115,7 +127,7 @@ class Cressman(CardiacCellModel):
         INa = GNa*s[0]**3*s[2]*(V - ENa) + GNaL*(V - ENa)
         IK = (GK*s[1]**4 + GAHP*s[3]/(1 + s[3]) + GKL)*(V - EK)
 
-        a_m = (3.0 + (0.1)*V)*(1 - df.exp(-3 -1/10*V))**(-1)
+        a_m = (3.0 + (0.1)*V)*(1 - df.exp(-3 - 1/10*V))**(-1)
         b_m = 4*df.exp(-55/18 - 1/18*V)
         ah = (0.07)*df.exp(-11/5 - 1/20*V)
         bh = (1 + df.exp(-7/5 - 1/10*V))**(-1)
@@ -142,6 +154,10 @@ class Cressman(CardiacCellModel):
         # dot_Na = (gamma1*INa + 3*Ipump)/tau
         dot_Na = -(gamma1*INa + 3*Ipump)/tau    # Pretty sure it should me minus
 
+        omega = 2*pi/period
+        dot_u = s[6]*(1 - s[6]**2 - s[7]**2) - omega*s[7]
+        dot_w = s[7]*(1 - s[6]**2 - s[7]**2) + omega*s[6]
+
         F_expressions = [ufl.zero()]*self.num_states()
         F_expressions[0] = dot_m
         F_expressions[1] = dot_h
@@ -149,6 +165,8 @@ class Cressman(CardiacCellModel):
         F_expressions[3] = dot_Ca
         F_expressions[4] = dot_K
         F_expressions[5] = dot_Na
+        F_expressions[6] = dot_u
+        F_expressions[7] = dot_w
         return df.as_vector(F_expressions)
 
     def num_states(self):

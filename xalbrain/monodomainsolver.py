@@ -383,7 +383,6 @@ class MonodomainSolver(BasicMonodomainSolver):
                 solver = df.PETScKrylovSolver(alg, prec)
                 solver.set_operator(self._lhs_matrix)
                 solver.parameters["nonzero_initial_guess"] = True
-                solver.parameters["monitor_convergence"] = True
 
                 solver.ksp().setFromOptions()
 
