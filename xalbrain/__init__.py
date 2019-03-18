@@ -43,3 +43,5 @@ from xalbrain.utils import (
     end_of_time,
     Projecter
 )
+
+from xalbrain.better_odesolver import BetterODESolver

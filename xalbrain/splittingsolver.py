@@ -95,6 +95,8 @@ from typing import (
 
 import time
 
+from xalbrain.better_odesolver import BetterODESolver
+
 
 class BasicSplittingSolver:
     """
@@ -344,19 +346,25 @@ class BasicSplittingSolver:
         # Assumes that its vs_ is in the correct state, gives its vs
         # in the current state
         # self.ode_solver.step((t0, t))
+        tick = time.perf_counter()
         if self._ode_timestep is None or self._ode_timestep == dt:
             self.ode_solver.step((t0, t))
         else:
             # Take multiple ODE steps for each pde step
             for _ in self.ode_solver.solve((t0, t), self._ode_timestep):
                 pass
+        tock = time.perf_counter()
+        print("ODE time: ", tock - tick)
 
         self.vs_.assign(self.vs)
 
         # Compute tentative potentials vu = (v, u)
         # Assumes that its vs_ is in the correct state, gives vur in
         # the current state
+        tick = time.perf_counter()
         self.pde_solver.step((t0, t1))
+        tock = time.perf_counter()
+        print("PDE time: ", tock - tick)
 
         # If first order splitting, we need to ensure that self.vs is
         # up to date, but otherwise we are done.
@@ -515,7 +523,8 @@ class SplittingSolver(BasicSplittingSolver):
 
         # Add default parameters from ODE solver
         ode_solver_params = CardiacODESolver.default_parameters()
-        ode_solver_params["scheme"] = "BDF1"
+        params.add(ode_solver_params)
+        ode_solver_params = BetterODESolver.default_parameters()
         params.add(ode_solver_params)
 
         # Add default parameters from ODE solver
