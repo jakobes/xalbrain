@@ -3,7 +3,11 @@ import time
 import numpy as np
 import dolfin as df
 
-from bbidomain import cressman_FE, VectorDouble, modular_forward_euler
+from bbidomain import (
+    VectorDouble,
+    VectorBool,
+)
+
 from extension_modules import load_module
 from xalbrain.cellsolver import BasicCardiacODESolver
 
@@ -25,12 +29,12 @@ class BetterODESolver(BasicCardiacODESolver):
             mesh: df.Mesh,
             time: df.Constant,
             model: CardiacCellModel,
-            I_s: Union[df.Expression, Dict[int, df.Expression]] = None,
+            mask_array: np.ndarray = None,
+            I_s: Union[df.Expression, Dict[int, df.Expression]] = None,     # FIXME: for compatibility?
+            reload_ext_modules: bool = False,
             params: df.Parameters = None
     ) -> None:
         """Initialise parameters. NB! Keep I_s for compatibility"""
-        import ufl.classes
-
         # Store input
         self._mesh = mesh
         self._time = time
@@ -61,8 +65,22 @@ class BetterODESolver(BasicCardiacODESolver):
             VectorDouble(self.VS.sub(i).dofmap().dofs()) for i in range(self.VS.num_sub_spaces())
         ]
 
-        self.ode_module = load_module("forward_euler")
-        self.ode_solver = self.ode_module.OdeSolverVectorised(*self.dofmaps)
+        self.ode_module = load_module(
+            "forward_euler",
+            recompile=reload_ext_modules,
+            verbose=reload_ext_modules
+        )
+        if mask_array is None:
+            self.ode_solver = self.ode_module.OdeSolverVectorised(*self.dofmaps)
+        else:
+            # foo = np.zeros(shape=mask_array.size, dtype=np.int32)
+            # foo[mask_array] = 1
+            # self.mask_array = VectorBool(foo)
+            # print(mask_array.dtype)
+            mask_array.dtype = np.int8
+            self.mask_array = VectorBool(mask_array)
+            self.ode_solver = self.ode_module.OdeSolverVectorised(*self.dofmaps, self.mask_array)
+            # 1/0
 
     @staticmethod
     def default_parameters():
@@ -94,34 +112,9 @@ class BetterODESolver(BasicCardiacODESolver):
         dt = t1 - t0        # TODO: Is this risky?
 
         self.ode_solver.solve(self.vs_.vector(), t0, t1, dt)
-        # t0, t1 = interval
-        # dt = t1 - t0        # TODO: Is this risky?
+        self.vs.assign(self.vs_)
 
-        # tick = time.perf_counter()
-        # local_vs_ = self.vs_.vector().vec().array_r
-        # numpy_arrays = [
-        #     VectorDouble(local_vs_[dofmap]) for dofmap in self.dofmaps
-        # ]
-        # tock = time.perf_counter()
-        # print("Making numpy arrays: ", tock - tick)
-
-        # # TODO: Look at Miro's code. and read/write access to PETSc vetcors
-        # tick = time.perf_counter()
-        # cressman_FE(*numpy_arrays, t0, t1, dt)
-        # # modular_forward_euler(*numpy_arrays, t0, t1, dt, 10)
-        # tock = time.perf_counter()
-        # print("solving: ", tock - tick)
-
-        # # The numpy arrays should now be updated, so they have to be put back in place
-        # tick = time.perf_counter()
-        # local_vs = self.vs.vector().vec().array_w
-        # for dofmap, arr in zip(self.dofmaps, numpy_arrays):
-        #     local_vs[dofmap] = arr
-        # tock = time.perf_counter()
-        # print("Copying back: ", tock - tick)
-        # print("---"*10)
-
-    def solve(self, interval: Tuple[float, float], dt: float = None):
+    def solve(self, interval: Tuple[float, float], dt: float = None, verbose: bool = False):
         """
         Solve the problem given by the model on a given time interval
         (t0, t1) with a given timestep dt and return generator for a
@@ -161,8 +154,41 @@ class BetterODESolver(BasicCardiacODESolver):
             tick = time.perf_counter()
             self.step((t0, t1))
             tock = time.perf_counter()
-            print("ODE time: ", tock - tick)
+            if verbose:
+                print("ODE time: ", tock - tick)
 
             # Yield solutions
             yield (t0, t1), self.vs
             self.vs_.assign(self.vs)
+
+
+class BetterSingleCellSolver(BetterODESolver):
+    def __init__(
+            self,
+            model: CardiacCellModel,
+            time: df.Constant,
+            reload_ext_modules: bool = False,
+            params: df.Parameters = None
+    ) -> None:
+        """Create solver from given cell model and optional parameters."""
+        assert isinstance(model, CardiacCellModel), \
+            "Expecting model to be a CardiacCellModel, not %r" % model
+        assert (isinstance(time, df.Constant)), \
+            "Expecting time to be a Constant instance, not %r" % time
+        assert isinstance(params, df.Parameters) or params is None, \
+            "Expecting params to be a Parameters (or None), not %r" % params
+
+        # Store model
+        self._model = model
+
+        # Define carefully chosen dummy mesh
+        mesh = df.UnitIntervalMesh(1)
+
+        super().__init__(
+            mesh,
+            time,
+            model,
+            I_s=model.stimulus,
+            reload_ext_modules=reload_ext_modules,
+            params=params
+        )

@@ -643,6 +643,7 @@ class BidomainSolver(BasicBidomainSolver):
         for bc in self._bcs:
             bc.apply(self._lhs_matrix, self._rhs_vector)
 
+        print("FIXME: move extracellular indices somewhere else -- l 646 bidomainsolver")
         extracellular_indices = np.arange(0, self._rhs_vector.size(), 2)
         rhs_norm = self._rhs_vector.get_local()[extracellular_indices].sum()
         rhs_norm /= extracellular_indices.size

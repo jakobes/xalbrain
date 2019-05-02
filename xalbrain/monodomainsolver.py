@@ -314,7 +314,7 @@ class BasicMonodomainSolver:
         params.add("use_custom_preconditioner", False)
 
         params.add("Chi", 1.0)      # Membrane to volume ratio
-        params.add("Cm", 1.0)      # Membrane Capacitance
+        params.add("Cm", 1.0)       # Membrane Capacitance
         params.add("lambda", 1.0)
         return params
 
@@ -373,19 +373,12 @@ class MonodomainSolver(BasicMonodomainSolver):
             # Initialize KrylovSolver with matrix and preconditioner
             alg = self.parameters["algorithm"]
             prec = self.parameters["preconditioner"]
-            if self.parameters["use_custom_preconditioner"]:
-                self._prec_matrix = df.assemble(self._prec)
-                solver = df.PETScKrylovSolver(alg, prec)
-                solver.parameters.update(self.parameters["krylov_solver"])
-                solver.set_operators(self._lhs_matrix, self._prec_matrix)
-                solver.ksp().setFromOptions()
-            else:
-                solver = df.PETScKrylovSolver(alg, prec)
-                solver.set_operator(self._lhs_matrix)
-                solver.parameters["nonzero_initial_guess"] = True
 
-                solver.ksp().setFromOptions()
+            solver = df.PETScKrylovSolver(alg, prec)
+            solver.set_operator(self._lhs_matrix)
+            solver.parameters["nonzero_initial_guess"] = True
 
+            solver.ksp().setFromOptions()
             update_routine = self._update_krylov_solver
         else:
             assert False, "Unknown linear_solver_type given: {}".format(solver_type)
@@ -459,8 +452,9 @@ class MonodomainSolver(BasicMonodomainSolver):
         facet_tags = map(int, set(self._facet_domains.array()))
 
         prec = 0
+        G = 0
         for key in cell_tags:
-            G = Dt_v_k_n*w*dz(key)
+            G += Dt_v_k_n*w*dz(key)
             G += lam_frac*df.inner(M_i[key]*df.grad(v_mid), df.grad(w))*dz(key)
 
             if self._I_s is None:

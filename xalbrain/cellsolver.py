@@ -83,6 +83,7 @@ class BasicCardiacODESolver:
             model: CardiacCellModel,
             I_s: Union[df.Expression, Dict[int, df.Expression]],
             params: df.Parameters = None,
+            mask_array = None       # for compatibility
     ) -> None:
         """Create the necessary function spaces """
         # Store input
@@ -362,8 +363,9 @@ class CardiacODESolver:
             mesh: df.Mesh,
             time: df.Constant,
             model: CardiacCellModel,
-            I_s: Union[df.Expression, Dict[int, df.Expression]]=None,
-            params: df.Parameters=None
+            I_s: Union[df.Expression, Dict[int, df.Expression]] = None,
+            params: df.Parameters = None,
+            mask_array = None       # for compatibility
     ) -> None:
         """Initialise parameters."""
         import ufl.classes
@@ -607,7 +609,7 @@ class SingleCellSolver(CardiacODESolver):
             self,
             model: CardiacCellModel,
             time: df.Constant,
-            params: df.Parameters=None
+            params: df.Parameters = None
     ) -> None:
         """Create solver from given cell model and optional parameters."""
         assert isinstance(model, CardiacCellModel), \

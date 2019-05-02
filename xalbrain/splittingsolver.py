@@ -347,16 +347,11 @@ class BasicSplittingSolver:
         # in the current state
         # self.ode_solver.step((t0, t))
         tick = time.perf_counter()
-        if self._ode_timestep is None or self._ode_timestep == dt:
-            self.ode_solver.step((t0, t))
-        else:
-            # Take multiple ODE steps for each pde step
-            for _ in self.ode_solver.solve((t0, t), self._ode_timestep):
-                pass
+        self.ode_solver.step((t0, t))
         tock = time.perf_counter()
-        print("ODE time: ", tock - tick)
+        # print("ODE time: ", tock - tick)
 
-        self.vs_.assign(self.vs)
+        # self.vs_.assign(self.vs)
 
         # Compute tentative potentials vu = (v, u)
         # Assumes that its vs_ is in the correct state, gives vur in
@@ -364,7 +359,7 @@ class BasicSplittingSolver:
         tick = time.perf_counter()
         self.pde_solver.step((t0, t1))
         tock = time.perf_counter()
-        print("PDE time: ", tock - tick)
+        # print("PDE time: ", tock - tick)
 
         # If first order splitting, we need to ensure that self.vs is
         # up to date, but otherwise we are done.
@@ -384,12 +379,7 @@ class BasicSplittingSolver:
         # Assumes that its vs_ is in the correct state, provides vs in the correct state
 
         # self.ode_solver.step((t0, t))
-        if self._ode_timestep is None or self._ode_timestep == dt:
-            self.ode_solver.step((t0, t))
-        else:
-            # Take multiple ODE steps for each pde step
-            for _ in self.ode_solver.solve((t0, t), self._ode_timestep):
-                pass
+        self.ode_solver.step((t0, t))
 
     def merge(self, solution: df.Function) -> None:
         """
@@ -562,6 +552,7 @@ class SplittingSolver(BasicSplittingSolver):
             self._domain,
             self._time,
             cell_model,
+            mask_array=self._model.mask_array,
             I_s=stimulus,
             params=params
         )

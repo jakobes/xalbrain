@@ -44,4 +44,7 @@ from xalbrain.utils import (
     Projecter
 )
 
-from xalbrain.better_odesolver import BetterODESolver
+from xalbrain.better_odesolver import (
+    BetterODESolver,
+    BetterSingleCellSolver,
+)

@@ -9,7 +9,7 @@ scenarios.
 # Last changed: 2016-04-21
 
 import dolfin as df
-
+import numpy as np
 import xalbrain as xb
 
 from .cellmodels import *       # Why do I need this?
@@ -20,6 +20,7 @@ from typing import (
     List,
     Tuple,
     Any,
+    Sequence,
 )
 
 
@@ -76,7 +77,8 @@ class CardiacModel:
             dirichlet_bc_u: List[Tuple[df.Expression, int]] = None,
             dirichlet_bc_v: List[Tuple[df.Expression, int]] = None,
             cell_domains: df.MeshFunction = None,
-            facet_domains: df.MeshFunction = None
+            facet_domains: df.MeshFunction = None,
+            valid_cell_tags: Sequence[int] = None       # oncly compute cell model for cells with tags listed here
     ) -> None:
         """Create CardiacModel from given input."""
         self._ect_current = ect_current
@@ -106,6 +108,12 @@ class CardiacModel:
         self._applied_current = applied_current
         self._dirichlet_bcs_u = dirichlet_bc_u
         self._dirichlet_bcs_v = dirichlet_bc_v
+
+        self._mask_array = None
+        if self.cell_domains is not None:
+            if valid_cell_tags is None:
+                valid_cell_tags = np.unique(self._cell_domains.array())
+            self._mask_array = np.in1d(self._cell_domains.array(), valid_cell_tags)
 
     @property
     def dirichlet_bc_u(self) -> List[Tuple[df.Expression, int]]:
@@ -171,3 +179,9 @@ class CardiacModel:
     def cell_models(self) -> xb.cellmodels.CardiacCellModel:
         """Return the cell models."""
         return self._cell_models
+
+    @property
+    def mask_array(self):
+        """Return an array masking the dofmap. Only solve the cellmodel if not masked."""
+        return self._mask_array
+
