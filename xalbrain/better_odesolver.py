@@ -65,22 +65,19 @@ class BetterODESolver(BasicCardiacODESolver):
             VectorDouble(self.VS.sub(i).dofmap().dofs()) for i in range(self.VS.num_sub_spaces())
         ]
 
+        model_name = model.__class__.__name__
         self.ode_module = load_module(
-            "forward_euler",
+            model_name,
             recompile=reload_ext_modules,
             verbose=reload_ext_modules
         )
+
         if mask_array is None:
-            self.ode_solver = self.ode_module.OdeSolverVectorised(*self.dofmaps)
+            self.ode_solver = self.ode_module.BetterODESolver(*self.dofmaps)
         else:
-            # foo = np.zeros(shape=mask_array.size, dtype=np.int32)
-            # foo[mask_array] = 1
-            # self.mask_array = VectorBool(foo)
-            # print(mask_array.dtype)
             mask_array.dtype = np.int8
             self.mask_array = VectorBool(mask_array)
-            self.ode_solver = self.ode_module.OdeSolverVectorised(*self.dofmaps, self.mask_array)
-            # 1/0
+            self.ode_solver = self.ode_module.BetterODESolver(*self.dofmaps, self.mask_array)
 
     @staticmethod
     def default_parameters():

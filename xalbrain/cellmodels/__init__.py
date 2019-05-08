@@ -43,6 +43,7 @@ from .adex_slow import AdexManual
 from .adex import Adex
 from .wei_manual import Wei
 from .cressman_manual import Cressman
+from .noble_manual import Noble
 from .cressman_Iext_manual import Cressman_Iext
 
 # Only add supported cell model here if it is tested to actually run
