@@ -5,7 +5,7 @@ import dolfin as df
 
 from bbidomain import (
     VectorDouble,
-    VectorBool,
+    VectorInt,
 )
 
 from extension_modules import load_module
@@ -29,8 +29,9 @@ class BetterODESolver(BasicCardiacODESolver):
             mesh: df.Mesh,
             time: df.Constant,
             model: CardiacCellModel,
-            mask_array: np.ndarray = None,
             I_s: Union[df.Expression, Dict[int, df.Expression]] = None,     # FIXME: for compatibility?
+            cell_domains = None,
+            valid_cell_tags = None,
             reload_ext_modules: bool = False,
             params: df.Parameters = None
     ) -> None:
@@ -61,9 +62,29 @@ class BetterODESolver(BasicCardiacODESolver):
         self.vs_ = df.Function(self.VS, name="vs_")
         self.vs = df.Function(self.VS, name="vs")
 
-        self.dofmaps = [
-            VectorDouble(self.VS.sub(i).dofmap().dofs()) for i in range(self.VS.num_sub_spaces())
+        def _masked_dofs(dofmap, cell_domains_array, valid_cell_tags):
+            mask_list = []
+            for i, ct in enumerate(cell_domains_array):
+                cell_dofs = dofmap.cell_dofs(i)
+                if ct in valid_cell_tags:
+                    mask_list += list(cell_dofs)
+            foo = np.unique(mask_list)
+            return VectorInt(np.unique(mask_list))
+
+        dofmaps = [
+            self.VS.sub(i).dofmap() for i in range(self.VS.num_sub_spaces())
         ]
+
+
+        if len(valid_cell_tags) == 0:
+            self.dofs = [VectorInt(dofmap.dofs() for dofmap in dofmaps)]
+        else:
+            self.dofs = [
+                _masked_dofs(dofmap, cell_domains.array(), valid_cell_tags) for dofmap in dofmaps
+            ]
+
+        # from IPython import embed; embed()
+        # 1/0
 
         model_name = model.__class__.__name__
         self.ode_module = load_module(
@@ -72,12 +93,12 @@ class BetterODESolver(BasicCardiacODESolver):
             verbose=reload_ext_modules
         )
 
+        mask_array = None
         if mask_array is None:
-            self.ode_solver = self.ode_module.BetterODESolver(*self.dofmaps)
+            self.ode_solver = self.ode_module.BetterODESolver(*self.dofs)
         else:
-            mask_array.dtype = np.int8
-            self.mask_array = VectorBool(mask_array)
-            self.ode_solver = self.ode_module.BetterODESolver(*self.dofmaps, self.mask_array)
+            self.mask_array = VectorInt(mask_array)
+            self.ode_solver = self.ode_module.BetterODESolver(*self.dofs, self.mask_array)
 
     @staticmethod
     def default_parameters():

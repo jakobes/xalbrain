@@ -552,7 +552,8 @@ class SplittingSolver(BasicSplittingSolver):
             self._domain,
             self._time,
             cell_model,
-            mask_array=self._model.mask_array,
+            cell_domains=self._model.cell_domains,
+            valid_cell_tags=self._model.valid_cell_tags,
             I_s=stimulus,
             params=params
         )

@@ -109,11 +109,7 @@ class CardiacModel:
         self._dirichlet_bcs_u = dirichlet_bc_u
         self._dirichlet_bcs_v = dirichlet_bc_v
 
-        self._mask_array = None
-        if self.cell_domains is not None:
-            if valid_cell_tags is None:
-                valid_cell_tags = np.unique(self._cell_domains.array())
-            self._mask_array = np.in1d(self._cell_domains.array(), valid_cell_tags)
+        self.valid_cell_tags = list(valid_cell_tags)
 
     @property
     def dirichlet_bc_u(self) -> List[Tuple[df.Expression, int]]:
@@ -184,4 +180,3 @@ class CardiacModel:
     def mask_array(self):
         """Return an array masking the dofmap. Only solve the cellmodel if not masked."""
         return self._mask_array
-
