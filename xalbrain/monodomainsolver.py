@@ -248,17 +248,10 @@ class BasicMonodomainSolver:
         t = t0 + theta*(t1 - t0)
         self.time.assign(t)
 
-        # Get physical parameters
-        chi = self.parameters["Chi"]
-        capacitance = self.parameters["Cm"]
-        lam = self.parameters["lambda"]
-        lam_frac = df.Constant(lam/(1 + lam))
-
         # Define variational formulation
         v = df.TrialFunction(self.V)
         w = df.TestFunction(self.V)
         Dt_v_k_n = (v - self.v_)/k_n
-        Dt_v_k_n *= chi*capacitance
         v_mid = theta*v + (1.0 - theta)*self.v_
 
         dz = df.Measure("dx", domain=self._mesh, subdomain_data=self._cell_domains)
@@ -269,12 +262,12 @@ class BasicMonodomainSolver:
 
         for key in cell_tags:
             G = Dt_v_k_n*w*dz(key)
-            G += lam_frac*df.inner(M_i[key]*df.grad(v_mid), df.grad(w))*dz(key)
+            G += df.inner(M_i[key]*df.grad(v_mid), df.grad(w))*dz(key)
 
             if self._I_s is None:
-                G -= chi*df.Constant(0)*w*dz(key)
+                G -= df.Constant(0)*w*dz(key)
             else:
-                G -= chi*self._I_s*w*dz(key)
+                G -= self._I_s*w*dz(key)
 
         # Define variational problem
         a, L = df.system(G)
@@ -312,10 +305,6 @@ class BasicMonodomainSolver:
         params.add("algorithm", "cg")
         params.add("preconditioner", "petsc_amg")
         params.add("use_custom_preconditioner", False)
-
-        params.add("Chi", 1.0)      # Membrane to volume ratio
-        params.add("Cm", 1.0)       # Membrane Capacitance
-        params.add("lambda", 1.0)
         return params
 
 class MonodomainSolver(BasicMonodomainSolver):
@@ -409,10 +398,6 @@ class MonodomainSolver(BasicMonodomainSolver):
         params.add("algorithm", "cg")
         params.add("preconditioner", "petsc_amg")
         params.add("use_custom_preconditioner", False)
-
-        params.add("Chi", 1.0)        # Membrane to volume ratio
-        params.add("Cm", 1.0)         # Membrane capacitance
-        params.add("lambda", 1.0)
         return params
 
     def variational_forms(self, k_n: df.Constant):
@@ -434,14 +419,8 @@ class MonodomainSolver(BasicMonodomainSolver):
         v = df.TrialFunction(self.V)
         w = df.TestFunction(self.V)
 
-        chi = self.parameters["Chi"]
-        capacitance = self.parameters["Cm"]
-        lam = self.parameters["lambda"]
-        lam_frac = df.Constant(lam/(1 + lam))
-
         # Set-up variational problem
         Dt_v_k_n = (v - self.v_)/k_n
-        Dt_v_k_n *= chi*capacitance
         v_mid = theta*v + (1.0 - theta)*self.v_
 
         dz = df.Measure("dx", domain=self._mesh, subdomain_data=self._cell_domains)
@@ -455,12 +434,12 @@ class MonodomainSolver(BasicMonodomainSolver):
         G = 0
         for key in cell_tags:
             G += Dt_v_k_n*w*dz(key)
-            G += lam_frac*df.inner(M_i[key]*df.grad(v_mid), df.grad(w))*dz(key)
+            G += df.inner(M_i[key]*df.grad(v_mid), df.grad(w))*dz(key)
 
             if self._I_s is None:
-                G -= chi*df.Constant(0)*w*dz(key)
+                G -= df.Constant(0)*w*dz(key)
             else:
-                G -= chi*self._I_s*w*dz(key)
+                G -= self._I_s*w*dz(key)
 
         # Define preconditioner based on educated(?) guess by Marie
         prec += (v*w + k_n/2.0*df.inner(M_i[key]*df.grad(v), df.grad(w)))*dz(key)

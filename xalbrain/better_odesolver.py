@@ -3,7 +3,7 @@ import time
 import numpy as np
 import dolfin as df
 
-from bbidomain import (
+from xalode import (
     VectorDouble,
     VectorInt,
 )
