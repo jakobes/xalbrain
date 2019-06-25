@@ -305,7 +305,7 @@ class BasicBidomainSolver:
             t0 = t1
             t1 = t0 + dt
 
-    def step(self, interval: Tuple[float, float]) -> None:
+    def step(self, t0, t1) -> None:
         """Solve on the given time interval (t0, t1).
 
         Arguments:
@@ -324,7 +324,6 @@ class BasicBidomainSolver:
         Me = self._M_e
 
         # Extract interval and thus time-step
-        t0, t1 = interval
         kn = df.Constant(t1 - t0)
 
         # Define variational formulation
@@ -602,7 +601,7 @@ class BidomainSolver(BasicBidomainSolver):
         a, L = df.system(G)
         return a, L
 
-    def step(self, interval: Tuple[float, float]) -> None:
+    def step(self, t0, t1) -> None:
         r"""
         Solve on the given time step (t0, t1).
 
@@ -614,7 +613,6 @@ class BidomainSolver(BasicBidomainSolver):
           Assuming that v\_ is in the correct state for t0, gives
           self.vur in correct state at t1.
         """
-        t0, t1 = interval
         dt = t1 - t0
         theta = self.parameters["theta"]
         t = t0 + theta*dt

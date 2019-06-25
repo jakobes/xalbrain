@@ -225,7 +225,7 @@ class BasicMonodomainSolver:
             t0 = t1
             t1 = t0 + dt
 
-    def step(self, interval: Tuple[float, float]) -> None:
+    def step(self, t0, t1) -> None:
         r"""Solve on the given time interval (t0, t1).
 
         *Arguments*
@@ -237,7 +237,6 @@ class BasicMonodomainSolver:
           self.v in correct state at t1.
         """
         # Extract interval and thus time-step
-        t0, t1 = interval
         k_n = df.Constant(t1 - t0)
 
         # Extract theta parameter and conductivities
@@ -431,9 +430,8 @@ class MonodomainSolver(BasicMonodomainSolver):
         facet_tags = map(int, set(self._facet_domains.array()))
 
         prec = 0
-        G = 0
+        G = Dt_v_k_n*w*dz()
         for key in cell_tags:
-            G += Dt_v_k_n*w*dz(key)
             G += df.inner(M_i[key]*df.grad(v_mid), df.grad(w))*dz(key)
 
             if self._I_s is None:
@@ -447,7 +445,7 @@ class MonodomainSolver(BasicMonodomainSolver):
         a, L = df.system(G)
         return a, L, prec
 
-    def step(self, interval: Tuple[float, float]) -> None:
+    def step(self, t0, t1) -> None:
         """Solve on the given time step (t0, t1).
 
         *Arguments*
@@ -461,7 +459,6 @@ class MonodomainSolver(BasicMonodomainSolver):
         timer = df.Timer("PDE Step")
 
         # Extract interval and thus time-step
-        t0, t1 = interval
         dt = t1 - t0
         theta = self.parameters["theta"]
         t = t0 + theta*dt
@@ -474,6 +471,7 @@ class MonodomainSolver(BasicMonodomainSolver):
         # Assemble right-hand-side
         timer0 = df.Timer("Assemble rhs")
         df.assemble(self._rhs, tensor=self._rhs_vector)
+
         del timer0
 
         # Solve problem

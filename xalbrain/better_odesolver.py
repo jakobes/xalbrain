@@ -77,7 +77,7 @@ class BetterODESolver(BasicCardiacODESolver):
 
 
         if len(valid_cell_tags) == 0:
-            self.dofs = [VectorInt(dofmap.dofs() for dofmap in dofmaps)]
+            self.dofs = [VectorInt(dofmap.dofs()) for dofmap in dofmaps]
         else:
             self.dofs = [
                 _masked_dofs(dofmap, cell_domains.array(), valid_cell_tags) for dofmap in dofmaps
@@ -93,12 +93,7 @@ class BetterODESolver(BasicCardiacODESolver):
             verbose=reload_ext_modules
         )
 
-        mask_array = None
-        if mask_array is None:
-            self.ode_solver = self.ode_module.BetterODESolver(*self.dofs)
-        else:
-            self.mask_array = VectorInt(mask_array)
-            self.ode_solver = self.ode_module.BetterODESolver(*self.dofs, self.mask_array)
+        self.ode_solver = self.ode_module.LatticeODESolver(*self.dofs)
 
     @staticmethod
     def default_parameters():
@@ -124,9 +119,9 @@ class BetterODESolver(BasicCardiacODESolver):
         """
         return self.vs_, self.vs
 
-    def step(self, interval: Tuple[float, float]) -> None:
+    def step(self, t0: float, t1: float) -> None:
         """Take a step using my much better ode solver."""
-        t0, t1 = interval
+        # t0, t1 = interval
         dt = t1 - t0        # TODO: Is this risky?
 
         self.ode_solver.solve(self.vs_.vector(), t0, t1, dt)

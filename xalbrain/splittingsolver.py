@@ -313,7 +313,7 @@ class BasicSplittingSolver:
         time_stepper = TimeStepper(interval, dt)
 
         for t0, t1 in time_stepper:
-            self.step((t0, t1), dt)
+            self.step(t0, t1, dt)
 
             # Yield solutions
             yield (t0, t1), self.solution_fields()
@@ -321,7 +321,7 @@ class BasicSplittingSolver:
             # Update previous solution
             self.vs_.assign(self.vs)
 
-    def step(self, interval: Tuple[float, float], dt: float) -> None:
+    def step(self, t0, t1, dt: float) -> None:
         """
         Solve the pde for one time step.
 
@@ -337,7 +337,6 @@ class BasicSplittingSolver:
         theta = self._parameters["theta"]
 
         # Extract time domain
-        t0, t1 = interval
         _dt = t1 - t0
         t = t0 + theta*_dt
 
@@ -347,7 +346,7 @@ class BasicSplittingSolver:
         # in the current state
         # self.ode_solver.step((t0, t))
         tick = time.perf_counter()
-        self.ode_solver.step((t0, t))
+        self.ode_solver.step(t0, t)
         tock = time.perf_counter()
         # print("ODE time: ", tock - tick)
 
@@ -357,7 +356,7 @@ class BasicSplittingSolver:
         # Assumes that its vs_ is in the correct state, gives vur in
         # the current state
         tick = time.perf_counter()
-        self.pde_solver.step((t0, t1))
+        self.pde_solver.step(t0, t1)
         tock = time.perf_counter()
         # print("PDE time: ", tock - tick)
 
@@ -378,8 +377,7 @@ class BasicSplittingSolver:
         self.merge(self.vs_)    # self.vs_.sub(0) <- self.vur.sub(0)
         # Assumes that its vs_ is in the correct state, provides vs in the correct state
 
-        # self.ode_solver.step((t0, t))
-        self.ode_solver.step((t0, t))
+        self.ode_solver.step(t0, t)
 
     def merge(self, solution: df.Function) -> None:
         """
@@ -514,7 +512,7 @@ class SplittingSolver(BasicSplittingSolver):
         # Add default parameters from ODE solver
         ode_solver_params = CardiacODESolver.default_parameters()
         params.add(ode_solver_params)
-        ode_solver_params = BetterODESolver.default_parameters()
+        ode_solver_params = BetterODESolver.default_parameters()        # Keep for later parameter extraction
         params.add(ode_solver_params)
 
         # Add default parameters from ODE solver

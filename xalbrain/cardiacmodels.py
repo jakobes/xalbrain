@@ -109,6 +109,8 @@ class CardiacModel:
         self._dirichlet_bcs_u = dirichlet_bc_u
         self._dirichlet_bcs_v = dirichlet_bc_v
 
+        if valid_cell_tags is None:
+            valid_cell_tags = []
         self.valid_cell_tags = list(valid_cell_tags)
 
     @property

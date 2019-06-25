@@ -206,7 +206,7 @@ class BasicCardiacODESolver:
             yield (t0, t1), self.vs
             self.vs_.assign(self.vs)
 
-    def step(self, interval: Tuple[float, float]) -> None:
+    def step(self, t0, t1) -> None:
         """
         Solve on the given time step (t0, t1).
 
@@ -219,7 +219,6 @@ class BasicCardiacODESolver:
         timer = df.Timer("ODE step")
 
         # Extract time mesh
-        t0, t1 = interval
         k_n = df.Constant(t1 - t0)
 
         # Extract previous solution(s)
@@ -476,7 +475,7 @@ class CardiacODESolver:
         """
         return self.vs_, self.vs
 
-    def step(self, interval: Tuple[float, float]) -> None:
+    def step(self, t0, t1) -> None:
         """
         Solve on the given time step (t0, t1).
 
@@ -491,7 +490,6 @@ class CardiacODESolver:
         timer = df.Timer("ODE step")
         self.vs.assign(self.vs_)
 
-        t0, t1 = interval
         dt = t1 - t0
         self._pi_solver.step(dt)
         timer.stop()
