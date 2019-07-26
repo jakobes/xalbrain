@@ -2,7 +2,7 @@
 from __future__ import division
 
 __author__ = "Marie E. Rognes (meg@simula.no), 2012--2013"
-__all__ = ["CardiacCellModel", "MultiCellModel"]
+__all__ = ["CellModel", "MultiCellModel"]
 
 from dolfin import (
     Parameters,
@@ -26,7 +26,7 @@ def error(arg):
     print(arg)
 
 
-class CardiacCellModel:
+class CellModel:
     """
     Base class for cardiac cell models. Specialized cell models should
     subclass this class.
@@ -167,7 +167,7 @@ class CardiacCellModel:
         return "Some cardiac cell model"
 
 
-class MultiCellModel(CardiacCellModel):
+class MultiCellModel(CellModel):
     """
     MultiCellModel
     """

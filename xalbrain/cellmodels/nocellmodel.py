@@ -3,19 +3,17 @@
 __author__ = "Marie E. Rognes (meg@simula.no), 2012--2013"
 __all__ = ["NoCellModel"]
 
-from xalbrain.cellmodels import CardiacCellModel
+from xalbrain.cellmodels import CellModel
 from collections import OrderedDict
 
-# FIXME: This class represents a design flaw rather than anything
-# else. Remove in a clean-up of the solvers.
 
-class NoCellModel(CardiacCellModel):
+class NoCellModel(CellModel):
     """
     Class representing no cell model (only bidomain equations). It
     actually just represents a single completely decoupled ODE.
     """
     def __init__(self, params=None, init_conditions=None):
-        CardiacCellModel.__init__(self, params, init_conditions)
+        CellModel.__init__(self, params, init_conditions)
 
     def I(self, v, s, time=None):
         return 0

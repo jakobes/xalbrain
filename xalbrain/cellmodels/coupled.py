@@ -1,15 +1,15 @@
 
 """This module contains an equation for testingpurposes."""
 
-from xalbrain.cellmodels import CardiacCellModel
+from xalbrain.cellmodels import CellModel
 from collections import OrderedDict
 
 
-class TestCellModel(CardiacCellModel):
+class TestCoupledCellModel(CellModel):
     """Class represents the logisitc eqiuation for testing purposes."""
 
     def __init__(self, params=None,init_conditions=None):
-        CardiacCellModel.__init__(self, params,init_conditions)
+        CellModel.__init__(self, params,init_conditions)
 
     def I(self, V, s, time=None):
         return -(2*V + s)

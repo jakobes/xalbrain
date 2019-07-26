@@ -8,14 +8,14 @@ __author__ = "Jakob E. Schrein (jakob@xal.no), 2017"
 
 
 from collections import OrderedDict
-from xalbrain.cellmodels import CardiacCellModel
+from xalbrain.cellmodels import CellModel
 
 from dolfin import exp, assign, as_backend_type, Expression
 
 import numpy as np
 
 
-class AdexManual(CardiacCellModel):
+class AdexManual(CellModel):
     """Adaptive exponential integrate-and-fire model.
 
     This is a model containing two nonlinear, ODEs for the evolution
@@ -24,7 +24,7 @@ class AdexManual(CardiacCellModel):
 
     def __init__(self, params=None, init_conditions=None):
         """Create neuronal cell model, optionally from given parameters."""
-        CardiacCellModel.__init__(self, params, init_conditions)
+        CellModel.__init__(self, params, init_conditions)
 
     @staticmethod
     def default_parameters():
@@ -67,7 +67,6 @@ class AdexManual(CardiacCellModel):
         F = (a*(V - E_L) - w)/tau_w
         return -F   # FIXME: Why -1?
 
-    #@staticmethod
     def default_initial_conditions(self):
         """Return default intial conditions. FIXME: I have no idea about values."""
         ic = OrderedDict(
@@ -86,27 +85,17 @@ class AdexManual(CardiacCellModel):
         functionSpace = vs.function_space()
         Vdofs = functionSpace.sub(0).dofmap().dofs()
         Wdofs = functionSpace.sub(1).dofmap().dofs()
-    
+
         # Will do the manips via petsc
         vs_vec = as_backend_type(vs.vector()).vec()
-    
+
         # fvec.array_r should be the read accessor
         toflip = np.where(vs_vec.array_r[Vdofs] > self._parameters["spike"])[0]
-    
+
         # I want to make the first component its absolute value
         # NOTE that there are no copies of data underlying f
         vs_vec.array_w[Vdofs[toflip]] = self._parameters["E_L"]
         vs_vec.array_w[Wdofs[toflip]] += self._parameters["b"]
-
-        """
-        v, s = vs.split(deepcopy=True)
-        v_idx = v.vector().array() > self._parameters["spike"]
-
-        v.vector()[v_idx] = self._parameters["E_L"]
-        s.vector()[v_idx] += self._parameters["b"]
-        assign(vs.sub(0), v)
-        assign(vs.sub(1), s)
-        """
 
     def __str__(self):
         """Return string representation of class."""

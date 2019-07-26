@@ -1,5 +1,5 @@
 from dolfin import Parameters, Expression
-from xalbrain.cellmodels import CardiacCellModel
+from xalbrain.cellmodels import CellModel
 
 import dolfin
 import ufl
@@ -8,14 +8,14 @@ from dolfin import ln, exp, pi, ge, conditional
 from collections import OrderedDict
 
 
-class Wei(CardiacCellModel):
+class Wei(CellModel):
     def __init__(self, params=None, init_conditions=None):
         """
         Create neuronal cell model, optionally from given parameters.
 
         See Wei, Ullah, Schiff, 2014.
         """
-        CardiacCellModel.__init__(self, params, init_conditions)
+        CellModel.__init__(self, params, init_conditions)
 
     @staticmethod
     def default_parameters():
