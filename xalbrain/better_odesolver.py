@@ -63,12 +63,12 @@ class BetterODESolver(BasicCardiacODESolver):
         self.vs = df.Function(self.VS, name="vs")
 
         def _masked_dofs(dofmap, cell_domains_array, valid_cell_tags):
+            """Find the dofs."""
             mask_list = []
             for i, ct in enumerate(cell_domains_array):
                 cell_dofs = dofmap.cell_dofs(i)
                 if ct in valid_cell_tags:
                     mask_list += list(cell_dofs)
-            foo = np.unique(mask_list)
             return VectorInt(np.unique(mask_list))
 
         dofmaps = [
