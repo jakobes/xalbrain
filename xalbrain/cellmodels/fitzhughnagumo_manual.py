@@ -13,6 +13,7 @@ from collections import OrderedDict
 from dolfin import Parameters, Expression
 from xalbrain.cellmodels import CardiacCellModel
 
+
 class FitzHughNagumoManual(CardiacCellModel):
     """
     A reparametrized FitzHughNagumo model, based on Section 2.4.1 in
@@ -35,8 +36,8 @@ class FitzHughNagumoManual(CardiacCellModel):
                               ("c_1", 0.26),
                               ("c_2", 0.1),
                               ("c_3", 1.0),
-                              ("v_peak", 40.0),
-                              ("v_rest", -85.0)])
+                              ("v_peak", 60.0),
+                              ("v_rest", -65.0)])
         return params
 
     def I(self, v, s, time=None):
@@ -67,7 +68,7 @@ class FitzHughNagumoManual(CardiacCellModel):
 
     @staticmethod
     def default_initial_conditions():
-        ic = OrderedDict([("V", -85.0),
+        ic = OrderedDict([("V", -65.0),
                           ("S", 0.0)])
         return ic
 

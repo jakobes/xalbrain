@@ -43,7 +43,8 @@ class Cressman(CardiacCellModel):
         ])
         return params
 
-    def default_initial_conditions(self) -> OrderedDict:
+    @staticmethod
+    def default_initial_conditions() -> OrderedDict:
         ic = OrderedDict([
             ("V", -50.0),
             ("m", 0.0936),

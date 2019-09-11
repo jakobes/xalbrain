@@ -531,7 +531,7 @@ class CardiacODESolver:
 
         for t0, t1 in time_stepper:
             # df.info_blue("Solving on t = (%g, %g)" % (t0, t1))
-            self.step((t0, t1))
+            self.step(*(t0, t1))
 
             # Yield solutions
             yield (t0, t1), self.vs
