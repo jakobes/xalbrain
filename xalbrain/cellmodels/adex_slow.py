@@ -86,13 +86,13 @@ class AdexManual(CardiacCellModel):
         functionSpace = vs.function_space()
         Vdofs = functionSpace.sub(0).dofmap().dofs()
         Wdofs = functionSpace.sub(1).dofmap().dofs()
-    
+
         # Will do the manips via petsc
         vs_vec = as_backend_type(vs.vector()).vec()
-    
+
         # fvec.array_r should be the read accessor
         toflip = np.where(vs_vec.array_r[Vdofs] > self._parameters["spike"])[0]
-    
+
         # I want to make the first component its absolute value
         # NOTE that there are no copies of data underlying f
         vs_vec.array_w[Vdofs[toflip]] = self._parameters["E_L"]

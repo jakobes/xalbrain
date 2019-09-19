@@ -6,9 +6,7 @@ from xalbrain.cellmodels import CardiacCellModel
 
 from collections import OrderedDict
 
-from typing import (
-    Dict,
-)
+from typing import Dict
 
 
 class Cressman(CardiacCellModel):

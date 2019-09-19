@@ -28,6 +28,7 @@ __all__ = [
     "Wei",
     "Cressman",
     "Cressman_Iext",
+    "MorrisLecar"
 ]
 
 from .beeler_reuter_1977 import Beeler_reuter_1977
@@ -45,6 +46,7 @@ from .wei_manual import Wei
 from .cressman_manual import Cressman
 from .noble_manual import Noble
 from .cressman_Iext_manual import Cressman_Iext
+from .morris_lecar import MorrisLecar
 
 # Only add supported cell model here if it is tested to actually run
 # with some multistage discretization
