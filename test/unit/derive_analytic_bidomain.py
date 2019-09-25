@@ -69,7 +69,7 @@ def derive_rhs():
     f = sp.diff(v, t) - div_J_i
     print("f = ", f)
     print()
-    
+
 
 if __name__ == "__main__":
     derive_rhs()

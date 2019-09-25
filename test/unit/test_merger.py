@@ -10,8 +10,7 @@ from testutils import fast, parametrize
 import numpy as np
 
 from xalbrain import (
-    CardiacModel,
-    BasicSplittingSolver,
+    BrainModel,
     SplittingSolver,
     FitzHughNagumoManual,
 )
@@ -28,15 +27,14 @@ class TestMerger(object):
     def setup(self):
         self.mesh = UnitCubeMesh(2, 2, 2)
         self.cell_model = FitzHughNagumoManual()
-        self.cardiac_model = CardiacModel(self.mesh, None, 1.0, 2.0, self.cell_model)
+        self.cardiac_model = BrainModel(self.mesh, None, 1.0, 2.0, self.cell_model)
 
     @fast
-    @parametrize("Solver", [SplittingSolver, BasicSplittingSolver])
-    def test_basic_and_optimised_splitting_solver_merge(self, Solver):
+    def test_basic_and_optimised_splitting_solver_merge(self):
         """Test that the merger in basic and optimised splitting solver works."""
 
         # Create basic solver
-        solver = Solver(self.cardiac_model)
+        solver = SplittingSolver(self.cardiac_model)
 
         vs_, vs, vur = solver.solution_fields()
 

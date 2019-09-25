@@ -1,24 +1,32 @@
 """ The xalbrain Python module is a problem and solver collection for cardiac electrophysiology models."""
 
-# Model imports
-from xalbrain.cardiacmodels import CellModel
-from xalbrain.cellmodels import *
-
-# Solver imports
-from xalbrain.splittingsolver import (
-    MonodomainSplittingSolver,
-    BidomainSplittingSolver
-)
+from xalbrain.brainmodel import BrainModel
 
 from xalbrain.odesolver import (
     SubDomainODESolver,
     ODESolver,
     SubDomainODESolver,
     SingleCellSolver,
+    ODESolverParameters,
 )
 
-from xalbrain.bidomain import BidomainSolver
-from xalbrain.monodomain import MonodomainSolver
+from xalbrain.bidomain import (
+    BidomainSolver,
+    BidomainParameters,
+)
+
+from xalbrain.monodomain import (
+    MonodomainSolver,
+    MonodomainParameters,
+)
+
+# Solver imports
+from xalbrain.splittingsolver import (
+    MonodomainSplittingSolver,
+    BidomainSplittingSolver,
+    BidomainSplittingSolverSubDomain,
+    SplittingSolverParameters,
+)
 
 # Various utility functions, mainly for internal use
 import xalbrain.utils

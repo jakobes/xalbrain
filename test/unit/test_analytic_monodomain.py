@@ -2,10 +2,14 @@ import pytest
 
 
 from xalbrain import (
-    CardiacModel,
-    NoCellModel,
-    BasicSplittingSolver,
+    BrainModel,
+    MonodomainSplittingSolver,
+    MonodomainParameters,
+    SplittingSolverParameters,
+    ODESolver,
 )
+
+from xalbrain.cellmodels import NoCellModel
 
 from dolfin import (
     Constant,
@@ -24,7 +28,7 @@ from typing import (
 )
 
 
-def main(N: int, dt: float, T: float, theta: float) -> Tuple[float, float, float, float]:
+def main(*, N: int, dt: float, T: float, theta: float) -> Tuple[float, float, float, float]:
     """Run monodomain MMS."""
     mesh = UnitSquareMesh(N, N)
     time = Constant(0.0)
@@ -33,20 +37,32 @@ def main(N: int, dt: float, T: float, theta: float) -> Tuple[float, float, float
 
     ac_str = "(8*pi*pi*lam*sin(t) + (lam + 1)*cos(t))*cos(2*pi*x[0])*cos(2*pi*x[1])/(lam + 1)"
     stimulus = Expression(ac_str, t=time, lam=lam, degree=3)
-    brain = CardiacModel(mesh, time, 1.0, 1.0, cell_model, stimulus=stimulus)
+    brain = BrainModel(
+        time=time,
+        mesh=mesh,
+        cell_model=cell_model,
+        intracellular_conductivity=1,
+        other_conductivity=lam,
+        external_stimulus=stimulus
+    )
 
     # Define solver solver
-    ps = BasicSplittingSolver.default_parameters()
-    ps["theta"] = theta
-    ps["pde_solver"] = "monodomain"
-    ps["BasicMonodomainSolver"]["linear_variational_solver"]["linear_solver"] = "direct"
-    solver = BasicSplittingSolver(brain, params=ps)
+    splitting_parameters = SplittingSolverParameters(theta=theta)
+    bidomain_parameters = MonodomainParameters(linear_solver_type="direct")
+    ode_parameters = ODESolver.default_parameters()
+
+    solver = MonodomainSplittingSolver(
+        brain=brain,
+        parameters=splitting_parameters,
+        ode_parameters=ode_parameters,
+        pde_parameters=bidomain_parameters
+    )
 
     vs0 = Function(solver.VS)
     vs_, vs, vur = solver.solution_fields()
     vs_.assign(vs0)
 
-    for timestep, (vs_, vs, vur) in solver.solve((0, T), dt):
+    for solution_struct in solver.solve(0, T, dt):
         continue
 
     v_exact = Expression(
@@ -89,12 +105,12 @@ def test_spatial_and_temporal_convergence() -> None:
     for level in range(3):
         a = dt/(2**level)
         T = 10*a
-        v_error, h, a, T = main(N*(2**level), a, T, theta)
+        v_error, h, a, T = main(N=N*(2**level), dt=a, T=T, theta=theta)
         v_errors.append(v_error)
         dts.append(a)
         hs.append(h)
 
-    v_rates = convergence_rate(hs, v_errors)
+    v_rates = convergence_rate(hs=hs, errors=v_errors)
     print("v_errors = {}".format(v_errors))
     print("v_rates = {}".format(v_rates))
     assert all(v > 1.9 for v in v_rates), "Failed convergence for v"

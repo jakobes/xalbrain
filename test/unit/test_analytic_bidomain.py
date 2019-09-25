@@ -11,10 +11,16 @@ __all__ = []
 import pytest
 
 from xalbrain import (
-    CardiacModel,
-    NoCellModel,
-    BasicSplittingSolver,
+    BrainModel,
+    BidomainSplittingSolver,
+    SplittingSolverParameters,
+    BidomainParameters,
+    ODESolverParameters,
+    BidomainSolver,
+    ODESolver,
 )
+
+from xalbrain.cellmodels import NoCellModel
 
 from dolfin import (
     Constant,
@@ -29,16 +35,10 @@ from dolfin import __version__ as dolfin_version
 from xalbrain.utils import convergence_rate
 
 from testutils import slow
-
 from typing import Tuple
 
 
-def main(
-        N: int,
-        dt: float,
-        T: float,
-        theta: float
-) -> Tuple[float, float, float, float, float]:
+def main(*, N: int, dt: float, T: float, theta: float) -> Tuple[float, float, float, float, float]:
     # Create cardiac model
     mesh = UnitSquareMesh(N, N)
     time = Constant(0.0)
@@ -46,19 +46,33 @@ def main(
 
     ac_str = "cos(t)*cos(2*pi*x[0])*cos(2*pi*x[1]) + 4*pow(pi, 2)*cos(2*pi*x[0])*cos(2*pi*x[1])*sin(t)"
     stimulus = Expression(ac_str, t=time, degree=5)
-    heart = CardiacModel(mesh, time, 1.0, 1.0, cell_model, stimulus=stimulus)
+
+    brain = BrainModel(
+        time=time,
+        mesh=mesh,
+        cell_model=cell_model,
+        intracellular_conductivity=1,
+        other_conductivity=1,
+        external_stimulus=stimulus
+    )
 
     # Set-up solver
-    ps = BasicSplittingSolver.default_parameters()
-    ps["theta"] = theta
-    ps["BasicBidomainSolver"]["linear_variational_solver"]["linear_solver"] = "direct"
-    solver = BasicSplittingSolver(heart, params=ps)
+    splitting_parameters = SplittingSolverParameters(theta=theta)
+    bidomain_parameters = BidomainParameters(linear_solver_type="direct")
+    ode_parameters = ODESolver.default_parameters()
+
+    solver = BidomainSplittingSolver(
+        brain=brain,
+        parameters=splitting_parameters,
+        ode_parameters=ode_parameters,
+        pde_parameters=bidomain_parameters
+    )
 
     # Define exact solution (Note: v is returned at end of time
     # interval(s), u is computed at somewhere in the time interval
     # depending on theta)
 
-    v_exact =  Expression("cos(2*pi*x[0])*cos(2*pi*x[1])*sin(t)", t=T, degree=5)
+    v_exact = Expression("cos(2*pi*x[0])*cos(2*pi*x[1])*sin(t)", t=T, degree=5)
     u_exact = Expression(
         "-cos(2*pi*x[0])*cos(2*pi*x[1])*sin(t)/2.0",
         t=T - (1 - theta)*dt,
@@ -71,13 +85,13 @@ def main(
     vs_.assign(vs0)
 
     # Solve
-    for (_, (vs_, vs, vur)) in solver.solve((0, T), dt):
+    for solution_struct in solver.solve(0, T, dt):
         continue
 
     # Compute errors
-    v, s = vs.split(deepcopy=True)
+    v, s = solution_struct.vs.split(deepcopy=True)
+    v, u, r = solution_struct.vur.split(deepcopy=True)
     v_error = errornorm(v_exact, v, "L2", degree_rise=5)
-    v, u, r = vur.split(deepcopy=True)
     u_error = errornorm(u_exact, u, "L2", degree_rise=5)
     return v_error, u_error, mesh.hmin(), dt, T
 
@@ -96,14 +110,14 @@ def test_spatial_and_temporal_convergence() -> None:
     N = 10
     for level in (1, 2, 3):
         a = dt/(2**level)
-        v_error, u_error, h, a, T = main(N*(2**level), a, T, theta)
+        v_error, u_error, h, a, T = main(N=N*(2**level), dt=a, T=T, theta=theta)
         v_errors.append(v_error)
         u_errors.append(u_error)
         dts.append(a)
         hs.append(h)
 
-    v_rates = convergence_rate(hs, v_errors)
-    u_rates = convergence_rate(hs, u_errors)
+    v_rates = convergence_rate(hs=hs, errors=v_errors)
+    u_rates = convergence_rate(hs=hs, errors=u_errors)
     print("v_errors = ", v_errors)
     print("u_errors = ", u_errors)
     print("v_rates = ", v_rates)

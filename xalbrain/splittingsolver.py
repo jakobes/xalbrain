@@ -1,16 +1,24 @@
 import dolfin as df
 
-from coupled_utils import (
-    time_stepper,
-    SplittingSolverParameters,
-    MonodomainParameters,
+from xalbrain import (
     ODESolverParameters,
     BidomainParameters,
+    MonodomainParameters,
+    MonodomainSolver,
+    SubDomainODESolver,
+    ODESolver,
+    BidomainSolver,
+    BrainModel,
+)
+
+from xalbrain.utils import (
+    time_stepper,
 )
 
 from typing import (
     Iterator,
     Tuple,
+    NamedTuple,
 )
 
 from abc import (
@@ -18,24 +26,15 @@ from abc import (
     abstractmethod
 )
 
-from odesolver import (
-    SubDomainODESolver,
-    BasicCardiacODESolver,
-    CardiacODESolver
-)
-
-from coupled_monodomain import (
-    MonodomainSolver
-)
-
-from coupled_bidomain import BidomainSolver
-
-from coupled_brainmodel import BrainModel
 
 from collections import namedtuple
 
 
 SolutionStruct = namedtuple("SolutionStruct", ("t0", "t1", "vs_prev", "vs", "vur"))
+
+
+class SplittingSolverParameters(NamedTuple):
+    theta: df.Constant = df.Constant(0.5)
 
 
 class SplittingSolver(ABC):
@@ -174,7 +173,7 @@ class SplittingSolver(ABC):
         return self.vs_prev, self.vs, self.vur
 
 
-class MonodomainSplittingSolver(SplittingSolver):
+class MonodomainSplittingSolverSubDomain(SplittingSolver):
     def __init__(
         self,
         *,
@@ -207,9 +206,7 @@ class MonodomainSplittingSolver(SplittingSolver):
             self._brain.intracellular_conductivity,
             self._brain.extracellular_conductivity,
             self._brain.cell_function,
-            self._brain.cell_tags,
             self._brain.interface_function,
-            self._brain.interface_tags,
             self._pde_parameters,
             self._brain.neumann_boundary_condition,
             v_prev=self.vs[0]
@@ -226,7 +223,56 @@ class MonodomainSplittingSolver(SplittingSolver):
         self.merger.assign(solution.sub(0), v)
 
 
-class BidomainSplittingSolver(SplittingSolver):
+class MonodomainSplittingSolver(SplittingSolver):
+    def __init__(
+        self,
+        *,
+        brain: BrainModel,
+        parameters: SplittingSolverParameters,
+        ode_parameters: df.Parameters,
+        pde_parameters: MonodomainParameters
+    ) -> None:
+        self._pde_parameters = pde_parameters
+        self._ode_parameters = ode_parameters
+        super().__init__(brain=brain, parameters=parameters)
+
+    def create_ode_solver(self) -> SubDomainODESolver:
+        """The idea is to subplacc this and implement another version of this function."""
+        solver = ODESolver(
+            time=self._brain.time,
+            mesh=self._brain.mesh,
+            cell_model=self._brain.cell_model,
+            parameters=self._ode_parameters,
+        )
+        return solver
+
+    def create_pde_solver(self) -> MonodomainSolver:
+        """The idea is to subplacc this and implement another version of this function."""
+
+        solver = MonodomainSolver(
+            time=self._brain.time,
+            mesh=self._brain.mesh,
+            conductivity=self._brain.intracellular_conductivity,
+            conductivity_ratio=self._brain.extracellular_conductivity,
+            cell_function=self._brain.cell_function,
+            interface_function=self._brain.interface_function,
+            parameters=self._pde_parameters,
+            neumann_boundary_condition=self._brain.neumann_boundary_condition,
+            v_prev=self.vs[0]
+        )
+        return solver
+
+    def merge(self, solution: df.Function) -> None:
+        """
+        Combine solutions from the PDE and the ODE to form a single mixed function.
+
+        `solution` holds the solution from the PDEsolver.
+        """
+        v = self.vur
+        self.merger.assign(solution.sub(0), v)
+
+
+class BidomainSplittingSolverSubDomain(SplittingSolver):
     def __init__(
         self,
         *,
@@ -259,9 +305,58 @@ class BidomainSplittingSolver(SplittingSolver):
             self._brain.intracellular_conductivity,
             self._brain.extracellular_conductivity,
             self._brain.cell_function,
-            self._brain.cell_tags,
             self._brain.interface_function,
-            self._brain.interface_tags,
+            self._pde_parameters,
+            self._brain.neumann_boundary_condition,
+            v_prev=self.vs[0],
+            surface_to_volume_factor=self._brain.surface_to_volume_factor,
+            membrane_capacitance=self._brain.membrane_capacitance
+        )
+        return solver
+
+    def merge(self, solution: df.Function) -> None:
+        """
+        Combine solutions from the PDE and the ODE to form a single mixed function.
+
+        `solution` holds the solution from the PDEsolver.
+        """
+        v = self.vur.sub(0)
+        self.merger.assign(solution.sub(0), v)
+
+
+class BidomainSplittingSolver(SplittingSolver):
+    def __init__(
+        self,
+        *,
+        brain: BrainModel,
+        parameters: SplittingSolverParameters,
+        ode_parameters: df.Parameters,
+        pde_parameters: BidomainParameters
+    ) -> None:
+        self._pde_parameters = pde_parameters
+        self._ode_parameters = ode_parameters
+        super().__init__(brain=brain, parameters=parameters)
+
+    def create_ode_solver(self) -> SubDomainODESolver:
+        """The idea is to subplacc this and implement another version of this function."""
+        solver = ODESolver(
+            time=self._brain.time,
+            mesh=self._brain.mesh,
+            cell_model=self._brain.cell_model,
+            parameters=self._ode_parameters,
+        )
+        return solver
+
+    def create_pde_solver(self) -> BidomainSolver:
+        """The idea is to subplacc this and implement another version of this function."""
+
+        solver = BidomainSolver(
+            self._brain.time,
+            self._brain.mesh,
+            self._brain.intracellular_conductivity,
+            self._brain.extracellular_conductivity,
+            self._brain.cell_function,
+            self._brain.interface_function,
             self._pde_parameters,
             self._brain.neumann_boundary_condition,
             v_prev=self.vs[0],

@@ -8,46 +8,64 @@ from typing import (
     Iterable,
 )
 
-from coupled_utils import (
-    CellTags,
-    InterfaceTags,
-    MonodomainParameters,
-    create_linear_solver,
+from xalbrain.utils import (
     time_stepper,
+    create_linear_solver,
 )
+
+
+class MonodomainParameters(NamedTuple):
+    timestep: df.Constant = df.Constant(1.0)
+    theta: df.Constant = df.Constant(0.5)
+    linear_solver_type: str = "direct"
+    lu_type: str = "default"
+    krylov_method: str = "cg"
+    krylov_preconditioner: str = "petsc_amg"
 
 
 class MonodomainSolver:
     def __init__(
         self,
+        *,
         time: df.Constant,
         mesh: df.Mesh,
         conductivity: Dict[int, df.Expression],
         conductivity_ratio: Dict[int, df.Expression],
-        cell_function: df.MeshFunction,
-        cell_tags: CellTags,
-        interface_function: df.MeshFunction,
-        interface_tags: InterfaceTags,
         parameters: MonodomainParameters,
+        cell_function: df.MeshFunction = None,
+        interface_function: df.MeshFunction = None,
         neumann_boundary_condition: Dict[int, df.Expression] = None,
         v_prev: df.Function = None
     ) -> None:
         self._time = time
         self._mesh = mesh
-        self._conductivity = conductivity
-        self._cell_function = cell_function
-        self._cell_tags = cell_tags
-        self._interface_function = interface_function
-        self._interface_tags = interface_tags
         self._parameters = parameters
+        self._interface_function = interface_function
+
+        if cell_function is None:
+            cell_function = df.MeshFunction("size_t", mesh, mesh.geometric_dimension())
+            cell_function.set_all(0)
+        self._cell_function = cell_function
+        self._cell_tags = set(self._cell_function.array())
+
+        if interface_function is None:
+            interface_function = df.MeshFunction("size_t", mesh, mesh.geometric_dimension() - 1)
+            interface_function.set_all(0)
+        self._interface_function = interface_function
+        self._interface_tags = set(self._interface_function.array())
 
         if neumann_boundary_condition is None:
             self._neumann_boundary_condition: Dict[int, df.Expression] = dict()
         else:
             self._neumann_boundary_condition = neumann_boundary_condition
 
-        if not set(conductivity.keys()) == set(conductivity_ratio.keys()):
-            raise ValueError("intracellular conductivity and lambda does not have natching keys.")
+        try:
+            if not set(conductivity.keys()) == set(conductivity_ratio.keys()):
+                raise ValueError("intracellular conductivity and lambda does not have natching keys.")
+        except AttributeError:
+            conductivity = {k: conductivity for k in self._cell_tags}
+            conductivity_ratio = {k: conductivity_ratio for k in self._cell_tags}
+        self._conductivity = conductivity
         self._lambda = conductivity_ratio
 
         # Function spaces
@@ -64,11 +82,7 @@ class MonodomainSolver:
             # v_prev is shipped from an odesolver.
             self._v_prev = v_prev
 
-        _cell_tags = set(self._cell_tags)
-        _cell_function_values = set(self._cell_function.array())
-        if not _cell_tags <= _cell_function_values:
-            msg = f"Cell function does not contain {_cell_tags - _cell_function_values}"
-            raise ValueError(msg)
+        _cell_tags = set(self._cell_function.array())
 
         _interface_tags = set(self._interface_tags)
         _interface_function_values = {*set(self._interface_function.array()), None}
@@ -120,17 +134,6 @@ class MonodomainSolver:
             neumann_bc = self._neumann_boundary_condition.get(interface_tag, df.Constant(0))
             neumann_bc = neumann_bc*v_test*dGamma(interface_tag)
             Form += neumann_bc
-
-        # Interface conditions
-        csf_tag = self._cell_tags.CSF
-        gm_tag = self._cell_tags.GM
-        csf_gm_interface_tag = self._interface_tags.CSF_GM
-        interface_contribution = df.inner(Mi[csf_tag]*df.grad(v), Mi[gm_tag]/(1 + lbda[gm_tag])*df.grad(v))
-        interface_contribution *= dGamma(csf_gm_interface_tag)
-        Form += interface_contribution
-
-        # rhs   # TODO: This is not necessary
-        Form += df.Constant(0)*v_test*dOmega
 
         a, L = df.system(Form)
         return a, L
@@ -207,3 +210,5 @@ class MonodomainSolver:
 
         # Reassemble matrix
         df.assemble(self._lhs, tensor=self._lhs_matrix)
+
+

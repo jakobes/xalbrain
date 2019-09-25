@@ -1,4 +1,4 @@
-from .cardiaccellmodel import (
+from .cellmodel import (
     CellModel,
     MultiCellModel,
 )
@@ -11,6 +11,9 @@ from .coupled import TestCoupledCellModel
 from .adex import Adex
 from .wei_manual import Wei
 from .cressman_manual import Cressman
+from .fitzhughnagumo import FitzhughNagumo
+from .fitzhughnagumo_manual import FitzHughNagumoManual
+
 
 SUPPORTED_CELL_MODELS = [
     NoCellModel,
@@ -20,6 +23,8 @@ SUPPORTED_CELL_MODELS = [
     TestCoupledCellModel,
     Wei,
     Cressman,
+    FitzhughNagumo,
+    FitzHughNagumoManual,
 ]
 
 __all__ = [
@@ -27,8 +32,9 @@ __all__ = [
     "AdexManual",
     "Adex",
     "LogisticCellModel",
-    "CardiacCellModel",
     "MultiCellModel",
     "Wei",
     "Cressman",
+    "FitzhughNagumo",
+    "FitzHughNagumoManual",
 ]

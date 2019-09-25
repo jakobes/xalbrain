@@ -53,7 +53,7 @@ class CellModel:
 
     If a stimulus is provided via
 
-      cell = CardiacCellModel()
+      cell = CellModel()
       cell.stimulus = Expression("I_s(t)", degree=1)
 
     then I_s is added to the right-hand side of (*), which thus reads
@@ -176,7 +176,7 @@ class MultiCellModel(CellModel):
         """
         *Arguments*
         models (tuple)
-          tuple of existing CardiacCellModels
+          tuple of existing CellModels
         keys (tuple)
           integers demarking the domain for each cell model
         markers (:py:class:`dolfin.MeshFunction`)

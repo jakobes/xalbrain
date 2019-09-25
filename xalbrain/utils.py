@@ -14,34 +14,20 @@ from typing import (
 )
 
 
-class MonodomainParameters(NamedTuple):
-    timestep: df.Constant = df.Constant(1.0)
-    theta: df.Constant = df.Constant(0.5)
-    linear_solver_type: str = "direct"
-    lu_type: str = "default"
-    krylov_method: str = "cg"
-    krylov_preconditioner: str = "petsc_amg"
+class CellTags(NamedTuple):
+    CSF: int = 1
+    GM: int = 2
+    WM: int = 3
+    Kinf: int = 4
 
 
-class BidomainParameters(NamedTuple):
-    restrict_tags: Any = set()
-    timestep: df.Constant = df.Constant(1.0)
-    theta: df.Constant = df.Constant(0.5)
-    linear_solver_type: str = "direct"
-    lu_type: str = "default"
-    krylov_method: str = "gmres"   # CG fails
-    krylov_preconditioner: str = "petsc_amg"
-
-
-class SplittingSolverParameters(NamedTuple):
-    theta: df.Constant = df.Constant(0.5)
-
-
-class ODESolverParameters(NamedTuple):
-    valid_cell_tags: Sequence[int]
-    timestep: df.Constant = df.Constant(1)
-    reload_extension_modules: bool = False
-    theta: df.Constant = df.Constant(0.5)
+class InterfaceTags(NamedTuple):
+    CSF_GM: int = 4
+    GM_WM: int = 5
+    skull: int = 6
+    CSF: int = 7
+    GM: int = 8
+    WM: int = 9
 
 
 def load_xdmf_mesh(directory: str, name: str) -> Tuple[df.Mesh, df.MeshFunction, df.MeshFunction]:
@@ -70,7 +56,7 @@ def load_xdmf_mesh(directory: str, name: str) -> Tuple[df.Mesh, df.MeshFunction,
 
 def create_linear_solver(
         lhs_matrix,
-        parameters: CoupledMonodomainParameters
+        parameters: "CoupledMonodomainParameters"
 ) -> Union[df.LUSolver, df.KrylovSolver]:
     """helper function for creating linear solver."""
     solver_type = parameters.linear_solver_type       # direct or iterative
@@ -131,7 +117,11 @@ def state_space(
     return S
 
 
-def convergence_rate(hs, errors) -> List[float]:
+def convergence_rate(
+    *,
+    hs: Sequence[float],
+    errors: Sequence[float]
+) -> List[float]:
     """
     Compute and return rates of convergence :math:`r_i` such that
 
@@ -147,7 +137,7 @@ def convergence_rate(hs, errors) -> List[float]:
     return rates
 
 
-def splat(vs, dim):
+def split_subspaces(vs, dim):
     """Split subspaces."""
     if vs.function_space().ufl_element().num_sub_elements() == dim:
         v = vs[0]

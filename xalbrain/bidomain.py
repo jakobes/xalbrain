@@ -8,14 +8,24 @@ from typing import (
     Iterator,
     Union,
     Sequence,
+    NamedTuple,
 )
 
-from coupled_utils import (
+from xalbrain.utils import (
     CellTags,
     InterfaceTags,
-    BidomainParameters,
     time_stepper,
 )
+
+
+class BidomainParameters(NamedTuple):
+    restrict_tags: Any = set()
+    timestep: df.Constant = df.Constant(1.0)
+    theta: df.Constant = df.Constant(0.5)
+    linear_solver_type: str = "direct"
+    lu_type: str = "default"
+    krylov_method: str = "gmres"   # CG fails
+    krylov_preconditioner: str = "petsc_amg"
 
 
 class BidomainSolver:
@@ -26,9 +36,7 @@ class BidomainSolver:
         intracellular_conductivity: Dict[int, df.Expression],
         extracellular_conductivity: Dict[int, df.Expression],
         cell_function: df.MeshFunction,
-        cell_tags: CellTags,
         interface_function: df.MeshFunction,
-        interface_tags: InterfaceTags,
         parameters: BidomainParameters,
         neumann_boundary_condition: Dict[int, df.Expression] = None,
         v_prev: df.Function = None,
@@ -39,9 +47,6 @@ class BidomainSolver:
         self._mesh = mesh
         self._parameters = parameters
 
-        # Strip none from cell tags
-        cell_tags = set(cell_tags) - {None}
-
         if surface_to_volume_factor is None:
             surface_to_volume_factor = df.constant(1)
 
@@ -51,20 +56,23 @@ class BidomainSolver:
         # Set Chi*Cm
         self._chi_cm = df.Constant(surface_to_volume_factor)*df.Constant(membrane_capacitance)
 
-        if not set(intracellular_conductivity.keys()) == {*tuple(extracellular_conductivity.keys())}:
-            raise ValueError("intracellular conductivity and lambda does not havemnatching keys.")
-        if not set(cell_tags) == set(intracellular_conductivity.keys()):
+        if cell_function is None:
+            cell_function = df.MeshFunction("size_t", mesh, mesh.geometric_dimension())
+            cell_function.set_all(0)
+        self._cell_function = cell_function
+        self._cell_tags = set(cell_function.array())
+
+        try:
+            if not set(intracellular_conductivity.keys()) == {*tuple(extracellular_conductivity.keys())}:
+                raise ValueError("intracellular conductivity and lambda does not havemnatching keys.")
+        except AttributeError:
+            intracellular_conductivity = {k: intracellular_conductivity for k in self._cell_tags}
+            extracellular_conductivity = {k: extracellular_conductivity for k in self._cell_tags}
+
+        if not self._cell_tags == set(intracellular_conductivity.keys()):
             raise ValueError("Cell tags does not match conductivity keys")
         self._intracellular_conductivity = intracellular_conductivity
         self._extracellular_conductivity = extracellular_conductivity
-
-        # Check cell tags
-        _cell_function_tags = set(cell_function.array())
-        if set(cell_tags)!= _cell_function_tags:       # If not equal
-            msg = "Mismatching cell tags. Expected {}, got {}"
-            raise ValueError(msg.format(set(cell_tags), _cell_function_tags))
-        self._cell_tags = set(cell_tags)
-        self._cell_function = cell_function
 
         restrict_tags = self._parameters.restrict_tags
         if set(restrict_tags) >= self._cell_tags:
@@ -72,13 +80,11 @@ class BidomainSolver:
             raise ValueError(msg.format(set(restrict_tags), self._cell_tags))
         self._restrict_tags = set(restrict_tags)
 
-        # Check interface tags
-        _interface_function_tags = {*set(interface_function.array()), None}
-        if not set(interface_tags) <= _interface_function_tags:     # if not subset of
-            msg = "Mismatching interface tags. Expected {}, got {}"
-            raise ValueError(msg.format(set(interface_tags), _interface_function_tags))
+        if interface_function is None:
+            interface_function = df.MeshFunction("size_t", mesh, mesh.geometric_dimension() - 1)
+            interface_function.set_all(0)
         self._interface_function = interface_function
-        self._interface_tags = interface_tags
+        self._interface_tags = set(interface_function.array())
 
         # Set up function spaces
         self._transmembrane_function_space = df.FunctionSpace(self._mesh, "CG", 1)
@@ -297,3 +303,5 @@ class BidomainSolver:
 
         # Reassemble matrix
         df.assemble(self._lhs, tensor=self._lhs_matrix)
+
+

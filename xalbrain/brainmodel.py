@@ -1,6 +1,6 @@
 import dolfin as df
 
-from xalbrain.cellmodels import CardiacCellModel
+from xalbrain.cellmodels import CellModel
 
 from typing import (
     Dict,
@@ -8,23 +8,21 @@ from typing import (
     Union,
 )
 
-from coupled_utils import (
+from xalbrain.utils import (
     CellTags,
     InterfaceTags,
 )
 
 
-class CoupledBrainModel:
+class BrainModel:
     def __init__(
         self,
         *,
         time: df.Constant,
         mesh: df.Mesh,
-        cell_model: CardiacCellModel,
-        cell_function: df.MeshFunction,
-        cell_tags: CellTags,
-        interface_function: df.MeshFunction,
-        interface_tags: InterfaceTags,
+        cell_model: CellModel,
+        cell_function: df.MeshFunction = None,
+        interface_function: df.MeshFunction = None,
         intracellular_conductivity: Dict[int, df.Expression],
         other_conductivity: Dict[int, df.Expression],
         neumann_boundary_condition: Dict[int, df.Expression] = None,
@@ -48,8 +46,6 @@ class CoupledBrainModel:
         self._intracellular_conductivity = intracellular_conductivity
         self._other_conductivity = other_conductivity
 
-        self._cell_tags = cell_tags
-        self._interface_tags = interface_tags
         self._neumann_boundary_condition = neumann_boundary_condition
         self._external_stimulus = external_stimulus
 
@@ -90,14 +86,6 @@ class CoupledBrainModel:
     @property
     def extracellular_conductivity(self) -> Dict[int, df.Expression]:
         return self._other_conductivity
-
-    @property
-    def cell_tags(self) -> CellTags:
-        return self._cell_tags
-
-    @property
-    def interface_tags(self) -> InterfaceTags:
-        return self._interface_tags
 
     @property
     def neumann_boundary_condition(self) -> Optional[Dict[int, df.Expression]]:
