@@ -4,7 +4,6 @@ import numpy as np
 import dolfin as df
 
 from xalode import (
-    VectorDouble,
     VectorInt,
 )
 
