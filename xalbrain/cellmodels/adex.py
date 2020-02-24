@@ -1,5 +1,5 @@
 from dolfin import Parameters, Expression
-from xalbrain.cellmodels import CardiacCellModel
+from xalbrain.cellmodels import CellModel
 
 from dolfin import exp
 
@@ -9,10 +9,10 @@ from collections import OrderedDict
 __author__ = "Jakob E. Schrein (jakob@xal.no), 2017"
 
 
-class Adex(CardiacCellModel):
+class Adex(CellModel):
     def __init__(self, params=None, init_conditions=None):
         "Create neuronal cell model, optionally from given parameters."
-        CardiacCellModel.__init__(self, params, init_conditions)
+        CellModel.__init__(self, params, init_conditions)
 
     def I(self, V, w, time=None):
         """Return the ionic current."""

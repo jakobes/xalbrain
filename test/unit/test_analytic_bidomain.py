@@ -11,7 +11,7 @@ __all__ = []
 import pytest
 
 from xalbrain import (
-    CardiacModel,
+    Model,
     NoCellModel,
     BasicSplittingSolver,
 )
@@ -46,7 +46,7 @@ def main(
 
     ac_str = "cos(t)*cos(2*pi*x[0])*cos(2*pi*x[1]) + 4*pow(pi, 2)*cos(2*pi*x[0])*cos(2*pi*x[1])*sin(t)"
     stimulus = Expression(ac_str, t=time, degree=5)
-    heart = CardiacModel(mesh, time, 1.0, 1.0, cell_model, stimulus=stimulus)
+    heart = Model(mesh, time, 1.0, 1.0, cell_model, stimulus=stimulus)
 
     # Set-up solver
     ps = BasicSplittingSolver.default_parameters()

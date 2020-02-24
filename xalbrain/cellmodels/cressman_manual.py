@@ -2,7 +2,7 @@ import ufl
 
 import dolfin as df
 
-from xalbrain.cellmodels import CardiacCellModel
+from xalbrain.cellmodels import CellModel
 
 from collections import OrderedDict
 
@@ -11,14 +11,14 @@ from typing import (
 )
 
 
-class Cressman(CardiacCellModel):
+class Cressman(CellModel):
 
     def __init__(self, params: df.parameters=None, init_conditions: Dict[str, float]=None) -> None:
         """Create neuronal cell model, optionally from given parameters.
 
         See Cressman TODO: Look this up
         """
-        CardiacCellModel.__init__(self, params, init_conditions)
+        CellModel.__init__(self, params, init_conditions)
 
     @staticmethod
     def default_parameters():

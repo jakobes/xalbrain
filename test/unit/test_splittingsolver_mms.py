@@ -14,7 +14,7 @@ from xalbrain import (
     cellmodels,
     BidomainSolver,
     SplittingSolver,
-    CardiacCellModel,
+    CellModel,
 )
 
 
@@ -22,11 +22,11 @@ import dolfin as df
 from xalbrain.utils import convergence_rate
 
 
-class SimpleODEModel(CardiacCellModel):
+class SimpleODEModel(CellModel):
     """This class implements a simple ODE system """
 
     def __init__(self, mesh):
-        CardiacCellModel.__init__(self)
+        CellModel.__init__(self)
 
     def I(self, v, s, time=None):
         return -s
@@ -74,7 +74,7 @@ def main(N, dt, T, theta=0.5):
     stimulus = df.Expression(ac_str, t=time, dt=dt, degree=5)
     M_i = 1.0
     M_e = 1.0
-    heart = xalbrain.CardiacModel(mesh, time, M_i, M_e, model, stimulus)
+    heart = xalbrain.Model(mesh, time, M_i, M_e, model, stimulus)
     splittingsolver = SplittingSolver(heart, params=ps)
 
     # Define exact solution (Note: v is returned at end of time

@@ -17,9 +17,9 @@ __all__ = ["RogersMcCulloch"]
 
 from collections import OrderedDict
 from dolfin import Parameters, Expression
-from xalbrain.cellmodels import CardiacCellModel
+from xalbrain.cellmodels import CellModel
 
-class RogersMcCulloch(CardiacCellModel):
+class RogersMcCulloch(CellModel):
     """The Rogers-McCulloch model is a modified FitzHughNagumo model. This
     formulation follows the description on page 2 of "Optimal control
     approach ..." by Nagaiah, Kunisch and Plank, 2013, J Math Biol
@@ -48,7 +48,7 @@ class RogersMcCulloch(CardiacCellModel):
     """
     def __init__(self, params=None, init_conditions=None):
         "Create cardiac cell model, optionally from given parameters."
-        CardiacCellModel.__init__(self, params, init_conditions)
+        CellModel.__init__(self, params, init_conditions)
 
     @staticmethod
     def default_parameters():

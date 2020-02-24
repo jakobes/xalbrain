@@ -7,10 +7,10 @@ from __future__ import division
 from collections import OrderedDict
 import ufl
 
-from xalbrain.cellmodels import CardiacCellModel
+from xalbrain.cellmodels import CellModel
 from dolfin import *
 
-class Fitzhughnagumo(CardiacCellModel):
+class Fitzhughnagumo(CellModel):
     """
 NOT_IMPLEMENTED
     """
@@ -24,7 +24,7 @@ NOT_IMPLEMENTED
          init_conditions (dict, :py:class:`dolfin.Mesh`, optional)
            optional initial conditions
         """
-        CardiacCellModel.__init__(self, params, init_conditions)
+        CellModel.__init__(self, params, init_conditions)
 
     @staticmethod
     def default_parameters():

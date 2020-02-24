@@ -12,7 +12,7 @@ To import the module, type::
 from xalbrain.cellmodels import *
 
 from xalbrain.markerwisefield import rhs_with_markerwise_field
-from xalbrain.cardiacmodels import CardiacModel
+from xalbrain.models import Model
 
 # Solver imports
 from xalbrain.splittingsolver import (

@@ -8,7 +8,7 @@ __all__ = ["TestSplittingSolver"]
 from testutils import assert_almost_equal, medium, parametrize
 
 from xalbrain import (
-    CardiacModel,
+    Model,
     BasicSplittingSolver,
     SplittingSolver,
     BasicCardiacODESolver,
@@ -42,7 +42,7 @@ class TestSplittingSolver:
         self.M_e = 2.0
 
         self.cell_model = FitzHughNagumoManual()
-        self.cardiac_model = CardiacModel(
+        self.cardiac_model = Model(
             self.mesh,
             self.time,
             self.M_i,

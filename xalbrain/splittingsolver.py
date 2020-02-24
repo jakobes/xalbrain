@@ -1,4 +1,4 @@
-"""This module contains splitting solvers for CardiacModel objects. 
+"""This module contains splitting solvers for Model objects. 
 In particular, the classes
 
   * SplittingSolver
@@ -42,12 +42,12 @@ pure Neumann boundary conditions for :math:`v` and :math:`u` and
 enforce the additional average value zero constraint for u.
 
 The solvers take as input a
-:py:class:`~xalbrain.cardiacmodels.CardiacModel` providing the
+:py:class:`~xalbrain.cardiacmodels.Model` providing the
 required input specification of the problem. In particular, the
 applied current :math:`I_a` is extracted from the
-:py:attr:`~xalbrain.cardiacmodels.CardiacModel.applied_current`
+:py:attr:`~xalbrain.cardiacmodels.Model.applied_current`
 attribute, while the stimulus :math:`I_s` is extracted from the
-:py:attr:`~xalbrain.cardiacmodels.CardiacModel.stimulus` attribute.
+:py:attr:`~xalbrain.cardiacmodels.Model.stimulus` attribute.
 
 It should be possible to use the solvers interchangably. However, note
 that the BasicSplittingSolver is not optimised and should be used for
@@ -63,7 +63,7 @@ __all__ = ["SplittingSolver", "BasicSplittingSolver",]
 import dolfin as df
 import numpy as np
 
-from xalbrain import CardiacModel
+from xalbrain import Model
 
 from xalbrain.cellsolver import (
     BasicCardiacODESolver,
@@ -85,7 +85,10 @@ from xalbrain.utils import (
     TimeStepper,
 )
 
+from abc import ABC
+
 import typing as tp
+
 
 
 import time
@@ -118,8 +121,8 @@ class BasicSplittingSolver:
     :py:class:`xalbrain.splittingsolver.SplittingSolver`.
 
     *Arguments*
-      model (:py:class:`xalbrain.cardiacmodels.CardiacModel`)
-        a CardiacModel object describing the simulation set-up
+      model (:py:class:`xalbrain.cardiacmodels.Model`)
+        a Model object describing the simulation set-up
       params (:py:class:`dolfin.Parameters`, optional)
         a Parameters object controlling solver parameters
 
@@ -129,12 +132,12 @@ class BasicSplittingSolver:
 
     def __init__(
             self,
-            model: CardiacModel,
+            model: Model,
             ode_timestep: float = None,
             params: df.Parameters = None
     ) -> None:
         """Create solver from given Cardiac Model and (optional) parameters."""
-        assert isinstance(model, CardiacModel), "Expecting CardiacModel as first argument"
+        assert isinstance(model, Model), "Expecting Model as first argument"
 
         self._ode_timestep = ode_timestep
 
@@ -382,7 +385,7 @@ class BasicSplittingSolver:
         timer.stop()
 
     @property
-    def model(self) -> CardiacModel:
+    def model(self) -> Model:
         """Return the brain."""
         return self._model
 
@@ -414,8 +417,8 @@ class SplittingSolver(BasicSplittingSolver):
     splitting.
 
     *Arguments*
-      model (:py:class:`xalbrain.cardiacmodels.CardiacModel`)
-        a CardiacModel object describing the simulation set-up
+      model (:py:class:`xalbrain.cardiacmodels.Model`)
+        a Model object describing the simulation set-up
       params (:py:class:`dolfin.Parameters`, optional)
         a Parameters object controlling solver parameters
 
@@ -428,7 +431,7 @@ class SplittingSolver(BasicSplittingSolver):
       time = Constant(0.0)
       cell_model = FitzHughNagumoManual()
       stimulus = Expression("10*t*x[0]", t=time, degree=1)
-      cm = CardiacModel(mesh, time, 1.0, 1.0, cell_model, stimulus)
+      cm = Model(mesh, time, 1.0, 1.0, cell_model, stimulus)
 
       # Extract default solver parameters
       ps = SplittingSolver.default_parameters()
@@ -466,7 +469,7 @@ class SplittingSolver(BasicSplittingSolver):
 
     def __init__(
             self,
-            model: CardiacModel,
+            model: Model,
             ode_timestep: float = None,
             params: df.parameters = None
     ) -> None:

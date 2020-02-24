@@ -7,7 +7,7 @@ __all__ = ["TestSplittingSolver"]
 from testutils import fast
 
 from xalbrain import (
-    CardiacModel,
+    Model,
     FitzHughNagumoManual,
     SplittingSolver,
 )
@@ -30,7 +30,7 @@ def test_solver_with_domains() -> None:
     M_e = 2.0
 
     cell_model = FitzHughNagumoManual()
-    cardiac_model = CardiacModel(
+    cardiac_model = Model(
         mesh,
         time,
         M_i,

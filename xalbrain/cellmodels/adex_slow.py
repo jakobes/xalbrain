@@ -8,14 +8,14 @@ __author__ = "Jakob E. Schrein (jakob@xal.no), 2017"
 
 
 from collections import OrderedDict
-from xalbrain.cellmodels import CardiacCellModel
+from xalbrain.cellmodels import CellModel
 
 from dolfin import exp, assign, as_backend_type, Expression
 
 import numpy as np
 
 
-class AdexManual(CardiacCellModel):
+class AdexManual(CellModel):
     """Adaptive exponential integrate-and-fire model.
 
     This is a model containing two nonlinear, ODEs for the evolution
@@ -24,7 +24,7 @@ class AdexManual(CardiacCellModel):
 
     def __init__(self, params=None, init_conditions=None):
         """Create neuronal cell model, optionally from given parameters."""
-        CardiacCellModel.__init__(self, params, init_conditions)
+        CellModel.__init__(self, params, init_conditions)
 
     @staticmethod
     def default_parameters():

@@ -16,7 +16,7 @@ import numpy as np
 
 from xalbrain import (
     SingleCellSolver,
-    CardiacModel,
+    Model,
     SplittingSolver,
 )
 
@@ -56,7 +56,7 @@ def test_ode_pde(theta, pde_solver) -> None:
 
     # Propagate with Bidomain+ODE solver
     mesh = df.UnitSquareMesh(1, 1)
-    brain = CardiacModel(mesh, time, 1.0, 1.0, model, stimulus=stimulus)
+    brain = Model(mesh, time, 1.0, 1.0, model, stimulus=stimulus)
     ps = SplittingSolver.default_parameters()
     ps["pde_solver"] = pde_solver
     ps["theta"] = float(theta)

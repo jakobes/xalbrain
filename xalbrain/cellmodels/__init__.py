@@ -1,5 +1,5 @@
-from .cardiaccellmodel import (
-    CardiacCellModel,
+from .cellmodel import (
+    CellModel,
     MultiCellModel,
 )
 
@@ -23,7 +23,7 @@ __all__ = [
     "NoCellModel",
     "AdexManual",
     "Adex",
-    "CardiacCellModel",
+    "CellModel",
     "MultiCellModel",
     "Wei",
     "Cressman",

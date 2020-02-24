@@ -10,7 +10,7 @@ from testutils import fast, parametrize
 import numpy as np
 
 from xalbrain import (
-    CardiacModel,
+    Model,
     BasicSplittingSolver,
     SplittingSolver,
     FitzHughNagumoManual,
@@ -28,7 +28,7 @@ class TestMerger(object):
     def setup(self):
         self.mesh = UnitCubeMesh(2, 2, 2)
         self.cell_model = FitzHughNagumoManual()
-        self.cardiac_model = CardiacModel(self.mesh, None, 1.0, 2.0, self.cell_model)
+        self.cardiac_model = Model(self.mesh, None, 1.0, 2.0, self.cell_model)
 
     @fast
     @parametrize("Solver", [SplittingSolver, BasicSplittingSolver])

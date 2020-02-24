@@ -1,4 +1,4 @@
-"This module contains solvers for (subclasses of) CardiacCellModel."
+"This module contains solvers for (subclasses of) CellModel."
 
 
 __author__ = "Marie E. Rognes (meg@simula.no), 2012--2013"
@@ -11,7 +11,7 @@ from xalbrain.markerwisefield import rhs_with_markerwise_field
 import dolfin as df
 
 from xalbrain.cellmodels import (
-    CardiacCellModel,
+    CellModel,
     MultiCellModel,
 )
 
@@ -60,7 +60,7 @@ class BasicCardiacODESolver:
         A constant holding the current time. If None is given, time is
         created for you, initialized to zero.
 
-      model (:py:class:`xalbrain.CardiacCellModel`)
+      model (:py:class:`xalbrain.CellModel`)
         A representation of the cardiac cell model(s)
 
       I_s (optional) A typically time-dependent external stimulus
@@ -75,7 +75,7 @@ class BasicCardiacODESolver:
             self,
             mesh: df.Mesh,
             time: df.Constant,
-            model: CardiacCellModel,
+            model: CellModel,
             I_s: tp.Union[df.Expression, tp.Dict[int, df.Expression]],
             params: df.Parameters = None,
     ) -> None:
@@ -337,7 +337,7 @@ class CardiacODESolver:
         A constant holding the current time. If None is given, time is
         created for you, initialized to zero.
 
-      model (:py:class:`xalbrain.CardiacCellModel`)
+      model (:py:class:`xalbrain.CellModel`)
         A representation of the cardiac cell model(s)
 
       I_s (:py:class:`dolfin.Expression`, optional)
@@ -353,7 +353,7 @@ class CardiacODESolver:
             self,
             mesh: df.Mesh,
             time: df.Constant,
-            model: CardiacCellModel,
+            model: CellModel,
             I_s: tp.Union[df.Expression, tp.Dict[int, df.Expression]]=None,
             params: df.Parameters=None
     ) -> None:
@@ -557,7 +557,7 @@ class BasicSingleCellSolver(BasicCardiacODESolver):
        simulation.
 
     *Arguments*
-      model (:py:class:`~xalbrain.cellmodels.cardiaccellmodel.CardiacCellModel`)
+      model (:py:class:`~xalbrain.cellmodels.cardiaccellmodel.CellModel`)
         A cardiac cell model
       time (:py:class:`~dolfin.Constant` or None)
         A constant holding the current time.
@@ -568,13 +568,13 @@ class BasicSingleCellSolver(BasicCardiacODESolver):
 
     def __init__(
             self,
-            model: CardiacCellModel,
+            model: CellModel,
             time: df.Constant,
             params: df.Parameters = None
     ) -> None:
         """Create solver from given cell model and optional parameters."""
-        msg = "Expecting model to be a CardiacCellModel, not {}".format(model)
-        assert isinstance(model, CardiacCellModel), msg
+        msg = "Expecting model to be a CellModel, not {}".format(model)
+        assert isinstance(model, CellModel), msg
 
         msg = "Expecting time to be a Constant instance, not %r".format(time)
         assert (isinstance(time, df.Constant)), msg
@@ -594,13 +594,13 @@ class BasicSingleCellSolver(BasicCardiacODESolver):
 class SingleCellSolver(CardiacODESolver):
     def __init__(
             self,
-            model: CardiacCellModel,
+            model: CellModel,
             time: df.Constant,
             params: df.Parameters=None
     ) -> None:
         """Create solver from given cell model and optional parameters."""
-        assert isinstance(model, CardiacCellModel), \
-            "Expecting model to be a CardiacCellModel, not %r" % model
+        assert isinstance(model, CellModel), \
+            "Expecting model to be a CellModel, not %r" % model
         assert (isinstance(time, df.Constant)), \
             "Expecting time to be a Constant instance, not %r" % time
         assert isinstance(params, df.Parameters) or params is None, \

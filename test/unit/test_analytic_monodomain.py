@@ -2,7 +2,7 @@ import pytest
 
 
 from xalbrain import (
-    CardiacModel,
+    Model,
     NoCellModel,
     BasicSplittingSolver,
 )
@@ -33,7 +33,7 @@ def main(N: int, dt: float, T: float, theta: float) -> Tuple[float, float, float
 
     ac_str = "(8*pi*pi*lam*sin(t) + (lam + 1)*cos(t))*cos(2*pi*x[0])*cos(2*pi*x[1])/(lam + 1)"
     stimulus = Expression(ac_str, t=time, lam=lam, degree=3)
-    brain = CardiacModel(mesh, time, 1.0, 1.0, cell_model, stimulus=stimulus)
+    brain = Model(mesh, time, 1.0, 1.0, cell_model, stimulus=stimulus)
 
     # Define solver solver
     ps = BasicSplittingSolver.default_parameters()

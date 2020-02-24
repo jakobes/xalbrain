@@ -1,5 +1,5 @@
 """This module contains a container class for cardiac models:
-:py:class:`~xalbrain.cardiacmodels.CardiacModel`.  This class
+:py:class:`~xalbrain.cardiacmodels.Model`.  This class
 should be instantiated for setting up specific cardiac simulation
 scenarios.
 """
@@ -8,25 +8,19 @@ scenarios.
 # Use and modify at will
 # Last changed: 2016-04-21
 
+import typing as tp
+
 import dolfin as df
 
 import xalbrain as xb
 
-from .cellmodels import *       # Why do I need this?
-
-from typing import (
-    Dict,
-    Union,
-    List,
-    Tuple,
-    Any,
-)
+from .cellmodels import CellModel
 
 
-__all__ = ["CardiacModel"] 
+__all__ = ["Model"] 
 
 
-class CardiacModel:
+class Model:
     """
     A container class for cardiac models. Objects of this class
     represent a specific cardiac simulation set-up and should provide
@@ -50,7 +44,7 @@ class CardiacModel:
         the intra-cellular conductivity as an ufl Expression
       M_e (:py:class:`ufl.Expr`)
         the extra-cellular conductivity as an ufl Expression
-      cell_models (:py:class:`~xalbrain.cellmodels.cardiaccellmodel.CardiacCellModel`)
+      cell_models (:py:class:`~xalbrain.cellmodels.cardiaccellmodel.CellModel`)
         a cell model or a dict with cell models associated with a cell model domain
       stimulus (:py:class:`dict`, optional)
         A typically time-dependent external stimulus given as a dict,
@@ -67,18 +61,18 @@ class CardiacModel:
             self,
             domain: df.Mesh,
             time: df.Constant,
-            M_i: Union[df.Expression, Dict[int, df.Expression]],
-            M_e: Union[df.Expression, Dict[int, df.Expression]],
-            cell_models: CardiacCellModel,
-            stimulus: Union[df.Expression, Dict[int, df.Expression]] = None,
-            applied_current: Union[df.Expression, Dict[int, df.Expression]] = None,
-            ect_current: Dict[int, df.Expression] = None,
-            dirichlet_bc_u: List[Tuple[df.Expression, int]] = None,
-            dirichlet_bc_v: List[Tuple[df.Expression, int]] = None,
+            M_i: tp.Union[df.Expression, tp.Dict[int, df.Expression]],
+            M_e: tp.Union[df.Expression, tp.Dict[int, df.Expression]],
+            cell_models: CellModel,
+            stimulus: tp.Union[df.Expression, tp.Dict[int, df.Expression]] = None,
+            applied_current: tp.Union[df.Expression, tp.Dict[int, df.Expression]] = None,
+            ect_current: tp.Dict[int, df.Expression] = None,
+            dirichlet_bc_u: tp.List[tp.Tuple[df.Expression, int]] = None,
+            dirichlet_bc_v: tp.List[tp.Tuple[df.Expression, int]] = None,
             cell_domains: df.MeshFunction = None,
             facet_domains: df.MeshFunction = None
     ) -> None:
-        """Create CardiacModel from given input."""
+        """Create Model from given input."""
         self._ect_current = ect_current
 
         # Check input and store attributes
@@ -108,12 +102,12 @@ class CardiacModel:
         self._dirichlet_bcs_v = dirichlet_bc_v
 
     @property
-    def dirichlet_bc_u(self) -> List[Tuple[df.Expression, int]]:
+    def dirichlet_bc_u(self) -> tp.List[tp.Tuple[df.Expression, int]]:
         """Return a list of `DirichletBC`s u."""
         return self._dirichlet_bcs_v
 
     @property
-    def dirichlet_bc_v(self) -> List[Tuple[df.Expression, int]]:
+    def dirichlet_bc_v(self) -> tp.List[tp.Tuple[df.Expression, int]]:
         """Return a lit of `DirichletBC`'s for v."""
         return self._dirichlet_bcs_u
 
@@ -122,15 +116,15 @@ class CardiacModel:
         """Return the neumnn current."""
         return self._ect_current
 
-    def applied_current(self) -> Any:
+    def applied_current(self) -> tp.Any:
         "An applied current: used as a source in the elliptic bidomain equation"
         return self._applied_current
 
-    def stimulus(self) -> Any:
+    def stimulus(self) -> tp.Any:
         "A stimulus: used as a source in the parabolic bidomain equation"
         return self._stimulus
 
-    def conductivities(self) -> Any:
+    def conductivities(self) -> tp.Any:
         """Return the intracellular and extracellular conductivities
         as a tuple of UFL Expressions.
 
@@ -139,11 +133,11 @@ class CardiacModel:
         """
         return self.intracellular_conductivity(), self.extracellular_conductivity()
 
-    def intracellular_conductivity(self) -> Any:
+    def intracellular_conductivity(self) -> tp.Any:
         """The intracellular conductivity (:py:class:`ufl.Expr`)."""
         return self._intracellular_conductivity
 
-    def extracellular_conductivity(self) -> Any:
+    def extracellular_conductivity(self) -> tp.Any:
         """The intracellular conductivity (:py:class:`ufl.Expr`)."""
         return self._extracellular_conductivity
 
@@ -168,6 +162,6 @@ class CardiacModel:
         return self._facet_domains
 
     @property
-    def cell_models(self) -> xb.cellmodels.CardiacCellModel:
+    def cell_models(self) -> xb.cellmodels.CellModel:
         """Return the cell models."""
         return self._cell_models

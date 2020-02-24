@@ -2,7 +2,7 @@
 from __future__ import division
 
 __author__ = "Marie E. Rognes (meg@simula.no), 2012--2013"
-__all__ = ["CardiacCellModel", "MultiCellModel"]
+__all__ = ["CellModel", "MultiCellModel"]
 
 from dolfin import (
     Parameters,
@@ -26,7 +26,7 @@ def error(arg):
     print(arg)
 
 
-class CardiacCellModel:
+class CellModel:
     """
     Base class for cardiac cell models. Specialized cell models should
     subclass this class.
@@ -53,7 +53,7 @@ class CardiacCellModel:
 
     If a stimulus is provided via
 
-      cell = CardiacCellModel()
+      cell = CellModel()
       cell.stimulus = Expression("I_s(t)", degree=1)
 
     then I_s is added to the right-hand side of (*), which thus reads
@@ -163,7 +163,7 @@ class CardiacCellModel:
         return "Some cardiac cell model"
 
 
-class MultiCellModel(CardiacCellModel):
+class MultiCellModel(CellModel):
     """
     MultiCellModel
     """
@@ -172,7 +172,7 @@ class MultiCellModel(CardiacCellModel):
         """
         *Arguments*
         models (tuple)
-          tuple of existing CardiacCellModels
+          tuple of existing CellModels
         keys (tuple)
           integers demarking the domain for each cell model
         markers (:py:class:`dolfin.MeshFunction`)
