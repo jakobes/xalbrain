@@ -12,23 +12,18 @@ from xalbrain import (
     SplittingSolver,
 )
 
-from dolfin import (
-    UnitCubeMesh,
-    Constant,
-    Expression,
-    parameters,
-)
+import dolfin as df
 
 
 @fast
 def test_solver_with_domains() -> None:
-    mesh = UnitCubeMesh(5, 5, 5)
-    time = Constant(0.0)
+    mesh = df.UnitCubeMesh(5, 5, 5)
+    time = df.Constant(0.0)
 
-    stimulus = Expression("2.0*t", t=time, degree=1)
+    stimulus = df.Expression("2.0*t", t=time, degree=1)
 
     # Create ac
-    applied_current = Expression("sin(2*pi*x[0])*t", t=time, degree=3)
+    applied_current = df.Expression("sin(2*pi*x[0])*t", t=time, degree=3)
 
     # Create conductivity "tensors"
     M_i = 1.0
@@ -60,7 +55,7 @@ def test_solver_with_domains() -> None:
     vs_.assign(ics)
 
     # Solve
-    solutions = solver.solve((t0, T), dt)
+    solutions = solver.solve(t0, T, dt)
     for (interval, fields) in solutions:
         (vs_, vs, vur) = fields
 

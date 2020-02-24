@@ -75,7 +75,7 @@ def main(
     v_, vu = solver.solution_fields()
 
     # Solve
-    solutions = solver.solve((0, T), dt)
+    solutions = solver.solve(0, T, dt)
     for interval, fields in solutions:
         continue
 

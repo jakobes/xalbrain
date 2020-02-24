@@ -48,7 +48,7 @@ def main(N: int, dt: float, T: float, theta: float) -> Tuple[float, float, float
     v_, v = solver.solution_fields()
 
     # Solve
-    solutions = solver.solve((0, T), dt)
+    solutions = solver.solve(0, T, dt)
     for interval, fields in solutions:
         continue
 

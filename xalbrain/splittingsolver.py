@@ -85,12 +85,7 @@ from xalbrain.utils import (
     TimeStepper,
 )
 
-from typing import (
-    Any,
-    Tuple,
-    Generator,
-    Union,
-)
+import typing as tp
 
 
 import time
@@ -267,7 +262,7 @@ class BasicSplittingSolver:
         params.add(pde_solver_params)
         return params
 
-    def solution_fields(self) -> Tuple[df.Function, df.Function, df.Function]:
+    def solution_fields(self) -> tp.Tuple[df.Function, df.Function, df.Function]:
         """
         Return tuple of previous and current solution objects.
 
@@ -280,7 +275,7 @@ class BasicSplittingSolver:
         """
         return self.vs_, self.vs, self.vur
 
-    def solve(self, interval, dt) -> Generator[Tuple[Tuple[float, float], df.Function], None, None]:
+    def solve(self, t0: float, t1: float, dt: float) -> tp.Iterator[tp.Tuple[tp.Tuple[float, float], df.Function]]:
         """
         Solve the problem given by the model on a time interval with a given time step.
         Return a generator for a tuple of the time step and the solution fields.
@@ -308,18 +303,18 @@ class BasicSplittingSolver:
 
         """
         # Create timestepper
-        time_stepper = TimeStepper(interval, dt)
+        time_stepper = TimeStepper(t0, t1, dt)
 
-        for t0, t1 in time_stepper:
-            self.step((t0, t1), dt)
+        for _t0, _t1 in time_stepper:
+            self.step(_t0, _t1)
 
             # Yield solutions
-            yield (t0, t1), self.solution_fields()
+            yield (_t0, _t1), self.solution_fields()
 
             # Update previous solution
             self.vs_.assign(self.vs)
 
-    def step(self, interval: Tuple[float, float], dt: float) -> None:
+    def step(self, t0: float, t1: float) -> None:
         """
         Solve the pde for one time step.
 
@@ -335,7 +330,6 @@ class BasicSplittingSolver:
         theta = self._parameters["theta"]
 
         # Extract time domain
-        t0, t1 = interval
         _dt = t1 - t0
         t = t0 + theta*_dt
 
@@ -343,20 +337,14 @@ class BasicSplittingSolver:
         # df.begin(df.PROGRESS, "Tentative ODE step")
         # Assumes that its vs_ is in the correct state, gives its vs
         # in the current state
-        # self.ode_solver.step((t0, t))
-        if self._ode_timestep is None or self._ode_timestep == dt:
-            self.ode_solver.step((t0, t))
-        else:
-            # Take multiple ODE steps for each pde step
-            for _ in self.ode_solver.solve((t0, t), self._ode_timestep):
-                pass
+        self.ode_solver.step(t0, t)
 
         self.vs_.assign(self.vs)
 
         # Compute tentative potentials vu = (v, u)
         # Assumes that its vs_ is in the correct state, gives vur in
         # the current state
-        self.pde_solver.step((t0, t1))
+        self.pde_solver.step(t0, t1)
 
         # If first order splitting, we need to ensure that self.vs is
         # up to date, but otherwise we are done.
@@ -375,13 +363,7 @@ class BasicSplittingSolver:
         self.merge(self.vs_)    # self.vs_.sub(0) <- self.vur.sub(0)
         # Assumes that its vs_ is in the correct state, provides vs in the correct state
 
-        # self.ode_solver.step((t0, t))
-        if self._ode_timestep is None or self._ode_timestep == dt:
-            self.ode_solver.step((t0, t))
-        else:
-            # Take multiple ODE steps for each pde step
-            for _ in self.ode_solver.solve((t0, t), self._ode_timestep):
-                pass
+        self.ode_solver.step(t, t1)
 
     def merge(self, solution: df.Function) -> None:
         """
@@ -533,7 +515,7 @@ class SplittingSolver(BasicSplittingSolver):
         params.add(pde_solver_params)
         return params
 
-    def _create_ode_solver(self) -> Union[BasicCardiacODESolver, CardiacODESolver]:
+    def _create_ode_solver(self) -> tp.Union[BasicCardiacODESolver, CardiacODESolver]:
         """
         Helper function to initialize a suitable ODE solver from the cardiac model.
         """
@@ -558,7 +540,7 @@ class SplittingSolver(BasicSplittingSolver):
         )
         return solver
 
-    def _create_pde_solver(self) -> Union[
+    def _create_pde_solver(self) -> tp.Union[
             BasicBidomainSolver,
             BidomainSolver,
             BasicMonodomainSolver,

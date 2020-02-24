@@ -46,7 +46,7 @@ def main(N: int, dt: float, T: float, theta: float) -> Tuple[float, float, float
     vs_, vs, vur = solver.solution_fields()
     vs_.assign(vs0)
 
-    for timestep, (vs_, vs, vur) in solver.solve((0, T), dt):
+    for timestep, (vs_, vs, vur) in solver.solve(0, T, dt):
         continue
 
     v_exact = Expression(

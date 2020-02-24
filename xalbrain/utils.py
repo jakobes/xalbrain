@@ -70,7 +70,7 @@ def end_of_time(T: float, t0: float, t1: float, dt: float) -> bool:
 class TimeStepper:
     """A helper object that keep track of simulated time"""
 
-    def __init__(self, interval: Tuple[float, float], dt: float) -> None:
+    def __init__(self, t0: float, t1: float, dt: float) -> None:
         """
         *Arguments*
           interval (:py:class:`tuple`)
@@ -80,17 +80,12 @@ class TimeStepper:
             also be passed. Each tuple should contain two floats where the
             first includes the start time and the second the dt.
         """
-        if not isinstance(interval, (tuple, list)) or len(interval) != 2 or \
-               not all(isinstance(value, (float, int)) for value in interval):
-            raise TypeError("expected tuple or list of size 2 with scalars for "\
-                            "the interval argument")
-
-        if interval[0] >= interval[1]:
+        if t0 >= t1:
             raise ValueError("Start time need to be larger than stop time: "\
                              "interval[0] < interval[1]")
 
         # Store time interval
-        (self.T0, self.T1) = interval
+        (self.T0, self.T1) = t0, t1
 
         if not isinstance(dt, (float, int, list)):
             raise TypeError("expected float or list of tuples for dt argument")

@@ -71,7 +71,7 @@ def main(
     vs_.assign(vs0)
 
     # Solve
-    for (_, (vs_, vs, vur)) in solver.solve((0, T), dt):
+    for _, (vs_, vs, vur) in solver.solve(0, T, dt):
         continue
 
     # Compute errors

@@ -21,12 +21,7 @@ from xalbrain.utils import (
     splat,
 )
 
-from typing import (
-    Dict,
-    Any,
-    Tuple,
-    Union,
-)
+import typing as tp
 
 
 class BasicCardiacODESolver:
@@ -81,7 +76,7 @@ class BasicCardiacODESolver:
             mesh: df.Mesh,
             time: df.Constant,
             model: CardiacCellModel,
-            I_s: Union[df.Expression, Dict[int, df.Expression]],
+            I_s: tp.Union[df.Expression, tp.Dict[int, df.Expression]],
             params: df.Parameters = None,
     ) -> None:
         """Create the necessary function spaces """
@@ -147,7 +142,7 @@ class BasicCardiacODESolver:
         params["nonlinear_variational_solver"]["newton_solver"]["preconditioner"] = "jacobi"
         return params
 
-    def solution_fields(self) -> Tuple[df.Function, df.Function]:
+    def solution_fields(self) -> tp.Tuple[df.Function, df.Function]:
         """
         Return tuple of previous and current solution objects.
 
@@ -160,7 +155,7 @@ class BasicCardiacODESolver:
         """
         return self.vs_, self.vs
 
-    def solve(self, interval: Tuple[float, float], dt: float = None) -> Any:
+    def solve(self, t0: float, t1: float, dt: float) -> tp.Any:
         """
         Solve the problem given by the model on a given time interval
         (t0, t1) with a given timestep dt and return generator for a
@@ -186,24 +181,22 @@ class BasicCardiacODESolver:
 
         """
         # Initial time set-up
-        T0, T = interval
-
         # Solve on entire interval if no interval is given.
         if dt is None:
-            dt = T - T0
+            dt = t1 - t0
 
         # Create timestepper
-        time_stepper = TimeStepper(interval, dt)
-        for t0, t1 in time_stepper:
+        time_stepper = TimeStepper(t0, t1, dt)
+        for _t0, _t1 in time_stepper:
 
             # df.info_blue("Solving on t = ({:g}, {:g})".format(t0, t1))
-            self.step((t0, t1))
+            self.step(_t0, _t1)
 
             # Yield solutions
-            yield (t0, t1), self.vs
+            yield (_t0, _t1), self.vs
             self.vs_.assign(self.vs)
 
-    def step(self, interval: Tuple[float, float]) -> None:
+    def step(self, t0: float, t1: float) -> None:
         """
         Solve on the given time step (t0, t1).
 
@@ -216,7 +209,6 @@ class BasicCardiacODESolver:
         timer = df.Timer("ODE step")
 
         # Extract time mesh
-        t0, t1 = interval
         k_n = df.Constant(t1 - t0)
 
         # Extract previous solution(s)
@@ -362,7 +354,7 @@ class CardiacODESolver:
             mesh: df.Mesh,
             time: df.Constant,
             model: CardiacCellModel,
-            I_s: Union[df.Expression, Dict[int, df.Expression]]=None,
+            I_s: tp.Union[df.Expression, tp.Dict[int, df.Expression]]=None,
             params: df.Parameters=None
     ) -> None:
         """Initialise parameters."""
@@ -429,7 +421,7 @@ class CardiacODESolver:
         # Initialize solver and update its parameters
         self._pi_solver = df.PointIntegralSolver(self._scheme)
 
-    def _name_to_scheme(self, name: str) -> Any:
+    def _name_to_scheme(self, name: str) -> tp.Any:
         """Return scheme class with given name.
 
         *Arguments*
@@ -457,7 +449,7 @@ class CardiacODESolver:
         """The internal time of the solver."""
         return self._time
 
-    def solution_fields(self) -> Tuple[df.Function, df.Function]:
+    def solution_fields(self) -> tp.Tuple[df.Function, df.Function]:
         """
         Return current solution object.
 
@@ -470,7 +462,7 @@ class CardiacODESolver:
         """
         return self.vs_, self.vs
 
-    def step(self, interval: Tuple[float, float]) -> None:
+    def step(self, t0: float, t1: float) -> None:
         """
         Solve on the given time step (t0, t1).
 
@@ -485,12 +477,11 @@ class CardiacODESolver:
         timer = df.Timer("ODE step")
         self.vs.assign(self.vs_)
 
-        t0, t1 = interval
         dt = t1 - t0
         self._pi_solver.step(dt)
         timer.stop()
 
-    def solve(self, interval: Tuple[float, float], dt: float=None) -> None:
+    def solve(self, t0: float, t1: float, dt: float) -> None:
         """
         Solve the problem given by the model on a given time interval
         (t0, t1) with a given timestep dt and return generator for a
@@ -516,21 +507,19 @@ class CardiacODESolver:
 
         """
         # Initial time set-up
-        T0, T = interval
-
         # Solve on entire interval if no interval is given.
         if dt is None:
-            dt = T - T0
+            dt = t1 - t0
 
         # Create timestepper
-        time_stepper = TimeStepper(interval, dt)
+        time_stepper = TimeStepper(t0, t1, dt)
 
-        for t0, t1 in time_stepper:
+        for _t0, _t1 in time_stepper:
             # df.info_blue("Solving on t = (%g, %g)" % (t0, t1))
-            self.step((t0, t1))
+            self.step(_t0, _t1)
 
             # Yield solutions
-            yield (t0, t1), self.vs
+            yield (_t0, _t1), self.vs
             self.vs_.assign(self.vs)
 
 

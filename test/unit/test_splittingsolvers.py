@@ -7,8 +7,6 @@ __all__ = ["TestSplittingSolver"]
 
 from testutils import assert_almost_equal, medium, parametrize
 
-from dolfin import info, set_log_level#, WARNING
-
 from xalbrain import (
     CardiacModel,
     BasicSplittingSolver,
@@ -17,33 +15,27 @@ from xalbrain import (
     FitzHughNagumoManual,
 )
 
-from dolfin import (
-    Constant,
-    Expression,
-    UnitCubeMesh,
-    parameters,
-)
+import dolfin as df
 
 import pytest
 
+df.set_log_level(50)
 
-# set_log_level(WARNING)
 
-
-class TestSplittingSolver(object):
+class TestSplittingSolver:
     """Test functionality for the splitting solvers."""
 
     def setup(self) -> None:
-        self.mesh = UnitCubeMesh(5, 5, 5)
+        self.mesh = df.UnitCubeMesh(5, 5, 5)
 
         # Create time
-        self.time = Constant(0.0)
+        self.time = df.Constant(0.0)
 
         # Create stimulus
-        self.stimulus = Expression("2.0*t", t=self.time, degree=1)
+        self.stimulus = df.Expression("2.0*t", t=self.time, degree=1)
 
         # Create ac
-        self.applied_current = Expression("sin(2*pi*x[0])*t", t=self.time, degree=3)
+        self.applied_current = df.Expression("sin(2*pi*x[0])*t", t=self.time, degree=3)
 
         # Create conductivity "tensors"
         self.M_i = 1.0
@@ -70,7 +62,6 @@ class TestSplittingSolver(object):
 
 
     @medium
-    # @parametrize(("solver_type"), ["direct", "iterative"])
     @pytest.mark.parametrize("solver_type", [
         pytest.param("direct"),
         pytest.param("iterative", marks=pytest.mark.xfail)
@@ -95,9 +86,10 @@ class TestSplittingSolver(object):
         vs_.assign(self.ics)
 
         # Solve
-        solutions = solver.solve((self.t0, self.T), self.dt)
+        solutions = solver.solve(self.t0, self.T, self.dt)
         for (t0, t1), fields in solutions:
             vs_, vs, vur = fields
+            print(vs.vector().norm("l2"))
 
         foo = vs.vector()
         basic_vs = vs.vector().norm("l2")
@@ -118,12 +110,12 @@ class TestSplittingSolver(object):
         vs_.assign(self.ics)
 
         # Solve again
-        solutions = solver.solve((self.t0, self.T), self.dt)
+        solutions = solver.solve(self.t0, self.T, self.dt)
         for (t0, t1), fields in solutions:
             vs_, vs, vur = fields
+            print("fancy: ", vs.vector().norm("l2"))
 
         assert_almost_equal(t1, self.T, 1e-10)
-        bar = vs.vector()
         optimised_vs = vs.vector().norm("l2")
         optimised_vur = vur.vector().norm("l2")
 
@@ -136,5 +128,5 @@ if __name__ == "__main__":
     tss = TestSplittingSolver()
     tss.setup()
 
-    for solver in ("iterative", "direct"):
-        foo, bar = tss.test_basic_and_optimised_splitting_solver_exact(solver)
+    for solver in ("direct",):
+        tss.test_basic_and_optimised_splitting_solver_exact(solver)

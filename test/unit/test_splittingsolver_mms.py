@@ -87,7 +87,7 @@ def main(N, dt, T, theta=0.5):
     pde_vs_, pde_vs, vur = splittingsolver.solution_fields()
     pde_vs_.assign(model.initial_conditions())
 
-    solutions = splittingsolver.solve((0, T), dt)
+    solutions = splittingsolver.solve(0, T, dt)
     for (t0, t1), (vs_, vs, vur) in solutions:
         pass
 

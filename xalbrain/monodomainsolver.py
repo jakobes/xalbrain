@@ -172,7 +172,7 @@ class BasicMonodomainSolver:
         """
         return self.v_, self.v
 
-    def solve(self, interval: Tuple[float, float], dt: float = None) -> None:
+    def solve(self, t0: float, t1: float, dt: float) -> None:
         """
         Solve the discretization on a given time interval (t0, t1)
         with a given timestep dt and return generator for a tuple of
@@ -199,33 +199,32 @@ class BasicMonodomainSolver:
             # do something with the solutions
         """
         # Solve on entire interval if no interval is given.
-        T0, T = interval
         if dt is None:
-            dt = T - T0
+            dt = t1 - t0
 
-        t0 = T0
-        t1 = T0 + dt
+        _t0 = t0
+        _t1 = t0 + dt
 
         # Step through time steps until at end time
         while True:
             # info("Solving on t = (%g, %g)" % (t0, t1))
-            self.step((t0, t1))
+            self.step(_t0, _t1)
 
             # Yield solutions
-            yield (t0, t1), self.solution_fields()
+            yield (_t0, _t1), self.solution_fields()
 
             # Break if this is the last step
-            if end_of_time(T, t0, t1, dt):
+            if end_of_time(t1, _t0, _t1, dt):
                 break
 
             # If not: update members and move to next time
             if isinstance(self.v_, df.Function):
                 self.v_.assign(self.v)
 
-            t0 = t1
-            t1 = t0 + dt
+            _t0 = _t1
+            _t1 = _t0 + dt
 
-    def step(self, interval: Tuple[float, float]) -> None:
+    def step(self, t0: float, t1: float) -> None:
         r"""Solve on the given time interval (t0, t1).
 
         *Arguments*
@@ -237,7 +236,6 @@ class BasicMonodomainSolver:
           self.v in correct state at t1.
         """
         # Extract interval and thus time-step
-        t0, t1 = interval
         k_n = df.Constant(t1 - t0)
 
         # Extract theta parameter and conductivities
@@ -475,7 +473,7 @@ class MonodomainSolver(BasicMonodomainSolver):
         a, L = df.system(G)
         return a, L, prec
 
-    def step(self, interval: Tuple[float, float]) -> None:
+    def step(self, t0: float, t1: float) -> None:
         """Solve on the given time step (t0, t1).
 
         *Arguments*
@@ -489,7 +487,6 @@ class MonodomainSolver(BasicMonodomainSolver):
         timer = df.Timer("PDE Step")
 
         # Extract interval and thus time-step
-        t0, t1 = interval
         dt = t1 - t0
         theta = self.parameters["theta"]
         t = t0 + theta*dt
