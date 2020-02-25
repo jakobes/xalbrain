@@ -85,7 +85,10 @@ from xalbrain.utils import (
     time_stepper
 )
 
-from abc import ABC
+from abc import (
+    ABC,
+    abstractmethod,
+)
 
 import typing as tp
 
@@ -100,42 +103,7 @@ logging.basicConfig(level=os.environ.get("LOGLEVEL", "INFO"))
 logger = logging.getLogger(__name__)
 
 
-class BasicSplittingSolver:
-    """
-    A non-optimised solver for the bidomain equations based on the
-    operator splitting scheme described in Sundnes et al 2006, p. 78
-    ff.
-
-    The solver computes as solutions:
-
-      * "vs" (:py:class:`dolfin.Function`) representing the solution
-        for the transmembrane potential and any additional state
-        variables, and
-      * "vur" (:py:class:`dolfin.Function`) representing the
-        transmembrane potential in combination with the extracellular
-        potential and an additional Lagrange multiplier.
-
-    The algorithm can be controlled by a number of parameters. In
-    particular, the splitting algorithm can be controlled by the
-    parameter "theta": "theta" set to 1.0 corresponds to a (1st order)
-    Godunov splitting while "theta" set to 0.5 to a (2nd order) Strang
-    splitting.
-
-    This solver has not been optimised for computational efficiency
-    and should therefore primarily be used for debugging purposes. For
-    an equivalent, but more efficient, solver, see
-    :py:class:`xalbrain.splittingsolver.SplittingSolver`.
-
-    *Arguments*
-      model (:py:class:`xalbrain.cardiacmodels.Model`)
-        a Model object describing the simulation set-up
-      params (:py:class:`dolfin.Parameters`, optional)
-        a Parameters object controlling solver parameters
-
-    *Assumptions*
-      * The cardiac conductivities do not vary in time
-    """
-
+class AbstractSplittingSolver(ABC):
     def __init__(
             self,
             model: Model,
@@ -172,6 +140,168 @@ class BasicSplittingSolver:
         else:
             V = self.vur.function_space()
         self.merger = df.FunctionAssigner(self.VS.sub(0), V)
+
+    @abstractmethod
+    def _create_ode_solver(self):
+        pass
+
+    @abstractmethod
+    def _create_pde_solver(self):
+        pass
+
+    def solution_fields(self) -> tp.Tuple[df.Function, df.Function, df.Function]:
+        """Return tuple of previous and current solution objects.
+
+        Modifying these will modify the solution objects of the solver
+        and thus provides a way for setting initial conditions for
+        instance.
+
+        Returns vs_, vs, vur
+        """
+        return self.vs_, self.vs, self.vur
+
+    def solve(
+        self,
+        t0: float,
+        t1: float,
+        dt: float
+    ) -> tp.Iterator[tp.Tuple[tp.Tuple[float, float], df.Function]]:
+        """
+        Solve the problem given by the model on a time interval with a given time step.
+        Return a generator for a tuple of the time step and the solution fields.
+
+        Arguments;
+            interval: The time interval for the solve given by (t0, t1)
+            dt: The timestep for the solve.
+
+        Returns: timestep, solution_fields
+
+        Example of usage::
+
+          # Create generator
+          solutions = solver.solve(t0=0.0, t1=1.0, dt=0.01)
+
+          # Iterate over generator (computes solutions as you go)
+          for ((t0, t1), (vs_, vs, vur)) in solutions:
+            # do something with the solutions
+        """
+        # Create timestepper
+        for _t0, _t1 in time_stepper(t0, t1, dt):
+            self.step(_t0, _t1)
+
+            # Yield solutions
+            yield (_t0, _t1), self.solution_fields()
+
+            # Update previous solution
+            self.vs_.assign(self.vs)
+
+    def step(self, t0: float, t1: float) -> None:
+        """Solve the pde for one time step.
+
+        Arguments:
+            t0: Start time
+            t1: End time
+
+        Invariants:
+          Given self._vs in a correct state at t0, provide v and s (in self.vs) and u (in self.vur) in a correct state at t1. (Note
+          that self.vur[0] == self.vs[0] only if theta = 1.0.)
+        """
+        theta = self._parameters["theta"]
+
+        dt = t1 - t0
+        t = t0 + theta*dt
+
+        # Compute tentative membrane potential and state (vs_star) Assumes that its vs_ is in the
+        # correct state, gives its vs in the current state
+        self.ode_solver.step(t0, t)
+        self.vs_.assign(self.vs)
+
+        # Compute tentative potentials vu = (v, u) Assumes that its vs_ is in the correct state,
+        # gives vur in the current state
+        self.pde_solver.step(t0, t1)
+
+        # If first order splitting, we need to ensure that self.vs is
+        # up to date, but otherwise we are done.
+        if theta == 1.0:
+            # Assumes that the v part of its vur and the s part of its vs are in the correct state,
+            # provides input argument(in this case self.vs) in its correct state
+            self.merge(self.vs)
+            return
+
+        # Otherwise, we do another ode_step:
+
+        # Assumes that the v part of its vur and the s part of its vs are in the correct state,
+        # provides input argument (in this # case self.vs_) in its correct state
+        self.merge(self.vs_)    # self.vs_.sub(0) <- self.vur.sub(0)
+        # Assumes that its vs_ is in the correct state, provides vs in the correct state
+
+        self.ode_solver.step(t, t1)
+
+    def merge(self, solution: df.Function) -> None:
+        """Combine solutions from the PDE and the ODE to form a single mixed function.
+
+        Arguments:
+            function holding the combined result
+        """
+        timer = df.Timer("Merge step")
+        if self._parameters["pde_solver"] == "bidomain":
+            v = self.vur.sub(0)
+        else:
+            v = self.vur
+        self.merger.assign(solution.sub(0), v)
+        timer.stop()
+
+    @staticmethod
+    @abstractmethod
+    def default_parameters() -> df.Parameters:
+        pass
+
+    @property
+    def model(self) -> Model:
+        """Return the brain."""
+        return self._model
+
+    @property
+    def parameters(self) -> df.Parameters:
+        """Return the parameters."""
+        return self._parameters
+
+
+class BasicSplittingSolver(AbstractSplittingSolver):
+    """
+    A non-optimised solver for the bidomain equations based on the
+    operator splitting scheme described in Sundnes et al 2006, p. 78
+    ff.
+
+    The solver computes as solutions:
+
+      * "vs" (:py:class:`dolfin.Function`) representing the solution
+        for the transmembrane potential and any additional state
+        variables, and
+      * "vur" (:py:class:`dolfin.Function`) representing the
+        transmembrane potential in combination with the extracellular
+        potential and an additional Lagrange multiplier.
+
+    The algorithm can be controlled by a number of parameters. In
+    particular, the splitting algorithm can be controlled by the
+    parameter "theta": "theta" set to 1.0 corresponds to a (1st order)
+    Godunov splitting while "theta" set to 0.5 to a (2nd order) Strang
+    splitting.
+
+    This solver has not been optimised for computational efficiency
+    and should therefore primarily be used for debugging purposes. For
+    an equivalent, but more efficient, solver, see
+    :py:class:`xalbrain.splittingsolver.SplittingSolver`.
+
+    *Arguments*
+      model (:py:class:`xalbrain.cardiacmodels.Model`)
+        a Model object describing the simulation set-up
+      params (:py:class:`dolfin.Parameters`, optional)
+        a Parameters object controlling solver parameters
+
+    *Assumptions*
+      * The cardiac conductivities do not vary in time
+    """
 
     def _create_ode_solver(self):
         """Helper function to initialize a suitable ODE solver from the cardiac model."""
@@ -271,134 +401,6 @@ class BasicSplittingSolver:
         params.add(pde_solver_params)
         return params
 
-    def solution_fields(self) -> tp.Tuple[df.Function, df.Function, df.Function]:
-        """
-        Return tuple of previous and current solution objects.
-
-        Modifying these will modify the solution objects of the solver
-        and thus provides a way for setting initial conditions for
-        instance.
-
-        *Returns*
-          (previous vs, current vs, current vur) (:py:class:`tuple` of :py:class:`dolfin.Function`)
-        """
-        return self.vs_, self.vs, self.vur
-
-    def solve(self, t0: float, t1: float, dt: float) -> tp.Iterator[tp.Tuple[tp.Tuple[float, float], df.Function]]:
-        """
-        Solve the problem given by the model on a time interval with a given time step.
-        Return a generator for a tuple of the time step and the solution fields.
-
-        *Arguments*
-          interval (:py:class:`tuple`)
-            The time interval for the solve given by (t0, t1)
-          dt (int, list of tuples of floats)
-            The timestep for the solve. A list of tuples of floats can
-            also be passed. Each tuple should contain two floats where the
-            first includes the start time and the second the dt.
-
-        *Returns*
-          (timestep, solution_fields) via (:py:class:`genexpr`)
-
-        *Example of usage*::
-
-          # Create generator
-          dts = [(0., 0.1), (1.0, 0.05), (2.0, 0.1)]
-          solutions = solver.solve((0.0, 1.0), dts)
-
-          # Iterate over generator (computes solutions as you go)
-          for ((t0, t1), (vs_, vs, vur)) in solutions:
-            # do something with the solutions
-
-        """
-        # Create timestepper
-        for _t0, _t1 in time_stepper(t0, t1, dt):
-            logging.info(f"{_t0, _t1}, {t0, t1, dt}")
-            self.step(_t0, _t1)
-
-            # Yield solutions
-            yield (_t0, _t1), self.solution_fields()
-
-            # Update previous solution
-            self.vs_.assign(self.vs)
-
-    def step(self, t0: float, t1: float) -> None:
-        """
-        Solve the pde for one time step.
-
-        *Arguments*
-          interval (:py:class:`tuple`)
-            The time interval for the solve given by (t0, t1)
-
-        *Invariants*
-          Given self._vs in a correct state at t0, provide v and s (in
-          self.vs) and u (in self.vur) in a correct state at t1. (Note
-          that self.vur[0] == self.vs[0] only if theta = 1.0.)
-        """
-        theta = self._parameters["theta"]
-
-        # Extract time domain
-        _dt = t1 - t0
-        t = t0 + theta*_dt
-
-        # Compute tentative membrane potential and state (vs_star)
-        # df.begin(df.PROGRESS, "Tentative ODE step")
-        # Assumes that its vs_ is in the correct state, gives its vs
-        # in the current state
-        self.ode_solver.step(t0, t)
-
-        self.vs_.assign(self.vs)
-
-        # Compute tentative potentials vu = (v, u)
-        # Assumes that its vs_ is in the correct state, gives vur in
-        # the current state
-        self.pde_solver.step(t0, t1)
-
-        # If first order splitting, we need to ensure that self.vs is
-        # up to date, but otherwise we are done.
-        if theta == 1.0:
-            # Assumes that the v part of its vur and the s part of its
-            # vs are in the correct state, provides input argument(in
-            # this case self.vs) in its correct state
-            self.merge(self.vs)
-            return
-
-        # Otherwise, we do another ode_step:
-
-        # Assumes that the v part of its vur and the s part of its vs
-        # are in the correct state, provides input argument (in this
-        # case self.vs_) in its correct state
-        self.merge(self.vs_)    # self.vs_.sub(0) <- self.vur.sub(0)
-        # Assumes that its vs_ is in the correct state, provides vs in the correct state
-
-        self.ode_solver.step(t, t1)
-
-    def merge(self, solution: df.Function) -> None:
-        """
-        Combine solutions from the PDE and the ODE to form a single mixed function.
-
-        *Arguments*
-          solution (:py:class:`dolfin.Function`)
-            Function holding the combined result
-        """
-        timer = df.Timer("Merge step")
-        if self._parameters["pde_solver"] == "bidomain":
-            v = self.vur.sub(0)
-        else:
-            v = self.vur
-        self.merger.assign(solution.sub(0), v)
-        timer.stop()
-
-    @property
-    def model(self) -> Model:
-        """Return the brain."""
-        return self._model
-
-    @property
-    def parameters(self) -> df.Parameters:
-        """Return the parameters."""
-        return self._parameters
-
 
 class SplittingSolver(BasicSplittingSolver):
     """
@@ -471,14 +473,6 @@ class SplittingSolver(BasicSplittingSolver):
       * The cardiac conductivities do not vary in time
 
     """
-
-    def __init__(
-            self,
-            model: Model,
-            ode_timestep: float = None,
-            params: df.parameters = None
-    ) -> None:
-        super().__init__(model, ode_timestep, params)
 
     @staticmethod
     def default_parameters() -> df.Parameters:
