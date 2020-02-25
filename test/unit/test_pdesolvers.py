@@ -204,9 +204,9 @@ class TestBidomainSolver:
         self.setUp()
 
         # Create solver and solve
-        params = BidomainSolver.default_parameters()
-        params["linear_solver_type"] = "direct"
-        params["use_avg_u_constraint"] = True
+        parameters = BidomainSolver.default_parameters()
+        parameters["linear_solver_type"] = "direct"
+        parameters["use_avg_u_constraint"] = True
         solver = BidomainSolver(
             self.mesh,
             self.time,
@@ -214,7 +214,7 @@ class TestBidomainSolver:
             self.M_e,
             I_s=self.stimulus,
             I_a=self.applied_current,
-            params=params
+            parameters=parameters
         )
 
         for _, (v_, vur) in solver.solve(self.t0, self.t0 + 2*self.dt, self.dt):
@@ -222,9 +222,9 @@ class TestBidomainSolver:
 
         bidomain_result = vur.vector().norm("l2")
 
-        params = BasicBidomainSolver.default_parameters()
-        params["linear_solver_type"] = "direct"
-        params["use_avg_u_constraint"] = True
+        parameters = BasicBidomainSolver.default_parameters()
+        parameters["linear_solver_type"] = "direct"
+        parameters["use_avg_u_constraint"] = True
 
         # Create other solver and solve
         solver = BasicBidomainSolver(
@@ -251,9 +251,9 @@ class TestBidomainSolver:
         self.setUp()
 
         # Create solver and solve
-        params = BidomainSolver.default_parameters()
-        params["linear_solver_type"] = "direct"
-        params["use_avg_u_constraint"] = False
+        parameters = BidomainSolver.default_parameters()
+        parameters["linear_solver_type"] = "direct"
+        parameters["use_avg_u_constraint"] = False
         solver = BidomainSolver(
             self.mesh,
             self.time,
@@ -261,7 +261,7 @@ class TestBidomainSolver:
             self.M_e,
             I_s=self.stimulus,
             I_a=self.applied_current,
-            params=params
+            parameters=parameters
         )
 
         for _, (v_, vur),  in solver.solve(self.t0, self.t0 + 3*self.dt, self.dt):
@@ -269,9 +269,9 @@ class TestBidomainSolver:
             a = v.vector().norm("l2")
 
         # Create solver and solve using iterative means
-        params = BidomainSolver.default_parameters()
-        params["linear_solver_type"] = "iterative"
-        params["use_avg_u_constraint"] =  False
+        parameters = BidomainSolver.default_parameters()
+        parameters["linear_solver_type"] = "iterative"
+        parameters["use_avg_u_constraint"] =  False
         solver = BidomainSolver(
             self.mesh,
             self.time,
@@ -279,7 +279,7 @@ class TestBidomainSolver:
             self.M_e,
             I_s=self.stimulus,
             I_a=self.applied_current,
-            params=params
+            parameters=parameters
         )
 
         for _, (v_, vur) in solver.solve(self.t0, self.t0 + 3*self.dt, self.dt):
@@ -324,14 +324,14 @@ class TestMonodomainSolver:
         self.setUp()
 
         # Create solver and solve
-        params = MonodomainSolver.default_parameters()
-        params["linear_solver_type"] = "direct"
+        parameters = MonodomainSolver.default_parameters()
+        parameters["linear_solver_type"] = "direct"
         solver = MonodomainSolver(
             self.mesh,
             self.time,
             self.M_i,
             I_s=self.stimulus,
-            params=params
+            parameters=parameters
         )
 
         for _, (v_, vur) in solver.solve(self.t0, self.t0 + 2*self.dt, self.dt):
@@ -339,14 +339,14 @@ class TestMonodomainSolver:
         monodomain_result = vur.vector()
 
         # Create other solver and solve
-        params = BasicMonodomainSolver.default_parameters()
-        params["linear_solver_type"] = "direct"
+        parameters = BasicMonodomainSolver.default_parameters()
+        parameters["linear_solver_type"] = "direct"
         solver = BasicMonodomainSolver(
             self.mesh,
             self.time,
             self.M_i,
             I_s=self.stimulus,
-            params=params
+            parameters=parameters
         )
 
         for _, (v_, vur) in solver.solve(self.t0, self.t0 + 2*self.dt, self.dt):
@@ -367,14 +367,14 @@ class TestMonodomainSolver:
         self.setUp()
 
         # Create solver and solve
-        params = MonodomainSolver.default_parameters()
-        params["linear_solver_type"] = "direct"
+        parameters = MonodomainSolver.default_parameters()
+        parameters["linear_solver_type"] = "direct"
         solver = MonodomainSolver(
             self.mesh,
             self.time,
             self.M_i,
             I_s=self.stimulus,
-            params=params
+            parameters=parameters
         )
 
         for _, (v_, v) in solver.solve(self.t0, self.t0 + 3*self.dt, self.dt):
@@ -382,15 +382,15 @@ class TestMonodomainSolver:
         a = v.vector().norm("l2")
 
         # Create solver and solve using iterative means
-        params = MonodomainSolver.default_parameters()
-        params["linear_solver_type"] = "iterative"
-        # params["krylov_solver"]["monitor_convergence"] = True
+        parameters = MonodomainSolver.default_parameters()
+        parameters["linear_solver_type"] = "iterative"
+        # parameters["krylov_solver"]["monitor_convergence"] = True
         solver = MonodomainSolver(
             self.mesh,
             self.time,
             self.M_i,
             I_s=self.stimulus,
-            params=params
+            parameters=parameters
         )
 
         for _, (v_, v) in solver.solve(self.t0, self.t0 + 3*self.dt, self.dt):

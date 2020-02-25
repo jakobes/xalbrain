@@ -54,12 +54,11 @@ def main(
     M_e = 1.0
 
     # Set-up solver
-    params = BidomainSolver.default_parameters()
-    params["theta"] = theta
-    params["linear_solver_type"] = "direct"
-    params["use_avg_u_constraint"] = True
-    params["enable_adjoint"] = False
-    solver = BidomainSolver(mesh, time, M_i, M_e, I_s=stimulus, params=params)
+    parameters = BidomainSolver.default_parameters()
+    parameters["theta"] = theta
+    parameters["linear_solver_type"] = "direct"
+    parameters["use_avg_u_constraint"] = True
+    solver = BidomainSolver(mesh, time, M_i, M_e, I_s=stimulus, parameters=parameters)
 
     # Define exact solution (Note: v is returned at end of time
     # interval(s), u is computed at somewhere in the time interval

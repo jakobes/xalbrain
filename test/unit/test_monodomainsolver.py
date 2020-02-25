@@ -36,11 +36,9 @@ def main(N: int, dt: float, T: float, theta: float) -> Tuple[float, float, float
     stimulus = Expression(ac_str, t=time, lam=Constant(1), degree=3)
     M_i = Constant(1.0)
     # Set up solver
-    params = BasicMonodomainSolver.default_parameters()
-    params["theta"] = theta
-    # params["linear_variational_solver"]["linear_solver"] = "direct"
-    params["enable_adjoint"] = False
-    solver = BasicMonodomainSolver(mesh, time, M_i, I_s=stimulus, params=params)
+    parameters = BasicMonodomainSolver.default_parameters()
+    parameters["theta"] = theta
+    solver = BasicMonodomainSolver(mesh, time, M_i, I_s=stimulus, parameters=parameters)
 
     v_exact  = Expression("sin(t)*cos(2*pi*x[0])*cos(2*pi*x[1])", t=T, degree=3)
 

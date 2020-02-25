@@ -47,11 +47,11 @@ def test_solver_with_domains() -> None:
     ics = cell_model.initial_conditions()
 
     # Create basic solver
-    params = SplittingSolver.default_parameters()
-    params["ode_solver_choice"] = "BasicCardiacODESolver"
-    solver = SplittingSolver(cardiac_model, params=params)
+    parameters = SplittingSolver.default_parameters()
+    parameters["ode_solver_choice"] = "BasicCardiacODESolver"
+    solver = SplittingSolver(cardiac_model, parameters=parameters)
 
-    (vs_, vs, vur) = solver.solution_fields()
+    vs_, vs, vur = solver.solution_fields()
     vs_.assign(ics)
 
     # Solve

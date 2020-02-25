@@ -9,14 +9,11 @@ import math
 
 import dolfin as df
 
-from typing import (
-    Tuple,
-    List,
-    Sequence,
-)
+import typing as tp
 
 
-def split_function(vs, dim):
+def split_function(vs: df.Function, dim: int) -> tp.Tuple[df.Function, df.Function]:
+    """Split a function into the first component and the rest."""
     if vs.function_space().ufl_element().num_sub_elements()==dim:
         v = vs[0]
         if dim == 2:
@@ -30,36 +27,32 @@ def split_function(vs, dim):
 
 def state_space(
         domain: df.Mesh,
-        d: int,
-        family: str = None,
-        k: int = 1
+        num_states: int,
+        family: str = "CG",
+        degree: int = 1
 ) -> df.FunctionSpace:
-    """
-    Return function space for the state variables.
+    """Return function space for the state variables.
 
-    *Arguments*
-      domain (:py:class:`df.Mesh`)
-        The computational domain
-      d (int)
-        The number of states
-      family (string, optional)
-        The finite element family, defaults to "CG" if None is given.
-      k (int, optional)
-        The finite element degree, defaults to 1
-
-    *Returns*
-      a function space (:py:class:`df.FunctionSpace`)
+    Arguments:
+        domain: The mesh.
+        num_states: The number of states
+        family: The finite element family, defaults to "CG" if None is given.
+        degree: Finite element degree.
     """
-    if family is None:
-        family = "CG"
-    if d > 1:
-        S = df.VectorFunctionSpace(domain, family, k, d)
+    if num_states > 1:
+        S = df.VectorFunctionSpace(domain, family, degree, num_states)
     else:
-        S = df.FunctionSpace(domain, family, k)
+        S = df.FunctionSpace(domain, family, degree)
     return S
 
 
-def time_stepper(t0: float, t1: float, dt: float):
+def time_stepper(t0: float, t1: float, dt: float = None) -> tp.Iterator[tp.Tuple[float, float]]:
+    """Generate time intervals between `t0` and `t1` with length `dt`."""
+    if t0 >= t1:
+        raise ValueError("dt greater than time interval")
+    elif dt is None:
+        dt = t1 - t0
+
     _t0 = t0
     _t1 = t0 + dt
 
@@ -69,17 +62,23 @@ def time_stepper(t0: float, t1: float, dt: float):
         _t1 += dt
 
 
-def convergence_rate(hs: Sequence[float], errors: Sequence[float]) -> List[float]:
-    """
-    Compute and return rates of convergence :math:`r_i` such that
+def convergence_rate(
+    mesh_size_list: tp.Sequence[float],
+    error_list: tp.Sequence[float]
+) -> tp.List[float]:
+    """Compute and return rates of convergence :math:`r_i` such that
 
     .. math::
 
       errors = C hs^r
     """
-    assert (len(hs) == len(errors)), "hs and errors must have same length."
+    msg = "mesh_size_list and error_list must have same length."
+    assert (len(mesh_size_list) == len(error_list)), msg
     ln = math.log
-    rates = [(ln(errors[i + 1]/errors[i]))/(ln(hs[i + 1]/hs[i])) for i in range(len(hs) - 1)]
+    rates = [
+        (ln(error_list[i + 1]/error_list[i]))/(ln(mesh_size_list[i + 1]/mesh_size_list[i]))
+            for i in range(len(error_list) - 1)
+    ]
     return rates
 
 
@@ -99,17 +98,17 @@ class Projecter:
       my_project(f, u)
     """
 
-    def __init__(self, V, params=None):
+    def __init__(self, V, parameters=None):
         # Set parameters
         self.parameters = self.default_parameters()
-        if params is not None:
-            self.parameters.update(params)
+        if parameters is not None:
+            self.parameters.update(parameters)
 
         # Set-up mass matrix for L^2 projection
         self.V = V
         self.u = df.TrialFunction(self.V)
         self.v = df.TestFunction(self.V)
-        self.m = df.inner(self.u, self.v)*dolfin.dx()
+        self.m = df.inner(self.u, self.v)*df.dx()
         self.M = df.assemble(self.m)
         self.b = df.Vector(V.mesh().mpi_comm(), V.dim())
 

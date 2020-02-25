@@ -70,16 +70,14 @@ class TestSplittingSolver:
         Test that the optimised and basic solvers yield similar results.
         """
         # Create basic solver
-        params = BasicSplittingSolver.default_parameters()
-        params["BasicCardiacODESolver"]["S_polynomial_family"] = "CG"
-        params["BasicCardiacODESolver"]["S_polynomial_degree"] = 1
-        params["BasicBidomainSolver"]["linear_solver_type"] = solver_type
+        parameters = BasicSplittingSolver.default_parameters()
+        parameters["BasicBidomainSolver"]["linear_solver_type"] = solver_type
         if solver_type == "direct":
-            params["BasicBidomainSolver"]["use_avg_u_constraint"] = True
+            parameters["BasicBidomainSolver"]["use_avg_u_constraint"] = True
         else:
-            params["BasicBidomainSolver"]["use_avg_u_constraint"] = False
+            parameters["BasicBidomainSolver"]["use_avg_u_constraint"] = False
 
-        solver = BasicSplittingSolver(self.cardiac_model, params=params)
+        solver = BasicSplittingSolver(self.cardiac_model, parameters=parameters)
 
         vs_, vs, vur = solver.solution_fields()
         vs_.assign(self.ics)
@@ -95,14 +93,13 @@ class TestSplittingSolver:
         assert_almost_equal(t1, self.T, 1e-10)
 
         # Create optimised solver with direct solution algorithm
-        params = SplittingSolver.default_parameters()
-        params["BidomainSolver"]["linear_solver_type"] = solver_type
-        params["enable_adjoint"] = False
+        parameters = SplittingSolver.default_parameters()
+        parameters["BidomainSolver"]["linear_solver_type"] = solver_type
         if solver_type == "direct":
-            params["BidomainSolver"]["use_avg_u_constraint"] = True
+            parameters["BidomainSolver"]["use_avg_u_constraint"] = True
         else:
-            params["BidomainSolver"]["use_avg_u_constraint"] = False
-        solver = SplittingSolver(self.cardiac_model, params=params)
+            parameters["BidomainSolver"]["use_avg_u_constraint"] = False
+        solver = SplittingSolver(self.cardiac_model, parameters=parameters)
 
         vs_, vs, vur = solver.solution_fields()
         vs_.assign(self.ics)

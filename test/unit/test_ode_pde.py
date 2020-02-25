@@ -18,8 +18,8 @@ from xalbrain.cellmodels import FitzHughNagumoManual
 
 def test_ode_pde():
     """Test that the ode-pde coupling reproduces the ode solution."""
-    params = SingleCellSolver.default_parameters()
-    params["scheme"] = "GRL1"
+    parameters = SingleCellSolver.default_parameters()
+    parameters["scheme"] = "GRL1"
     time = df.Constant(0)
     # stimulus = Expression("100*std::abs(sin(2*pi*t))", t=time, degree=1)
     stimulus = df.Expression("100", degree=1)
@@ -29,7 +29,7 @@ def test_ode_pde():
     T = 10
     dt = 1e-3
 
-    solver = SingleCellSolver(model, time, params)
+    solver = SingleCellSolver(model, time, parameters)
     vs_, _ = solver.solution_fields()
     vs_.assign(model.initial_conditions())
     ode_vs = None
@@ -43,7 +43,7 @@ def test_ode_pde():
     ps["theta"] = 0.5
     ps["CardiacODESolver"]["scheme"] = "GRL1"
     ps["apply_stimulus_current_to_pde"] = False
-    solver = SplittingSolver(brain, params=ps)
+    solver = SplittingSolver(brain, parameters=ps)
 
     vs_, vs, _ = solver.solution_fields()
     vs_.assign(model.initial_conditions())

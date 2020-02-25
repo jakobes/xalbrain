@@ -1,4 +1,4 @@
-"This module contains solvers for (subclasses of) CellModel."
+"""This module contains solvers for (subclasses of) CellModel."""
 
 
 __author__ = "Marie E. Rognes (meg@simula.no), 2012--2013"
@@ -21,10 +21,126 @@ from xalbrain.utils import (
     split_function,
 )
 
+from abc import (
+    ABC,
+    abstractmethod
+)
+
 import typing as tp
 
 
-class BasicCardiacODESolver:
+import os
+import logging
+
+
+logging.basicConfig(level=os.environ.get("LOGLEVEL", "INFO"))
+logger = logging.getLogger(__name__)
+
+
+class AbstractCellSolver(ABC):
+    """Abstract base class for cell solvers."""
+
+    def __init__(
+        self,
+        *,
+        mesh: df.mesh,
+        time: df.Constant,
+        cell_model: CellModel,
+        parameters: df.Parameters = None
+    ):
+        """Store common parameters for all cell solvers."""
+        # Store input
+        self._mesh = mesh
+        self._cell_model = cell_model
+
+        # Create time if not given, otherwise use given time
+        if time is None:
+            self._time = df.Constant(0.0)
+        else:
+            self._time = time
+
+        # # Initialize and update parameters if given
+        # self.parameters = self.default_parameters()
+        # if parameters is not None:
+        #     self.parameters.update(parameters)
+
+        # Extract some information from cell model
+        self._F = self._cell_model.F
+        self._I_ion = self._cell_model.I
+        self._num_states = self._cell_model.num_states()
+
+        # Create (vector) function space for potential + states
+        self.VS = df.VectorFunctionSpace(self._mesh, "CG", 1, dim=self._num_states + 1)
+
+        # Initialize solution fields
+        self.vs_ = df.Function(self.VS, name="vs_")
+        self.vs = df.Function(self.VS, name="vs")
+
+    @staticmethod
+    @abstractmethod
+    def default_parameters():
+        """Default parameters."""
+        pass
+
+    @property
+    def time(self) -> df.Constant:
+        """The internal time of the solver."""
+        return self._time
+
+    def solution_fields(self) -> tp.Tuple[df.Function, df.Function]:
+        """Return current solution object.
+
+        Modifying this will modify the solution object of the solver
+        and thus provides a way for setting initial conditions for
+        instance.
+
+        *Returns*
+          (previous vs_, current vs) (:py:class:`dolfin.Function`)
+        """
+        return self.vs_, self.vs
+
+    @abstractmethod
+    def step(t0: float, t1: float) -> None:
+        pass
+
+    def solve(
+        self,
+        t0: float,
+        t1: float,
+        dt: float
+    ) -> tp.Iterable[tp.Tuple[tp.Tuple[float, float], df.Function]]:
+        """Solve the problem in the interval (`t0`, `t1`) with timestep `dt`.
+
+        Arguments:
+            t0: Start time.
+            t1: End time.
+            dt: Time step.
+
+        Returns current solution interval and solution.
+
+        *Example of usage*::
+          # Create generator
+          solutions = solver.solve((0.0, 1.0), 0.1)
+
+          # Iterate over generator (computes solutions as you go)
+          for (interval, vs) in solutions:
+            # do something with the solutions
+
+        """
+        # Solve on entire interval if no interval is given.
+        if dt is None:
+            dt = t1 - t0
+
+        # Create timestepper
+        for _t0, _t1 in time_stepper(t0, t1, dt):
+            self.step(_t0, _t1)
+
+            # Yield solutions
+            yield (_t0, _t1), self.vs
+            self.vs_.assign(self.vs)
+
+
+class BasicCardiacODESolver(AbstractCellSolver):
     """A basic, non-optimised solver for systems of ODEs typically
     encountered in cardiac applications of the form: find a scalar
     field :math:`v = v(x, t)` and a vector field :math:`s = s(x, t)`
@@ -68,7 +184,7 @@ class BasicCardiacODESolver:
         Markerwise. NB: it is assumed that the time dependence of I_s
         is encoded via the 'time' Constant.
 
-      params (:py:class:`dolfin.Parameters`, optional)
+      parameters (:py:class:`dolfin.Parameters`, optional)
         Solver parameters
     """
     def __init__(
@@ -77,131 +193,39 @@ class BasicCardiacODESolver:
             time: df.Constant,
             model: CellModel,
             I_s: tp.Union[df.Expression, tp.Dict[int, df.Expression]],
-            params: df.Parameters = None,
+            parameters: df.Parameters = None,
     ) -> None:
         """Create the necessary function spaces """
-        # Store input
-        self._mesh = mesh
-        self._time = time
-        self._model = model
+        super().__init__(mesh=mesh, time=time, cell_model=model, parameters=parameters)
 
-        # Extract some information from cell model
-        self._F = self._model.F
-        self._I_ion = self._model.I
-        self._num_states = self._model.num_states()
+        # Initialize and update parameters if given
+        self.parameters = self.default_parameters()
+        if parameters is not None:
+            self.parameters.update(parameters)
 
         # Handle stimulus
         self._I_s = I_s
 
-        # Initialize and update parameters if given
-        self.parameters = self.default_parameters()
-        if params is not None:
-            self.parameters.update(params)
-
-        # Create (mixed) function space for potential + states
-        v_family = self.parameters["V_polynomial_family"]
-        v_degree = self.parameters["V_polynomial_degree"]
-        s_family = self.parameters["S_polynomial_family"]
-        s_degree = self.parameters["S_polynomial_degree"]
-
-        if v_family == s_family and s_degree == v_degree:
-            self.VS = df.VectorFunctionSpace(self._mesh, v_family, v_degree, dim=self._num_states + 1)
-        else:
-            V = df.FunctionSpace(self._mesh, v_family, v_degree)
-            S = state_space(self._mesh, self._num_states, s_family, s_degree)
-            Mx = df.MixedElement(V.ufl_element(), S.ufl_element())
-            self.VS = df.FunctionSpace(self._mesh, Mx)
-
-        # Initialize solution fields
-        self.vs_ = df.Function(self.VS, name="vs_")
-        self.vs = df.Function(self.VS, name="vs")
-
-    @property
-    def time(self) -> df.Constant:
-        "The internal time of the solver."
-        return self._time
-
     @staticmethod
     def default_parameters() -> df.Parameters:
-        """Initialize and return a set of default parameters
-
-        *Returns*
-          A set of parameters (:py:class:`dolfin.Parameters`)
-        """
-        params = df.Parameters("BasicCardiacODESolver")
-        params.add("theta", 0.5)
-        params.add("V_polynomial_degree", 0)
-        params.add("V_polynomial_family", "DG")
-        params.add("S_polynomial_degree", 0)
-        params.add("S_polynomial_family", "DG")
-        params.add("enable_adjoint", False)
+        """Initialize and return a set of default parameters."""
+        parameters = df.Parameters("BasicCardiacODESolver")
+        parameters.add("theta", 0.5)
 
         # Use iterative solver as default.
-        params.add(df.NonlinearVariationalSolver.default_parameters())
-        params["nonlinear_variational_solver"]["newton_solver"]["linear_solver"] = "gmres"
-        params["nonlinear_variational_solver"]["newton_solver"]["preconditioner"] = "jacobi"
-        return params
-
-    def solution_fields(self) -> tp.Tuple[df.Function, df.Function]:
-        """
-        Return tuple of previous and current solution objects.
-
-        Modifying these will modify the solution objects of the solver
-        and thus provides a way for setting initial conditions for
-        instance.
-
-        *Returns*
-          (previous vs, current vs) (:py:class:`tuple` of :py:class:`dolfin.Function`)
-        """
-        return self.vs_, self.vs
-
-    def solve(self, t0: float, t1: float, dt: float) -> tp.Any:
-        """
-        Solve the problem given by the model on a given time interval
-        (t0, t1) with a given timestep dt and return generator for a
-        tuple of the interval and the current vs solution.
-
-        *Arguments*
-          interval (:py:class:`tuple`)
-            The time interval for the solve given by (t0, t1)
-          dt (int, optional)
-            The timestep for the solve. Defaults to length of interval
-
-        *Returns*
-          (timestep, current vs) via (:py:class:`genexpr`)
-
-        *Example of usage*::
-
-          # Create generator
-          solutions = solver.solve((0.0, 1.0), 0.1)
-
-          # Iterate over generator (computes solutions as you go)
-          for (interval, vs) in solutions:
-            # do something with the solutions
-
-        """
-        # Initial time set-up
-        # Solve on entire interval if no interval is given.
-        if dt is None:
-            dt = t1 - t0
-
-        # Create timestepper
-        for _t0, _t1 in time_stepper(t0, t1, dt):
-
-            self.step(_t0, _t1)
-
-            yield (_t0, _t1), self.vs
-            self.vs_.assign(self.vs)
+        parameters.add(df.NonlinearVariationalSolver.default_parameters())
+        parameters["nonlinear_variational_solver"]["newton_solver"]["linear_solver"] = "gmres"
+        parameters["nonlinear_variational_solver"]["newton_solver"]["preconditioner"] = "jacobi"
+        return parameters
 
     def step(self, t0: float, t1: float) -> None:
-        """
-        Solve on the given time step (t0, t1).
+        """Solve on the given time step (`t0`, `t1`).
 
         End users are recommended to use solve instead.
 
-        *Arguments*
-          interval (:py:class:`tuple`)
-            The time interval (t0, t1) for the step
+        Arguments:
+            t0: Start time.
+            t1: End time.
         """
         timer = df.Timer("ODE step")
 
@@ -229,7 +253,7 @@ class BasicCardiacODESolver:
         v_mid = theta*v + (1.0 - theta)*v_
         s_mid = theta*s + (1.0 - theta)*s_
 
-        if isinstance(self._model, MultiCellModel):
+        if isinstance(self._cell_model, MultiCellModel):
             model = self._model
             mesh = model.mesh()
             dy = df.Measure("dx", domain=mesh, subdomain_data=model.markers())
@@ -287,22 +311,22 @@ class BasicCardiacODESolver:
         # Solve system
         pde = df.NonlinearVariationalProblem(G, self.vs, J=df.derivative(G, self.vs))
         solver = df.NonlinearVariationalSolver(pde)
-        solver_params = self.parameters["nonlinear_variational_solver"]
-        solver_params["nonlinear_solver"] = "snes"
-        solver_params["snes_solver"]["absolute_tolerance"] = 1e-13
-        solver_params["snes_solver"]["relative_tolerance"] = 1e-13
+        solver_parameters = self.parameters["nonlinear_variational_solver"]
+        solver_parameters["nonlinear_solver"] = "snes"
+        solver_parameters["snes_solver"]["absolute_tolerance"] = 1e-13
+        solver_parameters["snes_solver"]["relative_tolerance"] = 1e-13
 
         # Tested on Cressman
-        solver_params["snes_solver"]["linear_solver"] = "bicgstab"
-        solver_params["snes_solver"]["preconditioner"] = "jacobi"
+        solver_parameters["snes_solver"]["linear_solver"] = "bicgstab"
+        solver_parameters["snes_solver"]["preconditioner"] = "jacobi"
 
-        solver.parameters.update(solver_params)
+        solver.parameters.update(solver_parameters)
 
         solver.solve()
         timer.stop()
 
 
-class CardiacODESolver:
+class CardiacODESolver(AbstractCellSolver):
     """An optimised solver for systems of ODEs typically
     encountered in cardiac applications of the form: find a scalar
     field :math:`v = v(x, t)` and a vector field :math:`s = s(x, t)`
@@ -342,7 +366,7 @@ class CardiacODESolver:
         assumed that the time dependence of I_s is encoded via the
         'time' Constant.
 
-      params (:py:class:`dolfin.Parameters`, optional)
+      parameters (:py:class:`dolfin.Parameters`, optional)
         Solver parameters
     """
 
@@ -351,41 +375,19 @@ class CardiacODESolver:
             mesh: df.Mesh,
             time: df.Constant,
             model: CellModel,
-            I_s: tp.Union[df.Expression, tp.Dict[int, df.Expression]]=None,
-            params: df.Parameters=None
+            I_s: tp.Union[df.Expression, tp.Dict[int, df.Expression]] = None,
+            parameters: df.Parameters = None
     ) -> None:
         """Initialise parameters."""
-        import ufl.classes
+        super().__init__(mesh=mesh, time=time, cell_model=model, parameters=parameters)
 
-        # Store input
-        self._mesh = mesh
-        self._time = time
-        self._model = model
-
-        # Extract some information from cell model
-        self._F = self._model.F
-        self._I_ion = self._model.I
-        self._num_states = self._model.num_states()
-
+        import ufl.classes      # TODO Why?
         self._I_s = I_s
-
-        # Create time if not given, otherwise use given time
-        if time is None:
-            self._time = df.Constant(0.0)
-        else:
-            self._time = time
 
         # Initialize and update parameters if given
         self.parameters = self.default_parameters()
-        if params is not None:
-            self.parameters.update(params)
-
-        # Create (vector) function space for potential + states
-        self.VS = df.VectorFunctionSpace(self._mesh, "CG", 1, dim=self._num_states + 1)
-
-        # Initialize solution field
-        self.vs_ = df.Function(self.VS, name="vs_")
-        self.vs = df.Function(self.VS, name="vs")
+        if parameters is not None:
+            self.parameters.update(parameters)
 
         # Initialize scheme
         v, s = split_function(self.vs, self._num_states + 1)
@@ -418,56 +420,25 @@ class CardiacODESolver:
         # Initialize solver and update its parameters
         self._pi_solver = df.PointIntegralSolver(self._scheme)
 
-    def _name_to_scheme(self, name: str) -> tp.Any:
-        """Return scheme class with given name.
-
-        *Arguments*
-          name (string)
-
-        *Returns*
-          the Scheme (:py:class:`dolfin.MultiStageScheme`)
-
-        """
+    def _name_to_scheme(self, name: str) -> "df.MultiStageScheme":
+        """Use the magic `eval` function to convert string to multi stage ode scheme."""
         return eval("df.multistage.{:s}".format(name))
 
     @staticmethod
     def default_parameters() -> df.Parameters:
-        """Initialize and return a set of default parameters
-
-        *Returns*
-          A set of parameters (:py:class:`dolfin.Parameters`)
-        """
-        params = df.Parameters("CardiacODESolver")
-        params.add("scheme", "RK4")
-        return params
-
-    @property
-    def time(self) -> df.Constant:
-        """The internal time of the solver."""
-        return self._time
-
-    def solution_fields(self) -> tp.Tuple[df.Function, df.Function]:
-        """
-        Return current solution object.
-
-        Modifying this will modify the solution object of the solver
-        and thus provides a way for setting initial conditions for
-        instance.
-
-        *Returns*
-          (previous vs_, current vs) (:py:class:`dolfin.Function`)
-        """
-        return self.vs_, self.vs
+        """Initialize and return a set of default parameters."""
+        parameters = df.Parameters("CardiacODESolver")
+        parameters.add("scheme", "RK4")
+        return parameters
 
     def step(self, t0: float, t1: float) -> None:
-        """
-        Solve on the given time step (t0, t1).
+        """Solve on the given time step (t0, t1).
 
         End users are recommended to use solve instead.
 
-        *Arguments*
-          interval (:py:class:`tuple`)
-            The time interval (t0, t1) for the step
+        Arguments:
+            t0: Start time.
+            t1: End time.
         """
         # NB: The point integral solver operates on vs directly, map initial condition in vs_ to vs:
 
@@ -478,43 +449,64 @@ class CardiacODESolver:
         self._pi_solver.step(dt)
         timer.stop()
 
-    def solve(self, t0: float, t1: float, dt: float) -> None:
-        """
-        Solve the problem given by the model on a given time interval
-        (t0, t1) with a given timestep dt and return generator for a
-        tuple of the interval and the current vs solution.
 
-        *Arguments*
-          interval (:py:class:`tuple`)
-            The time interval for the solve given by (t0, t1)
-          dt (int, optional)
-            The timestep for the solve. Defaults to length of interval
+class MultiCellSolver(AbstractCellSolver):
+    def __init__(
+        self,
+        time: df.Constant,
+        mesh: df.Mesh,
+        cell_model: CellModel,
+        cell_function: df.MeshFunction,
+        valid_cell_tags: tp.Sequence[int],
+        parameter_map: "ODEMap",
+        parameters: df.parameters = None,
+    ) -> None:
+        """Initialise parameters. NB! Keep I_s for compatibility."""
+        super().__init__(mesh=mesh, time=time, cell_model=cell_model, parameters=parameters)
 
-        *Returns*
-          (timestep, current vs) via (:py:class:`genexpr`)
+        # Initialize and update parameters if given
+        self.parameters = self.default_parameters()
+        if parameters is not None:
+            self.parameters.update(parameters)
 
-        *Example of usage*::
+        _cell_function_tags = set(cell_function.array())
+        if not set(valid_cell_tags) <= _cell_function_tags:
+            msg = "Valid cell tag not found in cell function. Expected {}, for {}."
+            raise ValueError(msg.format(set(valid_cell_tags), _cell_function_tags))
 
-          # Create generator
-          solutions = solver.solve((0.0, 1.0), 0.1)
+        from extension_modules import load_module
 
-          # Iterate over generator (computes solutions as you go)
-          for (interval, vs) in solutions:
-            # do something with the solutions
+        self.ode_module = load_module(
+            "LatticeODESolver",
+            recompile=self._parameters["reload_extension_modules"],
+            verbose=self._parameters["reload_extension_modules"]
+        )
 
-        """
-        # Initial time set-up
-        # Solve on entire interval if no interval is given.
-        if dt is None:
-            dt = t1 - t0
+        from xalode import VectorSizet
+        self.ode_solver = self.ode_module.LatticeODESolver(
+            self._function_space_VS._cpp_object,
+            VectorSizet(cell_function.array()),
+            parameter_map
+        )
 
-        # Create timestepper
-        for _t0, _t1 in time_stepper(t0, t1, dt):
-            self.step(_t0, _t1)
+    @staticmethod
+    def default_parameters():
+        parameters = df.Parameters("MultiCellSolver")
+        parameters.add("reload_extension_modules", False)
+        parameters.add("theta", 0.5)
 
-            # Yield solutions
-            yield (_t0, _t1), self.vs
-            self.vs_.assign(self.vs)
+    def step(self, t0: float, t1: float) -> None:
+        """Take a step using my much better ode solver."""
+        theta = self._parameters["theta"]
+        dt = t1 - t0        # TODO: Is this risky?
+
+        # Set time (propagates to time-dependent variables defined via self.time)
+        t = t0 + theta*(t1 - t0)
+        self._time.assign(t)
+
+        # FIXME: Is there some theta shenanigans I have missed?
+        self.ode_solver.solve(self.vs_prev.vector(), t0, t1, dt)
+        self.vs.assign(self.vs_prev)
 
 
 class BasicSingleCellSolver(BasicCardiacODESolver):
@@ -555,7 +547,7 @@ class BasicSingleCellSolver(BasicCardiacODESolver):
         A cardiac cell model
       time (:py:class:`~dolfin.Constant` or None)
         A constant holding the current time.
-      params (:py:class:`dolfin.Parameters`, optional)
+      parameters (:py:class:`dolfin.Parameters`, optional)
         Solver parameters
 
     """
@@ -564,7 +556,7 @@ class BasicSingleCellSolver(BasicCardiacODESolver):
             self,
             model: CellModel,
             time: df.Constant,
-            params: df.Parameters = None
+            parameters: df.Parameters = None
     ) -> None:
         """Create solver from given cell model and optional parameters."""
         msg = "Expecting model to be a CellModel, not {}".format(model)
@@ -573,8 +565,8 @@ class BasicSingleCellSolver(BasicCardiacODESolver):
         msg = "Expecting time to be a Constant instance, not %r".format(time)
         assert (isinstance(time, df.Constant)), msg
 
-        msg = "Expecting params to be a Parameters (or None), not {}".format(params)
-        assert isinstance(params, df.Parameters) or params is None, msg
+        msg = "Expecting parameters to be a Parameters (or None), not {}".format(parameters)
+        assert isinstance(parameters, df.Parameters) or parameters is None, msg
 
         # Store model
         self._model = model
@@ -582,7 +574,7 @@ class BasicSingleCellSolver(BasicCardiacODESolver):
         # Define carefully chosen dummy mesh
         mesh = df.UnitIntervalMesh(1)
 
-        super().__init__(mesh, time, model, I_s=model.stimulus, params=params)
+        super().__init__(mesh, time, model, I_s=model.stimulus, parameters=parameters)
 
 
 class SingleCellSolver(CardiacODESolver):
@@ -590,15 +582,15 @@ class SingleCellSolver(CardiacODESolver):
             self,
             model: CellModel,
             time: df.Constant,
-            params: df.Parameters=None
+            parameters: df.Parameters=None
     ) -> None:
         """Create solver from given cell model and optional parameters."""
         assert isinstance(model, CellModel), \
             "Expecting model to be a CellModel, not %r" % model
         assert (isinstance(time, df.Constant)), \
             "Expecting time to be a Constant instance, not %r" % time
-        assert isinstance(params, df.Parameters) or params is None, \
-            "Expecting params to be a Parameters (or None), not %r" % params
+        assert isinstance(parameters, df.Parameters) or parameters is None, \
+            "Expecting parameters to be a Parameters (or None), not %r" % parameters
 
         # Store model
         self._model = model
@@ -606,4 +598,28 @@ class SingleCellSolver(CardiacODESolver):
         # Define carefully chosen dummy mesh
         mesh = df.UnitIntervalMesh(1)
 
-        super().__init__(mesh, time, model, I_s=model.stimulus, params=params)
+        super().__init__(mesh, time, model, I_s=model.stimulus, parameters=parameters)
+
+
+class SingleMultiCellSolver(MultiCellSolver):
+    def __init__(
+            self,
+            cell_model: CellModel,
+            time: df.Constant,
+            reload_ext_modules: bool = False,
+            parameters: df.Parameters = None
+    ) -> None:
+        """Create solver from given cell model and optional parameters."""
+        # Store model
+        self.cell_model = cell_model
+
+        # Define carefully chosen dummy mesh
+        mesh = df.UnitIntervalMesh(1)
+
+        super().__init__(
+            mesh,
+            time,
+            cell_model,
+            reload_ext_modules=reload_ext_modules,
+            parameters=parameters
+        )

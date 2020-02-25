@@ -66,7 +66,6 @@ def main(N, dt, T, theta=0.5):
     ps["pde_solver"] = "bidomain"
     ps["theta"] = theta
     ps["CardiacODESolver"]["scheme"] = "RK4"
-    ps["enable_adjoint"] = False
     ps["BidomainSolver"]["linear_solver_type"] = "direct"
     ps["BidomainSolver"]["use_avg_u_constraint"] = True
     ps["apply_stimulus_current_to_pde"] = True
@@ -75,7 +74,7 @@ def main(N, dt, T, theta=0.5):
     M_i = 1.0
     M_e = 1.0
     heart = xalbrain.Model(mesh, time, M_i, M_e, model, stimulus)
-    splittingsolver = SplittingSolver(heart, params=ps)
+    splittingsolver = SplittingSolver(heart, parameters=ps)
 
     # Define exact solution (Note: v is returned at end of time
     # interval(s), u is computed at somewhere in the time interval

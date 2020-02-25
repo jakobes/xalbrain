@@ -33,17 +33,11 @@ import dolfin as df
 
 from xalbrain.utils import time_stepper
 
-from typing import (
-    Union,
-    Dict,
-    Tuple,
-    Any,
-)
+import typing as tp
 
 
 class BasicMonodomainSolver:
-    """This solver is based on a theta-scheme discretization in time
-    and CG_1 elements in space.
+    """This solver is based on a theta-scheme discretization in time and CG_1 elements in space.
 
     .. note::
 
@@ -77,20 +71,21 @@ class BasicMonodomainSolver:
         Initial condition for v. A new :py:class:`dolfin.Function`
         will be created if none is given.
 
-      params (:py:class:`dolfin.Parameters`, optional)
+      parameters (:py:class:`dolfin.Parameters`, optional)
         Solver parameters
 
     """
+
     def __init__(
             self,
             mesh: df.Mesh,
             time: df.Constant,
-            M_i: Union[df.Expression, Dict[int, df.Expression]],
-            I_s: Union[df.Expression, Dict[int, df.Expression]] = None,
+            M_i: tp.Union[df.Expression, tp.Dict[int, df.Expression]],
+            I_s: tp.Union[df.Expression, tp.Dict[int, df.Expression]] = None,
             v_: df.Function = None,
             cell_domains: df.MeshFunction = None,
             facet_domains: df.MeshFunction = None,
-            params: df.Parameters = None
+            parameters: df.Parameters = None
     ) -> None:
         # Check some input
         assert isinstance(mesh, df.Mesh), "Expecting mesh to be a Mesh instance, not {}".format(mesh)
@@ -98,8 +93,8 @@ class BasicMonodomainSolver:
         msg = "Expecting time to be a Constant instance (or None)."
         assert isinstance(time, df.Constant) or time is None, msg
 
-        msg = "Expecting params to be a Parameters instance (or None)"
-        assert isinstance(params, df.Parameters) or params is None, msg
+        msg = "Expecting parameters to be a Parameters instance (or None)"
+        assert isinstance(parameters, df.Parameters) or parameters is None, msg
 
         # Store input
         self._mesh = mesh
@@ -108,8 +103,8 @@ class BasicMonodomainSolver:
 
         # Initialize and update parameters if given
         self.parameters = self.default_parameters()
-        if params is not None:
-            self.parameters.update(params)
+        if parameters is not None:
+            self.parameters.update(parameters)
 
         # Set-up function spaces
         k = self.parameters["polynomial_degree"]
@@ -160,7 +155,7 @@ class BasicMonodomainSolver:
         """The internal time of the solver."""
         return self._time
 
-    def solution_fields(self) -> Tuple[df.Function]:
+    def solution_fields(self) -> tp.Tuple[df.Function]:
         """Return tuple of previous and current solution objects.
 
         Modifying these will modify the solution objects of the solver
@@ -172,20 +167,20 @@ class BasicMonodomainSolver:
         """
         return self.v_, self.v
 
-    def solve(self, t0: float, t1: float, dt: float) -> None:
-        """
-        Solve the discretization on a given time interval (t0, t1)
-        with a given timestep dt and return generator for a tuple of
-        the interval and the current solution.
+    def solve(
+        self,
+        t0: float,
+        t1: float,
+        dt: float
+    ) -> tp.Iterable[tp.Tuple[tp.Tuple[float, float], df.Function]]:
+        """Solve the discretization on a given time interval (t0, t1) with a given time step dt.
 
-        *Arguments*
-          interval (:py:class:`tuple`)
-            The time interval for the solve given by (t0, t1)
-          dt (int, optional)
-            The timestep for the solve. Defaults to length of interval
+        Arguments:
+            t0: Start time.
+            t1: End time.
+            dd: Time step.
 
-        *Returns*
-          (timestep, solution_field) via (:py:class:`genexpr`)
+        Yields the time interval and the solution.
 
         *Example of usage*::
 
@@ -285,26 +280,25 @@ class BasicMonodomainSolver:
 
           info(BasicMonodomainSolver.default_parameters(), True)
         """
-        params = df.Parameters("BasicMonodomainSolver")
-        params.add("theta", 0.5)
-        params.add("polynomial_degree", 1)
-        params.add("enable_adjoint", False)
-        params.add("default_timestep", 1.0)
+        parameters = df.Parameters("BasicMonodomainSolver")
+        parameters.add("theta", 0.5)
+        parameters.add("polynomial_degree", 1)
+        parameters.add("default_timestep", 1.0)
 
         # Set default solver type to be iterative
-        params.add("linear_solver_type", "direct")
-        params.add("lu_type", "default")
+        parameters.add("linear_solver_type", "direct")
+        parameters.add("lu_type", "default")
 
         # Set default iterative solver choices (used if iterative
         # solver is invoked)
-        params.add("algorithm", "cg")
-        params.add("preconditioner", "petsc_amg")
-        params.add("use_custom_preconditioner", False)
+        parameters.add("algorithm", "cg")
+        parameters.add("preconditioner", "petsc_amg")
+        parameters.add("use_custom_preconditioner", False)
 
-        params.add("Chi", 1.0)      # Membrane to volume ratio
-        params.add("Cm", 1.0)      # Membrane Capacitance
-        params.add("lambda", 1.0)
-        return params
+        parameters.add("Chi", 1.0)      # Membrane to volume ratio
+        parameters.add("Cm", 1.0)      # Membrane Capacitance
+        parameters.add("lambda", 1.0)
+        return parameters
 
 class MonodomainSolver(BasicMonodomainSolver):
     __doc__ = BasicMonodomainSolver.__doc__
@@ -313,12 +307,12 @@ class MonodomainSolver(BasicMonodomainSolver):
             self,
             mesh: df.Mesh,
             time: df.Constant,
-            M_i: Union[df.Expression, Dict[int, df.Expression]],
-            I_s: Union[df.Expression, Dict[int, df.Expression]] = None,
+            M_i: tp.Union[df.Expression, tp.Dict[int, df.Expression]],
+            I_s: tp.Union[df.Expression, tp.Dict[int, df.Expression]] = None,
             v_: df.Function = None,
             cell_domains: df.MeshFunction = None,
             facet_domains: df.MeshFunction = None,
-            params: df.Parameters = None
+            parameters: df.Parameters = None
     ) -> None:
         super().__init__(
             mesh,
@@ -328,7 +322,7 @@ class MonodomainSolver(BasicMonodomainSolver):
             v_=v_,
             cell_domains=cell_domains,
             facet_domains=facet_domains,
-            params=params)
+            parameters=parameters)
 
         # Create variational forms
         self._timestep = df.Constant(self.parameters["default_timestep"])
@@ -340,45 +334,35 @@ class MonodomainSolver(BasicMonodomainSolver):
         self._lhs_matrix.init_vector(self._rhs_vector, 0)
 
         # Create linear solver (based on parameter choices)
-        self._linear_solver, self._update_solver = self._create_linear_solver()
+        self._linear_solver = self._create_linear_solver()
 
     @property
-    def linear_solver(self) -> Any:
-        """The linear solver (:py:class:`dolfin.LUSolver` or :py:class:`dolfin.KrylovSolver`)."""
+    def linear_solver(self) -> tp.Union[df.KrylovSolver, df.LUSolver]:
+        """Return the linear solver."""
         return self._linear_solver
 
-    def _create_linear_solver(self):
-        "Helper function for creating linear solver based on parameters."
+    def _create_linear_solver(self) -> tp.Union[df.KrylovSolver, df.LUSolver]:
+        """Helper function for creating linear solver based on parameters."""
         solver_type = self.parameters["linear_solver_type"]
 
         if solver_type == "direct":
             solver = df.LUSolver(self._lhs_matrix, self.parameters["lu_type"])
             solver.parameters["symmetric"] = True
-            update_routine = self._update_lu_solver
 
         elif solver_type == "iterative":
             # Preassemble preconditioner (will be updated if time-step changes)
             # Initialize KrylovSolver with matrix and preconditioner
             alg = self.parameters["algorithm"]
             prec = self.parameters["preconditioner"]
-            if self.parameters["use_custom_preconditioner"]:
-                self._prec_matrix = df.assemble(self._prec)
-                solver = df.PETScKrylovSolver(alg, prec)
-                solver.parameters.update(self.parameters["krylov_solver"])
-                solver.set_operators(self._lhs_matrix, self._prec_matrix)
-                solver.ksp().setFromOptions()
-            else:
-                solver = df.PETScKrylovSolver(alg, prec)
-                solver.set_operator(self._lhs_matrix)
-                solver.parameters["nonzero_initial_guess"] = True
-                solver.parameters["monitor_convergence"] = True
+            solver = df.PETScKrylovSolver(alg, prec)
+            solver.set_operator(self._lhs_matrix)
+            solver.parameters["nonzero_initial_guess"] = True
+            solver.parameters["monitor_convergence"] = True
 
-                solver.ksp().setFromOptions()
-
-            update_routine = self._update_krylov_solver
+            solver.ksp().setFromOptions()
         else:
-            assert False, "Unknown linear_solver_type given: {}".format(solver_type)
-        return solver, update_routine
+            raise TypeError("Unknown linear_solver_type given: {}".format(solver_type))
+        return solver
 
     @staticmethod
     def default_parameters() -> df.Parameters:
@@ -391,25 +375,24 @@ class MonodomainSolver(BasicMonodomainSolver):
 
           info(MonodomainSolver.default_parameters(), True)
         """
-        params = df.Parameters("MonodomainSolver")
-        params.add("enable_adjoint", False)
-        params.add("theta", 0.5)
-        params.add("polynomial_degree", 1)
-        params.add("default_timestep", 1.0)
+        parameters = df.Parameters("MonodomainSolver")
+        parameters.add("theta", 0.5)
+        parameters.add("polynomial_degree", 1)
+        parameters.add("default_timestep", 1.0)
 
         # Set default solver type to be iterative
-        params.add("linear_solver_type", "direct")
-        params.add("lu_type", "default")
+        parameters.add("linear_solver_type", "direct")
+        parameters.add("lu_type", "default")
 
         # Set default iterative solver choices (used if iterative solver is invoked)
-        params.add("algorithm", "cg")
-        params.add("preconditioner", "petsc_amg")
-        params.add("use_custom_preconditioner", False)
+        parameters.add("algorithm", "cg")
+        parameters.add("preconditioner", "petsc_amg")
+        parameters.add("use_custom_preconditioner", False)
 
-        params.add("Chi", 1.0)        # Membrane to volume ratio
-        params.add("Cm", 1.0)         # Membrane capacitance
-        params.add("lambda", 1.0)
-        return params
+        parameters.add("Chi", 1.0)        # Membrane to volume ratio
+        parameters.add("Cm", 1.0)         # Membrane capacitance
+        parameters.add("lambda", 1.0)
+        return parameters
 
     def variational_forms(self, k_n: df.Constant):
         """Create the variational forms corresponding to the given
@@ -483,8 +466,7 @@ class MonodomainSolver(BasicMonodomainSolver):
         self.time.assign(t)
 
         # Update matrix and linear solvers etc as needed
-        timestep_unchanged = (abs(dt - float(self._timestep)) < 1.e-12)
-        self._update_solver(timestep_unchanged, dt)
+        self._update_solver(dt)
 
         # Assemble right-hand-side
         timer0 = df.Timer("Assemble rhs")
@@ -498,22 +480,10 @@ class MonodomainSolver(BasicMonodomainSolver):
         )
         timer.stop()
 
-    def _update_lu_solver(self, timestep_unchanged, dt):
-        """Helper function for updating an LUSolver depending on whether timestep has changed."""
-        # Update reuse of factorization parameter in accordance with changes in timestep
-        if timestep_unchanged:
-            return
-
-        # Update stored timestep
-        self._timestep.assign(df.Constant(dt))
-
-        # Reassemble matrix
-        df.assemble(self._lhs, tensor=self._lhs_matrix)
-
-    def _update_krylov_solver(self, timestep_unchanged: bool, dt: float) -> None:
+    def _update_solver(self, dt: float) -> None:
         """Helper function for updating a KrylovSolver depending on whether timestep has changed."""
         # Update reuse of preconditioner parameter in accordance with changes in timestep
-        if timestep_unchanged:
+        if abs(dt - float(self._timestep)) < 1e-12:
             return
 
         # Update stored timestep
@@ -521,7 +491,3 @@ class MonodomainSolver(BasicMonodomainSolver):
 
         # Reassemble matrix
         df.assemble(self._lhs, tensor=self._lhs_matrix)
-
-        # Reassemble preconditioner
-        if self.parameters["use_custom_preconditioner"]:
-            df.assemble(self._prec, tensor=self._prec_matrix)

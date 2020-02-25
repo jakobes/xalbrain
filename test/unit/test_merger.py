@@ -22,7 +22,7 @@ from dolfin import (
 )
 
 
-class TestMerger(object):
+class TestMerger:
     """Test functionality for the splitting solvers."""
 
     def setup(self):

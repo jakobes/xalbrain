@@ -30,21 +30,11 @@ for u.
 # Use and modify at will
 # Last changed: 2013-04-18
 
-# from xalbrain.markerwisefield import *
 from xalbrain.utils import time_stepper
 
 import numpy as np
-
 import dolfin as df
-
-from typing import (
-    Dict,
-    Tuple,
-    Union,
-    Callable,
-    List,
-    Any,
-)
+import typing as tp
 
 
 class BasicBidomainSolver:
@@ -89,7 +79,7 @@ class BasicBidomainSolver:
         Initial condition for v. A new :py:class:`dolfin.Function`
         will be created if none is given.
 
-      params (:py:class:`dolfin.Parameters`, optional)
+      parameters (:py:class:`dolfin.Parameters`, optional)
         Solver parameters
     """
 
@@ -97,27 +87,29 @@ class BasicBidomainSolver:
             self,
             mesh: df.Mesh,
             time: df.Constant,
-            M_i: Union[df.Expression, Dict[int, df.Expression]],
-            M_e: Union[df.Expression, Dict[int, df.Expression]],
-            I_s: Union[df.Expression, Dict[int, df.Expression]] = None,
-            I_a: Union[df.Expression, Dict[int, df.Expression]] = None,
-            ect_current: Dict[int, df.Expression]=None,
+            M_i: tp.Union[df.Expression, tp.Dict[int, df.Expression]],
+            M_e: tp.Union[df.Expression, tp.Dict[int, df.Expression]],
+            I_s: tp.Union[df.Expression, tp.Dict[int, df.Expression]] = None,
+            I_a: tp.Union[df.Expression, tp.Dict[int, df.Expression]] = None,
+            ect_current: tp.Dict[int, df.Expression] = None,
             v_: df.Function = None,
             cell_domains: df.MeshFunction = None,
             facet_domains: df.MeshFunction = None,
-            dirichlet_bc: List[Tuple[df.Expression, int]] = None,
-            dirichlet_bc_v: List[Tuple[df.Expression, int]] = None,
-            params: df.Parameters = None
+            dirichlet_bc: tp.List[tp.Tuple[df.Expression, int]] = None,
+            dirichlet_bc_v: tp.List[tp.Tuple[df.Expression, int]] = None,
+            parameters: df.Parameters = None
     ) -> None:
         """Initialise solverand check all parametersare correct."""
+        self._timestep = None
+
         msg = "Expecting mesh to be a Mesh instance, not {}".format(mesh)
         assert isinstance(mesh, df.Mesh), msg
 
         msg = "Expecting time to be a Constant instance (or None)."
         assert isinstance(time, df.Constant) or time is None, msg
 
-        msg = "Expecting params to be a Parameters instance (or None)"
-        assert isinstance(params, df.Parameters) or params is None, msg
+        msg = "Expecting parameters to be a Parameters instance (or None)"
+        assert isinstance(parameters, df.Parameters) or parameters is None, msg
 
         self._nullspace_basis = None
 
@@ -126,18 +118,17 @@ class BasicBidomainSolver:
         self._time = time
 
         # Initialize and update parameters if given
-        self.parameters = self.default_parameters()
-        if params is not None:
-            self.parameters.update(params)
+        self._parameters = self.default_parameters()
+        if parameters is not None:
+            self._parameters.update(parameters)
 
         # Set-up function spaces
-        k = self.parameters["polynomial_degree"]
+        k = self._parameters["polynomial_degree"]
         Ve = df.FiniteElement("CG", self._mesh.ufl_cell(), k)
         V = df.FunctionSpace(self._mesh, "CG", k)
         Ue = df.FiniteElement("CG", self._mesh.ufl_cell(), k)
 
-        use_R = self.parameters["use_avg_u_constraint"]
-        if use_R:
+        if self._parameters["linear_solver_type"] == "direct":
             Re = df.FiniteElement("R", self._mesh.ufl_cell(), 0)
             self.VUR = df.FunctionSpace(mesh, df.MixedElement((Ve, Ue, Re)))
         else:
@@ -235,7 +226,7 @@ class BasicBidomainSolver:
         """The internal time of the solver."""
         return self._time
 
-    def solution_fields(self) -> Tuple[df.Function, df.Function]:
+    def solution_fields(self) -> tp.Tuple[df.Function, df.Function]:
         """
         Return tuple of previous and current solution objects.
 
@@ -307,7 +298,7 @@ class BasicBidomainSolver:
         timer = df.Timer("PDE step")
 
         # Extract theta and conductivities
-        theta = self.parameters["theta"]
+        theta = self._parameters["theta"]
         Mi = self._M_i
         Me = self._M_e
 
@@ -315,8 +306,7 @@ class BasicBidomainSolver:
         kn = df.Constant(t1 - t0)
 
         # Define variational formulation
-        use_R = self.parameters["use_avg_u_constraint"]
-        if use_R:
+        if self._parameters["linear_solver_type"] == "direct":
             v, u, l = df.TrialFunctions(self.VUR)
             w, q, lamda = df.TestFunctions(self.VUR)
         else:
@@ -324,8 +314,8 @@ class BasicBidomainSolver:
             w, q = df.TestFunctions(self.VUR)
 
         # Get physical parameters
-        chi = self.parameters["Chi"]
-        capacitance = self.parameters["Cm"]
+        chi = self._parameters["Chi"]
+        capacitance = self._parameters["Cm"]
 
         Dt_v = (v - self.v_)/kn
         Dt_v *= chi*capacitance
@@ -357,7 +347,7 @@ class BasicBidomainSolver:
                 G -= chi*self._I_s*w*dz(key)
 
             # If Lagrangian multiplier
-            if use_R:
+            if self._parameters["linear_solver_type"] == "direct":
                 G += (lamda*u + l*q)*dz(key)
 
             # Add applied current as source in elliptic equation if applicable
@@ -389,96 +379,56 @@ class BasicBidomainSolver:
 
           info(BasicBidomainSolver.default_parameters(), True)
         """
-        params = df.Parameters("BasicBidomainSolver")
-        params.add("enable_adjoint", False)
-        params.add("theta", 0.5)
-        params.add("polynomial_degree", 1)
-        params.add("use_avg_u_constraint", True)
+        parameters = df.Parameters("BasicBidomainSolver")
+        parameters.add("theta", 0.5)
+        parameters.add("polynomial_degree", 1)
+        parameters.add("use_avg_u_constraint", True)
 
         # Set default solver type to be iterative
-        params.add("linear_solver_type", "direct")
+        parameters.add("linear_solver_type", "direct")
 
         # Set default iterative solver choices (used if iterative solver is invoked)
-        params.add("algorithm", "gmres")
-        params.add("preconditioner", "petsc_amg")
+        parameters.add("algorithm", "gmres")
+        parameters.add("preconditioner", "petsc_amg")
 
-        params.add("Chi", 1.0)        # Membrane to volume ratio
-        params.add("Cm", 1.0)         # Membrane capacitance
-        return params
+        parameters.add("Chi", 1.0)        # Membrane to volume ratio
+        parameters.add("Cm", 1.0)         # Membrane capacitance
+        return parameters
 
 
 class BidomainSolver(BasicBidomainSolver):
     __doc__ = BasicBidomainSolver.__doc__
 
-    def __init__(
-            self,
-            mesh: df.Mesh,
-            time: df.Constant,
-            M_i: Union[df.Expression, Dict[int, df.Expression]],
-            M_e: Union[df.Expression, Dict[int, df.Expression]],
-            I_s: Union[df.Expression, Dict[int, df.Expression]] = None,
-            I_a: Union[df.Expression, Dict[int, df.Expression]] = None,
-            ect_current: Dict[int, df.Expression] = None,
-            v_: df.Function = None,
-            cell_domains: df.MeshFunction = None,
-            facet_domains: df.MeshFunction = None,
-            dirichlet_bc: List[Tuple[df.Expression, int]] = None,
-            dirichlet_bc_v: List[Tuple[df.Expression, int]] = None,
-            params: df.Parameters = None
-    ) -> None:
-        BasicBidomainSolver.__init__(
-            self,
-            mesh,
-            time,
-            M_i,
-            M_e,
-            I_s=I_s,
-            I_a=I_a,
-            v_=v_,
-            ect_current=ect_current,
-            cell_domains=cell_domains,
-            facet_domains=facet_domains,
-            dirichlet_bc=dirichlet_bc,
-            dirichlet_bc_v=dirichlet_bc_v,
-            params=params
-        )
-        # Mark the timestep as unset
-        self._timestep = None
-
     @property
-    def linear_solver(self) -> Union[df.LinearVariationalSolver, df.PETScKrylovSolver]:
+    def linear_solver(self) -> tp.Union[df.LinearVariationalSolver, df.PETScKrylovSolver]:
         """The linear solver (:py:class:`dolfin.LUSolver` or :py:class:`dolfin.PETScKrylovSolver`)."""
         return self._linear_solver
 
-    def _create_linear_solver(self):
+    def _create_linear_solver(self) -> None:
         """Helper function for creating linear solver based on parameters."""
-        solver_type = self.parameters["linear_solver_type"]
+        solver_type = self._parameters["linear_solver_type"]
 
         if solver_type == "direct":
             solver = df.LUSolver(self._lhs_matrix)
-            update_routine = self._update_lu_solver
 
         elif solver_type == "iterative":
-
             # Initialize KrylovSolver with matrix
-            alg = self.parameters["algorithm"]
-            prec = self.parameters["preconditioner"]
+            alg = self._parameters["algorithm"]
+            prec = self._parameters["preconditioner"]
 
             solver = df.PETScKrylovSolver(alg, prec)
             solver.set_operator(self._lhs_matrix)
 
-            # Set nullspace if present. We happen to know that the
-            # transpose nullspace is the same as the nullspace (easy
-            # to prove from matrix structure).
-            if not self.parameters["use_avg_u_constraint"]:
-                A = df.as_backend_type(self._lhs_matrix)
-                A.set_nullspace(self.nullspace)
+            solver.parameters["nonzero_initial_guess"] = True
 
-            update_routine = self._update_krylov_solver
+            # Set nullspace if present. We happen to know that the transpose nullspace is the same
+            # as the nullspace (easy to prove from matrix structure).
+            A = df.as_backend_type(self._lhs_matrix)
+            A.set_nullspace(self.nullspace)
         else:
-            error("Unknown linear_solver_type given: {}".format(solver_type))
+            df.error("Unknown linear_solver_type given: {}".format(solver_type))
 
-        return solver, update_routine
+        return solver
 
     @property
     def nullspace(self) -> df.VectorSpaceBasis:
@@ -500,25 +450,24 @@ class BidomainSolver(BasicBidomainSolver):
 
           info(BidomainSolver.default_parameters(), True)
         """
-        params = df.Parameters("BidomainSolver")
-        params.add("enable_adjoint", False)
-        params.add("theta", 0.5)
-        params.add("polynomial_degree", 1)
+        parameters = df.Parameters("BidomainSolver")
+        parameters.add("theta", 0.5)
+        parameters.add("polynomial_degree", 1)
 
         # Physical parameters
-        params.add("Chi", 1.0)        # Membrane to volume ratio
-        params.add("Cm", 1.0)         # Membrane capacitance
+        parameters.add("Chi", 1.0)        # Membrane to volume ratio
+        parameters.add("Cm", 1.0)         # Membrane capacitance
 
         # Set default solver type to be iterative
-        params.add("linear_solver_type", "direct")
-        params.add("use_avg_u_constraint", True)
+        parameters.add("linear_solver_type", "direct")
+        parameters.add("use_avg_u_constraint", True)
 
         # Set default iterative solver choices (used if iterative solver is invoked)
-        params.add("algorithm", "gmres")
-        params.add("preconditioner", "petsc_amg")
-        return params
+        parameters.add("algorithm", "gmres")
+        parameters.add("preconditioner", "petsc_amg")
+        return parameters
 
-    def variational_forms(self, kn: df.Constant) -> Tuple[Any, Any]:
+    def variational_forms(self, kn: df.Constant) -> tp.Tuple[tp.Any, tp.Any]:
         """Create the variational forms corresponding to the given
         discretization of the given system of equations.
 
@@ -531,13 +480,12 @@ class BidomainSolver(BasicBidomainSolver):
 
         """
         # Extract theta parameter and conductivities
-        theta = self.parameters["theta"]
+        theta = self._parameters["theta"]
         Mi = self._M_i
         Me = self._M_e
 
         # Define variational formulation
-        use_R = self.parameters["use_avg_u_constraint"]
-        if use_R:
+        if self._parameters["linear_solver_type"] == "direct":
             v, u, l = df.TrialFunctions(self.VUR)
             w, q, lamda = df.TestFunctions(self.VUR)
         else:
@@ -545,8 +493,8 @@ class BidomainSolver(BasicBidomainSolver):
             w, q = df.TestFunctions(self.VUR)
 
         # Get physical parameters
-        chi = self.parameters["Chi"]
-        capacitance = self.parameters["Cm"]
+        chi = self._parameters["Chi"]
+        capacitance = self._parameters["Cm"]
 
         Dt_v = (v - self.v_)/kn
         Dt_v *= chi*capacitance
@@ -574,7 +522,7 @@ class BidomainSolver(BasicBidomainSolver):
                 G -= chi*self._I_s*w*dz(key)
 
             # If Lagrangian multiplier
-            if use_R:
+            if self._parameters["linear_solver_type"] == "direct":
                 G += (lamda*u + l*q)*dz(key)
 
             if self._I_a:
@@ -582,8 +530,7 @@ class BidomainSolver(BasicBidomainSolver):
 
         for key in facet_tags:
             if self._ect_current is not None:
-                # Default to 0 if not defined for tag
-                # I do not I should apply `chi` here.
+                # Default to 0 if not defined for tag I do not I should apply `chi` here.
                 G += self._ect_current.get(key, df.Constant(0))*q*db(key)
 
         a, L = df.system(G)
@@ -602,7 +549,7 @@ class BidomainSolver(BasicBidomainSolver):
           self.vur in correct state at t1.
         """
         dt = t1 - t0
-        theta = self.parameters["theta"]
+        theta = self._parameters["theta"]
         t = t0 + theta*dt
         self.time.assign(t)
 
@@ -612,15 +559,14 @@ class BidomainSolver(BasicBidomainSolver):
             self._lhs, self._rhs = self.variational_forms(self._timestep)
 
             # Preassemble left-hand side and initialize right-hand side vector
-            self._lhs_matrix = df.assemble(self._lhs)
+            self._lhs_matrix = df.assemble(self._lhs, keep_diagonal=True)     # TODO: Why diagonal?
             self._rhs_vector = df.Vector(self._mesh.mpi_comm(), self._lhs_matrix.size(0))
             self._lhs_matrix.init_vector(self._rhs_vector, 0)
 
             # Create linear solver (based on parameter choices)
-            self._linear_solver, self._update_solver = self._create_linear_solver()
+            self._linear_solver = self._create_linear_solver()
         else:
-            timestep_unchanged = abs(dt - float(self._timestep)) < 1.e-12
-            self._update_solver(timestep_unchanged, dt)
+            self._update_solver(dt)
 
         # Assemble right-hand-side
         df.assemble(self._rhs, tensor=self._rhs_vector)
@@ -641,33 +587,16 @@ class BidomainSolver(BasicBidomainSolver):
             self._rhs_vector
         )
 
-    def _update_lu_solver(self, timestep_unchanged: df.Constant, dt: df.Constant) -> None:
-        """Helper function for updating an LUSolver depending on whether timestep has changed."""
-        if not timestep_unchanged:
-            # Update stored timestep
-            self._timestep.assign(df.Constant(dt))
-
-            # Reassemble matrix
-            df.assemble(self._lhs, tensor=self._lhs_matrix)
-
-            self._linear_solver, dummy = self._create_linear_solver()
-
-    def _update_krylov_solver(self, timestep_unchanged: df.Constant, dt: df.Constant):
+    def _update_solver(self, dt: tp.Union[float, df.Constant]) -> None:
         """Helper function for updating a KrylovSolver depending on whether timestep has changed."""
+        if abs(dt - float(self._timestep)) < 1.e-12:
+            return
 
-        # Update reuse of preconditioner parameter in accordance with
-        # changes in timestep
-        if not timestep_unchanged:
-            # Update stored timestep
-            self._timestep.assign(df.Constant(dt))
+        # Update time step
+        self._timestep.assign(dt)
 
-            # Reassemble matrix
-            df.assemble(self._lhs, tensor=self._lhs_matrix)
+        # Reassemble matrix
+        df.assemble(self._lhs, tensor=self._lhs_matrix)
 
-            # Make new Krylov solver
-            self._linear_solver, dummy = self._create_linear_solver()
-
-        # Set nonzero initial guess if it indeed is nonzero
-        if self.vur.vector().norm("l2") > 1.e-12:
-            # df.debug("Initial guess is non-zero.")
-            self.linear_solver.parameters["nonzero_initial_guess"] = True
+        # Make new Krylov solver
+        self._linear_solver = self._create_linear_solver()

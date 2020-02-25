@@ -25,7 +25,6 @@ SUPPORTED_CELL_MODELS_STR = list(map(lambda x: x.__name__, SUPPORTED_CELL_MODELS
 fast = pytest.mark.fast
 medium = pytest.mark.medium
 slow = pytest.mark.slow
-adjoint = pytest.mark.adjoint
 parametrize = pytest.mark.parametrize
 disabled = pytest.mark.disabled
 xfail = pytest.mark.xfail

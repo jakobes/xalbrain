@@ -33,8 +33,8 @@ from testutils import assert_almost_equal, parametrize
 )
 def test_ode_pde(theta, pde_solver) -> None:
     """Test that the ode-pde coupling reproduces the ode solution."""
-    params = SingleCellSolver.default_parameters()
-    params["scheme"] = "RK4"
+    parameters = SingleCellSolver.default_parameters()
+    parameters["scheme"] = "RK4"
     time = df.Constant(0.0)
     stimulus = df.Expression("100", degree=1)
     model = FitzHughNagumoManual()
@@ -44,7 +44,7 @@ def test_ode_pde(theta, pde_solver) -> None:
     T = 10*dt
 
     # Just propagate ODE solver
-    solver = SingleCellSolver(model, time, params)
+    solver = SingleCellSolver(model, time, parameters)
     ode_vs_, ode_vs = solver.solution_fields()
     ode_vs_.assign(model.initial_conditions())
     for _ in solver.solve(0, T, dt):
@@ -61,8 +61,7 @@ def test_ode_pde(theta, pde_solver) -> None:
     ps["pde_solver"] = pde_solver
     ps["theta"] = float(theta)
     ps["CardiacODESolver"]["scheme"] = "RK4"
-    ps["enable_adjoint"] = False
-    solver = SplittingSolver(brain, params=ps)
+    solver = SplittingSolver(brain, parameters=ps)
 
     pde_vs_, pde_vs, vur = solver.solution_fields()
     pde_vs_.assign(model.initial_conditions())

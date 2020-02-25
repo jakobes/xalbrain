@@ -52,7 +52,7 @@ def main(
     ps = BasicSplittingSolver.default_parameters()
     ps["theta"] = theta
     # ps["BasicBidomainSolver"]["linear_variational_solver"]["linear_solver"] = "direct"
-    solver = BasicSplittingSolver(heart, params=ps)
+    solver = BasicSplittingSolver(heart, parameters=ps)
 
     # Define exact solution (Note: v is returned at end of time
     # interval(s), u is computed at somewhere in the time interval
