@@ -31,7 +31,7 @@ __all__ = [
 
 import dolfin as df
 
-from xalbrain.utils import end_of_time
+from xalbrain.utils import time_stepper
 
 from typing import (
     Union,
@@ -202,27 +202,17 @@ class BasicMonodomainSolver:
         if dt is None:
             dt = t1 - t0
 
-        _t0 = t0
-        _t1 = t0 + dt
-
         # Step through time steps until at end time
-        while True:
+        for _t0, _t1 in time_stepper(t0, t1, dt):
             # info("Solving on t = (%g, %g)" % (t0, t1))
             self.step(_t0, _t1)
 
             # Yield solutions
             yield (_t0, _t1), self.solution_fields()
 
-            # Break if this is the last step
-            if end_of_time(t1, _t0, _t1, dt):
-                break
-
             # If not: update members and move to next time
             if isinstance(self.v_, df.Function):
                 self.v_.assign(self.v)
-
-            _t0 = _t1
-            _t1 = _t0 + dt
 
     def step(self, t0: float, t1: float) -> None:
         r"""Solve on the given time interval (t0, t1).

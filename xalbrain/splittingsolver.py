@@ -82,16 +82,22 @@ from xalbrain.monodomainsolver import (
 
 from xalbrain.utils import (
     state_space,
-    TimeStepper,
+    time_stepper
 )
 
 from abc import ABC
 
 import typing as tp
 
-
-
 import time
+
+
+import logging
+import os
+
+
+logging.basicConfig(level=os.environ.get("LOGLEVEL", "INFO"))
+logger = logging.getLogger(__name__)
 
 
 class BasicSplittingSolver:
@@ -306,9 +312,8 @@ class BasicSplittingSolver:
 
         """
         # Create timestepper
-        time_stepper = TimeStepper(t0, t1, dt)
-
-        for _t0, _t1 in time_stepper:
+        for _t0, _t1 in time_stepper(t0, t1, dt):
+            logging.info(f"{_t0, _t1}, {t0, t1, dt}")
             self.step(_t0, _t1)
 
             # Yield solutions

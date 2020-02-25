@@ -31,7 +31,7 @@ for u.
 # Last changed: 2013-04-18
 
 # from xalbrain.markerwisefield import *
-from xalbrain.utils import end_of_time
+from xalbrain.utils import time_stepper
 
 import numpy as np
 
@@ -281,28 +281,17 @@ class BasicBidomainSolver:
         if dt is None:
             dt = t1 - t0
 
-        _t0 = t0
-        _t1 = t0 + dt
-
         # Step through time steps until at end time
-        while True:
-            # df.info("Solving on t = ({:g}, {:g})".format(t0, t1))
+        for _t0, _t1 in time_stepper(t0, t1, dt):
             self.step(_t0, _t1)
 
             # Yield solutions
             yield (_t0, _t1), self.solution_fields()
 
-            # Break if this is the last step
-            if end_of_time(t1, _t0, _t1, dt):
-                break
-
             # If not: update members and move to next time
             # Subfunction assignment would be good here.
             if isinstance(self.v_, df.Function):
                 self.merger.assign(self.v_, self.vur.sub(0))
-
-            _t0 = _t1
-            _t1 = _t0 + dt
 
     def step(self, t0: float, t1: float) -> None:
         """Solve on the given time interval (t0, t1).

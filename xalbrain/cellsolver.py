@@ -17,8 +17,8 @@ from xalbrain.cellmodels import (
 
 from xalbrain.utils import (
     state_space,
-    TimeStepper,
-    splat,
+    time_stepper,
+    split_function,
 )
 
 import typing as tp
@@ -186,13 +186,10 @@ class BasicCardiacODESolver:
             dt = t1 - t0
 
         # Create timestepper
-        time_stepper = TimeStepper(t0, t1, dt)
-        for _t0, _t1 in time_stepper:
+        for _t0, _t1 in time_stepper(t0, t1, dt):
 
-            # df.info_blue("Solving on t = ({:g}, {:g})".format(t0, t1))
             self.step(_t0, _t1)
 
-            # Yield solutions
             yield (_t0, _t1), self.vs
             self.vs_.assign(self.vs)
 
@@ -212,12 +209,12 @@ class BasicCardiacODESolver:
         k_n = df.Constant(t1 - t0)
 
         # Extract previous solution(s)
-        v_, s_ = splat(self.vs_, self._num_states + 1)
+        v_, s_ = split_function(self.vs_, self._num_states + 1)
 
         # Set-up current variables
         self.vs.assign(self.vs_)     # Start with good guess
-        v, s = splat(self.vs, self._num_states + 1)
-        w, r = splat(df.TestFunction(self.VS), self._num_states + 1)
+        v, s = split_function(self.vs, self._num_states + 1)
+        w, r = split_function(df.TestFunction(self.VS), self._num_states + 1)
 
         # Define equation based on cell model
         Dt_v = (v - v_)/k_n
@@ -391,8 +388,8 @@ class CardiacODESolver:
         self.vs = df.Function(self.VS, name="vs")
 
         # Initialize scheme
-        v, s = splat(self.vs, self._num_states + 1)
-        w, q = splat(df.TestFunction(self.VS), self._num_states + 1)
+        v, s = split_function(self.vs, self._num_states + 1)
+        w, q = split_function(df.TestFunction(self.VS), self._num_states + 1)
 
         # Workaround to get algorithm in RL schemes working as it only works for scalar expressions
         F_exprs = self._F(v, s, self._time)
@@ -512,10 +509,7 @@ class CardiacODESolver:
             dt = t1 - t0
 
         # Create timestepper
-        time_stepper = TimeStepper(t0, t1, dt)
-
-        for _t0, _t1 in time_stepper:
-            # df.info_blue("Solving on t = (%g, %g)" % (t0, t1))
+        for _t0, _t1 in time_stepper(t0, t1, dt):
             self.step(_t0, _t1)
 
             # Yield solutions

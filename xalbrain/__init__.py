@@ -38,8 +38,8 @@ from xalbrain.monodomainsolver import (
 
 # Various utility functions, mainly for internal use
 from xalbrain.utils import (
-    splat,
+    split_function,
     state_space,
-    end_of_time,
-    Projecter
+    Projecter,
+    time_stepper
 )

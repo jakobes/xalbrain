@@ -52,10 +52,9 @@ class TestSplittingSolver:
             self.applied_current
         )
 
-        dt = 0.1
+        dt = 0.05
         self.t0 = 0.0
-        self.dt = [(0.0, dt), (dt*2, dt/2), (dt*4, dt)]
-        # Test using variable dt interval but using the same dt.
+        self.dt = dt
 
         self.T = self.t0 + 5*dt
         self.ics = self.cell_model.initial_conditions()
@@ -89,7 +88,6 @@ class TestSplittingSolver:
         solutions = solver.solve(self.t0, self.T, self.dt)
         for (t0, t1), fields in solutions:
             vs_, vs, vur = fields
-            print(vs.vector().norm("l2"))
 
         foo = vs.vector()
         basic_vs = vs.vector().norm("l2")
@@ -113,7 +111,6 @@ class TestSplittingSolver:
         solutions = solver.solve(self.t0, self.T, self.dt)
         for (t0, t1), fields in solutions:
             vs_, vs, vur = fields
-            print("fancy: ", vs.vector().norm("l2"))
 
         assert_almost_equal(t1, self.T, 1e-10)
         optimised_vs = vs.vector().norm("l2")
