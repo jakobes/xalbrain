@@ -1,5 +1,4 @@
-r"""
-These solvers solve the (pure) bidomain equations.
+r"""These solvers solve the (pure) bidomain equations.
 
 The equations are on the form: find the transmembrane potential :math:`v = v(x, t)` and
 the extracellular potential :math:`u = u(x, t)` such that
@@ -36,8 +35,10 @@ import numpy as np
 import dolfin as df
 import typing as tp
 
+from abc import ABC
 
-class BasicBidomainSolver:
+
+class AbstractBidomainSolver(ABC):
     r"""
     This solver is based on a theta-scheme discretization in time and FEM in space.
 
@@ -227,32 +228,30 @@ class BasicBidomainSolver:
         return self._time
 
     def solution_fields(self) -> tp.Tuple[df.Function, df.Function]:
-        """
-        Return tuple of previous and current solution objects.
+        """Return tuple of previous and current solution objects.
 
         Modifying these will modify the solution objects of the solver
         and thus provides a way for setting initial conditions for
         instance.
 
-        *Returns*
-          (previous v, current vur) (:py:class:`tuple` of :py:class:`dolfin.Function`)
+        Returns previous solution and current solution.
         """
         return self.v_, self.vur
 
-    def solve(self, t0: float, t1: float, dt: float) -> None:
-        """
-        Solve the discretization on a given time interval (t0, t1)
-        with a given timestep dt and return generator for a tuple of
-        the interval and the current solution.
+    def solve(
+        self,
+        t0: float,
+        t1: float,
+        dt: float
+    ) -> tp.Iterator[tp.Tuple[tp.Tuple[float, float], df.Function]]:
+        """Solve the model on a time interval (`t0`, `t1`) with timestep `dt`.
 
-        *Arguments*
-          interval (:py:class:`tuple`)
-            The time interval for the solve given by (t0, t1)
-          dt (int, optional)
-            The timestep for the solve. Defaults to length of interval
+        Arguments:
+            t0: Start time.
+            t1: End time.
+            dt: Timestep.
 
-        *Returns*
-          (timestep, solution_fields) via (:py:class:`genexpr`)
+        Returns the solution along with the valid time interval.
 
         *Example of usage*::
 
@@ -265,9 +264,6 @@ class BasicBidomainSolver:
             v_, vur = solution_fields
             # do something with the solutions
         """
-        timer = df.Timer("PDE step")
-
-        # Initial set-up
         # Solve on entire interval if no interval is given.
         if dt is None:
             dt = t1 - t0
@@ -283,6 +279,9 @@ class BasicBidomainSolver:
             # Subfunction assignment would be good here.
             if isinstance(self.v_, df.Function):
                 self.merger.assign(self.v_, self.vur.sub(0))
+
+class BasicBidomainSolver(AbstractBidomainSolver):
+    __doc__ = AbstractBidomainSolver.__doc__
 
     def step(self, t0: float, t1: float) -> None:
         """Solve on the given time interval (t0, t1).
@@ -370,10 +369,7 @@ class BasicBidomainSolver:
 
     @staticmethod
     def default_parameters() -> df.Parameters:
-        """Initialize and return a set of default parameters
-
-        *Returns*
-          A set of parameters (:py:class:`dolfin.Parameters`)
+        """Initialize and return a set of default parameters.
 
         To inspect all the default parameters, do::
 
@@ -396,8 +392,8 @@ class BasicBidomainSolver:
         return parameters
 
 
-class BidomainSolver(BasicBidomainSolver):
-    __doc__ = BasicBidomainSolver.__doc__
+class BidomainSolver(AbstractBidomainSolver):
+    __doc__ = AbstractBidomainSolver.__doc__
 
     @property
     def linear_solver(self) -> tp.Union[df.LinearVariationalSolver, df.PETScKrylovSolver]:

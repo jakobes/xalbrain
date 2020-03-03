@@ -33,11 +33,13 @@ import dolfin as df
 
 from xalbrain.utils import time_stepper
 
+from abc import ABC
+
 import typing as tp
 
 
-class BasicMonodomainSolver:
-    """This solver is based on a theta-scheme discretization in time and CG_1 elements in space.
+class AbstractMonodomainSolver(ABC):
+    r"""This solver is based on a theta-scheme discretization in time and CG_1 elements in space.
 
     .. note::
 
@@ -77,38 +79,23 @@ class BasicMonodomainSolver:
     """
 
     def __init__(
-            self,
-            mesh: df.Mesh,
-            time: df.Constant,
-            M_i: tp.Union[df.Expression, tp.Dict[int, df.Expression]],
-            I_s: tp.Union[df.Expression, tp.Dict[int, df.Expression]] = None,
-            v_: df.Function = None,
-            cell_domains: df.MeshFunction = None,
-            facet_domains: df.MeshFunction = None,
-            parameters: df.Parameters = None
-    ) -> None:
-        # Check some input
-        assert isinstance(mesh, df.Mesh), "Expecting mesh to be a Mesh instance, not {}".format(mesh)
-
-        msg = "Expecting time to be a Constant instance (or None)."
-        assert isinstance(time, df.Constant) or time is None, msg
-
-        msg = "Expecting parameters to be a Parameters instance (or None)"
-        assert isinstance(parameters, df.Parameters) or parameters is None, msg
-
+        self,
+        mesh: df.Mesh,
+        time: df.Constant,
+        M_i: tp.Union[df.Expression, tp.Dict[int, df.Expression]],
+        I_s: tp.Union[df.Expression, tp.Dict[int, df.Expression]] = None,
+        v_: df.Function = None,
+        cell_domains: df.MeshFunction = None,
+        facet_domains: df.MeshFunction = None,
+        parameters: df.Parameters = None
+    ):
         # Store input
         self._mesh = mesh
         self._I_s = I_s
         self._time = time
 
-        # Initialize and update parameters if given
-        self.parameters = self.default_parameters()
-        if parameters is not None:
-            self.parameters.update(parameters)
-
         # Set-up function spaces
-        k = self.parameters["polynomial_degree"]
-        V = df.FunctionSpace(self._mesh, "CG", k)
+        V = df.FunctionSpace(self._mesh, "CG", 1)
 
         self.V = V
 
@@ -141,6 +128,7 @@ class BasicMonodomainSolver:
         assert facet_dim == mesh_dim - 1, msg
         self._facet_domains = facet_domains
 
+
         if not isinstance(M_i, dict):
             M_i = {int(i): M_i for i in set(self._cell_domains.array())}
         else:
@@ -149,6 +137,11 @@ class BasicMonodomainSolver:
             msg = "Got {}, expected {}.".format(M_i_keys, cell_keys)
             assert M_i_keys == cell_keys, msg
         self._M_i = M_i
+
+        # Initialize and update parameters if given
+        self.parameters = self.default_parameters()
+        if parameters is not None:
+            self.parameters.update(parameters)
 
     @property
     def time(self) -> df.Constant:
@@ -209,6 +202,8 @@ class BasicMonodomainSolver:
             if isinstance(self.v_, df.Function):
                 self.v_.assign(self.v)
 
+
+class BasicMonodomainSolver(AbstractMonodomainSolver):
     def step(self, t0: float, t1: float) -> None:
         r"""Solve on the given time interval (t0, t1).
 
@@ -300,7 +295,8 @@ class BasicMonodomainSolver:
         parameters.add("lambda", 1.0)
         return parameters
 
-class MonodomainSolver(BasicMonodomainSolver):
+
+class MonodomainSolver(AbstractMonodomainSolver):
     __doc__ = BasicMonodomainSolver.__doc__
 
     def __init__(

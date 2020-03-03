@@ -58,7 +58,7 @@ testing or debugging purposes primarily.
 # Use and modify at will
 # Last changed: 2013-04-15
 
-__all__ = ["SplittingSolver", "BasicSplittingSolver",]
+__all__ = ["SplittingSolver", "BasicSplittingSolver"]
 
 import dolfin as df
 import numpy as np
@@ -80,10 +80,7 @@ from xalbrain.monodomainsolver import (
     MonodomainSolver,
 )
 
-from xalbrain.utils import (
-    state_space,
-    time_stepper
-)
+from xalbrain.utils import time_stepper
 
 from abc import (
     ABC,
@@ -93,7 +90,6 @@ from abc import (
 import typing as tp
 
 import time
-
 
 import logging
 import os
