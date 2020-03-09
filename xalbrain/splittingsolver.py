@@ -68,6 +68,7 @@ from xalbrain import Model
 from xalbrain.cellsolver import (
     BasicCardiacODESolver,
     CardiacODESolver,
+    MultiCellSolver
 )
 
 from xalbrain.bidomainsolver import (
@@ -549,9 +550,7 @@ class SplittingSolver(AbstractSplittingSolver):
         return solver
 
     def _create_pde_solver(self) -> tp.Union[
-            BasicBidomainSolver,
             BidomainSolver,
-            BasicMonodomainSolver,
             MonodomainSolver
     ]:
         """Helper function to initialize a suitable PDE solver from the cardiac model."""
@@ -597,4 +596,82 @@ class SplittingSolver(AbstractSplittingSolver):
             )
 
         solver = PDESolver(*pde_args, **pde_kwargs)
+        return solver
+
+
+class MultiCellSplittingSolver(SplittingSolver):
+    def __init__(
+        self,
+        model: Model,
+        cell_function: df.MeshFunction,
+        valid_cell_tags: tp.Sequence[int],
+        parameter_map: "ODEMap",
+        ode_timestep: float = None,
+        parameters: df.Parameters = None
+    ) -> None:
+        self._parameters = self.default_parameters()
+        if parameters is not None:
+            self._parameters.update(parameters)
+
+        super().__init__(model, ode_timestep)
+
+        self._cell_function = cell_function
+        self._cell_tags = valid_cell_tags       # cell tags in cell_function checked in ode solver
+        self._parameter_map = parameter_map
+
+    @staticmethod
+    def default_parameters() -> df.Parameters:
+        """
+        Initialize and return a set of default parameters for the splitting solver.
+
+        *Returns*
+          The set of default parameters (:py:class:`dolfin.Parameters`)
+
+        *Example of usage*::
+
+          info(SplittingSolver.default_parameters(), True)
+        """
+        parameters = df.Parameters("SplittingSolver")
+        parameters.add("theta", 0.5, 0, 1)
+        parameters.add("apply_stimulus_current_to_pde", False)
+        # parameters.add("pde_solver", "bidomain", {"bidomain", "monodomain"})
+        parameters.add("pde_solver", "bidomain")
+        parameters.add(
+            "ode_solver_choice",
+            "CardiacODESolver"
+        )
+
+
+        # Add default parameters from ODE solver
+        ode_solver_parameters = CardiacODESolver.default_parameters()
+        ode_solver_parameters["scheme"] = "BDF1"
+        parameters.add(ode_solver_parameters)
+
+        # Add default parameters from ODE solver
+        basic_ode_solver_parameters = BasicCardiacODESolver.default_parameters()
+        parameters.add(basic_ode_solver_parameters)
+
+        pde_solver_parameters = BidomainSolver.default_parameters()
+        pde_solver_parameters["polynomial_degree"] = 1
+        parameters.add(pde_solver_parameters)
+
+        pde_solver_parameters = MonodomainSolver.default_parameters()
+        pde_solver_parameters["polynomial_degree"] = 1
+        parameters.add(pde_solver_parameters)
+        return parameters
+
+    def _create_ode_solver(self) -> MultiCellSolver:
+        """Helper function to initialize a suitable ODE solver from the cardiac model."""
+        # Extract cardiac cell model from cardiac model
+        assert self._cell_function is not None
+        cell_model = self._model.cell_models
+        solver = MultiCellSolver(
+            time=self._time,
+            mesh=self._mesh,
+            cell_model=cell_model,
+            cell_function=self._cell_function,
+            valid_cell_tags=self._cell_tags,
+            parameter_map=self._parameter_map,
+            parameters=self._parameters,
+        )
         return solver
