@@ -1,14 +1,14 @@
 """This module contains the logistic equation for testingpurposes."""
 
-from xalbrain.cellmodels import CardiacCellModel
+from xalbrain.cellmodels import CellModel
 from collections import OrderedDict
 
 
-class LogisticCellModel(CardiacCellModel):
+class LogisticCellModel(CellModel):
     """Class represents the logisitc eqiuation for testing purposes."""
 
     def __init__(self, params=None,init_conditions=None):
-        CardiacCellModel.__init__(self, params,init_conditions)
+        CellModel.__init__(self, params,init_conditions)
 
     def I(self, V, s, time=None):
         return -V*(1 - V)

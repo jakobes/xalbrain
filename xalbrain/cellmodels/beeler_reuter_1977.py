@@ -7,10 +7,10 @@ from __future__ import division
 from collections import OrderedDict
 import ufl
 
-from xalbrain.cellmodels import CardiacCellModel
+from xalbrain.cellmodels import CellModel
 from dolfin import *
 
-class Beeler_reuter_1977(CardiacCellModel):
+class Beeler_reuter_1977(CellModel):
     def __init__(self, params=None, init_conditions=None):
         """
         Create cardiac cell model
@@ -21,7 +21,7 @@ class Beeler_reuter_1977(CardiacCellModel):
          init_conditions (dict, :py:class:`dolfin.Mesh`, optional)
            optional initial conditions
         """
-        CardiacCellModel.__init__(self, params, init_conditions)
+        CellModel.__init__(self, params, init_conditions)
 
     @staticmethod
     def default_parameters():

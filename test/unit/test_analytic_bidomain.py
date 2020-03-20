@@ -11,7 +11,7 @@ __all__ = []
 import pytest
 
 from xalbrain import (
-    CardiacModel,
+    Model,
     NoCellModel,
     BasicSplittingSolver,
 )
@@ -46,13 +46,13 @@ def main(
 
     ac_str = "cos(t)*cos(2*pi*x[0])*cos(2*pi*x[1]) + 4*pow(pi, 2)*cos(2*pi*x[0])*cos(2*pi*x[1])*sin(t)"
     stimulus = Expression(ac_str, t=time, degree=5)
-    heart = CardiacModel(mesh, time, 1.0, 1.0, cell_model, stimulus=stimulus)
+    heart = Model(mesh, time, 1.0, 1.0, cell_model, stimulus=stimulus)
 
     # Set-up solver
     ps = BasicSplittingSolver.default_parameters()
     ps["theta"] = theta
-    ps["BasicBidomainSolver"]["linear_variational_solver"]["linear_solver"] = "direct"
-    solver = BasicSplittingSolver(heart, params=ps)
+    # ps["BasicBidomainSolver"]["linear_variational_solver"]["linear_solver"] = "direct"
+    solver = BasicSplittingSolver(heart, parameters=ps)
 
     # Define exact solution (Note: v is returned at end of time
     # interval(s), u is computed at somewhere in the time interval
@@ -71,7 +71,7 @@ def main(
     vs_.assign(vs0)
 
     # Solve
-    for (_, (vs_, vs, vur)) in solver.solve((0, T), dt):
+    for _, (vs_, vs, vur) in solver.solve(0, T, dt):
         continue
 
     # Compute errors

@@ -7,7 +7,7 @@ jobs:
   build:
 
     docker:
-      - image: quay.io/fenicsproject/stable
+      - image: quay.io/fenicsproject/stable:2019.1.0.r3
         user: fenics
         environment:
           LD_LIBRARY_PATH: /home/fenics/local/lib
@@ -20,9 +20,9 @@ jobs:
       - run:
           name: install-python-requirements
           command: |
-            sudo pip3 install pytest --upgrade
-            sudo pip3 install pytest-xdist
-            sudo pip3 install -r requirements-dev.txt
+            sudo python3 -m pip install --upgrade pip
+            sudo python3 -m pip install pytest --upgrade
+            sudo python3 -m pip install pytest-xdist
 
       - run:
           name: Environment and FEniCS version info
@@ -30,11 +30,11 @@ jobs:
             echo $USER $HOME $PWD $PATH $LD_LIBRARY_PATH $CMAKE_PREFIX_PATH
             python3 -c "import ffc; print(ffc.git_commit_hash(), ffc.ufc_signature())"
             python3 -c "import dolfin; print(dolfin.git_commit_hash())"
-  
+
       - run:
           name: Install xalbrain
           command: |
-            sudo python3 setup.py install
+            sudo python3 -m pip install .
 
       - run:
           name: Import xalbrain first time (JIT)
@@ -43,5 +43,5 @@ jobs:
 
       - run:
           name: Unit tests
-          command: | 
-            python3 -m pytest -v -n 4 test/unit
+          command: |
+              python3 -W ignore:DeprecationWarning -m pytest -v -n 4 test/unit

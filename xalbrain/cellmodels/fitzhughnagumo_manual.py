@@ -11,9 +11,9 @@ __all__ = ["FitzHughNagumoManual"]
 
 from collections import OrderedDict
 from dolfin import Parameters, Expression
-from xalbrain.cellmodels import CardiacCellModel
+from xalbrain.cellmodels import CellModel
 
-class FitzHughNagumoManual(CardiacCellModel):
+class FitzHughNagumoManual(CellModel):
     """
     A reparametrized FitzHughNagumo model, based on Section 2.4.1 in
     "Computing the electrical activity in the heart" by Sundnes et al,
@@ -25,7 +25,7 @@ class FitzHughNagumoManual(CardiacCellModel):
     """
     def __init__(self, params=None, init_conditions=None):
         "Create cardiac cell model, optionally from given parameters."
-        CardiacCellModel.__init__(self, params, init_conditions)
+        CellModel.__init__(self, params, init_conditions)
 
     @staticmethod
     def default_parameters():

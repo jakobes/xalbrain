@@ -1,9 +1,6 @@
-"""Install module."""
 import subprocess
 from pathlib import Path
 from setuptools import setup, Command
-
-#from typing import List
 
 
 class SphinxCommand(Command):
@@ -42,5 +39,16 @@ setup(
     author_email = "jakob@xal.no",
     packages = ["xalbrain", "xalbrain.cellmodels",],
     package_dir = {"xalbrain": "xalbrain"},
-    cmdclass = CMDS
+    install_requires=[
+        "codecov==2.0.9",
+        "pytest",
+        "pytest-xdist",
+        "tqdm",
+        "h5py",
+        "cppimport",
+    ],
+    dependency_links=[
+        "git+git://github.com/jakobes/xalode",
+    ],
+    cmdclass=CMDS
 )

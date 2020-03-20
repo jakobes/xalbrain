@@ -5,7 +5,7 @@ __author__ = "Marie E. Rognes (meg@simula.no), 2013"
 
 from testutils import assert_almost_equal, assert_equal, fast
 
-from dolfin import *
+import dolfin as df
 
 from xalbrain import (
     BasicBidomainSolver,
@@ -20,14 +20,14 @@ class TestBasicBidomainSolver:
 
     def setUp(self) -> None:
         """Set up experiment."""
-        self.mesh = UnitCubeMesh(5, 5, 5)
-        self.time = Constant(0.0)
+        self.mesh = df.UnitCubeMesh(5, 5, 5)
+        self.time = df.Constant(0.0)
 
         # Create stimulus
-        self.stimulus = Expression("2.0", degree=1)
+        self.stimulus = df.Expression("2.0", degree=1)
 
         # Create ac
-        self.applied_current = Expression(
+        self.applied_current = df.Expression(
             "sin(2*pi*x[0])*t",
             t=self.time,
             degree=3
@@ -56,7 +56,7 @@ class TestBasicBidomainSolver:
         )
 
         # Solve
-        solutions = solver.solve((self.t0, self.t0 + 2*self.dt), self.dt)
+        solutions = solver.solve(self.t0, self.t0 + 2*self.dt, self.dt)
         for _, _ in solutions:
             pass
 
@@ -78,14 +78,14 @@ class TestBasicBidomainSolver:
 
         # Solve
         interval = (self.t0, self.t0 + self.dt)
-        for _, (v_, vur) in solver.solve(interval, self.dt):
+        for _, (v_, vur) in solver.solve(*interval, self.dt):
             a = vur.vector().norm("l2")
 
         # Reset v_
         v_.vector()[:] = 0.0
 
         # Step
-        solver.step(interval)
+        solver.step(*interval)
         b = vs.vector().norm("l2")
 
         # Check that result from solve and step match.
@@ -96,11 +96,11 @@ class TestBasicMonodomainSolver:
     """Test functionality for the basic monodomain solver."""
 
     def setUp(self) -> None:
-        self.mesh = UnitCubeMesh(5, 5, 5)
-        self.time = Constant(0.0)
+        self.mesh = df.UnitCubeMesh(5, 5, 5)
+        self.time = df.Constant(0.0)
 
         # Create stimulus
-        self.stimulus = Expression("2.0", degree=1)
+        self.stimulus = df.Expression("2.0", degree=1)
 
         # Create conductivity "tensors"
         self.M_i = 1.0
@@ -122,7 +122,7 @@ class TestBasicMonodomainSolver:
         )
 
         # Solve
-        for _, _ in solver.solve((self.t0, self.t0 + 2*self.dt), self.dt):
+        for _, _ in solver.solve(self.t0, self.t0 + 2*self.dt, self.dt):
             pass
 
     @fast
@@ -141,14 +141,14 @@ class TestBasicMonodomainSolver:
 
         # Solve
         interval = (self.t0, self.t0 + self.dt)
-        for _, (v_, vur) in solver.solve(interval, self.dt):
+        for _, (v_, vur) in solver.solve(*interval, self.dt):
             a = vur.vector().norm("l2")
 
         # Reset v_
         v_.vector()[:] = 0.0
 
         # Step
-        solver.step(interval)
+        solver.step(*interval)
         b = vs.vector().norm("l2")
 
         # Check that result from solve and step match.
@@ -160,14 +160,14 @@ class TestBidomainSolver:
 
     def setUp(self) -> None:
         N = 5
-        self.mesh = UnitCubeMesh(N, N, N)
-        self.time = Constant(0.0)
+        self.mesh = df.UnitCubeMesh(N, N, N)
+        self.time = df.Constant(0.0)
 
         # Create stimulus
-        self.stimulus = Expression("2.0", degree=1)
+        self.stimulus = df.Expression("2.0", degree=1)
 
         # Create ac
-        self.applied_current = Expression(
+        self.applied_current = df.Expression(
             "sin(2*pi*x[0])*t",
             t=self.time,
             degree=3
@@ -195,7 +195,7 @@ class TestBidomainSolver:
             I_a=self.applied_current
         )
 
-        for _, _ in solver.solve((self.t0, self.t0 + 2*self.dt), self.dt):
+        for _, _ in solver.solve(self.t0, self.t0 + 2*self.dt, self.dt):
             pass
 
     @fast
@@ -204,9 +204,9 @@ class TestBidomainSolver:
         self.setUp()
 
         # Create solver and solve
-        params = BidomainSolver.default_parameters()
-        params["linear_solver_type"] = "direct"
-        params["use_avg_u_constraint"] = True
+        parameters = BidomainSolver.default_parameters()
+        parameters["linear_solver_type"] = "direct"
+        parameters["use_avg_u_constraint"] = True
         solver = BidomainSolver(
             self.mesh,
             self.time,
@@ -214,18 +214,17 @@ class TestBidomainSolver:
             self.M_e,
             I_s=self.stimulus,
             I_a=self.applied_current,
-            params=params
+            parameters=parameters
         )
 
-        for _, (v_, vur) in solver.solve((self.t0, self.t0 + 2*self.dt), self.dt):
-            # print(vur.vector().array())
+        for _, (v_, vur) in solver.solve(self.t0, self.t0 + 2*self.dt, self.dt):
             pass
 
         bidomain_result = vur.vector().norm("l2")
 
-        params = BasicBidomainSolver.default_parameters()
-        params["linear_solver_type"] = "direct"
-        params["use_avg_u_constraint"] = True
+        parameters = BasicBidomainSolver.default_parameters()
+        parameters["linear_solver_type"] = "direct"
+        parameters["use_avg_u_constraint"] = True
 
         # Create other solver and solve
         solver = BasicBidomainSolver(
@@ -237,8 +236,7 @@ class TestBidomainSolver:
             I_a=self.applied_current
         )
 
-        for _, (v_, vur) in solver.solve((self.t0, self.t0 + 2*self.dt), self.dt):
-            print(vur.vector().array())
+        for _, (v_, vur) in solver.solve(self.t0, self.t0 + 2*self.dt, self.dt):
             pass
 
         basic_bidomain_result = vur.vector().norm("l2")
@@ -253,9 +251,9 @@ class TestBidomainSolver:
         self.setUp()
 
         # Create solver and solve
-        params = BidomainSolver.default_parameters()
-        params["linear_solver_type"] = "direct"
-        params["use_avg_u_constraint"] = False
+        parameters = BidomainSolver.default_parameters()
+        parameters["linear_solver_type"] = "direct"
+        parameters["use_avg_u_constraint"] = False
         solver = BidomainSolver(
             self.mesh,
             self.time,
@@ -263,18 +261,17 @@ class TestBidomainSolver:
             self.M_e,
             I_s=self.stimulus,
             I_a=self.applied_current,
-            params=params
+            parameters=parameters
         )
 
-        for _, (v_, vur),  in solver.solve((self.t0, self.t0 + 3*self.dt), self.dt):
+        for _, (v_, vur),  in solver.solve(self.t0, self.t0 + 3*self.dt, self.dt):
             v, *_ = vur.split(deepcopy=True)
             a = v.vector().norm("l2")
 
         # Create solver and solve using iterative means
-        params = BidomainSolver.default_parameters()
-        params["linear_solver_type"] = "iterative"
-        params["use_avg_u_constraint"] =  False
-        params["petsc_krylov_solver"]["monitor_convergence"] = True
+        parameters = BidomainSolver.default_parameters()
+        parameters["linear_solver_type"] = "iterative"
+        parameters["use_avg_u_constraint"] =  False
         solver = BidomainSolver(
             self.mesh,
             self.time,
@@ -282,10 +279,10 @@ class TestBidomainSolver:
             self.M_e,
             I_s=self.stimulus,
             I_a=self.applied_current,
-            params=params
+            parameters=parameters
         )
 
-        for _, (v_, vur) in solver.solve((self.t0, self.t0 + 3*self.dt), self.dt):
+        for _, (v_, vur) in solver.solve(self.t0, self.t0 + 3*self.dt, self.dt):
             v, *_ = vur.split(deepcopy=True)
             b = v.vector().norm("l2")
 
@@ -299,11 +296,11 @@ class TestMonodomainSolver:
 
     def setUp(self) -> None:
         N = 5
-        self.mesh = UnitCubeMesh(N, N, N)
-        self.time = Constant(0.0)
+        self.mesh = df.UnitCubeMesh(N, N, N)
+        self.time = df.Constant(0.0)
 
         # Create stimulus
-        self.stimulus = Expression("2.0", degree=1)
+        self.stimulus = df.Expression("2.0", degree=1)
 
         # Create conductivity "tensors"
         self.M_i = 1.0
@@ -318,7 +315,7 @@ class TestMonodomainSolver:
 
         # Create solver and solve
         solver = MonodomainSolver(self.mesh, self.time, self.M_i, I_s=self.stimulus)
-        for _, _ in solver.solve((self.t0, self.t0 + 2*self.dt), self.dt):
+        for _, _ in solver.solve(self.t0, self.t0 + 2*self.dt, self.dt):
             pass
 
     @fast
@@ -327,32 +324,32 @@ class TestMonodomainSolver:
         self.setUp()
 
         # Create solver and solve
-        params = MonodomainSolver.default_parameters()
-        params["linear_solver_type"] = "direct"
+        parameters = MonodomainSolver.default_parameters()
+        parameters["linear_solver_type"] = "direct"
         solver = MonodomainSolver(
             self.mesh,
             self.time,
             self.M_i,
             I_s=self.stimulus,
-            params=params
+            parameters=parameters
         )
 
-        for _, (v_, vur) in solver.solve((self.t0, self.t0 + 2*self.dt), self.dt):
+        for _, (v_, vur) in solver.solve(self.t0, self.t0 + 2*self.dt, self.dt):
             pass
         monodomain_result = vur.vector()
 
         # Create other solver and solve
-        params = BasicMonodomainSolver.default_parameters()
-        params["linear_solver_type"] = "direct"
+        parameters = BasicMonodomainSolver.default_parameters()
+        parameters["linear_solver_type"] = "direct"
         solver = BasicMonodomainSolver(
             self.mesh,
             self.time,
             self.M_i,
             I_s=self.stimulus,
-            params=params
+            parameters=parameters
         )
 
-        for _, (v_, vur) in solver.solve((self.t0, self.t0 + 2*self.dt), self.dt):
+        for _, (v_, vur) in solver.solve(self.t0, self.t0 + 2*self.dt, self.dt):
             pass
         basic_monodomain_result = vur.vector()
 
@@ -370,33 +367,33 @@ class TestMonodomainSolver:
         self.setUp()
 
         # Create solver and solve
-        params = MonodomainSolver.default_parameters()
-        params["linear_solver_type"] = "direct"
+        parameters = MonodomainSolver.default_parameters()
+        parameters["linear_solver_type"] = "direct"
         solver = MonodomainSolver(
             self.mesh,
             self.time,
             self.M_i,
             I_s=self.stimulus,
-            params=params
+            parameters=parameters
         )
 
-        for _, (v_, v) in solver.solve((self.t0, self.t0 + 3*self.dt), self.dt):
+        for _, (v_, v) in solver.solve(self.t0, self.t0 + 3*self.dt, self.dt):
             pass
         a = v.vector().norm("l2")
 
         # Create solver and solve using iterative means
-        params = MonodomainSolver.default_parameters()
-        params["linear_solver_type"] = "iterative"
-        params["krylov_solver"]["monitor_convergence"] = True
+        parameters = MonodomainSolver.default_parameters()
+        parameters["linear_solver_type"] = "iterative"
+        # parameters["krylov_solver"]["monitor_convergence"] = True
         solver = MonodomainSolver(
             self.mesh,
             self.time,
             self.M_i,
             I_s=self.stimulus,
-            params=params
+            parameters=parameters
         )
 
-        for _, (v_, v) in solver.solve((self.t0, self.t0 + 3*self.dt), self.dt):
+        for _, (v_, v) in solver.solve(self.t0, self.t0 + 3*self.dt, self.dt):
             pass
         b = v.vector().norm("l2")
 
@@ -406,5 +403,8 @@ class TestMonodomainSolver:
 
 
 if __name__ == "__main__":
-    tester = TestBidomainSolver()
-    tester.test_compare_with_basic_solve()
+    # tester = TestBidomainSolver()
+    # tester.test_compare_direct_iterative()
+
+    tester = TestMonodomainSolver()
+    tester.test_solve()

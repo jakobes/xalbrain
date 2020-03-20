@@ -2,7 +2,9 @@
 # Use and modify at will
 # Last changed: 2016-10-19
 
-__all__ = ["Markerwise", "handle_markerwise", "rhs_with_markerwise_field"]
+__all__ = ["Markerwise", "rhs_with_markerwise_field"]
+
+import dolfin as df
 
 
 from dolfin import (
@@ -11,22 +13,10 @@ from dolfin import (
 )
 
 
-def handle_markerwise(g, classtype):
-    """Handle stimulus."""
-    if (g is None \
-        or isinstance(g, classtype) \
-        or isinstance(g, Markerwise) \
-        or isinstance(g, object)): ## HAHAHA
-        return g
-    else:
-        msg = "Expecting stimulus to be a %s or Markerwise, not %r " \
-              % (str(classtype), g)
-
-
 def rhs_with_markerwise_field(g, mesh, v):
     if g is None:
         dz = dx
-        rhs = 0.0
+        rhs = 0.0       # Do make constant
     elif isinstance(g, Markerwise):
         markers = g.markers()
         dz = Measure("dx", domain=mesh, subdomain_data=markers)
@@ -34,10 +24,10 @@ def rhs_with_markerwise_field(g, mesh, v):
     else:
         dz = dx
         rhs = g*v*dz()
-    return (dz, rhs)
+    return dz, rhs
 
 
-class Markerwise(object):
+class Markerwise:
     """A container class representing an object defined by a number of
     objects combined with a mesh function defining mesh domains and a
     map between the these.
@@ -63,11 +53,9 @@ class Markerwise(object):
 
     """
     def __init__(self, objects, keys, markers):
-        "Create Markerwise from given input."
-
+        """Create Markerwise from given input."""
         # Check input
-        assert len(objects) == len(keys), \
-            "Expecting the number of objects to equal the number of keys"
+        assert len(objects) == len(keys), "Expecting the number of objects to equal the number of keys"
 
         # Store attributes:
         self._objects = dict(zip(keys, objects))
@@ -91,24 +79,22 @@ class Markerwise(object):
 
 
 if __name__ == "__main__":
+    g1 = df.Expression("1.0", degree=1)
+    g5 = df.Expression("sin(pi*x[0])", degree=3)
 
-    from xalbrain.dolfinimport import *
-    g1 = Expression("1.0", degree=1)
-    g5 = Expression("sin(pi*x[0])", degree=3)
+    mesh = df.UnitSquareMesh(16, 16)
 
-    mesh = UnitSquareMesh(16, 16)
-
-    class SampleDomain(SubDomain):
+    class SampleDomain(df.SubDomain):
         def inside(self, x, on_boundary):
-            return all(x <= 0.5 + DOLFIN_EPS)
+            return all(x <= 0.5 + df.DOLFIN_EPS)
 
-    markers = MeshFunction("size_t", mesh, mesh.topology().dim(), 1)
+    markers = df.MeshFunction("size_t", mesh, mesh.topology().dim(), 1)
     domain = SampleDomain()
     domain.mark(markers, 5)
 
     g = Markerwise((g1, g5), (1, 5), markers)
 
-    plot(g.markers())
+    df.plot(g.markers())
     for v in g.values():
-        plot(v, mesh=mesh)
-    interactive()
+        df.plot(v, mesh=mesh)
+    df.interactive()

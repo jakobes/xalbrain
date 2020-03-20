@@ -10,7 +10,7 @@ from testutils import fast, parametrize
 import numpy as np
 
 from xalbrain import (
-    CardiacModel,
+    Model,
     BasicSplittingSolver,
     SplittingSolver,
     FitzHughNagumoManual,
@@ -22,13 +22,13 @@ from dolfin import (
 )
 
 
-class TestMerger(object):
+class TestMerger:
     """Test functionality for the splitting solvers."""
 
     def setup(self):
         self.mesh = UnitCubeMesh(2, 2, 2)
         self.cell_model = FitzHughNagumoManual()
-        self.cardiac_model = CardiacModel(self.mesh, None, 1.0, 2.0, self.cell_model)
+        self.cardiac_model = Model(self.mesh, None, 1.0, 2.0, self.cell_model)
 
     @fast
     @parametrize("Solver", [SplittingSolver, BasicSplittingSolver])
@@ -45,5 +45,5 @@ class TestMerger(object):
         solver.merge(vs)
 
         tol = 1e-13
-        assert np.abs(vs.sub(0, deepcopy=1).vector().array() - 1.0).max() < tol
-        assert np.abs(vs.sub(1, deepcopy=1).vector().array() - 2.0).max() < tol
+        assert np.abs(vs.sub(0, deepcopy=1).vector().get_local() - 1.0).max() < tol
+        assert np.abs(vs.sub(1, deepcopy=1).vector().get_local() - 2.0).max() < tol
