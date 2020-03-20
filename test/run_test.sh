@@ -1,3 +1,3 @@
 #!/usr/bin/env bash
 
-python -W ignore:DeprecationWarning -m pytest unit
+python3 -W ignore:DeprecationWarning -m pytest unit
