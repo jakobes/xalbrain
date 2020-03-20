@@ -46,7 +46,8 @@ class Cressman(CellModel):
         ])
         return params
 
-    def default_initial_conditions(self):
+    @staticmethod
+    def default_initial_conditions():
         ic = OrderedDict([
             ("V", -50.0),
             ("m", 0.0936),
