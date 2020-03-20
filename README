@@ -1,3 +1,5 @@
+[![jakobes](https://circleci.com/gh/jakobes/xalbrain.svg?style=shield)](https://circleci.com/gh/jakobes/xalbrain)
+
 This Python package provides the module 'cbcbeat' -- cbcbeat
 is a problem and solver collection for cardiac electrophysiology
 models.
