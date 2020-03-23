@@ -17,13 +17,15 @@ from xalbrain.models import Model
 # Solver imports
 from xalbrain.splittingsolver import (
     BasicSplittingSolver,
-    SplittingSolver
+    SplittingSolver,
+    MultiCellSplittingSolver,
 )
 from xalbrain.cellsolver import (
     BasicSingleCellSolver,
     SingleCellSolver,
     BasicCardiacODESolver,
-    CardiacODESolver
+    CardiacODESolver,
+    MultiCellSolver,
 )
 
 from xalbrain.bidomainsolver import (

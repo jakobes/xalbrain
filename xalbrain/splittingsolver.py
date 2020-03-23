@@ -63,7 +63,10 @@ __all__ = ["SplittingSolver", "BasicSplittingSolver"]
 import dolfin as df
 import numpy as np
 
-from xalbrain import Model
+from xalbrain import (
+    Model,
+    MultiCellModel,
+)
 
 from xalbrain.cellsolver import (
     BasicCardiacODESolver,
@@ -117,6 +120,7 @@ class AbstractSplittingSolver(ABC):
         # Extract solution domain
         self._domain = self._model.mesh
         self._time = self._model.time
+        self._cell_function = self._model.cell_domains
 
         # Create ODE solver and extract solution fields
         self.ode_solver = self._create_ode_solver()
@@ -603,7 +607,6 @@ class MultiCellSplittingSolver(SplittingSolver):
     def __init__(
         self,
         model: Model,
-        cell_function: df.MeshFunction,
         valid_cell_tags: tp.Sequence[int],
         parameter_map: "ODEMap",
         ode_timestep: float = None,
@@ -613,11 +616,9 @@ class MultiCellSplittingSolver(SplittingSolver):
         if parameters is not None:
             self._parameters.update(parameters)
 
-        super().__init__(model, ode_timestep)
-
-        self._cell_function = cell_function
         self._cell_tags = valid_cell_tags       # cell tags in cell_function checked in ode solver
         self._parameter_map = parameter_map
+        super().__init__(model, ode_timestep)       # Must be called last
 
     @staticmethod
     def default_parameters() -> df.Parameters:
@@ -636,26 +637,12 @@ class MultiCellSplittingSolver(SplittingSolver):
         parameters.add("apply_stimulus_current_to_pde", False)
         # parameters.add("pde_solver", "bidomain", {"bidomain", "monodomain"})
         parameters.add("pde_solver", "bidomain")
-        parameters.add(
-            "ode_solver_choice",
-            "CardiacODESolver"
-        )
-
 
         # Add default parameters from ODE solver
-        ode_solver_parameters = CardiacODESolver.default_parameters()
-        ode_solver_parameters["scheme"] = "BDF1"
-        parameters.add(ode_solver_parameters)
-
-        # Add default parameters from ODE solver
-        basic_ode_solver_parameters = BasicCardiacODESolver.default_parameters()
-        parameters.add(basic_ode_solver_parameters)
+        multicell_ode_solver_parameters = MultiCellSolver.default_parameters()
+        parameters.add(multicell_ode_solver_parameters)
 
         pde_solver_parameters = BidomainSolver.default_parameters()
-        pde_solver_parameters["polynomial_degree"] = 1
-        parameters.add(pde_solver_parameters)
-
-        pde_solver_parameters = MonodomainSolver.default_parameters()
         pde_solver_parameters["polynomial_degree"] = 1
         parameters.add(pde_solver_parameters)
         return parameters
@@ -665,13 +652,14 @@ class MultiCellSplittingSolver(SplittingSolver):
         # Extract cardiac cell model from cardiac model
         assert self._cell_function is not None
         cell_model = self._model.cell_models
+
         solver = MultiCellSolver(
             time=self._time,
-            mesh=self._mesh,
+            mesh=self._domain,
             cell_model=cell_model,
             cell_function=self._cell_function,
             valid_cell_tags=self._cell_tags,
             parameter_map=self._parameter_map,
-            parameters=self._parameters,
+            parameters=self._parameters["MultiCellSolver"],
         )
         return solver

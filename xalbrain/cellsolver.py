@@ -59,11 +59,6 @@ class AbstractCellSolver(ABC):
         else:
             self._time = time
 
-        # # Initialize and update parameters if given
-        # self.parameters = self.default_parameters()
-        # if parameters is not None:
-        #     self.parameters.update(parameters)
-
         # Extract some information from cell model
         self._F = self._cell_model.F
         self._I_ion = self._cell_model.I
@@ -196,15 +191,15 @@ class BasicCardiacODESolver(AbstractCellSolver):
             parameters: df.Parameters = None,
     ) -> None:
         """Create the necessary function spaces """
-        super().__init__(mesh=mesh, time=time, cell_model=model, parameters=parameters)
 
         # Initialize and update parameters if given
-        self.parameters = self.default_parameters()
+        self._parameters = self.default_parameters()
         if parameters is not None:
-            self.parameters.update(parameters)
+            self._parameters.update(parameters)
 
         # Handle stimulus
         self._I_s = I_s
+        super().__init__(mesh=mesh, time=time, cell_model=model, parameters=parameters)
 
     @staticmethod
     def default_parameters() -> df.Parameters:
@@ -244,7 +239,7 @@ class BasicCardiacODESolver(AbstractCellSolver):
         Dt_v = (v - v_)/k_n
         Dt_s = (s - s_)/k_n
 
-        theta = self.parameters["theta"]
+        theta = self._parameters["theta"]
 
         # Set time (propagates to time-dependent variables defined via self.time)
         t = t0 + theta*(t1 - t0)
@@ -311,7 +306,7 @@ class BasicCardiacODESolver(AbstractCellSolver):
         # Solve system
         pde = df.NonlinearVariationalProblem(G, self.vs, J=df.derivative(G, self.vs))
         solver = df.NonlinearVariationalSolver(pde)
-        solver_parameters = self.parameters["nonlinear_variational_solver"]
+        solver_parameters = self._parameters["nonlinear_variational_solver"]
         solver_parameters["nonlinear_solver"] = "snes"
         solver_parameters["snes_solver"]["absolute_tolerance"] = 1e-13
         solver_parameters["snes_solver"]["relative_tolerance"] = 1e-13
@@ -385,9 +380,9 @@ class CardiacODESolver(AbstractCellSolver):
         self._I_s = I_s
 
         # Initialize and update parameters if given
-        self.parameters = self.default_parameters()
+        self._parameters = self.default_parameters()
         if parameters is not None:
-            self.parameters.update(parameters)
+            self._parameters.update(parameters)
 
         # Initialize scheme
         v, s = split_function(self.vs, self._num_states + 1)
@@ -413,7 +408,7 @@ class CardiacODESolver(AbstractCellSolver):
 
         self._rhs = rhs*df.dP()
 
-        name = self.parameters["scheme"]
+        name = self._parameters["scheme"]
         Scheme = self._name_to_scheme(name)
         self._scheme = Scheme(self._rhs, self.vs, self._time)
 
@@ -465,9 +460,9 @@ class MultiCellSolver(AbstractCellSolver):
         super().__init__(mesh=mesh, time=time, cell_model=cell_model, parameters=parameters)
 
         # Initialize and update parameters if given
-        self.parameters = self.default_parameters()
+        self._parameters = self.default_parameters()
         if parameters is not None:
-            self.parameters.update(parameters)
+            self._parameters.update(parameters)
 
         _cell_function_tags = set(cell_function.array())
         if not set(valid_cell_tags) <= _cell_function_tags:
@@ -484,7 +479,8 @@ class MultiCellSolver(AbstractCellSolver):
 
         from xalode import VectorSizet
         self.ode_solver = self.ode_module.LatticeODESolver(
-            self._function_space_VS._cpp_object,
+            # self.VS._cpp_object,
+            self.VS._cpp_object,
             VectorSizet(cell_function.array()),
             parameter_map
         )
@@ -494,6 +490,7 @@ class MultiCellSolver(AbstractCellSolver):
         parameters = df.Parameters("MultiCellSolver")
         parameters.add("reload_extension_modules", False)
         parameters.add("theta", 0.5)
+        return parameters
 
     def step(self, t0: float, t1: float) -> None:
         """Take a step using my much better ode solver."""
