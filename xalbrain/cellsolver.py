@@ -9,6 +9,7 @@ import ufl
 from xalbrain.markerwisefield import rhs_with_markerwise_field
 
 import dolfin as df
+import numpy as np
 
 from xalbrain.cellmodels import (
     CellModel,
@@ -133,6 +134,7 @@ class AbstractCellSolver(ABC):
             # Yield solutions
             yield (_t0, _t1), self.vs
             self.vs_.assign(self.vs)
+        assert False
 
 
 class BasicCardiacODESolver(AbstractCellSolver):
@@ -468,6 +470,7 @@ class MultiCellSolver(AbstractCellSolver):
         if not set(valid_cell_tags) <= _cell_function_tags:
             msg = "Valid cell tag not found in cell function. Expected {}, for {}."
             raise ValueError(msg.format(set(valid_cell_tags), _cell_function_tags))
+        self._cell_function = cell_function
 
         from extension_modules import load_module
 
@@ -477,12 +480,39 @@ class MultiCellSolver(AbstractCellSolver):
             verbose=self._parameters["reload_extension_modules"]
         )
 
+        IV = df.FunctionSpace(mesh, "CG", 1)
+        indicator = df.Function(IV)
+        indicator.vector()[:] = 1
+
+        # cell_tag_index_dict = dict()    # map cell tags to all cells with that tag
+        # for ct in cell_tags:
+        #     is_ct = self._cell_function.array() == ct
+        #     cell_tag_index_dict[ct] = self._cell_function.array()[is_ct]
+
+        # # TODO: These two loops can be merged -- does not have to store in dict
+        # dof_function = np.zeros(len(dofmap.dofs()))
+        # for ct in sorted(cell_tags):        # ascending
+        #     for cell_index in cell_tag_index_dict[ct]:
+        #         dof_list = dofmap.cell_dofs(cell_index)
+        #         for dof in dof_list:
+        #             dof_function[dof] = ct
+
+        # comm = df.MPI.comm_world
+        # rank = df.MPI.rank(comm)
+
+        # print(dofmap.ownership_range())
+        # print(self._cell_function.array().size)
+        # print()
+
+        # from IPython import embed; embed()
+        # assert False
+        # df.MPI.barrier(comm)
+        self.indicator_function = indicator
+
         from xalode import VectorSizet
         self.ode_solver = self.ode_module.LatticeODESolver(
-            # self.VS._cpp_object,
-            self.VS._cpp_object,
-            VectorSizet(cell_function.array()),
-            parameter_map
+            parameter_map,
+            self.vs_.function_space().num_sub_spaces()
         )
 
     @staticmethod
@@ -501,9 +531,46 @@ class MultiCellSolver(AbstractCellSolver):
         t = t0 + theta*(t1 - t0)
         self._time.assign(t)
 
+        # dofmap = self.vs_.function_space().dofmap()
+        # foo = self.vs_.vector()
+        # comm = df.MPI.comm_world
+        # rank = df.MPI.rank(df.MPI.comm_world)
+        # print(rank, dofmap.ownership_range())
+        # print(rank, foo.local_range())
+
+        # state_vec = df.as_backend_type(self.vs_.vector())
+
+        # state_vec = self.vs_.vector()
+        # local_vec = state_vec.get_local()
+        # state_vec.set_local(local_vec)
+
+        # comm = df.MPI.comm_world
+        # rank = df.MPI.rank(comm)
+        # df.MPI.barrier(comm)
+        # assert False, rank
+
+        # assert False
         # FIXME: Is there some theta shenanigans I have missed?
-        self.ode_solver.solve(self.vs_prev.vector(), t0, t1, dt)
-        self.vs.assign(self.vs_prev)
+        # self.ode_solver.solve(self.vs_.vector(), t0, t1, dt, self.indicator_function.vector())
+        # from xalode import VectorDouble
+        # local_state = VectorDouble(self.vs_.vector().get_local())
+
+        comm = df.MPI.comm_world
+        rank = df.MPI.rank(comm)
+        df.MPI.barrier(comm)
+
+        # if rank == 1:
+        self.ode_solver.solve(self.vs_.vector(), t0, t1, dt, self.indicator_function.vector())
+        # self.ode_solver.solve(local_state, t0, t1, dt, self.indicator_function.vector())
+
+        # self.vs_.vector().set_local(np.asarray(local_state))
+
+        # print(np.asarray(local_state))
+        # from IPython import embed; embed()
+
+        self.vs.vector()[:] = self.vs_.vector()[:]
+        # self.vs.assign(self.vs_)
+        # assert False, rank
 
 
 class BasicSingleCellSolver(BasicCardiacODESolver):

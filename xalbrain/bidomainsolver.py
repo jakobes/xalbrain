@@ -177,8 +177,8 @@ class AbstractBidomainSolver(ABC):
         if not isinstance(M_e, dict):
             M_e = {int(i): M_e for i in cell_keys}
         else:
-            M_e_keys = set(M_e.kesy())
-            msg = "Got {M_i_keys}, expected {cell_keys}.".format(
+            M_e_keys = set(M_e.keys())
+            msg = "Got {M_e_keys}, expected {cell_keys}.".format(
                 M_e_keys=M_e_keys,
                 cell_keys=cell_keys
             )
@@ -571,7 +571,9 @@ class BidomainSolver(AbstractBidomainSolver):
         for bc in self._bcs:
             bc.apply(self._lhs_matrix, self._rhs_vector)
 
-        extracellular_indices = np.arange(0, self._rhs_vector.size(), 2)
+
+
+        extracellular_indices = np.arange(0, self._rhs_vector.local_size(), 2)
         rhs_norm = self._rhs_vector.get_local()[extracellular_indices].sum()
         rhs_norm /= extracellular_indices.size
         # rhs_norm = self._rhs_vector.array()[extracellular_indices].sum()/extracellular_indices.size
