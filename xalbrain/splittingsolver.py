@@ -210,6 +210,7 @@ class AbstractSplittingSolver(ABC):
 
         # Compute tentative membrane potential and state (vs_star) Assumes that its vs_ is in the
         # correct state, gives its vs in the current state
+
         self.ode_solver.step(t0, t)
         self.vs_.assign(self.vs)
 
@@ -618,6 +619,7 @@ class MultiCellSplittingSolver(SplittingSolver):
 
         self._cell_tags = valid_cell_tags       # cell tags in cell_function checked in ode solver
         self._parameter_map = parameter_map
+        self._indicator_function = model.indicator_function
         super().__init__(model, ode_timestep)       # Must be called last
 
     @staticmethod
@@ -650,7 +652,8 @@ class MultiCellSplittingSolver(SplittingSolver):
     def _create_ode_solver(self) -> MultiCellSolver:
         """Helper function to initialize a suitable ODE solver from the cardiac model."""
         # Extract cardiac cell model from cardiac model
-        assert self._cell_function is not None
+        assert self._cell_function is not None      # TODO: deprecate?
+        assert self._indicator_function is not None
         cell_model = self._model.cell_models
 
         solver = MultiCellSolver(
@@ -660,6 +663,7 @@ class MultiCellSplittingSolver(SplittingSolver):
             cell_function=self._cell_function,
             valid_cell_tags=self._cell_tags,
             parameter_map=self._parameter_map,
+            indicator_function=self._indicator_function,
             parameters=self._parameters["MultiCellSolver"],
         )
         return solver

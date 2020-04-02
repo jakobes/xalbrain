@@ -458,6 +458,7 @@ class MultiCellSolver(AbstractCellSolver):
         cell_function: df.MeshFunction,
         valid_cell_tags: tp.Sequence[int],
         parameter_map: "ODEMap",
+        indicator_function: df.Function,
         parameters: df.parameters = None,
     ) -> None:
         """Initialise parameters. NB! Keep I_s for compatibility."""
@@ -489,12 +490,8 @@ class MultiCellSolver(AbstractCellSolver):
             verbose=self._parameters["reload_extension_modules"]
         )
 
-        # TODO: For testing -- read from file
-        IV = df.FunctionSpace(mesh, "CG", 1)
-        indicator = df.Function(IV)
-        indicator.vector()[:] = 1
 
-        self.indicator_function = indicator
+        self._indicator_function = indicator_function
         self.ode_solver = self.ode_module.LatticeODESolver(
             parameter_map,
             self.vs_.function_space().num_sub_spaces()
@@ -518,11 +515,13 @@ class MultiCellSolver(AbstractCellSolver):
 
         comm = df.MPI.comm_world
         rank = df.MPI.rank(comm)
-        df.MPI.barrier(comm)
 
-        self.ode_solver.solve(self.vs_.vector(), t0, t1, dt, self.indicator_function.vector())
+        self._indicator_function.vector()[:] = np.rint(self._indicator_function.vector().get_local())
+        # assert False, np.unique(self._indicator_function.vector().get_local())
+        self.ode_solver.solve(self.vs_.vector(), t0, t1, dt, self._indicator_function.vector())
 
         self.vs.vector()[:] = self.vs_.vector()[:]
+        df.MPI.barrier(comm)
         # self.vs.assign(self.vs_)
 
 

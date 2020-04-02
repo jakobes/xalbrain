@@ -70,7 +70,8 @@ class Model:
             dirichlet_bc_u: tp.List[tp.Tuple[df.Expression, int]] = None,
             dirichlet_bc_v: tp.List[tp.Tuple[df.Expression, int]] = None,
             cell_domains: df.MeshFunction = None,
-            facet_domains: df.MeshFunction = None
+            facet_domains: df.MeshFunction = None,
+            indicator_function: df.Function = None
     ) -> None:
         """Create Model from given input."""
         self._ect_current = ect_current
@@ -89,6 +90,9 @@ class Model:
 
         self._cell_domains = cell_domains
         self._facet_domains = facet_domains
+
+        # indicator function
+        self._indicator_functionn = indicator_function
 
         # Handle cell_models
         self._cell_models = cell_models
@@ -165,3 +169,8 @@ class Model:
     def cell_models(self) -> xb.cellmodels.CellModel:
         """Return the cell models."""
         return self._cell_models
+
+    @property
+    def indicator_function(self) -> df.Function:
+        """Return indicator function."""
+        return self._indicator_functionn

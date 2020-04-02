@@ -197,8 +197,8 @@ class AbstractBidomainSolver(ABC):
 
         self._M_i = comm.bcast(M_i, root=0)
         self._M_e = comm.bcast(M_e, root=0)
-        assert M_i is not None, (M_i, rank)
-        assert M_e is not None, (M_e, rank)
+        assert self._M_i is not None, (M_i, rank)
+        assert self._M_e is not None, (M_e, rank)
 
         # Store source terms
         self._I_s = I_s
