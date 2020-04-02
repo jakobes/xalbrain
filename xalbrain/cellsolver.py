@@ -137,7 +137,6 @@ class AbstractCellSolver(ABC):
             # Yield solutions
             yield (_t0, _t1), self.vs
             self.vs_.assign(self.vs)
-        assert False
 
 
 class BasicCardiacODESolver(AbstractCellSolver):
@@ -517,46 +516,14 @@ class MultiCellSolver(AbstractCellSolver):
         t = t0 + theta*(t1 - t0)
         self._time.assign(t)
 
-        # dofmap = self.vs_.function_space().dofmap()
-        # foo = self.vs_.vector()
-        # comm = df.MPI.comm_world
-        # rank = df.MPI.rank(df.MPI.comm_world)
-        # print(rank, dofmap.ownership_range())
-        # print(rank, foo.local_range())
-
-        # state_vec = df.as_backend_type(self.vs_.vector())
-
-        # state_vec = self.vs_.vector()
-        # local_vec = state_vec.get_local()
-        # state_vec.set_local(local_vec)
-
-        # comm = df.MPI.comm_world
-        # rank = df.MPI.rank(comm)
-        # df.MPI.barrier(comm)
-        # assert False, rank
-
-        # assert False
-        # FIXME: Is there some theta shenanigans I have missed?
-        # self.ode_solver.solve(self.vs_.vector(), t0, t1, dt, self.indicator_function.vector())
-        # from xalode import VectorDouble
-        # local_state = VectorDouble(self.vs_.vector().get_local())
-
         comm = df.MPI.comm_world
         rank = df.MPI.rank(comm)
         df.MPI.barrier(comm)
 
-        # if rank == 1:
         self.ode_solver.solve(self.vs_.vector(), t0, t1, dt, self.indicator_function.vector())
-        # self.ode_solver.solve(local_state, t0, t1, dt, self.indicator_function.vector())
-
-        # self.vs_.vector().set_local(np.asarray(local_state))
-
-        # print(np.asarray(local_state))
-        # from IPython import embed; embed()
 
         self.vs.vector()[:] = self.vs_.vector()[:]
         # self.vs.assign(self.vs_)
-        # assert False, rank
 
 
 class BasicSingleCellSolver(BasicCardiacODESolver):

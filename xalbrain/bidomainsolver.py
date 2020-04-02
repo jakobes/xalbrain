@@ -191,7 +191,6 @@ class AbstractBidomainSolver(ABC):
                     cell_keys=all_cell_keys
                 )
                 assert M_e_keys == all_cell_keys, msg
-            print(rank, M_i, M_e)
         else:
             M_i = None
             M_e = None
