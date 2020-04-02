@@ -35,6 +35,9 @@ import numpy as np
 import dolfin as df
 import typing as tp
 
+from operator import or_
+from functools import reduce
+
 from abc import ABC
 
 
@@ -103,6 +106,9 @@ class AbstractBidomainSolver(ABC):
         """Initialise solverand check all parametersare correct."""
         self._timestep = None
 
+        comm = df.MPI.comm_world
+        rank = df.MPI.rank(comm)
+
         msg = "Expecting mesh to be a Mesh instance, not {}".format(mesh)
         assert isinstance(mesh, df.Mesh), msg
 
@@ -163,27 +169,37 @@ class AbstractBidomainSolver(ABC):
 
         # Set the intracellular conductivity
         cell_keys = set(self._cell_domains.array())
-        if not isinstance(M_i, dict):
-            M_i = {int(i): M_i for i in cell_keys}
-        else:
-            M_i_keys = set(M_i.keys())
-            msg = "Got {M_i_keys}, expected {cell_keys}.".format(
-                M_i_keys=M_i_keys,
-                cell_keys=cell_keys
-            )
-            assert M_i_keys == cell_keys, msg
-        self._M_i = M_i
+        all_cell_keys = comm.gather(cell_keys, root=0)
+        if rank == 0:
+            all_cell_keys = reduce(or_, all_cell_keys)
+            if not isinstance(M_i, dict):
+                M_i = {int(i): M_i for i in all_cell_keys}
+            else:
+                M_i_keys = set(M_i.keys())
+                msg = "Got {M_i_keys}, expected {cell_keys}.".format(
+                    M_i_keys=M_i_keys,
+                    cell_keys=all_cell_keys
+                )
+                assert M_i_keys == all_cell_keys, msg
 
-        if not isinstance(M_e, dict):
-            M_e = {int(i): M_e for i in cell_keys}
+            if not isinstance(M_e, dict):
+                M_e = {int(i): M_e for i in all_cell_keys}
+            else:
+                M_e_keys = set(M_e.keys())
+                msg = "Got {M_e_keys}, expected {cell_keys}.".format(
+                    M_e_keys=M_e_keys,
+                    cell_keys=all_cell_keys
+                )
+                assert M_e_keys == all_cell_keys, msg
+            print(rank, M_i, M_e)
         else:
-            M_e_keys = set(M_e.keys())
-            msg = "Got {M_e_keys}, expected {cell_keys}.".format(
-                M_e_keys=M_e_keys,
-                cell_keys=cell_keys
-            )
-            assert M_e_keys == cell_keys, msg
-        self._M_e = M_e
+            M_i = None
+            M_e = None
+
+        self._M_i = comm.bcast(M_i, root=0)
+        self._M_e = comm.bcast(M_e, root=0)
+        assert M_i is not None, (M_i, rank)
+        assert M_e is not None, (M_e, rank)
 
         # Store source terms
         self._I_s = I_s

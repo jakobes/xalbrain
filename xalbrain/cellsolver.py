@@ -27,6 +27,9 @@ from abc import (
     abstractmethod
 )
 
+from operator import or_
+from functools import reduce
+
 import typing as tp
 
 
@@ -466,11 +469,18 @@ class MultiCellSolver(AbstractCellSolver):
         if parameters is not None:
             self._parameters.update(parameters)
 
+        comm = df.MPI.comm_world
+        rank = df.MPI.rank(comm)
+
         _cell_function_tags = set(cell_function.array())
-        if not set(valid_cell_tags) <= _cell_function_tags:
-            msg = "Valid cell tag not found in cell function. Expected {}, for {}."
-            raise ValueError(msg.format(set(valid_cell_tags), _cell_function_tags))
+        all_cell_function_tags = comm.gather(_cell_function_tags, root=0)
+        if rank == 0:
+            all_tags = reduce(or_, all_cell_function_tags)
+            if not set(valid_cell_tags) <= all_tags:
+                msg = "Valid cell tag not found in cell function. Expected {}, got {}."
+                raise ValueError(msg.format(set(valid_cell_tags), all_tags))
         self._cell_function = cell_function
+
 
         from extension_modules import load_module
 
@@ -480,36 +490,12 @@ class MultiCellSolver(AbstractCellSolver):
             verbose=self._parameters["reload_extension_modules"]
         )
 
+        # TODO: For testing -- read from file
         IV = df.FunctionSpace(mesh, "CG", 1)
         indicator = df.Function(IV)
         indicator.vector()[:] = 1
 
-        # cell_tag_index_dict = dict()    # map cell tags to all cells with that tag
-        # for ct in cell_tags:
-        #     is_ct = self._cell_function.array() == ct
-        #     cell_tag_index_dict[ct] = self._cell_function.array()[is_ct]
-
-        # # TODO: These two loops can be merged -- does not have to store in dict
-        # dof_function = np.zeros(len(dofmap.dofs()))
-        # for ct in sorted(cell_tags):        # ascending
-        #     for cell_index in cell_tag_index_dict[ct]:
-        #         dof_list = dofmap.cell_dofs(cell_index)
-        #         for dof in dof_list:
-        #             dof_function[dof] = ct
-
-        # comm = df.MPI.comm_world
-        # rank = df.MPI.rank(comm)
-
-        # print(dofmap.ownership_range())
-        # print(self._cell_function.array().size)
-        # print()
-
-        # from IPython import embed; embed()
-        # assert False
-        # df.MPI.barrier(comm)
         self.indicator_function = indicator
-
-        from xalode import VectorSizet
         self.ode_solver = self.ode_module.LatticeODESolver(
             parameter_map,
             self.vs_.function_space().num_sub_spaces()
