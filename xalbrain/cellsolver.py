@@ -520,9 +520,9 @@ class MultiCellSolver(AbstractCellSolver):
         # assert False, np.unique(self._indicator_function.vector().get_local())
         self.ode_solver.solve(self.vs_.vector(), t0, t1, dt, self._indicator_function.vector())
 
-        self.vs.vector()[:] = self.vs_.vector()[:]
-        df.MPI.barrier(comm)
-        # self.vs.assign(self.vs_)
+        # self.vs.vector()[:] = self.vs_.vector()[:]
+        # df.MPI.barrier(comm)
+        self.vs.assign(self.vs_)
 
 
 class BasicSingleCellSolver(BasicCardiacODESolver):
