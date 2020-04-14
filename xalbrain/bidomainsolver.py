@@ -470,7 +470,7 @@ class BidomainSolver(AbstractBidomainSolver):
         parameters.add("Cm", 1.0)         # Membrane capacitance
 
         # Set default solver type to be iterative
-        parameters.add("linear_solver_type", "direct")
+        parameters.add("linear_solver_type", "iterative")
         parameters.add("use_avg_u_constraint", True)
 
         # Set default iterative solver choices (used if iterative solver is invoked)
