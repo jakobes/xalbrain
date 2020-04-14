@@ -80,12 +80,11 @@ def test_ode_pde(theta, pde_solver) -> None:
 
     # Compare PDE and ODE solutions, we expect these to be essentially equal
     tolerance = 1e-3
-    print(abs(pde_vec[0] - ode_vec[0]))
-    print(abs(pde_vec[1] - ode_vec[1]))
     # assert_almost_equal(abs(pde_vec[0] - ode_vec[0]), 0.0, tolerance)
     # assert_almost_equal(abs(pde_vec[1] - ode_vec[1]), 0.0, tolerance)
 
-    assert np.allclose(pde_vec[:ode_vec.size], ode_vec)
+    msg = pde_vec[:ode_vec.size], ode_vec
+    assert np.allclose(pde_vec[:ode_vec.size], ode_vec, atol=tolerance), msg
 
 
 if __name__ == "__main__":

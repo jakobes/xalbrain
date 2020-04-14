@@ -12,6 +12,13 @@ import dolfin as df
 import typing as tp
 
 
+def set_ffc_parameters():
+    df.parameters["form_compiler"]["cpp_optimize"] = True
+    flags = ["-O3", "-ffast-math", "-march=native"]
+    df.parameters["form_compiler"]["cpp_optimize_flags"] = " ".join(flags)
+    df.parameters["form_compiler"]["quadrature_degree"] = 3
+
+
 def split_function(vs: df.Function, dim: int) -> tp.Tuple[df.Function, df.Function]:
     """Split a function into the first component and the rest."""
     if vs.function_space().ufl_element().num_sub_elements()==dim:
