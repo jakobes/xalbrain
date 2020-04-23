@@ -211,11 +211,13 @@ class AbstractSplittingSolver(ABC):
         # Compute tentative membrane potential and state (vs_star) Assumes that its vs_ is in the
         # correct state, gives its vs in the current state
 
+        logger.debug("ODE step 1")
         self.ode_solver.step(t0, t)
         self.vs_.assign(self.vs)
 
         # Compute tentative potentials vu = (v, u) Assumes that its vs_ is in the correct state,
         # gives vur in the current state
+        logger.debug("PDE step")
         self.pde_solver.step(t0, t1)
 
         # If first order splitting, we need to ensure that self.vs is
@@ -233,6 +235,7 @@ class AbstractSplittingSolver(ABC):
         self.merge(self.vs_)    # self.vs_.sub(0) <- self.vur.sub(0)
         # Assumes that its vs_ is in the correct state, provides vs in the correct state
 
+        logger.debug("ODE step 2")
         self.ode_solver.step(t, t1)
 
     def merge(self, solution: df.Function) -> None:
@@ -652,15 +655,15 @@ class MultiCellSplittingSolver(SplittingSolver):
     def _create_ode_solver(self) -> MultiCellSolver:
         """Helper function to initialize a suitable ODE solver from the cardiac model."""
         # Extract cardiac cell model from cardiac model
-        assert self._cell_function is not None      # TODO: deprecate?
-        assert self._indicator_function is not None
+        # assert self._cell_function is not None      # TODO: deprecate?
+        assert self._indicator_function is not None, "missing indicator function"
         cell_model = self._model.cell_models
 
         solver = MultiCellSolver(
             time=self._time,
             mesh=self._domain,
             cell_model=cell_model,
-            cell_function=self._cell_function,
+            # cell_function=self._cell_function,
             valid_cell_tags=self._cell_tags,
             parameter_map=self._parameter_map,
             indicator_function=self._indicator_function,

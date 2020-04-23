@@ -36,6 +36,9 @@ import typing as tp
 import os
 import logging
 
+from operator import or_
+from functools import reduce
+
 
 logging.basicConfig(level=os.environ.get("LOGLEVEL", "INFO"))
 logger = logging.getLogger(__name__)
@@ -455,7 +458,7 @@ class MultiCellSolver(AbstractCellSolver):
         time: df.Constant,
         mesh: df.Mesh,
         cell_model: CellModel,
-        cell_function: df.MeshFunction,
+        # cell_function: df.MeshFunction,
         valid_cell_tags: tp.Sequence[int],
         parameter_map: "ODEMap",
         indicator_function: df.Function,
@@ -472,15 +475,18 @@ class MultiCellSolver(AbstractCellSolver):
         comm = df.MPI.comm_world
         rank = df.MPI.rank(comm)
 
-        _cell_function_tags = set(cell_function.array())
-        all_cell_function_tags = comm.gather(_cell_function_tags, root=0)
-        if rank == 0:
-            all_tags = reduce(or_, all_cell_function_tags)
-            if not set(valid_cell_tags) <= all_tags:
-                msg = "Valid cell tag not found in cell function. Expected {}, got {}."
-                raise ValueError(msg.format(set(valid_cell_tags), all_tags))
-        self._cell_function = cell_function
+        indicator_tags = set(np.unique(indicator_function.vector().get_local()))
+        indicator_tags = comm.gather(indicator_tags, root=0)
 
+        if rank == 0:
+            indicator_tags = reduce(or_, indicator_tags)
+        else:
+            assert indicator_tags is None
+
+        indicator_tags = df.MPI.comm_world.bcast(indicator_tags, root=0)
+        tags = set(parameter_map.get_tags())
+        assert indicator_tags == tags, "Parameter map does not match indicator_function"
+        self._indicator_function = indicator_function
 
         from extension_modules import load_module
 
@@ -490,8 +496,6 @@ class MultiCellSolver(AbstractCellSolver):
             verbose=self._parameters["reload_extension_modules"]
         )
 
-
-        self._indicator_function = indicator_function
         self.ode_solver = self.ode_module.LatticeODESolver(
             parameter_map,
             self.vs_.function_space().num_sub_spaces()
@@ -518,9 +522,11 @@ class MultiCellSolver(AbstractCellSolver):
 
         self._indicator_function.vector()[:] = np.rint(self._indicator_function.vector().get_local())
         # assert False, np.unique(self._indicator_function.vector().get_local())
+        logger.debug("MultiCell ode solver step")
         self.ode_solver.solve(self.vs_.vector(), t0, t1, dt, self._indicator_function.vector())
 
-        self.vs.vector()[:] = self.vs_.vector()[:]
+        logger.debug("Copy vector back")
+        self.vs.vector()[:] = self.vs_.vector()[:]      # TODO: get local?
         df.MPI.barrier(comm)
         # self.vs.assign(self.vs_)
 
