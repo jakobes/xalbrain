@@ -7,36 +7,28 @@ __author__ = "Simon W. Funke (simon@simula.no) and Jakob Schreiner, 2018"
 import pytest
 import xalbrain
 
-from testutils import medium
 from collections import OrderedDict
 
 from xalbrain import (
     cellmodels,
     BidomainSolver,
-    SplittingSolver,
     CellModel,
+    SplittingSolver,
+    MultiCellSplittingSolver,
+    SingleMultiCellSolver,
+    MultiCellSolver,
+    SingleCellSolver
 )
 
 
 import dolfin as df
-from xalbrain.utils import convergence_rate
+from xalbrain.utils import convergence_rate, import_extension_modules
 
 
-class SimpleODEModel(CellModel):
-    """This class implements a simple ODE system """
+extension_modules = import_extension_modules()
 
-    def I(self, v, s, time=None):
-        return -s
 
-    def F(self, v, s, time=None):
-        return v
-
-    @staticmethod
-    def default_initial_conditions():
-        return OrderedDict([("V", 0.0), ("S", 0.0)])
-
-    def num_states(self):
-        return 1
+from test_splittingsolver_mms import SimpleODEModel
 
 
 def main(N, dt, T, theta=0.5):
@@ -59,10 +51,9 @@ def main(N, dt, T, theta=0.5):
     model = SimpleODEModel()
     model.set_initial_conditions(V=0, S=df.Expression(s_exact_str, degree=5, t=0))    # Set initial condition
 
-    ps = SplittingSolver.default_parameters()
+    ps = MultiCellSplittingSolver.default_parameters()
     ps["pde_solver"] = "bidomain"
     ps["theta"] = theta
-    # ps["CardiacODESolver"]["scheme"] = "RK4"
     ps["BidomainSolver"]["linear_solver_type"] = "direct"
     ps["BidomainSolver"]["use_avg_u_constraint"] = True
     ps["apply_stimulus_current_to_pde"] = True
@@ -70,8 +61,22 @@ def main(N, dt, T, theta=0.5):
     stimulus = df.Expression(ac_str, t=time, dt=dt, degree=5)
     M_i = 1.0
     M_e = 1.0
-    heart = xalbrain.Model(mesh, time, M_i, M_e, model, stimulus)
-    splittingsolver = SplittingSolver(heart, parameters=ps)
+
+    function_space = df.FunctionSpace(mesh, "CG", 1)
+    indicator = df.Function(function_space)
+    indicator.vector()[:] = 1
+
+    brain = xalbrain.Model(mesh, time, M_i, M_e, model, stimulus, indicator_function=indicator)
+
+    odesolver_module = extension_modules.load_module("LatticeODESolver")
+    odemap = odesolver_module.ODEMap()
+    odemap.add_ode(1, odesolver_module.SimpleODE())
+
+    splittingsolver = MultiCellSplittingSolver(
+        brain,
+        parameter_map=odemap,
+        parameters=ps
+    )
 
     # Define exact solution (Note: v is returned at end of time
     # interval(s), u is computed at somewhere in the time interval
@@ -125,7 +130,7 @@ def test_temporal_convergence():
     v_errors = []
     u_errors = []
     dts = []
-    dt = 1.
+    dt = 1
     T = 1.
     N = 200
     for level in (0, 1, 2, 3):
@@ -144,7 +149,7 @@ def test_temporal_convergence():
 
     assert v_rates[-1] > 1.95, "Failed convergence for v"
     # Increase spatial resolution to get better temporal convergence for u
-    assert u_rates[-1] > 1.78, "Failed convergence for u"  
+    assert u_rates[-1] > 1.78, "Failed convergence for u"
 
 
 if __name__ == "__main__":

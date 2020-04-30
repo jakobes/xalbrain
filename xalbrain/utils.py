@@ -12,6 +12,14 @@ import dolfin as df
 import typing as tp
 
 
+def import_extension_modules():
+    try:
+        import extension_modules
+    except ModuleNotFoundError as e:
+        extension_modules = None
+    return extension_modules
+
+
 def set_ffc_parameters():
     df.parameters["form_compiler"]["cpp_optimize"] = True
     flags = ["-O3", "-ffast-math", "-march=native"]
@@ -155,6 +163,6 @@ class Projecter:
           u (:py:class:`df.Function`)
             The result of the projection
         """
-        L = df.inner(f, self.v)*dolfin.dx()
+        L = df.inner(f, self.v)*df.dx()
         df.assemble(L, tensor=self.b)
         self.solver.solve(u.vector(), self.b)

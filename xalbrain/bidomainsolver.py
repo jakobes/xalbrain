@@ -295,6 +295,7 @@ class AbstractBidomainSolver(ABC):
             if isinstance(self.v_, df.Function):
                 self.merger.assign(self.v_, self.vur.sub(0))
 
+
 class BasicBidomainSolver(AbstractBidomainSolver):
     __doc__ = AbstractBidomainSolver.__doc__
 

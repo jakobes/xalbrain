@@ -44,7 +44,7 @@ def test_ode_pde(theta, pde_solver) -> None:
     T = 10*dt
 
     # Just propagate ODE solver
-    solver = SingleCellSolver(model, time, parameters)
+    solver = SingleCellSolver(time=time, cell_model=model, parameters=parameters)
     ode_vs_, ode_vs = solver.solution_fields()
     ode_vs_.assign(model.initial_conditions())
     for _ in solver.solve(0, T, dt):

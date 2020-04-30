@@ -29,7 +29,7 @@ def test_ode_pde():
     T = 10
     dt = 1e-3
 
-    solver = SingleCellSolver(model, time, parameters)
+    solver = SingleCellSolver(time=time, cell_model=model, parameters=parameters)
     vs_, _ = solver.solution_fields()
     vs_.assign(model.initial_conditions())
     ode_vs = None

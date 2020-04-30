@@ -39,6 +39,8 @@ import logging
 from operator import or_
 from functools import reduce
 
+from xalbrain.utils import import_extension_modules
+
 
 logging.basicConfig(level=os.environ.get("LOGLEVEL", "INFO"))
 logger = logging.getLogger(__name__)
@@ -56,6 +58,11 @@ class AbstractCellSolver(ABC):
         parameters: df.Parameters = None
     ):
         """Store common parameters for all cell solvers."""
+        # Initialize and update parameters if given
+        self._parameters = self.default_parameters()
+        if parameters is not None:
+            self._parameters.update(parameters)
+
         # Store input
         self._mesh = mesh
         self._cell_model = cell_model
@@ -190,23 +197,17 @@ class BasicCardiacODESolver(AbstractCellSolver):
         Solver parameters
     """
     def __init__(
-            self,
-            mesh: df.Mesh,
-            time: df.Constant,
-            model: CellModel,
-            I_s: tp.Union[df.Expression, tp.Dict[int, df.Expression]],
-            parameters: df.Parameters = None,
+        self,
+        mesh: df.Mesh,
+        time: df.Constant,
+        cell_model: CellModel,
+        I_s: tp.Union[df.Expression, tp.Dict[int, df.Expression]],
+        parameters: df.Parameters = None,
     ) -> None:
         """Create the necessary function spaces """
-
-        # Initialize and update parameters if given
-        self._parameters = self.default_parameters()
-        if parameters is not None:
-            self._parameters.update(parameters)
-
         # Handle stimulus
         self._I_s = I_s
-        super().__init__(mesh=mesh, time=time, cell_model=model, parameters=parameters)
+        super().__init__(mesh=mesh, time=time, cell_model=cell_model, parameters=parameters)
 
     @staticmethod
     def default_parameters() -> df.Parameters:
@@ -256,7 +257,7 @@ class BasicCardiacODESolver(AbstractCellSolver):
         s_mid = theta*s + (1.0 - theta)*s_
 
         if isinstance(self._cell_model, MultiCellModel):
-            model = self._model
+            model = self._cell_model
             mesh = model.mesh()
             dy = df.Measure("dx", domain=mesh, subdomain_data=model.markers())
 
@@ -267,7 +268,7 @@ class BasicCardiacODESolver(AbstractCellSolver):
             n = model.num_states()      # Extract number of global states
 
             # Collect contributions to lhs by iterating over the different cell models
-            domains = self._model.keys()
+            domains = self._cell_model.keys()
             lhs_list = list()
             for k, model_k in enumerate(model.models()):
                 n_k = model_k.num_states()      # Extract number of local (non-trivial) states
@@ -386,11 +387,6 @@ class CardiacODESolver(AbstractCellSolver):
         import ufl.classes      # TODO Why?
         self._I_s = I_s
 
-        # Initialize and update parameters if given
-        self._parameters = self.default_parameters()
-        if parameters is not None:
-            self._parameters.update(parameters)
-
         # Initialize scheme
         v, s = split_function(self.vs, self._num_states + 1)
         w, q = split_function(df.TestFunction(self.VS), self._num_states + 1)
@@ -458,19 +454,12 @@ class MultiCellSolver(AbstractCellSolver):
         time: df.Constant,
         mesh: df.Mesh,
         cell_model: CellModel,
-        # cell_function: df.MeshFunction,
-        valid_cell_tags: tp.Sequence[int],
         parameter_map: "ODEMap",
         indicator_function: df.Function,
         parameters: df.parameters = None,
     ) -> None:
         """Initialise parameters. NB! Keep I_s for compatibility."""
         super().__init__(mesh=mesh, time=time, cell_model=cell_model, parameters=parameters)
-
-        # Initialize and update parameters if given
-        self._parameters = self.default_parameters()
-        if parameters is not None:
-            self._parameters.update(parameters)
 
         comm = df.MPI.comm_world
         rank = df.MPI.rank(comm)
@@ -575,14 +564,15 @@ class BasicSingleCellSolver(BasicCardiacODESolver):
     """
 
     def __init__(
-            self,
-            model: CellModel,
-            time: df.Constant,
-            parameters: df.Parameters = None
+        self,
+        *,
+        time: df.Constant,
+        cell_model: CellModel,
+        parameters: df.Parameters = None
     ) -> None:
         """Create solver from given cell model and optional parameters."""
-        msg = "Expecting model to be a CellModel, not {}".format(model)
-        assert isinstance(model, CellModel), msg
+        msg = "Expecting model to be a CellModel, not {}".format(cell_model)
+        assert isinstance(cell_model, CellModel), msg
 
         msg = "Expecting time to be a Constant instance, not %r".format(time)
         assert (isinstance(time, df.Constant)), msg
@@ -590,58 +580,73 @@ class BasicSingleCellSolver(BasicCardiacODESolver):
         msg = "Expecting parameters to be a Parameters (or None), not {}".format(parameters)
         assert isinstance(parameters, df.Parameters) or parameters is None, msg
 
-        # Store model
-        self._model = model
-
         # Define carefully chosen dummy mesh
         mesh = df.UnitIntervalMesh(1)
 
-        super().__init__(mesh, time, model, I_s=model.stimulus, parameters=parameters)
+        super().__init__(mesh=mesh, time=time, model=cell_model, I_s=cell_model.stimulus, parameters=parameters)
 
 
 class SingleCellSolver(CardiacODESolver):
     def __init__(
-            self,
-            model: CellModel,
-            time: df.Constant,
-            parameters: df.Parameters=None
+        self,
+        *,
+        cell_model: CellModel,
+        time: df.Constant,
+        parameters: df.Parameters=None
     ) -> None:
         """Create solver from given cell model and optional parameters."""
-        assert isinstance(model, CellModel), \
-            "Expecting model to be a CellModel, not %r" % model
+        assert isinstance(cell_model, CellModel), \
+            "Expecting model to be a CellModel, not %r" % cell_model
         assert (isinstance(time, df.Constant)), \
             "Expecting time to be a Constant instance, not %r" % time
         assert isinstance(parameters, df.Parameters) or parameters is None, \
             "Expecting parameters to be a Parameters (or None), not %r" % parameters
 
-        # Store model
-        self._model = model
-
-        # Define carefully chosen dummy mesh
-        mesh = df.UnitIntervalMesh(1)
-
-        super().__init__(mesh, time, model, I_s=model.stimulus, parameters=parameters)
-
-
-class SingleMultiCellSolver(MultiCellSolver):
-    def __init__(
-            self,
-            cell_model: CellModel,
-            time: df.Constant,
-            reload_ext_modules: bool = False,
-            parameters: df.Parameters = None
-    ) -> None:
-        """Create solver from given cell model and optional parameters."""
-        # Store model
-        self.cell_model = cell_model
-
         # Define carefully chosen dummy mesh
         mesh = df.UnitIntervalMesh(1)
 
         super().__init__(
-            mesh,
-            time,
-            cell_model,
-            reload_ext_modules=reload_ext_modules,
+            mesh=mesh,
+            time=time,
+            model=cell_model,
+            I_s=cell_model.stimulus,
+            parameters=parameters
+        )
+
+
+class SingleMultiCellSolver(MultiCellSolver):
+    def __init__(
+        self,
+        *,
+        time: df.Constant,
+        cell_model: CellModel,
+        parameters: df.Parameters = None
+    ) -> None:
+        """Create solver from given cell model and optional parameters."""
+        # Define carefully chosen dummy mesh
+        mesh = df.UnitIntervalMesh(1)
+
+        _function_space = df.FunctionSpace(mesh, "CG", 1)
+        indicator_function = df.Function(_function_space)
+        indicator_function.vector()[:] = 1
+
+        extension_modules = import_extension_modules()
+        from extension_modules import load_module
+
+        ode_module = load_module(
+            "LatticeODESolver",
+            recompile=parameters["reload_extension_modules"],
+            verbose=parameters["reload_extension_modules"]
+        )
+
+        odemap = ode_module.ODEMap()
+        odemap.add_ode(1, ode_module.SimpleODE())
+
+        super().__init__(
+            time=time,
+            mesh=mesh,
+            cell_model=cell_model,
+            parameter_map=odemap,
+            indicator_function=indicator_function,
             parameters=parameters
         )

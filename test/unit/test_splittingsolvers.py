@@ -19,7 +19,7 @@ import dolfin as df
 
 import pytest
 
-df.set_log_level(50)
+df.set_log_level(100)
 
 
 class TestSplittingSolver:
@@ -72,6 +72,7 @@ class TestSplittingSolver:
         # Create basic solver
         parameters = BasicSplittingSolver.default_parameters()
         parameters["BasicBidomainSolver"]["linear_solver_type"] = solver_type
+        parameters["theta"] = 0.5
         if solver_type == "direct":
             parameters["BasicBidomainSolver"]["use_avg_u_constraint"] = True
         else:
@@ -95,10 +96,10 @@ class TestSplittingSolver:
         # Create optimised solver with direct solution algorithm
         parameters = SplittingSolver.default_parameters()
         parameters["BidomainSolver"]["linear_solver_type"] = solver_type
-        if solver_type == "direct":
-            parameters["BidomainSolver"]["use_avg_u_constraint"] = True
-        else:
-            parameters["BidomainSolver"]["use_avg_u_constraint"] = False
+        # if solver_type == "direct":
+        #     parameters["BidomainSolver"]["use_avg_u_constraint"] = True
+        # else:
+        #     parameters["BidomainSolver"]["use_avg_u_constraint"] = False
         solver = SplittingSolver(self.cardiac_model, parameters=parameters)
 
         vs_, vs, vur = solver.solution_fields()

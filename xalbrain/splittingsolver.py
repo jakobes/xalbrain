@@ -1,4 +1,4 @@
-"""This module contains splitting solvers for Model objects. 
+"""This module contains splitting solvers for Model objects.
 In particular, the classes
 
   * SplittingSolver
@@ -105,12 +105,17 @@ logger = logging.getLogger(__name__)
 
 class AbstractSplittingSolver(ABC):
     def __init__(
-            self,
-            model: Model,
-            ode_timestep: float = None
+        self,
+        model: Model,
+        ode_timestep: float = None,
+        parameters: df.Parameters = None
     ) -> None:
         """Create solver from given Cardiac Model and (optional) parameters."""
         assert isinstance(model, Model), "Expecting Model as first argument"
+
+        self._parameters = self.default_parameters()
+        if parameters is not None:
+            self._parameters.update(parameters)
 
         self._ode_timestep = ode_timestep
 
@@ -137,6 +142,11 @@ class AbstractSplittingSolver(ABC):
         else:
             V = self.vur.function_space()
         self.merger = df.FunctionAssigner(self.VS.sub(0), V)
+
+    @staticmethod
+    @abstractmethod
+    def default_parameters():
+        pass
 
     @abstractmethod
     def _create_ode_solver(self):
@@ -305,11 +315,11 @@ class BasicSplittingSolver(AbstractSplittingSolver):
         ode_timestep: float = None,
         parameters: df.Parameters = None
     ) -> None:
-        self._parameters = self.default_parameters()
-        if parameters is not None:
-            self._parameters.update(parameters)
+        # self._parameters = self.default_parameters()
+        # if parameters is not None:
+        #     self._parameters.update(parameters)
 
-        super().__init__(model, ode_timestep)
+        super().__init__(model, ode_timestep, parameters)
 
     def _create_ode_solver(self):
         """Helper function to initialize a suitable ODE solver from the cardiac model."""
@@ -317,9 +327,9 @@ class BasicSplittingSolver(AbstractSplittingSolver):
 
         # Extract stimulus from the cardiac model(!)
         if self._parameters["apply_stimulus_current_to_pde"]:
-            stimulus = self._model.stimulus()
-        else:
             stimulus = None
+        else:
+            stimulus = self._model.stimulus()
 
         parameters = self._parameters["BasicCardiacODESolver"]
         solver = BasicCardiacODESolver(
@@ -339,9 +349,9 @@ class BasicSplittingSolver(AbstractSplittingSolver):
         # Extract stimulus from the cardiac model if we should apply
         # it to the PDEs (in the other case, it is handled by the ODE solver)
         if self._parameters["apply_stimulus_current_to_pde"]:
-            stimulus = None
-        else:
             stimulus = self._model.stimulus()
+        else:
+            stimulus = None
 
         # Extract conductivities from the cardiac model
         Mi, Me = self._model.conductivities()
@@ -485,11 +495,11 @@ class SplittingSolver(AbstractSplittingSolver):
         ode_timestep: float = None,
         parameters: df.Parameters = None
     ) -> None:
-        self._parameters = self.default_parameters()
-        if parameters is not None:
-            self._parameters.update(parameters)
+        # self._parameters = self.default_parameters()
+        # if parameters is not None:
+        #     self._parameters.update(parameters)
 
-        super().__init__(model, ode_timestep)
+        super().__init__(model, ode_timestep, parameters)
 
     @staticmethod
     def default_parameters() -> df.Parameters:
@@ -513,10 +523,9 @@ class SplittingSolver(AbstractSplittingSolver):
             "CardiacODESolver"
         )
 
-
         # Add default parameters from ODE solver
         ode_solver_parameters = CardiacODESolver.default_parameters()
-        ode_solver_parameters["scheme"] = "BDF1"
+        ode_solver_parameters["scheme"] = "RK4"
         parameters.add(ode_solver_parameters)
 
         # Add default parameters from ODE solver
@@ -611,19 +620,13 @@ class MultiCellSplittingSolver(SplittingSolver):
     def __init__(
         self,
         model: Model,
-        valid_cell_tags: tp.Sequence[int],
         parameter_map: "ODEMap",
         ode_timestep: float = None,
         parameters: df.Parameters = None
     ) -> None:
-        self._parameters = self.default_parameters()
-        if parameters is not None:
-            self._parameters.update(parameters)
-
-        self._cell_tags = valid_cell_tags       # cell tags in cell_function checked in ode solver
         self._parameter_map = parameter_map
         self._indicator_function = model.indicator_function
-        super().__init__(model, ode_timestep)       # Must be called last
+        super().__init__(model, ode_timestep, parameters)       # Must be called last
 
     @staticmethod
     def default_parameters() -> df.Parameters:
@@ -640,8 +643,7 @@ class MultiCellSplittingSolver(SplittingSolver):
         parameters = df.Parameters("SplittingSolver")
         parameters.add("theta", 0.5, 0, 1)
         parameters.add("apply_stimulus_current_to_pde", False)
-        # parameters.add("pde_solver", "bidomain", {"bidomain", "monodomain"})
-        parameters.add("pde_solver", "bidomain")
+        parameters.add("pde_solver", "bidomain", {"bidomain", "monodomain"})
 
         # Add default parameters from ODE solver
         multicell_ode_solver_parameters = MultiCellSolver.default_parameters()
@@ -659,12 +661,13 @@ class MultiCellSplittingSolver(SplittingSolver):
         assert self._indicator_function is not None, "missing indicator function"
         cell_model = self._model.cell_models
 
+        if not self._parameters["apply_stimulus_current_to_pde"] and self._model.stimulus is not None:
+            assert False, "Multicell solver does not support stimulus"
+
         solver = MultiCellSolver(
             time=self._time,
             mesh=self._domain,
             cell_model=cell_model,
-            # cell_function=self._cell_function,
-            valid_cell_tags=self._cell_tags,
             parameter_map=self._parameter_map,
             indicator_function=self._indicator_function,
             parameters=self._parameters["MultiCellSolver"],

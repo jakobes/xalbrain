@@ -26,6 +26,7 @@ from xalbrain.cellsolver import (
     BasicCardiacODESolver,
     CardiacODESolver,
     MultiCellSolver,
+    SingleMultiCellSolver,
 )
 
 from xalbrain.bidomainsolver import (
@@ -43,5 +44,6 @@ from xalbrain.utils import (
     split_function,
     state_space,
     Projecter,
-    time_stepper
+    time_stepper,
+    import_extension_modules
 )
