@@ -69,6 +69,9 @@ def main(N, dt, T, theta=0.5):
     brain = xalbrain.Model(mesh, time, M_i, M_e, model, stimulus, indicator_function=indicator)
 
     odesolver_module = extension_modules.load_module("LatticeODESolver")
+    if odesolver_module is None:
+        raise ImportError("Could not import extension_modules")
+
     odemap = odesolver_module.ODEMap()
     odemap.add_ode(1, odesolver_module.SimpleODE())
 

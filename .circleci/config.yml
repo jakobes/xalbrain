@@ -23,6 +23,7 @@ jobs:
             sudo python3 -m pip install --upgrade pip
             sudo python3 -m pip install pytest --upgrade
             sudo python3 -m pip install pytest-xdist
+            sudo python3 -m pip install git+git://github.com/jakobes/xalode
 
       - run:
           name: Environment and FEniCS version info
