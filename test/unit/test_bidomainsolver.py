@@ -26,16 +26,14 @@ from typing import (
     Tuple,
 )
 
-from testutils import medium
-
 import sys
 
-args = sys.argv[:1] + """
-                      --petsc.bidomain_ksp_monitor_true_residual
-                      --petsc.bidomain_ksp_viewx
-                      --petsc.bidomain_ksp_type cg
-                      """.split()
-parameters.parse(args)
+# args = sys.argv[:1] + """
+#                       --petsc.bidomain_ksp_monitor_true_residual
+#                       --petsc.bidomain_ksp_viewx
+#                       --petsc.bidomain_ksp_type cg
+#                       """.split()
+# parameters.parse(args)
 
 
 def main(
@@ -85,7 +83,6 @@ def main(
     return v_error, u_error, mesh.hmin(), dt, T
 
 
-@medium
 def test_spatial_convergence() -> None:
     """Take a very small timestep, reduce mesh size, expect 2nd order convergence."""
     v_errors = []
@@ -111,7 +108,6 @@ def test_spatial_convergence() -> None:
     assert all(u > 1.99 for u in u_rates), "Failed convergence for u"
 
 
-@medium
 def test_spatial_and_temporal_convergence() -> None:
     v_errors = []
     u_errors = []

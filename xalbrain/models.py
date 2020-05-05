@@ -120,10 +120,12 @@ class Model:
         """Return the neumnn current."""
         return self._ect_current
 
+    @property
     def applied_current(self) -> tp.Any:
         "An applied current: used as a source in the elliptic bidomain equation"
         return self._applied_current
 
+    @property
     def stimulus(self) -> tp.Any:
         "A stimulus: used as a source in the parabolic bidomain equation"
         return self._stimulus

@@ -5,7 +5,7 @@ __author__ = "Marie E. Rognes (meg@simula.no), 2013"
 __all__ = ["TestSplittingSolver"]
 
 
-from testutils import assert_almost_equal, medium, parametrize
+from testutils import assert_almost_equal
 
 from xalbrain import (
     Model,
@@ -60,7 +60,6 @@ class TestSplittingSolver:
         self.ics = self.cell_model.initial_conditions()
 
 
-    @medium
     @pytest.mark.parametrize("solver_type", [
         pytest.param("direct"),
         pytest.param("iterative", marks=pytest.mark.xfail)

@@ -7,7 +7,6 @@ __author__ = "Simon W. Funke (simon@simula.no) and Jakob Schreiner, 2018"
 import pytest
 import xalbrain
 
-from testutils import medium
 from collections import OrderedDict
 
 from xalbrain import (

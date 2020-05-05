@@ -4,8 +4,6 @@ __author__ = "Marie E. Rognes (meg@simula.no), 2013"
 __all__ = ["TestSplittingSolver"]
 
 
-from testutils import fast
-
 from xalbrain import (
     Model,
     FitzHughNagumoManual,
@@ -15,7 +13,6 @@ from xalbrain import (
 import dolfin as df
 
 
-@fast
 def test_solver_with_domains() -> None:
     mesh = df.UnitCubeMesh(5, 5, 5)
     time = df.Constant(0.0)

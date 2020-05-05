@@ -329,7 +329,7 @@ class BasicSplittingSolver(AbstractSplittingSolver):
         if self._parameters["apply_stimulus_current_to_pde"]:
             stimulus = None
         else:
-            stimulus = self._model.stimulus()
+            stimulus = self._model.stimulus
 
         parameters = self._parameters["BasicCardiacODESolver"]
         solver = BasicCardiacODESolver(
@@ -343,13 +343,13 @@ class BasicSplittingSolver(AbstractSplittingSolver):
 
     def _create_pde_solver(self):
         """Helper function to initialize a suitable PDE solver from the cardiac model."""
-        applied_current = self._model.applied_current()
+        applied_current = self._model.applied_current
         ect_current =  self._model.ect_current
 
         # Extract stimulus from the cardiac model if we should apply
         # it to the PDEs (in the other case, it is handled by the ODE solver)
         if self._parameters["apply_stimulus_current_to_pde"]:
-            stimulus = self._model.stimulus()
+            stimulus = self._model.stimulus
         else:
             stimulus = None
 
@@ -552,7 +552,7 @@ class SplittingSolver(AbstractSplittingSolver):
         if self._parameters["apply_stimulus_current_to_pde"]:
             stimulus = None
         else:
-            stimulus = self._model.stimulus()
+            stimulus = self._model.stimulus
 
         Solver = eval(self._parameters["ode_solver_choice"])
         parameters = self._parameters[Solver.__name__]
@@ -572,12 +572,12 @@ class SplittingSolver(AbstractSplittingSolver):
     ]:
         """Helper function to initialize a suitable PDE solver from the cardiac model."""
         # Extract applied current from the cardiac model (stimulus invoked in the ODE step)
-        applied_current = self._model.applied_current()
+        applied_current = self._model.applied_current
         ect_current = self._model.ect_current
 
         # Extract stimulus from the cardiac model
         if self._parameters["apply_stimulus_current_to_pde"]:
-            stimulus = self._model.stimulus()
+            stimulus = self._model.stimulus
         else:
             stimulus = None
 
@@ -662,7 +662,7 @@ class MultiCellSplittingSolver(SplittingSolver):
         cell_model = self._model.cell_models
 
         if not self._parameters["apply_stimulus_current_to_pde"] and self._model.stimulus is not None:
-            assert False, "Multicell solver does not support stimulus"
+            assert False, ("Multicell solver does not support stimulus", self._model.stimulus)
 
         solver = MultiCellSolver(
             time=self._time,

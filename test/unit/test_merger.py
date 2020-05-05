@@ -5,7 +5,8 @@ Unit tests for the merger in splitting solver
 __author__ = "Marie E. Rognes (meg@simula.no), 2013"
 __all__ = ["TestMerger"]
 
-from testutils import fast, parametrize
+
+import pytest
 
 import numpy as np
 
@@ -30,8 +31,7 @@ class TestMerger:
         self.cell_model = FitzHughNagumoManual()
         self.cardiac_model = Model(self.mesh, None, 1.0, 2.0, self.cell_model)
 
-    @fast
-    @parametrize("Solver", [SplittingSolver, BasicSplittingSolver])
+    @pytest.mark.parametrize("Solver", [SplittingSolver, BasicSplittingSolver])
     def test_basic_and_optimised_splitting_solver_merge(self, Solver):
         """Test that the merger in basic and optimised splitting solver works."""
 

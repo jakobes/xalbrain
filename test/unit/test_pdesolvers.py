@@ -3,7 +3,7 @@
 __author__ = "Marie E. Rognes (meg@simula.no), 2013"
 
 
-from testutils import assert_almost_equal, assert_equal, fast
+from testutils import assert_almost_equal, assert_equal
 
 import dolfin as df
 
@@ -40,7 +40,6 @@ class TestBasicBidomainSolver:
         self.t0 = 0.0
         self.dt = 0.1
 
-    @fast
     def test_basic_solve(self) -> None:
         """Test that solver runs."""
         self.setUp()
@@ -60,7 +59,6 @@ class TestBasicBidomainSolver:
         for _, _ in solutions:
             pass
 
-    @fast
     def test_compare_solve_step(self) -> None:
         "Test that solve gives same results as single step"
         self.setUp()
@@ -108,7 +106,6 @@ class TestBasicMonodomainSolver:
         self.t0 = 0.0
         self.dt = 0.1
 
-    @fast
     def test_basic_solve(self) -> None:
         """Test that solver runs."""
         self.setUp()
@@ -125,7 +122,6 @@ class TestBasicMonodomainSolver:
         for _, _ in solver.solve(self.t0, self.t0 + 2*self.dt, self.dt):
             pass
 
-    @fast
     def test_compare_solve_step(self) -> None:
         """Test that solve gives same results as single step."""
         self.setUp()
@@ -180,7 +176,6 @@ class TestBidomainSolver:
         self.t0 = 0.0
         self.dt = 0.1
 
-    @fast
     def test_solve(self) -> None:
         """Test that solver runs."""
         self.setUp()
@@ -198,7 +193,6 @@ class TestBidomainSolver:
         for _, _ in solver.solve(self.t0, self.t0 + 2*self.dt, self.dt):
             pass
 
-    @fast
     def test_compare_with_basic_solve(self) -> None:
         """Test that direct solver gives same result as basic solver."""
         self.setUp()
@@ -245,7 +239,6 @@ class TestBidomainSolver:
         print(basic_bidomain_result)
         assert_almost_equal(bidomain_result, basic_bidomain_result, 1e-13)
 
-    @fast
     def test_compare_direct_iterative(self) -> None:
         """Test that direct and iterative solution give comparable results."""
         self.setUp()
@@ -308,7 +301,6 @@ class TestMonodomainSolver:
         self.t0 = 0.0
         self.dt = 0.1
 
-    @fast
     def test_solve(self) -> None:
         """Test that solver runs."""
         self.setUp()
@@ -318,7 +310,6 @@ class TestMonodomainSolver:
         for _, _ in solver.solve(self.t0, self.t0 + 2*self.dt, self.dt):
             pass
 
-    @fast
     def test_compare_with_basic_solve(self) -> None:
         """Test thant the optimised and non optimised solvers give the same answer."""
         self.setUp()
@@ -361,7 +352,6 @@ class TestMonodomainSolver:
             1e-13
         )
 
-    @fast
     def test_compare_direct_iterative(self) -> None:
         """Test that direct and iterative solution give comparable results."""
         self.setUp()

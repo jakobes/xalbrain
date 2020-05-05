@@ -10,6 +10,7 @@ __all__ = []
 
 # Modified by Marie E. Rognes (meg@simula.no), 2018
 
+import pytest
 import itertools
 
 import numpy as np
@@ -24,10 +25,10 @@ import dolfin as df
 
 from xalbrain.cellmodels import FitzHughNagumoManual
 
-from testutils import assert_almost_equal, parametrize
+from testutils import assert_almost_equal
 
 
-@parametrize(
+@pytest.mark.parametrize(
     ("theta", "pde_solver"),
     list(itertools.product([0.5, 1.0], ["monodomain", "bidomain"]))
 )

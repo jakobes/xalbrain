@@ -20,15 +20,6 @@ from typing import (
 
 SUPPORTED_CELL_MODELS_STR = list(map(lambda x: x.__name__, SUPPORTED_CELL_MODELS))
 
-# TODO: import these in the tests
-# Marks
-fast = pytest.mark.fast
-medium = pytest.mark.medium
-slow = pytest.mark.slow
-parametrize = pytest.mark.parametrize
-disabled = pytest.mark.disabled
-xfail = pytest.mark.xfail
-
 
 # Assertions
 def assert_almost_equal(a: Any, b: Any, tolerance: float) -> None:
