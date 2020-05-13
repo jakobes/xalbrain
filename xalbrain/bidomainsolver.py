@@ -167,38 +167,34 @@ class AbstractBidomainSolver(ABC):
         assert facet_dim == mesh_dim - 1, msg
         self._facet_domains = facet_domains
 
-        # Set the intracellular conductivity
+        # Gather all cell keys on all processes. Greatly simplifies things
         cell_keys = set(self._cell_domains.array())
-        all_cell_keys = comm.gather(cell_keys, root=0)
-        if rank == 0:
-            all_cell_keys = reduce(or_, all_cell_keys)
-            if not isinstance(M_i, dict):
-                M_i = {int(i): M_i for i in all_cell_keys}
-            else:
-                M_i_keys = set(M_i.keys())
-                msg = "Got {M_i_keys}, expected {cell_keys}.".format(
-                    M_i_keys=M_i_keys,
-                    cell_keys=all_cell_keys
-                )
-                assert M_i_keys == all_cell_keys, msg
+        all_cell_keys = comm.allgather(cell_keys)
+        all_cell_keys = reduce(or_, all_cell_keys)
 
-            if not isinstance(M_e, dict):
-                M_e = {int(i): M_e for i in all_cell_keys}
-            else:
-                M_e_keys = set(M_e.keys())
-                msg = "Got {M_e_keys}, expected {cell_keys}.".format(
-                    M_e_keys=M_e_keys,
-                    cell_keys=all_cell_keys
-                )
-                assert M_e_keys == all_cell_keys, msg
-        else:
-            M_i = None
-            M_e = None
+        # If Mi is not dict, make dict
+        if not isinstance(M_i, dict):
+            M_i = {int(i): M_i for i in all_cell_keys}
+        else:       # Check that the keys match the cell function
+            M_i_keys = set(M_i.keys())
+            msg = "Got {M_i_keys}, expected {cell_keys}.".format(
+                M_i_keys=M_i_keys,
+                cell_keys=all_cell_keys
+            )
+            assert M_i_keys == all_cell_keys, msg
 
-        self._M_i = comm.bcast(M_i, root=0)
-        self._M_e = comm.bcast(M_e, root=0)
-        assert self._M_i is not None, (M_i, rank)
-        assert self._M_e is not None, (M_e, rank)
+        # If Me is not dict, make dict
+        if not isinstance(M_e, dict):
+            M_e = {int(i): M_e for i in all_cell_keys}
+        else:       # Check that the keys match the cell function
+            M_e_keys = set(M_e.keys())
+            msg = "Got {M_e_keys}, expected {cell_keys}.".format(
+                M_e_keys=M_e_keys,
+                cell_keys=all_cell_keys
+            )
+            assert M_e_keys == all_cell_keys, msg
+        self._M_i = M_i
+        self._M_e = M_e
 
         # Store source terms
         self._I_s = I_s
