@@ -44,6 +44,10 @@ class TestBasicBidomainSolver:
         """Test that solver runs."""
         self.setUp()
 
+        ps = BasicBidomainSolver.default_parameters()
+        ps["Chi"] = 1.0
+        ps["Cm"] = 1.0
+
         # Create solver
         solver = BasicBidomainSolver(
             self.mesh,
@@ -51,7 +55,8 @@ class TestBasicBidomainSolver:
             self.M_i,
             self.M_e,
             I_s=self.stimulus,
-            I_a=self.applied_current
+            I_a=self.applied_current,
+            parameters=ps
         )
 
         # Solve
@@ -63,13 +68,18 @@ class TestBasicBidomainSolver:
         "Test that solve gives same results as single step"
         self.setUp()
 
+        ps = BasicBidomainSolver.default_parameters()
+        ps["Chi"] = 1.0
+        ps["Cm"] = 1.0
+
         solver = BasicBidomainSolver(
             self.mesh,
             self.time,
             self.M_i,
             self.M_e,
             I_s=self.stimulus,
-            I_a=self.applied_current
+            I_a=self.applied_current,
+            parameters=ps
         )
 
         v_, vs = solver.solution_fields()
@@ -180,6 +190,10 @@ class TestBidomainSolver:
         """Test that solver runs."""
         self.setUp()
 
+        ps = BidomainSolver.default_parameters()
+        ps["Chi"] = 1.0
+        ps["Cm"] = 1.0
+
         # Create solver and solve
         solver = BidomainSolver(
             self.mesh,
@@ -187,7 +201,8 @@ class TestBidomainSolver:
             self.M_i,
             self.M_e,
             I_s=self.stimulus,
-            I_a=self.applied_current
+            I_a=self.applied_current,
+            parameters=ps
         )
 
         for _, _ in solver.solve(self.t0, self.t0 + 2*self.dt, self.dt):
@@ -201,6 +216,8 @@ class TestBidomainSolver:
         parameters = BidomainSolver.default_parameters()
         parameters["linear_solver_type"] = "direct"
         parameters["use_avg_u_constraint"] = True
+        parameters["Chi"] = 1.0
+        parameters["Cm"] = 1.0
         solver = BidomainSolver(
             self.mesh,
             self.time,
@@ -219,6 +236,8 @@ class TestBidomainSolver:
         parameters = BasicBidomainSolver.default_parameters()
         parameters["linear_solver_type"] = "direct"
         parameters["use_avg_u_constraint"] = True
+        parameters["Chi"] = 1.0
+        parameters["Cm"] = 1.0
 
         # Create other solver and solve
         solver = BasicBidomainSolver(
@@ -227,7 +246,8 @@ class TestBidomainSolver:
             self.M_i,
             self.M_e,
             I_s=self.stimulus,
-            I_a=self.applied_current
+            I_a=self.applied_current,
+            parameters=parameters
         )
 
         for _, (v_, vur) in solver.solve(self.t0, self.t0 + 2*self.dt, self.dt):
@@ -247,6 +267,8 @@ class TestBidomainSolver:
         parameters = BidomainSolver.default_parameters()
         parameters["linear_solver_type"] = "direct"
         parameters["use_avg_u_constraint"] = False
+        parameters["Cm"] = 1.0
+        parameters["Chi"] = 1.0
         solver = BidomainSolver(
             self.mesh,
             self.time,
@@ -265,6 +287,8 @@ class TestBidomainSolver:
         parameters = BidomainSolver.default_parameters()
         parameters["linear_solver_type"] = "iterative"
         parameters["use_avg_u_constraint"] =  False
+        parameters["Cm"] = 1.0
+        parameters["Chi"] = 1.0
         solver = BidomainSolver(
             self.mesh,
             self.time,

@@ -71,6 +71,8 @@ class TestSplittingSolver:
         # Create basic solver
         parameters = BasicSplittingSolver.default_parameters()
         parameters["BasicBidomainSolver"]["linear_solver_type"] = solver_type
+        parameters["BasicBidomainSolver"]["Chi"] = 1.0
+        parameters["BasicBidomainSolver"]["Cm"] = 1.0
         parameters["theta"] = 0.5
         if solver_type == "direct":
             parameters["BasicBidomainSolver"]["use_avg_u_constraint"] = True
@@ -95,10 +97,8 @@ class TestSplittingSolver:
         # Create optimised solver with direct solution algorithm
         parameters = SplittingSolver.default_parameters()
         parameters["BidomainSolver"]["linear_solver_type"] = solver_type
-        # if solver_type == "direct":
-        #     parameters["BidomainSolver"]["use_avg_u_constraint"] = True
-        # else:
-        #     parameters["BidomainSolver"]["use_avg_u_constraint"] = False
+        parameters["BidomainSolver"]["Cm"] = 1.0
+        parameters["BidomainSolver"]["Chi"] = 1.0
         solver = SplittingSolver(self.cardiac_model, parameters=parameters)
 
         vs_, vs, vur = solver.solution_fields()

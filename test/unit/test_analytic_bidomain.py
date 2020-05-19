@@ -53,6 +53,8 @@ def main(
     stimulus = Expression(ac_str, t=time, degree=5)
 
     ps = solver.default_parameters()
+    ps["Chi"] = 1.0
+    ps["Cm"] = 1.0
     _solver = solver(mesh, time, 1.0, 1.0, stimulus, parameters=ps)
 
     # Define exact solution (Note: v is returned at end of time

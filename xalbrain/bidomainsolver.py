@@ -129,7 +129,7 @@ class AbstractBidomainSolver(ABC):
         if parameters is not None:
             self._parameters.update(parameters)
 
-        if self._parameters["Chi"] is None or self._parameters["Cm"] is None:
+        if self._parameters["Chi"] == -1 or self._parameters["Cm"] == -1:
             raise ValueError("Need Chi and Cm to be specified explicitly throug the parameters.")
 
         # Set-up function spaces
@@ -402,8 +402,8 @@ class BasicBidomainSolver(AbstractBidomainSolver):
         parameters.add("algorithm", "gmres")
         parameters.add("preconditioner", "petsc_amg")
 
-        parameters.add("Chi", None)        # Membrane to volume ratio
-        parameters.add("Cm", None)         # Membrane capacitance
+        parameters.add("Chi", -1.0)        # Membrane to volume ratio
+        parameters.add("Cm", -1.0)         # Membrane capacitance
         return parameters
 
 
@@ -431,6 +431,10 @@ class BidomainSolver(AbstractBidomainSolver):
             solver.set_operator(self._lhs_matrix)
 
             solver.parameters["nonzero_initial_guess"] = True
+
+            # Important!
+            A = df.as_backend_type(self._lhs_matrix)
+            A.set_nullspace(self.nullspace)
         else:
             df.error("Unknown linear_solver_type given: {}".format(solver_type))
 
@@ -461,8 +465,8 @@ class BidomainSolver(AbstractBidomainSolver):
         parameters.add("polynomial_degree", 1)
 
         # Physical parameters
-        parameters.add("Chi", 1.0)        # Membrane to volume ratio
-        parameters.add("Cm", 1.0)         # Membrane capacitance
+        parameters.add("Chi", -1.0)        # Membrane to volume ratio
+        parameters.add("Cm", -1.0)         # Membrane capacitance
 
         # Set default solver type to be iterative
         parameters.add("linear_solver_type", "iterative")

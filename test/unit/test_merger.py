@@ -36,7 +36,14 @@ class TestMerger:
         """Test that the merger in basic and optimised splitting solver works."""
 
         # Create basic solver
-        solver = Solver(self.cardiac_model)
+        ps = Solver.default_parameters()
+        if Solver is SplittingSolver:
+            ps["BidomainSolver"]["Chi"] = 1.0
+            ps["BidomainSolver"]["Cm"] = 1.0
+        else:
+            ps["BasicBidomainSolver"]["Chi"] = 1.0
+            ps["BasicBidomainSolver"]["Cm"] = 1.0
+        solver = Solver(self.cardiac_model, parameters=ps)
 
         vs_, vs, vur = solver.solution_fields()
 

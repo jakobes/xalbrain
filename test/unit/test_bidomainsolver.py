@@ -56,6 +56,8 @@ def main(
     parameters["theta"] = theta
     parameters["linear_solver_type"] = "direct"
     parameters["use_avg_u_constraint"] = True
+    parameters["Chi"] = 1.0
+    parameters["Cm"] = 1.0
     solver = BidomainSolver(mesh, time, M_i, M_e, I_s=stimulus, parameters=parameters)
 
     # Define exact solution (Note: v is returned at end of time

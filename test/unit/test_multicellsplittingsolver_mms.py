@@ -56,6 +56,8 @@ def main(N, dt, T, theta=0.5):
     ps["theta"] = theta
     ps["BidomainSolver"]["linear_solver_type"] = "direct"
     ps["BidomainSolver"]["use_avg_u_constraint"] = True
+    ps["BidomainSolver"]["Chi"] = 1.0
+    ps["BidomainSolver"]["Cm"] = 1.0
     ps["apply_stimulus_current_to_pde"] = True
 
     stimulus = df.Expression(ac_str, t=time, dt=dt, degree=5)

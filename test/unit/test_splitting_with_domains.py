@@ -46,6 +46,8 @@ def test_solver_with_domains() -> None:
     # Create basic solver
     parameters = SplittingSolver.default_parameters()
     parameters["ode_solver_choice"] = "BasicCardiacODESolver"
+    parameters["BidomainSolver"]["Chi"] = 1.0
+    parameters["BidomainSolver"]["Cm"] = 1.0
     solver = SplittingSolver(cardiac_model, parameters=parameters)
 
     vs_, vs, vur = solver.solution_fields()

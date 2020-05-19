@@ -62,6 +62,8 @@ def test_ode_pde(theta, pde_solver) -> None:
     ps["pde_solver"] = pde_solver
     ps["theta"] = float(theta)
     ps["CardiacODESolver"]["scheme"] = "RK4"
+    ps["BidomainSolver"]["Chi"] = 1.0
+    ps["BidomainSolver"]["Cm"] = 1.0
     solver = SplittingSolver(brain, parameters=ps)
 
     pde_vs_, pde_vs, vur = solver.solution_fields()

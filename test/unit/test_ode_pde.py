@@ -42,6 +42,8 @@ def test_ode_pde():
     ps["pde_solver"] = "bidomain"
     ps["theta"] = 0.5
     ps["CardiacODESolver"]["scheme"] = "GRL1"
+    ps["BidomainSolver"]["Chi"] = 1.0
+    ps["BidomainSolver"]["Cm"] = 1.0
     ps["apply_stimulus_current_to_pde"] = False
     solver = SplittingSolver(brain, parameters=ps)
 
