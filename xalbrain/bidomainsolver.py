@@ -129,6 +129,9 @@ class AbstractBidomainSolver(ABC):
         if parameters is not None:
             self._parameters.update(parameters)
 
+        if self._parameters["Chi"] is None or self._parameters["Cm"] is None:
+            raise ValueError("Need Chi and Cm to be specified explicitly throug the parameters.")
+
         # Set-up function spaces
         k = self._parameters["polynomial_degree"]
         Ve = df.FiniteElement("CG", self._mesh.ufl_cell(), k)
@@ -399,8 +402,8 @@ class BasicBidomainSolver(AbstractBidomainSolver):
         parameters.add("algorithm", "gmres")
         parameters.add("preconditioner", "petsc_amg")
 
-        parameters.add("Chi", 1.0)        # Membrane to volume ratio
-        parameters.add("Cm", 1.0)         # Membrane capacitance
+        parameters.add("Chi", None)        # Membrane to volume ratio
+        parameters.add("Cm", None)         # Membrane capacitance
         return parameters
 
 
@@ -428,11 +431,6 @@ class BidomainSolver(AbstractBidomainSolver):
             solver.set_operator(self._lhs_matrix)
 
             solver.parameters["nonzero_initial_guess"] = True
-
-            # Set nullspace if present. We happen to know that the transpose nullspace is the same
-            # as the nullspace (easy to prove from matrix structure).
-            A = df.as_backend_type(self._lhs_matrix)
-            A.set_nullspace(self.nullspace)
         else:
             df.error("Unknown linear_solver_type given: {}".format(solver_type))
 
@@ -582,8 +580,6 @@ class BidomainSolver(AbstractBidomainSolver):
         # Apply BCs
         for bc in self._bcs:
             bc.apply(self._lhs_matrix, self._rhs_vector)
-
-
 
         extracellular_indices = np.arange(0, self._rhs_vector.local_size(), 2)
         rhs_norm = self._rhs_vector.get_local()[extracellular_indices].sum()
