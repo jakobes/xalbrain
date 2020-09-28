@@ -358,7 +358,8 @@ class BasicBidomainSolver(AbstractBidomainSolver):
             if self._I_s is None:
                 G -= chi*df.Constant(0)*w*dz(key)
             else:
-                G -= chi*self._I_s*w*dz(key)
+                _is = self._I_s.get(key, df.Constant(0))
+                G -= chi*_is*w*dz(key)
 
             # If Lagrangian multiplier
             if self._parameters["linear_solver_type"] == "direct":
@@ -366,7 +367,7 @@ class BasicBidomainSolver(AbstractBidomainSolver):
 
             # Add applied current as source in elliptic equation if applicable
             if self._I_a:
-                G -= chi*self._I_a*q*dz(key)
+                G -= chi*self._I_a[key]*q*dz(key)
 
         if self._ect_current is not None:
             for key in facet_tags:
@@ -529,7 +530,8 @@ class BidomainSolver(AbstractBidomainSolver):
             if  self._I_s is None:
                 G -= chi*df.Constant(0)*w*dz(key)
             else:
-                G -= chi*self._I_s*w*dz(key)
+                _is = self._I_s.get(key, df.Constant(0))
+                G -= chi*_is*w*dz(key)
 
             # If Lagrangian multiplier
             if self._parameters["linear_solver_type"] == "direct":
@@ -588,7 +590,6 @@ class BidomainSolver(AbstractBidomainSolver):
         extracellular_indices = np.arange(0, self._rhs_vector.local_size(), 2)
         rhs_norm = self._rhs_vector.get_local()[extracellular_indices].sum()
         rhs_norm /= extracellular_indices.size
-        # rhs_norm = self._rhs_vector.array()[extracellular_indices].sum()/extracellular_indices.size
         self._rhs_vector.get_local()[extracellular_indices] -= rhs_norm
 
         # Solve problem
