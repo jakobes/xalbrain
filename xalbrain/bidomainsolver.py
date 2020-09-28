@@ -200,7 +200,12 @@ class AbstractBidomainSolver(ABC):
         self._M_e = M_e
 
         # Store source terms
+        if I_s is not None and not isinstance(I_s, dict):
+            I_s = {key: I_s for key in all_cell_keys}
         self._I_s = I_s
+
+        if I_a is not None and not isinstance(I_a, dict):
+            I_a = {key: I_a for key in all_cell_keys}
         self._I_a = I_a
 
         # Set the ECT current, Note, it myst depend on `time` to be updated
@@ -358,8 +363,9 @@ class BasicBidomainSolver(AbstractBidomainSolver):
             if self._I_s is None:
                 G -= chi*df.Constant(0)*w*dz(key)
             else:
-                _is = self._I_s.get(key, df.Constant(0))
-                G -= chi*_is*w*dz(key)
+                # _is = self._I_s.get(key, df.Constant(0))
+                # G -= chi*_is*w*dz(key)
+                G -= chi*self._I_s[key]*w*dz(key)
 
             # If Lagrangian multiplier
             if self._parameters["linear_solver_type"] == "direct":
@@ -538,7 +544,7 @@ class BidomainSolver(AbstractBidomainSolver):
                 G += (lamda*u + l*q)*dz(key)
 
             if self._I_a:
-                G -= chi*self._I_a*q*dz(key)
+                G -= chi*self._I_a[key]*q*dz(key)
 
         for key in facet_tags:
             if self._ect_current is not None:
