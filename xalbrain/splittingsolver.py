@@ -322,7 +322,7 @@ class BasicSplittingSolver(AbstractSplittingSolver):
         # if parameters is not None:
         #     self._parameters.update(parameters)
 
-        super().__init__(model, ode_timestep, parameters)
+        super().__init__(model, ode_timestep, periodic_domain=False, parameters=parameters)
 
     def _create_ode_solver(self):
         """Helper function to initialize a suitable ODE solver from the cardiac model."""
