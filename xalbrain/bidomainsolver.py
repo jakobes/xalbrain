@@ -611,8 +611,6 @@ class BidomainSolver(AbstractBidomainSolver):
         rhs_norm /= extracellular_indices.size
         self._rhs_vector.get_local()[extracellular_indices] -= rhs_norm
 
-        logger.info(f" ----> {self._rhs_vector.size()}")
-
         # Solve problem
         self.linear_solver.solve(
             self.vur.vector(),
