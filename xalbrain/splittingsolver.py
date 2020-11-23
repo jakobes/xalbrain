@@ -108,10 +108,13 @@ class AbstractSplittingSolver(ABC):
         self,
         model: Model,
         ode_timestep: float = None,
+        periodic_domain: df.SubDomain = None,
         parameters: df.Parameters = None
     ) -> None:
         """Create solver from given Cardiac Model and (optional) parameters."""
         assert isinstance(model, Model), "Expecting Model as first argument"
+
+        self.periodic_domain = periodic_domain
 
         self._parameters = self.default_parameters()
         if parameters is not None:
@@ -493,13 +496,14 @@ class SplittingSolver(AbstractSplittingSolver):
         self,
         model: Model,
         ode_timestep: float = None,
+        periodic_domain: df.SubDomain = None,
         parameters: df.Parameters = None
     ) -> None:
         # self._parameters = self.default_parameters()
         # if parameters is not None:
         #     self._parameters.update(parameters)
 
-        super().__init__(model, ode_timestep, parameters)
+        super().__init__(model, ode_timestep, periodic_domain, parameters)
 
     @staticmethod
     def default_parameters() -> df.Parameters:
@@ -598,6 +602,7 @@ class SplittingSolver(AbstractSplittingSolver):
                 facet_domains = self._model.facet_domains,
                 dirichlet_bc = self._model.dirichlet_bc_u,        # dirichlet_bc
                 dirichlet_bc_v = self._model.dirichlet_bc_v,        # dirichlet_bc
+                periodic_domain = self.periodic_domain,
                 parameters = parameters
             )
         else:
@@ -622,11 +627,12 @@ class MultiCellSplittingSolver(SplittingSolver):
         model: Model,
         parameter_map: "ODEMap",
         ode_timestep: float = None,
+        periodic_domain: df.SubDomain = None,
         parameters: df.Parameters = None
     ) -> None:
         self._parameter_map = parameter_map
         self._indicator_function = model.indicator_function
-        super().__init__(model, ode_timestep, parameters)       # Must be called last
+        super().__init__(model, ode_timestep, periodic_domain, parameters)       # Must be called last
 
     @staticmethod
     def default_parameters() -> df.Parameters:
@@ -670,6 +676,7 @@ class MultiCellSplittingSolver(SplittingSolver):
             cell_model=cell_model,
             parameter_map=self._parameter_map,
             indicator_function=self._indicator_function,
+            periodic_domain=self.periodic_domain,
             parameters=self._parameters["MultiCellSolver"],
         )
         return solver

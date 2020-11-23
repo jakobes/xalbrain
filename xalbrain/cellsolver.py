@@ -55,9 +55,13 @@ class AbstractCellSolver(ABC):
         mesh: df.mesh,
         time: df.Constant,
         cell_model: CellModel,
+        periodic_domain: df.SubDomain = None,
         parameters: df.Parameters = None
     ):
-        """Store common parameters for all cell solvers."""
+        """Store common parameters for all cell solvers.
+
+        NB! The periodic domain has to be set in the pde solver too.
+        """
         # Initialize and update parameters if given
         self._parameters = self.default_parameters()
         if parameters is not None:
@@ -79,7 +83,13 @@ class AbstractCellSolver(ABC):
         self._num_states = self._cell_model.num_states()
 
         # Create (vector) function space for potential + states
-        self.VS = df.VectorFunctionSpace(self._mesh, "CG", 1, dim=self._num_states + 1)
+        self.VS = df.VectorFunctionSpace(
+            self._mesh,
+            "CG",
+            1,
+            dim=self._num_states + 1,
+            constrained_domain=periodic_domain
+        )
 
         # Initialize solution fields
         self.vs_ = df.Function(self.VS, name="vs_")
@@ -456,10 +466,17 @@ class MultiCellSolver(AbstractCellSolver):
         cell_model: CellModel,
         parameter_map: "ODEMap",
         indicator_function: df.Function,
+        periodic_domain: df.SubDomain = None,
         parameters: df.parameters = None,
     ) -> None:
         """Initialise parameters. NB! Keep I_s for compatibility."""
-        super().__init__(mesh=mesh, time=time, cell_model=cell_model, parameters=parameters)
+        super().__init__(
+            mesh=mesh,
+            time=time,
+            cell_model=cell_model,
+            periodic_domain=periodic_domain,
+            parameters=parameters
+        )
 
         comm = df.MPI.comm_world
         rank = df.MPI.rank(comm)

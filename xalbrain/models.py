@@ -176,3 +176,7 @@ class Model:
     def indicator_function(self) -> df.Function:
         """Return indicator function."""
         return self._indicator_functionn
+
+    @indicator_function.setter
+    def indicator_function(self, indicator_function: df.Function) -> None:
+        self._indicator_functionn = indicator_function

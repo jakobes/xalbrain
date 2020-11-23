@@ -40,6 +40,13 @@ from functools import reduce
 
 from abc import ABC
 
+import logging
+import os
+
+
+logging.basicConfig(level=os.environ.get("LOGLEVEL", "INFO"))
+logger = logging.getLogger(__name__)
+
 
 class AbstractBidomainSolver(ABC):
     r"""
@@ -88,22 +95,26 @@ class AbstractBidomainSolver(ABC):
     """
 
     def __init__(
-            self,
-            mesh: df.Mesh,
-            time: df.Constant,
-            M_i: tp.Union[df.Expression, tp.Dict[int, df.Expression]],
-            M_e: tp.Union[df.Expression, tp.Dict[int, df.Expression]],
-            I_s: tp.Union[df.Expression, tp.Dict[int, df.Expression]] = None,
-            I_a: tp.Union[df.Expression, tp.Dict[int, df.Expression]] = None,
-            ect_current: tp.Dict[int, df.Expression] = None,
-            v_: df.Function = None,
-            cell_domains: df.MeshFunction = None,
-            facet_domains: df.MeshFunction = None,
-            dirichlet_bc: tp.List[tp.Tuple[df.Expression, int]] = None,
-            dirichlet_bc_v: tp.List[tp.Tuple[df.Expression, int]] = None,
-            parameters: df.Parameters = None
+        self,
+        mesh: df.Mesh,
+        time: df.Constant,
+        M_i: tp.Union[df.Expression, tp.Dict[int, df.Expression]],
+        M_e: tp.Union[df.Expression, tp.Dict[int, df.Expression]],
+        I_s: tp.Union[df.Expression, tp.Dict[int, df.Expression]] = None,
+        I_a: tp.Union[df.Expression, tp.Dict[int, df.Expression]] = None,
+        ect_current: tp.Dict[int, df.Expression] = None,
+        v_: df.Function = None,
+        cell_domains: df.MeshFunction = None,
+        facet_domains: df.MeshFunction = None,
+        dirichlet_bc: tp.List[tp.Tuple[df.Expression, int]] = None,
+        dirichlet_bc_v: tp.List[tp.Tuple[df.Expression, int]] = None,
+        periodic_domain: df.SubDomain = None,
+        parameters: df.Parameters = None
     ) -> None:
-        """Initialise solverand check all parametersare correct."""
+        """Initialise solverand check all parametersare correct.
+
+        NB! The periodic domain has to be set in the cellsolver too.
+        """
         self._timestep = None
 
         comm = df.MPI.comm_world
@@ -135,14 +146,16 @@ class AbstractBidomainSolver(ABC):
         # Set-up function spaces
         k = self._parameters["polynomial_degree"]
         Ve = df.FiniteElement("CG", self._mesh.ufl_cell(), k)
-        V = df.FunctionSpace(self._mesh, "CG", k)
+        V = df.FunctionSpace(self._mesh, "CG", k, constrained_domain=periodic_domain)
         Ue = df.FiniteElement("CG", self._mesh.ufl_cell(), k)
 
         if self._parameters["linear_solver_type"] == "direct":
             Re = df.FiniteElement("R", self._mesh.ufl_cell(), 0)
-            self.VUR = df.FunctionSpace(mesh, df.MixedElement((Ve, Ue, Re)))
+            _element = df.MixedElement((Ve, Ue, Re))
+            self.VUR = df.FunctionSpace(mesh, _element, constrained_domain=periodic_domain)
         else:
-            self.VUR = df.FunctionSpace(mesh, df.MixedElement((Ve, Ue)))
+            _element = df.MixedElement((Ve, Ue))
+            self.VUR = df.FunctionSpace(mesh, _element, constrained_domain=periodic_domain)
 
         self.V = V
 
@@ -597,6 +610,8 @@ class BidomainSolver(AbstractBidomainSolver):
         rhs_norm = self._rhs_vector.get_local()[extracellular_indices].sum()
         rhs_norm /= extracellular_indices.size
         self._rhs_vector.get_local()[extracellular_indices] -= rhs_norm
+
+        logger.info(f" ----> {self._rhs_vector.size()}")
 
         # Solve problem
         self.linear_solver.solve(
