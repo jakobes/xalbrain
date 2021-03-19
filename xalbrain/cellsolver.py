@@ -492,7 +492,8 @@ class MultiCellSolver(AbstractCellSolver):
         indicator_tags = df.MPI.comm_world.bcast(indicator_tags, root=0)
         ode_tags = set(parameter_map.get_tags())
         assert ode_tags <= indicator_tags, "Parameter map tags does not match indicator_function"
-        self._indicator_function = indicator_function
+        # self._indicator_function = indicator_function
+        self._indicator_function.vector()[:] = np.rint(indicator_function.vector().get_local())
 
         from extension_modules import load_module
 
@@ -526,8 +527,6 @@ class MultiCellSolver(AbstractCellSolver):
         comm = df.MPI.comm_world
         rank = df.MPI.rank(comm)
 
-        self._indicator_function.vector()[:] = np.rint(self._indicator_function.vector().get_local())
-        # assert False, np.unique(self._indicator_function.vector().get_local())
         logger.debug("MultiCell ode solver step")
         self.ode_solver.solve(self.vs_.vector(), t0, t1, dt, self._indicator_function.vector())
 
