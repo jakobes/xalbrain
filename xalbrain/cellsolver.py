@@ -491,7 +491,7 @@ class MultiCellSolver(AbstractCellSolver):
 
         indicator_tags = df.MPI.comm_world.bcast(indicator_tags, root=0)
         ode_tags = set(parameter_map.get_tags())
-        assert ode_tags <= indicator_tags, "Parameter map tags does not match indicator_function: {ode_tags - indicator_tags}"
+        assert ode_tags <= indicator_tags, f"Parameter map tags does not match indicator_function: {ode_tags - indicator_tags}"
 
         # self._indicator_function = indicator_function
         self._indicator_function = indicator_function
