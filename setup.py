@@ -40,7 +40,7 @@ setup(
     packages = ["xalbrain", "xalbrain.cellmodels",],
     package_dir = {"xalbrain": "xalbrain"},
     install_requires=[
-        "codecov==2.0.9",
+        "codecov==2.0.16",
         "pytest",
         "pytest-xdist",
         "tqdm",
